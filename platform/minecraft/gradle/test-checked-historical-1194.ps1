@@ -19,10 +19,10 @@ if (Test-Path -LiteralPath $evidence) { throw 'Unexpected test scratch collision
 New-Item -ItemType Directory -Path $evidence | Out-Null
 Write-Output "SFM test scratch: $evidence"
 foreach ($path in @($fixture,$testInit,$receipt)) { if (Test-Path -LiteralPath $path) { throw "Fixture/evidence collision: $path" } }
-if ((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash -cne '641975CF7C079A06C013571A53298FCA7A301A2195BE57D2D3388D7FC5DA34C3') { throw 'Published manifest changed' }
+if ((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash -cne 'F7CE3E9F0EBEEA5E716A4AF91BFF335DDB864688533C75EC768DF3F0D0EE5062') { throw 'Published manifest changed' }
 $expectedInit = (Get-FileHash -LiteralPath $productionInit -Algorithm SHA256).Hash
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ($manifest.files.Count -ne 53) { throw 'Published selection changed' }
+if ($manifest.files.Count -ne 82) { throw 'Published selection changed' }
 $active = @(Get-Process -Name java,javaw,cargo,rustc,sfm-propagate-changes -ErrorAction SilentlyContinue)
 if ($active.Count) { throw 'Task-capable process active; inspect ownership before Gradle tests' }
 $fixtureDrive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($evidence))
@@ -69,13 +69,27 @@ try {
     $replacement = "def logicalCache = new File('$($fixture.Replace('\','/'))').toPath()"
     $testSource = $sourceInit.Replace($needle,$replacement)
     [IO.File]::WriteAllText($testInit,$testSource,[Text.UTF8Encoding]::new($false))
-    Invoke-Case 'positive-fixture' $testInit $project 'SFM_CHECKED_HISTORICAL_1194 modules=8 direct=14 minecraft=23' $true
+    Invoke-Case 'positive-fixture' $testInit $project 'SFM_CHECKED_HISTORICAL_1194 modules=8 direct=15 minecraft=30' $true
     $snapshotFixture = Join-Path (Join-Path $fixture 'minecraft-toolchain') $manifest.historical_version_snapshot.path
     $snapshotBytes = [IO.File]::ReadAllBytes($snapshotFixture)
     $snapshotBytes[0] = $snapshotBytes[0] -bxor 1
     [IO.File]::WriteAllBytes($snapshotFixture, $snapshotBytes)
     Invoke-Case 'version-snapshot-hash-mismatch' $testInit $project 'SFM historical version snapshot differs' $false
     Copy-Checked $manifest.historical_version_snapshot.path
+    $native = $manifest.files | Where-Object { $_.metadata_name -eq 'org.lwjgl:lwjgl-glfw:3.3.1:natives-windows' } | Select-Object -First 1
+    $nativeFixture = Join-Path (Join-Path $fixture 'minecraft-toolchain') $native.path
+    $nativeBytes = [IO.File]::ReadAllBytes($nativeFixture)
+    $nativeBytes[0] = $nativeBytes[0] -bxor 1
+    [IO.File]::WriteAllBytes($nativeFixture, $nativeBytes)
+    Invoke-Case 'native-hash-mismatch' $testInit $project 'SFM checked payload differs' $false
+    Copy-Checked $native.path
+    $annotation = $manifest.files | Where-Object { $_.pin_domain -eq 'tracked-bootstrap-supplement-sha256' } | Select-Object -First 1
+    $annotationFixture = Join-Path (Join-Path $fixture 'minecraft-toolchain') $annotation.path
+    $annotationBytes = [IO.File]::ReadAllBytes($annotationFixture)
+    $annotationBytes[0] = $annotationBytes[0] -bxor 1
+    [IO.File]::WriteAllBytes($annotationFixture, $annotationBytes)
+    Invoke-Case 'annotation-hash-mismatch' $testInit $project 'SFM checked payload differs' $false
+    Copy-Checked $annotation.path
     $selected = $manifest.files | Where-Object { $_.coordinate -eq 'net.minecraftforge:javafmllanguage:1.19.4-45.0.9' -and $_.kind -eq 'jar' } | Select-Object -First 1
     $mutant = Join-Path (Join-Path $fixture 'minecraft-toolchain') $selected.path
     $bytes = [IO.File]::ReadAllBytes($mutant); $bytes[0] = $bytes[0] -bxor 1; [IO.File]::WriteAllBytes($mutant,$bytes)
@@ -105,9 +119,9 @@ try {
         Remove-Item -LiteralPath $verified -Recurse -Force -ErrorAction Stop
     }
 }
-$record = [ordered]@{schema='sfm:historical_1194_checked_route_negative_tests@1';head=$head;production_init_sha256=$expectedInit;manifest_sha256=(Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash;fixture_copied_files=54;results=@($results);fixture_removed=!(Test-Path -LiteralPath $fixture)}
+$record = [ordered]@{schema='sfm:historical_1194_checked_route_negative_tests@1';head=$head;production_init_sha256=$expectedInit;manifest_sha256=(Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash;fixture_copied_files=83;results=@($results);fixture_removed=!(Test-Path -LiteralPath $fixture)}
 [IO.File]::WriteAllText($receipt,(ConvertTo-Json $record -Depth 7)+"`n",[Text.UTF8Encoding]::new($false))
-if ($results.Count -ne 7 -or @($results | Where-Object { !$_.accepted }).Count -ne 0) { exit 1 }
+if ($results.Count -ne 9 -or @($results | Where-Object { !$_.accepted }).Count -ne 0) { exit 1 }
 $verifiedRun = [IO.Path]::GetFullPath($evidence)
 $tempBoundary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 if (!$verifiedRun.StartsWith($tempBoundary,[StringComparison]::OrdinalIgnoreCase) -or
@@ -115,4 +129,4 @@ if (!$verifiedRun.StartsWith($tempBoundary,[StringComparison]::OrdinalIgnoreCase
     throw "Refusing to remove unexpected test scratch: $verifiedRun"
 }
 Remove-Item -LiteralPath $verifiedRun -Recurse -Force
-Write-Output 'Seven checked historical Gradle route cases passed; owned fixture removed.'
+Write-Output 'Nine checked historical Gradle route cases passed; owned fixture removed.'

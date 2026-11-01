@@ -4,7 +4,7 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
 import java.security.MessageDigest
 
-def expectedManifestSha256 = '641975CF7C079A06C013571A53298FCA7A301A2195BE57D2D3388D7FC5DA34C3'
+def expectedManifestSha256 = 'F7CE3E9F0EBEEA5E716A4AF91BFF335DDB864688533C75EC768DF3F0D0EE5062'
 def sha256 = { File file ->
     if (!file.isFile()) throw new GradleException("Missing SFM checked input: ${file}")
     def digest = MessageDigest.getInstance('SHA-256')
@@ -45,7 +45,7 @@ gradle.beforeProject { project ->
     def manifest = new JsonSlurper().parse(manifestFile)
     if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.19.4'
             || manifest.original_checked_jar_count != 37 || manifest.official_module_count != 8
-            || manifest.files.size() != 53) {
+            || manifest.files.size() != 82) {
         throw new GradleException('SFM historical checked manifest selection changed')
     }
     def lock = projection.resolve('sfm-toolchain.lock.json').toFile()
@@ -73,10 +73,29 @@ gradle.beforeProject { project ->
     if (!snapshotFile.toPath().startsWith(physicalRoot) || sha256(snapshotFile) != snapshot.sha256) {
         throw new GradleException('SFM historical version snapshot differs')
     }
+    def snapshotLibraries = new JsonSlurper().parse(snapshotFile).libraries
+    def supplement = manifest.tracked_bootstrap_supplement
+    if (supplement.path != 'platform/minecraft/core-liquid-template/build/supplements/gradle-plugin-bootstrap-26.1.2.json'
+            || supplement.sha256 != 'CC4F775CE334809EE0D635380E123ED30371544BEB4FC0B903E663F463DF1312') {
+        throw new GradleException('SFM tracked bootstrap supplement selection changed')
+    }
+    def supplementFile = checkout.resolve(supplement.path).toFile().canonicalFile
+    if (!supplementFile.toPath().startsWith(checkout) || sha256(supplementFile) != supplement.sha256) {
+        throw new GradleException('SFM tracked bootstrap supplement differs')
+    }
+    def annotationPins = new JsonSlurper().parse(supplementFile).artifacts.findAll {
+        it.coordinate == 'org.jetbrains:annotations:23.0.0' && it.file == 'annotations-23.0.0.jar'
+    }
+    if (annotationPins.size() != 1 || annotationPins[0].repository != 'maven-central') {
+        throw new GradleException('SFM tracked annotation pin is unavailable')
+    }
+    def annotationPin = annotationPins[0]
     def seenPaths = new HashSet<String>()
     def directMaven = new LinkedHashSet<String>()
     def minecraftLibraries = new LinkedHashSet<String>()
     def published = new LinkedHashMap<String, Set<String>>()
+    def checkedLwjgl = new LinkedHashMap<String, Map>()
+    def checkedCompilerFiles = new LinkedHashMap<String, Map>()
     manifest.files.each { entry ->
         def parts = entry.coordinate?.toString()?.split(':', -1)
         def kind = entry.kind?.toString()
@@ -114,15 +133,39 @@ gradle.beforeProject { project ->
                 throw new GradleException("Invalid SFM published module provenance: ${entry.coordinate}")
             }
             published.computeIfAbsent(entry.coordinate.toString()) { new HashSet<String>() }.add(kind)
+        } else if (entry.pin_domain == 'tracked-bootstrap-supplement-sha256') {
+            if (kind != 'jar' || entry.coordinate != annotationPin.coordinate
+                    || relative != 'maven/' + annotationPin.path
+                    || entry.bytes != annotationPin.bytes
+                    || entry.sha256 != annotationPin.sha256.toUpperCase(Locale.ROOT)
+                    || entry.upstream_url != annotationPin.url) {
+                throw new GradleException('SFM checked annotation differs from tracked bootstrap pin')
+            }
+            directMaven.add(entry.coordinate.toString())
+            checkedCompilerFiles[file.name] = [bytes: entry.bytes, sha256: entry.sha256]
         } else if (entry.pin_domain in ['selected-lock-blake3', 'pinned-version-metadata-sha1']) {
             if (kind != 'jar') throw new GradleException('Historical direct input is not a JAR')
+            if (entry.metadata_name != null) {
+                def matching = snapshotLibraries.findAll { it.name == entry.metadata_name }
+                def download = matching.size() == 1 ? matching[0].downloads?.artifact : null
+                if (!entry.metadata_name.toString().startsWith('org.lwjgl:')
+                        || entry.coordinate != entry.metadata_name.toString().split(':', -1).take(3).join(':')
+                        || download == null || relative != 'minecraft/libraries/' + download.path
+                        || entry.bytes != download.size || entry.metadata_sha1 != download.sha1
+                        || entry.upstream_url != download.url) {
+                    throw new GradleException('SFM checked LWJGL metadata identity differs')
+                }
+                checkedLwjgl[entry.metadata_name.toString()] = [bytes: entry.bytes, sha256: entry.sha256]
+                checkedCompilerFiles[file.name] = [bytes: entry.bytes, sha256: entry.sha256]
+            }
             (relative.startsWith('maven/') ? directMaven : minecraftLibraries)
                     .add(entry.coordinate.toString())
         } else {
             throw new GradleException("Unknown SFM checked pin domain: ${entry.pin_domain}")
         }
     }
-    if (seenPaths.size() != 53 || directMaven.size() != 14 || minecraftLibraries.size() != 23
+    if (seenPaths.size() != 82 || directMaven.size() != 15 || minecraftLibraries.size() != 30
+            || checkedLwjgl.size() != 28 || checkedCompilerFiles.size() != 29
             || published.size() != 8 || published.values().any { it != (['jar', 'pom'] as Set) }
             || (directMaven + minecraftLibraries).intersect(published.keySet())) {
         throw new GradleException('SFM checked module closure is incomplete or overlapping')
@@ -157,5 +200,23 @@ gradle.beforeProject { project ->
             filter { addExact(delegate, pair[1]) }
         }
     }
-    println 'SFM_CHECKED_HISTORICAL_1194 modules=8 direct=14 minecraft=23'
+    gradle.taskGraph.whenReady { graph ->
+        def compileTask = project.tasks.findByName('compileJava')
+        if (compileTask != null && graph.hasTask(compileTask)) {
+            def classpath = compileTask.classpath.files
+            checkedCompilerFiles.each { name, expected ->
+                def matches = classpath.findAll { it.name == name }
+                if (matches.size() != 1 || matches[0].length() != expected.bytes
+                        || sha256(matches[0]) != expected.sha256) {
+                    throw new GradleException("SFM checked compiler input differs: ${name}")
+                }
+            }
+            if (classpath.any { it.name ==~ /lwjgl(?:-[a-z]+)?-3\.3\.1(?:-.+)?\.jar/
+                    && !checkedCompilerFiles.containsKey(it.name) }) {
+                throw new GradleException('SFM compiler selected an undeclared LWJGL input')
+            }
+            println 'SFM_CHECKED_COMPILER_INPUTS lwjgl=28 annotations=1'
+        }
+    }
+    println 'SFM_CHECKED_HISTORICAL_1194 modules=8 direct=15 minecraft=30'
 }
