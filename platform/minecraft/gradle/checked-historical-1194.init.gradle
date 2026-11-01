@@ -1,6 +1,7 @@
 // Opt-in, repository-owned historical Gradle route. The released project and
 // schema-2 lock remain byte-identical. Gradle needs no Rust installation.
 import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 import java.security.MessageDigest
 
 def expectedManifestSha256 = '641975CF7C079A06C013571A53298FCA7A301A2195BE57D2D3388D7FC5DA34C3'
@@ -52,8 +53,14 @@ gradle.beforeProject { project ->
         throw new GradleException('SFM historical lock identity changed')
     }
     def logicalCache = checkout.resolve('sfm-toolchain-data')
-    if (!logicalCache.resolve('.sfm-native-cache-root.json').toFile().isFile()) {
-        throw new GradleException('SFM repository cache ownership marker is missing')
+    def markerFile = logicalCache.resolve('.sfm-native-cache-root.json').toFile()
+    if (!markerFile.isFile() || markerFile.length() > 65536) {
+        throw new GradleException('SFM repository cache ownership marker is missing or oversized')
+    }
+    def markerExpected = ('["sfm:native_cache_root@1",'
+            + JsonOutput.toJson(logicalCache.toString()) + ']').getBytes('UTF-8')
+    if (!java.util.Arrays.equals(markerFile.bytes, markerExpected)) {
+        throw new GradleException('SFM repository cache marker belongs to another root')
     }
     def physicalRoot = logicalCache.resolve('minecraft-toolchain').toRealPath()
     def snapshot = manifest.historical_version_snapshot

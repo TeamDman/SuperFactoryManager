@@ -58,7 +58,9 @@ function Invoke-Case([string]$name, [string]$init, [string]$selectedProject, [st
 try {
     $env:JAVA_HOME = $jdk
     New-Item -ItemType Directory -Path (Join-Path $fixture 'minecraft-toolchain') -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $checkoutCache '.sfm-native-cache-root.json') -Destination (Join-Path $fixture '.sfm-native-cache-root.json')
+    $fixtureMarker = Join-Path $fixture '.sfm-native-cache-root.json'
+    $ownedMarker = ConvertTo-Json -InputObject @('sfm:native_cache_root@1', $fixture) -Compress
+    [IO.File]::WriteAllText($fixtureMarker, $ownedMarker, [Text.UTF8Encoding]::new($false))
     foreach ($entry in $manifest.files) { Copy-Checked $entry.path }
     Copy-Checked $manifest.historical_version_snapshot.path
     $sourceInit = Get-Content -LiteralPath $productionInit -Raw
@@ -82,6 +84,11 @@ try {
     $childFixture = Join-Path (Join-Path $fixture 'minecraft-toolchain') $child.path
     Remove-Item -LiteralPath $childFixture
     Invoke-Case 'missing-module-jar' $testInit $project 'SFM checked payload differs' $false
+    Copy-Checked $child.path
+    $wrongMarker = ConvertTo-Json -InputObject @('sfm:native_cache_root@1', (Join-Path $fixture 'another-owner')) -Compress
+    [IO.File]::WriteAllText($fixtureMarker, $wrongMarker, [Text.UTF8Encoding]::new($false))
+    Invoke-Case 'wrong-cache-origin' $testInit $project 'SFM repository cache marker belongs to another root' $false
+    [IO.File]::WriteAllText($fixtureMarker, $ownedMarker, [Text.UTF8Encoding]::new($false))
     Invoke-Case 'wrong-projection' $productionInit $otherProject 'SFM historical checked route requires the selected repository projection' $false
     if ((Get-FileHash -LiteralPath $productionInit -Algorithm SHA256).Hash -cne $expectedInit -or (git -C $repo rev-parse HEAD) -cne $head) { throw 'Source changed during focused tests' }
 } finally {
@@ -94,7 +101,7 @@ try {
 }
 $record = [ordered]@{schema='sfm:historical_1194_checked_route_negative_tests@1';head=$head;production_init_sha256=$expectedInit;manifest_sha256=(Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash;fixture_copied_files=54;results=@($results);fixture_removed=!(Test-Path -LiteralPath $fixture)}
 [IO.File]::WriteAllText($receipt,(ConvertTo-Json $record -Depth 7)+"`n",[Text.UTF8Encoding]::new($false))
-if ($results.Count -ne 5 -or @($results | Where-Object { !$_.accepted }).Count -ne 0) { exit 1 }
+if ($results.Count -ne 6 -or @($results | Where-Object { !$_.accepted }).Count -ne 0) { exit 1 }
 $verifiedRun = [IO.Path]::GetFullPath($evidence)
 $tempBoundary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 if (!$verifiedRun.StartsWith($tempBoundary,[StringComparison]::OrdinalIgnoreCase) -or
@@ -102,4 +109,4 @@ if (!$verifiedRun.StartsWith($tempBoundary,[StringComparison]::OrdinalIgnoreCase
     throw "Refusing to remove unexpected test scratch: $verifiedRun"
 }
 Remove-Item -LiteralPath $verifiedRun -Recurse -Force
-Write-Output 'Five checked historical Gradle route cases passed; owned fixture removed.'
+Write-Output 'Six checked historical Gradle route cases passed; owned fixture removed.'
