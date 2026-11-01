@@ -145,6 +145,12 @@ final class SFMRustContractConverter {
                 && recipe.equals("sfm:released-native-inputs/4.34.0/" + target + "@1")) {
             return "original_schema2_pin";
         }
+        if (environment.equals("release") && target.equals("26.1.2")
+                && recipe.equals("sfm:released-native-inputs/4.34.0/26.1.2@historical-retained1")
+                && text(transfer, "source_lock_sha256").equals(
+                        "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de")) {
+            return "original_schema2_pin";
+        }
         if (environment.equals("dev")
                 && recipe.equals("sfm:development-native-inputs/" + target + "@1")) {
             return "captured_schema4_pin";

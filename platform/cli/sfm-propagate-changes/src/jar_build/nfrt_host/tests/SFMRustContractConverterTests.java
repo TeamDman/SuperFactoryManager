@@ -30,6 +30,21 @@ public final class SFMRustContractConverterTests {
         var version = MinecraftVersionManifest.from(versionPath);
         SFMRustContractConverter.convert(transfer, root, version);
         String releaseUserdev = SFMNamedHostPreparationMain.sourceUserdev(transfer);
+        if (transfer.get("recipe_id").getAsString().endsWith("@historical-retained1")) {
+            if (!SFMRustContractConverter.sourceOrigin(transfer).equals("original_schema2_pin")) {
+                throw new AssertionError("Historical lock lost original schema-2 source authority");
+            }
+            var changedLock = transfer.deepCopy();
+            changedLock.addProperty("source_lock_sha256",
+                    "sha256:2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f");
+            rejectAuthority(changedLock, root, version);
+            var changedTarget = transfer.deepCopy();
+            changedTarget.addProperty("target_id", "1.21.1");
+            rejectAuthority(changedTarget, root, version);
+            var changedEnvironment = transfer.deepCopy();
+            changedEnvironment.addProperty("environment", "dev");
+            rejectAuthority(changedEnvironment, root, version);
+        }
         var development = transfer.deepCopy();
         development.addProperty("environment", "dev");
         development.addProperty("recipe_id", "sfm:development-native-inputs/"
