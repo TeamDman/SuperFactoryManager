@@ -30,7 +30,11 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
 
     @Override
     public String template() {
+{% if features.locked_dependency_projection %}
         return "25x5x25";
+{% else %}
+        return "25x4x25";
+{% endif %}
     }
 
     @Override
@@ -159,33 +163,57 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
 
 
         // create a new network in a plus shape
+{% if features.locked_dependency_projection %}
         helper.setBlock(new BlockPos(15, 3, 15), SFMBlocks.CABLE.get());
+{% else %}
+        helper.setBlock(new BlockPos(15, 2, 15), SFMBlocks.CABLE.get());
+{% endif %}
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+{% if features.locked_dependency_projection %}
             helper.setBlock(new BlockPos(15, 3, 15).relative(value), SFMBlocks.CABLE.get());
+{% else %}
+            helper.setBlock(new BlockPos(15, 2, 15).relative(value), SFMBlocks.CABLE.get());
+{% endif %}
         }
         // should all be on the same network
         net = CableNetworkManager
+{% if features.locked_dependency_projection %}
                 .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 3, 15)))
+{% else %}
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 2, 15)))
+{% endif %}
                 .get();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             helper.assertTrue(
                     CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
+{% if features.locked_dependency_projection %}
                                        helper.absolutePos(new BlockPos(15, 3, 15).relative(value))
+{% else %}
+                                       helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
+{% endif %}
                                )
                                .get()
                        == net, "Plus cables should all be on the same network");
         }
 
         // break the block in the middle
+{% if features.locked_dependency_projection %}
         helper.setBlock(new BlockPos(15, 3, 15), Blocks.AIR);
+{% else %}
+        helper.setBlock(new BlockPos(15, 2, 15), Blocks.AIR);
+{% endif %}
         // the network should split
         helper.assertTrue(
                 CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
+{% if features.locked_dependency_projection %}
                                    helper.absolutePos(new BlockPos(15, 3, 15))
+{% else %}
+                                   helper.absolutePos(new BlockPos(15, 2, 15))
+{% endif %}
                            )
                            .isEmpty(), "Network should not be present where the cable was removed from");
         var networks = new ArrayList<CableNetwork>();
@@ -193,7 +221,11 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
             networks.add(CableNetworkManager
                                  .getOrRegisterNetworkFromCablePosition(
                                          helper.getLevel(),
+{% if features.locked_dependency_projection %}
                                          helper.absolutePos(new BlockPos(15, 3, 15).relative(value))
+{% else %}
+                                         helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
+{% endif %}
                                  )
                                  .get());
         }
@@ -214,17 +246,29 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         }
 
         // add the block back
+{% if features.locked_dependency_projection %}
         helper.setBlock(new BlockPos(15, 3, 15), SFMBlocks.CABLE.get());
+{% else %}
+        helper.setBlock(new BlockPos(15, 2, 15), SFMBlocks.CABLE.get());
+{% endif %}
         // the network should merge
         net = CableNetworkManager
+{% if features.locked_dependency_projection %}
                 .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 3, 15)))
+{% else %}
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 2, 15)))
+{% endif %}
                 .get();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             helper.assertTrue(
                     CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
+{% if features.locked_dependency_projection %}
                                        helper.absolutePos(new BlockPos(15, 3, 15).relative(value))
+{% else %}
+                                       helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
+{% endif %}
                                )
                                .get()
                        == net, "Plus networks did not merge after repairing");

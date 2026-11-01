@@ -30,22 +30,54 @@ public class RoundRobinByLabelGameTest extends SFMGameTestDefinition {
 
     @Override
     public String template() {
+{% if features.locked_dependency_projection %}
         return "3x5x3";
+{% else %}
+        return "3x4x3";
+{% endif %}
     }
 
     @Override
     public void run(SFMGameTestHelper helper) {
         for (int x = 0; x < 3; x++) {
             for (int z = 0; z < 3; z++) {
+{% if features.locked_dependency_projection %}
                 helper.setBlock(x, 2, z, SFMBlocks.CABLE.get());
+{% else %}
+                helper.setBlock(x, 1, z, SFMBlocks.CABLE.get());
+{% endif %}
             }
         }
+{% if features.locked_dependency_projection %}
         BlockPos managerPos = new BlockPos(0, 3, 2);
+{% else %}
+        BlockPos managerPos = new BlockPos(0, 2, 2);
+{% endif %}
+{% if features.locked_dependency_projection %}
         BlockPos sourcePos = new BlockPos(2, 3, 0);
+{% else %}
+        BlockPos sourcePos = new BlockPos(2, 2, 0);
+{% endif %}
+{% if features.locked_dependency_projection %}
         BlockPos a1Pos = new BlockPos(0, 3, 0);
+{% else %}
+        BlockPos a1Pos = new BlockPos(0, 2, 0);
+{% endif %}
+{% if features.locked_dependency_projection %}
         BlockPos a2Pos = new BlockPos(0, 3, 1);
+{% else %}
+        BlockPos a2Pos = new BlockPos(0, 2, 1);
+{% endif %}
+{% if features.locked_dependency_projection %}
         BlockPos b1Pos = new BlockPos(1, 3, 2);
+{% else %}
+        BlockPos b1Pos = new BlockPos(1, 2, 2);
+{% endif %}
+{% if features.locked_dependency_projection %}
         BlockPos b2Pos = new BlockPos(2, 3, 2);
+{% else %}
+        BlockPos b2Pos = new BlockPos(2, 2, 2);
+{% endif %}
 
         // set up inventories
         helper.setBlock(sourcePos, SFMBlocks.TEST_BARREL.get());

@@ -87,7 +87,11 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
         @Override
         public String template() {
 
+{% if features.locked_dependency_projection %}
             return "3x5x3";
+{% else %}
+            return "3x3x3";
+{% endif %}
         }
 
         @Override
@@ -106,7 +110,11 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
         public void run(SFMGameTestHelper helper) {
 
             // Place the tunnelled block at the center of the test area
+{% if features.locked_dependency_projection %}
             BlockPos tunnelledPos = new BlockPos(1, 3, 1);
+{% else %}
+            BlockPos tunnelledPos = new BlockPos(1, 2, 1);
+{% endif %}
             // Place the barrel adjacent in the specified direction
             BlockPos barrelPos = tunnelledPos.relative(direction);
 
