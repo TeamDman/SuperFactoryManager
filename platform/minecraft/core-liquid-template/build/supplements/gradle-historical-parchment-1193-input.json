@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "purpose": "Checked Parchment mapping input observed in the historical 1.19.4 ForgeGradle/Librarian producer; supplements but does not rewrite the ordinary ZIP in the historical lock",
+  "coordinate": "org.parchmentmc.data:parchment-1.19.3:2023.03.12:checked@zip",
+  "url": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.19.3/2023.03.12/parchment-1.19.3-2023.03.12-checked.zip",
+  "checksum_source_sha256": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.19.3/2023.03.12/parchment-1.19.3-2023.03.12-checked.zip.sha256",
+  "checksum_source_sha1": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.19.3/2023.03.12/parchment-1.19.3-2023.03.12-checked.zip.sha1",
+  "sha256": "545ec5e17e2d6d9fb5d192d8f3bab4981d52a1a8ef6d270f16fbb16bd32d9cc0",
+  "sha1": "c4a87438fa3af622c74692f41b1cf85b144cf44d",
+  "bytes": 693952,
+  "cache_root": "sfm-toolchain-data",
+  "path": "minecraft-toolchain/maven/org/parchmentmc/data/parchment-1.19.3/2023.03.12/parchment-1.19.3-2023.03.12-checked.zip"
+}
