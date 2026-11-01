@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "purpose": "Exact official Foojay 0.5.0 settings-plugin runtime closure for historical Gradle 8.1.1 projects; historical sources and locks remain unchanged",
+  "first_consumer": "sfm-4.35.0/mc-1.20.2",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "gradle/bootstrap-maven/historical-foojay-0.5.0",
+  "artifacts": [
+    {
+      "coordinate": "org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:0.5.0@pom",
+      "path": "org/gradle/toolchains/foojay-resolver-convention/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin/0.5.0/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-0.5.0.pom",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver-convention/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin/0.5.0/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-0.5.0.pom",
+      "bytes": 715,
+      "sha256": "8cb9db3f46febd5b0f981f5e1ce0e4f8bffe74c1e37504c1ba22d6b35823dd37"
+    },
+    {
+      "coordinate": "org.gradle.toolchains:foojay-resolver:0.5.0@pom",
+      "path": "org/gradle/toolchains/foojay-resolver/0.5.0/foojay-resolver-0.5.0.pom",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver/0.5.0/foojay-resolver-0.5.0.pom",
+      "bytes": 975,
+      "sha256": "824e8819d685581917eb6211904b03f18152247338bc5df231a3c251438212b0"
+    },
+    {
+      "coordinate": "org.gradle.toolchains:foojay-resolver:0.5.0@module",
+      "path": "org/gradle/toolchains/foojay-resolver/0.5.0/foojay-resolver-0.5.0.module",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver/0.5.0/foojay-resolver-0.5.0.module",
+      "bytes": 3914,
+      "sha256": "24b555f8456b8c10e58db33ca8bbc998e66793f298e928e00330cf0fbe32499e"
+    },
+    {
+      "coordinate": "org.gradle.toolchains:foojay-resolver:0.5.0@jar",
+      "path": "org/gradle/toolchains/foojay-resolver/0.5.0/foojay-resolver-0.5.0.jar",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver/0.5.0/foojay-resolver-0.5.0.jar",
+      "bytes": 40620,
+      "sha256": "531608349a6e5d6b053876b11dc1c1987d0b012d642cffdb28e38032e5e7f81b"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.9.1@pom",
+      "path": "com/google/code/gson/gson/2.9.1/gson-2.9.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.9.1/gson-2.9.1.pom",
+      "bytes": 8208,
+      "sha256": "e5966323d7142570b37a4be979e21bc2dae848107e4dc416d8f44d9aa3f02903"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.9.1@jar",
+      "path": "com/google/code/gson/gson/2.9.1/gson-2.9.1.jar",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.9.1/gson-2.9.1.jar",
+      "bytes": 265030,
+      "sha256": "378534e339e6e6d50b1736fb3abb76f1c15d1be3f4c13cec6d536412e23da603"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson-parent:2.9.1@pom",
+      "path": "com/google/code/gson/gson-parent/2.9.1/gson-parent-2.9.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson-parent/2.9.1/gson-parent-2.9.1.pom",
+      "bytes": 4488,
+      "sha256": "7ca0845e73685618de3e46bd3434d03a4a373d520fab93a680318ad6c8cb2a79"
+    },
+    {
+      "coordinate": "org.sonatype.oss:oss-parent:9@pom",
+      "path": "org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "bytes": 6569,
+      "sha256": "fb40265f982548212ff82e362e59732b2187ec6f0d80182885c14ef1f982827a"
+    }
+  ]
+}
