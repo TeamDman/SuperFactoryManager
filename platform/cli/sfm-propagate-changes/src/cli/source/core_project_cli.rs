@@ -159,9 +159,9 @@ pub struct CoreProjectCompileArgs {
     /// Exact declared schema-4 development profile; excludes released-recipe.
     #[facet(default, args::named)]
     pub dependency_profile: Option<String>,
-    /// Existing SDK home; compiler release and tool JVM remain separate.
-    #[facet(args::named)]
-    pub java_home: PathBuf,
+    /// Explicit SDK home; otherwise use the selected lock pin or legacy exact-major JDK.
+    #[facet(default, args::named)]
+    pub java_home: Option<PathBuf>,
     /// Guarded native root override; defaults to this checkout's sfm-toolchain-data.
     #[facet(default, args::named)]
     pub cache_root: Option<PathBuf>,
@@ -315,7 +315,7 @@ fn invoke_native_compile(
     let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
-    let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let home = resolve_native_sdk_home(args, &initial, invocation_dir)?;
     let selected = crate::jar_build::engine::catalog_native_cache_path(
         &initial.repo_root,
         args.cache_root.as_deref(),
@@ -352,6 +352,10 @@ fn invoke_native_compile(
     ensure!(
         checked.receipt().project_inputs_sha256 == report.project_inputs_sha256,
         "named compile build metadata changed after generation"
+    );
+    ensure!(
+        resolve_native_sdk_home(args, &loaded, invocation_dir)? == home,
+        "selected Java changed after generation; retry with the current lock"
     );
     let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
     let result = crate::jar_build::invoke_named_compile(
@@ -393,7 +397,7 @@ fn invoke_native_jar(
     let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
-    let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let home = resolve_native_sdk_home(args, &initial, invocation_dir)?;
     let selected = crate::jar_build::engine::catalog_native_cache_path(
         &initial.repo_root,
         args.cache_root.as_deref(),
@@ -430,6 +434,10 @@ fn invoke_native_jar(
     ensure!(
         checked.receipt().project_inputs_sha256 == report.project_inputs_sha256,
         "named jar build metadata changed after generation"
+    );
+    ensure!(
+        resolve_native_sdk_home(args, &loaded, invocation_dir)? == home,
+        "selected Java changed after generation; retry with the current lock"
     );
     let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
     frozen.recheck(false)?;
@@ -495,7 +503,7 @@ fn invoke_native_development(
     crate::source_projection::native_project_target::validate_collected_native_profile(
         &collected, profile,
     )?;
-    let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let home = resolve_native_sdk_home(args, &initial, invocation_dir)?;
     cancellation.bail_if_cancelled()?;
     let selected = crate::jar_build::engine::catalog_native_cache_path(
         &initial.repo_root,
@@ -512,6 +520,10 @@ fn invoke_native_development(
     // Verify the complete source snapshot once after guarded sync. This owner
     // can safely recheck held remap inputs while a per-key cache lock is held.
     let checked = collected.prepare_development_invocation(false)?;
+    ensure!(
+        resolve_native_sdk_home(args, &initial, invocation_dir)? == home,
+        "selected Java changed after generation; retry with the current lock"
+    );
     Ok(CliOutput::facet(
         crate::jar_build::invoke_development_project(
             checked,
@@ -527,6 +539,41 @@ fn invoke_native_development(
             cancellation,
         )?,
     ))
+}
+
+fn resolve_native_sdk_home(
+    args: &CoreProjectCompileArgs,
+    selected: &CoreCatalog,
+    invocation_dir: &Path,
+) -> Result<PathBuf> {
+    if let Some(explicit) = args.java_home.as_deref() {
+        return preflight_native_sdk_home(explicit, invocation_dir);
+    }
+    let entry = selected.catalog.entry(&args.project.projection)?;
+    let metadata_bytes = read_project_metadata(&selected.repo_root)?;
+    let metadata = CoreProjectInputs::from_json(
+        std::str::from_utf8(&metadata_bytes)?,
+        &selected.registered_features,
+    )?;
+    let java_major = u32::from(
+        metadata
+            .targets
+            .get(entry.target_id()?)
+            .ok_or_else(|| eyre::eyre!("missing named build target"))?
+            .java_major,
+    );
+    let project_root = selected
+        .repo_root
+        .join(selected.catalog.project_dir(&args.project.projection)?);
+    let resolved = resolve_exact_java_for_minecraft_dir(&project_root, java_major, None)
+        .wrap_err("cannot select the projection's JDK; synchronize its lock or pass --java-home")?;
+    let home = resolved.home.as_deref().ok_or_else(|| {
+        eyre::eyre!(
+            "selected Java {} has no JDK home; install a verified JDK or pass --java-home",
+            resolved.executable.display()
+        )
+    })?;
+    preflight_native_sdk_home(home, invocation_dir)
 }
 
 fn preflight_native_sdk_home(path: &Path, invocation_dir: &Path) -> Result<PathBuf> {
@@ -896,15 +943,9 @@ mod tests {
 
     #[test]
     fn native_commands_parse_cache_override_and_select_checkout_default() {
-        let base = [
-            "--repo-root",
-            "must-not-be-read",
-            "--projection",
-            "unused",
-            "--java-home",
-            "must-not-be-read",
-        ];
+        let base = ["--repo-root", "must-not-be-read", "--projection", "unused"];
         let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
+        assert!(default.java_home.is_none());
         assert!(default.cache_root.is_none());
         assert!(default.isolated_project_cache.is_none());
         assert!(default.output_name.is_none());
@@ -916,8 +957,12 @@ mod tests {
             PathBuf::from("C:/selected-checkout/sfm-toolchain-data")
         );
         let mut explicit = base.to_vec();
-        explicit.extend(["--cache-root", "C:/sfm cache fixture"]);
+        explicit.extend([
+            "--java-home", "C:/selected-jdk",
+            "--cache-root", "C:/sfm cache fixture",
+        ]);
         let parsed = figue::from_slice::<CoreProjectCompileArgs>(&explicit).unwrap();
+        assert_eq!(parsed.java_home, Some(PathBuf::from("C:/selected-jdk")));
         assert_eq!(
             parsed.cache_root,
             Some(PathBuf::from("C:/sfm cache fixture"))
@@ -951,7 +996,7 @@ mod tests {
             },
             released_recipe: None,
             dependency_profile: Some("rust-toolchain".to_owned()),
-            java_home: PathBuf::from("must-not-be-read"),
+            java_home: Some(PathBuf::from("must-not-be-read")),
             cache_root: None,
             isolated_project_cache: Some("../escape".to_owned()),
             output_name: None,
@@ -979,7 +1024,7 @@ mod tests {
             },
             released_recipe: Some("historical".to_owned()),
             dependency_profile: None,
-            java_home: PathBuf::from("must-not-be-read"),
+            java_home: Some(PathBuf::from("must-not-be-read")),
             cache_root: None,
             isolated_project_cache: None,
             output_name: Some("../escape.jar".to_owned()),
@@ -1018,7 +1063,7 @@ mod tests {
             },
             released_recipe: Some("unused".to_owned()),
             dependency_profile: Some("rust-toolchain".to_owned()),
-            java_home: PathBuf::from("must-not-be-read"),
+            java_home: Some(PathBuf::from("must-not-be-read")),
             cache_root: None,
             isolated_project_cache: None,
             output_name: None,
@@ -1046,6 +1091,43 @@ mod tests {
                 .to_string()
                 .contains("requires exactly one")
         );
+    }
+
+    #[test]
+    fn native_default_java_refuses_a_missing_project_lock_and_preserves_explicit_home() {
+        let (temp, project) = fixture();
+        let selected = CoreCatalog::load(&project.repo_root, temp.path()).unwrap();
+        let mut args = CoreProjectCompileArgs {
+            project,
+            released_recipe: Some("historical".to_owned()),
+            dependency_profile: None,
+            java_home: None,
+            cache_root: None,
+            isolated_project_cache: None,
+            output_name: None,
+            explain_rebuild: false,
+            wait_for_build_lock: false,
+        };
+        let error = resolve_native_sdk_home(&args, &selected, temp.path())
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("synchronize its lock"), "{error}");
+
+        let jdk = temp.path().join("jdk");
+        fs::create_dir_all(jdk.join("bin")).unwrap();
+        fs::create_dir_all(jdk.join("lib")).unwrap();
+        for relative in [
+            if cfg!(windows) { "bin/java.exe" } else { "bin/java" },
+            if cfg!(windows) { "bin/javac.exe" } else { "bin/javac" },
+            "release",
+            "lib/modules",
+        ] {
+            fs::write(jdk.join(relative), b"fixture").unwrap();
+        }
+        args.java_home = Some(jdk.clone());
+        assert!(resolve_native_sdk_home(&args, &selected, temp.path())
+            .unwrap()
+            .ends_with("jdk"));
     }
 
     fn git(root: &Path, args: &[&str]) {
