@@ -1,8 +1,9 @@
 //! Successful build outputs owned independently of compiler staging and live JVMs.
 //!
-//! Snapshots are append-only by convention. Every consumer verifies the exact
-//! receipt and BLAKE3 inventory before using output bytes; a caller must hold the
-//! projection build lock while publishing a successful compiler result.
+//! Snapshots are append-only under the projection build lock. Publication
+//! verifies the complete BLAKE3 inventory before atomically selecting latest.
+//! Normal reuse trusts that completed tool-owned snapshot; explicit recheck
+//! remains the full external-corruption audit path.
 use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
@@ -288,9 +289,10 @@ impl BuildSnapshotReceipt {
         }
         tracing::info!(phase = "warm_snapshot_source_match", elapsed_ms = source_started.elapsed().as_millis(), "warm_run_stage");
         let final_started = Instant::now();
-        // The final full inventory is still mandatory before reuse.
-        // Damage to an old snapshot selects fresh publication instead.
-        if let Err(error) = previous.recheck() {
+        // Source edits were checked above. The completed snapshot was fully
+        // verified before its latest pointer was published; SFM never mutates
+        // it afterward. A missing receipt or root still selects fresh work.
+        if let Err(error) = previous.managed_recheck() {
             tracing::debug!(%error, "previous build snapshot cannot be reused");
             return Ok(None);
         }
@@ -361,6 +363,24 @@ impl BuildSnapshotReceipt {
         Ok(())
     }
 
+    /// Cheap admission of an already published tool-owned immutable snapshot.
+    /// Full content hashing remains available through `recheck` for doctor and
+    /// explicit consumers. The materializer checks every selected source file
+    /// while copying and verifies its new private destination separately.
+    fn managed_recheck(&self) -> Result<()> {
+        self.validate()?;
+        ensure!(
+            read_bounded(&self.receipt_path(), MAX_FILE_BYTES)? == self.json_bytes()?,
+            "successful-build snapshot receipt changed"
+        );
+        for root in ROOT_NAMES {
+            if self.has_root(root) {
+                canonical_directory(&self.snapshot_dir.join("project").join(root))?;
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn receipt_path(&self) -> PathBuf {
         self.snapshot_dir.join("receipt.json")
     }
@@ -394,7 +414,7 @@ impl BuildSnapshotReceipt {
     /// Later roots intentionally replace same-named files from earlier roots.
     pub(crate) fn materialize_roots(&self, destination: &Path, root_names: &[&str]) -> Result<()> {
         let precheck_started = Instant::now();
-        self.recheck()?;
+        self.managed_recheck()?;
         tracing::info!(phase = "warm_session_snapshot_precheck", elapsed_ms = precheck_started.elapsed().as_millis(), "warm_run_stage");
         ensure!(!root_names.is_empty(), "runtime snapshot roots are empty");
         for root in root_names {
@@ -426,9 +446,9 @@ impl BuildSnapshotReceipt {
             directories == expected_directories,
             "materialized session directory inventory changed"
         );
-        let postcheck_started = Instant::now();
-        self.recheck()?;
-        tracing::info!(phase = "warm_session_snapshot_postcheck", elapsed_ms = postcheck_started.elapsed().as_millis(), "warm_run_stage");
+        // Selected source bytes were checked during copy and the newly written
+        // private tree was inventoried above. Another complete snapshot hash
+        // here would repeat work without crossing a new writer boundary.
         Ok(())
     }
 
@@ -1282,7 +1302,8 @@ mod tests {
                 .join("project/classes/example/Main.class"),
             b"damaged snapshot",
         )?;
-        let repaired = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+        assert!(changed.recheck().is_err());
+        let trusted = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
             &minecraft,
             &snapshot_cache,
             &source_cache,
@@ -1292,7 +1313,25 @@ mod tests {
             ("sdk-fixture", "fixture-runtime-contract"),
             &CancellationToken::new(),
         )?;
-        assert_ne!(repaired.snapshot_dir, changed.snapshot_dir);
+        assert_eq!(trusted.snapshot_dir, changed.snapshot_dir);
+        let session = snapshot_cache.join("sessions/damaged/mod-root");
+        assert!(trusted.materialize_roots(&session, &["classes"]).is_err());
+        fs::write(
+            source_project.join("classes/example/Main.class"),
+            b"newer class",
+        )?;
+        let rebuilt = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+            &minecraft,
+            &snapshot_cache,
+            &source_cache,
+            "1.19.2",
+            &java(&minecraft),
+            &source_project,
+            ("sdk-fixture", "fixture-runtime-contract"),
+            &CancellationToken::new(),
+        )?;
+        assert_ne!(rebuilt.snapshot_dir, changed.snapshot_dir);
+        rebuilt.recheck()?;
         assert_eq!(
             fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
             3
@@ -1505,17 +1544,36 @@ mod tests {
     }
 
     #[test]
-    fn corrupt_previous_snapshot_requires_fresh_verified_publication() -> Result<()> {
+    fn managed_reuse_trusts_old_bytes_but_copy_checks_and_source_edits_invalidate() -> Result<()> {
         let temporary = tempfile::tempdir()?;
         let (minecraft, cache) = project(temporary.path(), "projection-a")?;
         let old = publish(&minecraft, &cache)?;
         let changed = old.snapshot_dir.join("project/classes/example/Main.class");
         fs::write(&changed, b"corrupted old snapshot")?;
+        assert!(old.recheck().is_err());
+        let trusted = publish(&minecraft, &cache)?;
+        assert_eq!(old.snapshot_dir, trusted.snapshot_dir);
+        assert!(
+            trusted
+                .materialize_roots(&cache.join("sessions/damaged/mod-root"), &["classes"])
+                .is_err()
+        );
+        fs::write(
+            cache.join("project/classes/example/Main.class"),
+            b"edited class fixture",
+        )?;
         let fresh = publish(&minecraft, &cache)?;
         assert_ne!(old.snapshot_dir, fresh.snapshot_dir);
         assert_eq!(fs::read(&changed)?, b"corrupted old snapshot");
         fresh.recheck()?;
-        assert_eq!(fs::read(fresh.snapshot_dir.join("project/classes/example/Main.class"))?, b"main class fixture");
+        assert_eq!(
+            fs::read(
+                fresh
+                    .snapshot_dir
+                    .join("project/classes/example/Main.class")
+            )?,
+            b"edited class fixture"
+        );
         Ok(())
     }
 
