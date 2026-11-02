@@ -44,8 +44,8 @@ impl RuntimeSession {
         share_runtime: bool,
     ) -> eyre::Result<Self> {
         ensure!(safe_component(run_kind), "invalid runtime run kind");
-        // materialize_roots checks the complete snapshot before and after
-        // copying. A third identical read here adds no admission boundary.
+        // materialize_roots checks the managed snapshot receipt and selected
+        // copy bytes before validating the new private session inventory.
         let slot_started = Instant::now();
         let slot = RuntimeSlot::claim(&snapshot.minecraft_dir, requested_slot, share_runtime)?;
         tracing::info!(phase = "warm_session_slot_claim", elapsed_ms = slot_started.elapsed().as_millis(), "warm_run_stage");
