@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "purpose": "Third-level Maven metadata and runtime inputs selected by historical NeoGradle userdev 7.0.57 offline classpath",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "gradle/bootstrap-maven/historical-neogradle-7.0.57-recursive3",
+  "coordinate_count": 5,
+  "artifact_count": 8,
+  "total_bytes": 323419,
+  "artifacts": [
+    {
+      "coordinate": "org.hamcrest:hamcrest-parent:1.3@pom",
+      "path": "org/hamcrest/hamcrest-parent/1.3/hamcrest-parent-1.3.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-parent/1.3/hamcrest-parent-1.3.pom",
+      "bytes": 1972,
+      "sha256": "6d535f94efb663bdb682c9f27a50335394688009642ba7a9677504bc1be4129b",
+      "published_sha1": "80391bd32bfa4837a15215d5e9f07c60555c379a",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-commons:1.9.2@pom",
+      "path": "org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.pom",
+      "bytes": 2831,
+      "sha256": "24023f20c235a69609fb2f95a60738557fcf9413f3ae92a92e1329547d6145c9",
+      "published_sha1": "d825802b4b89f801a8a4d7aec3b9f8ecd5c67a02",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-commons:1.9.2@jar",
+      "path": "org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar",
+      "bytes": 103049,
+      "sha256": "624a3d745ef1d28e955a6a67af8edba0fdfc5c9bad680a73f67a70bb950a683d",
+      "published_sha1": "6f9f8621d8230cd38aa42e58ccbc0c00569131ce",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-engine:1.9.2@pom",
+      "path": "org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.pom",
+      "bytes": 3202,
+      "sha256": "2df9420a6b24e5f4f314235e01cd9c3b8f646285db2f6e82d86ee06ef7af4e24",
+      "published_sha1": "8b91c19fbc170eaf6699f7c2ceda5fbceb8bb761",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-engine:1.9.2@jar",
+      "path": "org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar",
+      "bytes": 189223,
+      "sha256": "25f23dc535a091e9dc80c008faf29dcb92be902e6911f77a736fbaf019908367",
+      "published_sha1": "40aeef2be7b04f96bb91e8b054affc28b7c7c935",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.opentest4j:opentest4j:1.2.0@pom",
+      "path": "org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.pom",
+      "bytes": 1683,
+      "sha256": "a96e671816c1ff8803bdec74c9241f025bdfb277da5d2b4ee02266405936f994",
+      "published_sha1": "b5c66f49b69c36797c1fb7f4ec57776f261303ad",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.opentest4j:opentest4j:1.2.0@jar",
+      "path": "org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar",
+      "bytes": 7653,
+      "sha256": "58812de60898d976fb81ef3b62da05c6604c18fd4a249f5044282479fc286af2",
+      "published_sha1": "28c11eb91f9b6d8e200631d46e20a7f407f2a046",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-parent:1.7.32@pom",
+      "path": "org/slf4j/slf4j-parent/1.7.32/slf4j-parent-1.7.32.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-parent/1.7.32/slf4j-parent-1.7.32.pom",
+      "bytes": 13806,
+      "sha256": "5ab349d0f4c7bc08ed0ef1f4d9386cb1940a2f4d6f152150e16dbbecc0b83c70",
+      "published_sha1": "a3cb6b2b36f7d228af85043d7b31393c6c16a4d6",
+      "authentication": "official_sha1_sidecar"
+    }
+  ]
+}

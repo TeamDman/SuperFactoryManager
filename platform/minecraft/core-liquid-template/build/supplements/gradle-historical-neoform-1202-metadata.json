@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "purpose": "Official historical NeoForm 1.20.2-20231019.002635 POM plus existing frozen-lock ZIP without another ZIP copy",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "minecraft-toolchain/maven",
+  "artifact_count": 2,
+  "artifacts": [
+    {
+      "coordinate": "net.neoforged:neoform:1.20.2-20231019.002635@pom",
+      "path": "net/neoforged/neoform/1.20.2-20231019.002635/neoform-1.20.2-20231019.002635.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/neoform/1.20.2-20231019.002635/neoform-1.20.2-20231019.002635.pom",
+      "bytes": 1106,
+      "sha256": "64c303f6462aa2fd66f8a5d87fdeb5e1562d6dadf7df28e09fa8863ae41da54b",
+      "authentication": "publisher_sha256_sidecar",
+      "status": "pending_create_only"
+    },
+    {
+      "coordinate": "net.neoforged:neoform:1.20.2-20231019.002635@zip",
+      "path": "net/neoforged/neoform/1.20.2-20231019.002635/neoform-1.20.2-20231019.002635.zip",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/neoform/1.20.2-20231019.002635/neoform-1.20.2-20231019.002635.zip",
+      "bytes": 1720346,
+      "sha256": "bfe2fc44a7b756a3307a714496e950abaf3306741ae7717dc4c78a3b527ae974",
+      "authentication": "publisher_sha256_sidecar_and_frozen_lock_provenance",
+      "status": "existing_checked_cache"
+    }
+  ]
+}

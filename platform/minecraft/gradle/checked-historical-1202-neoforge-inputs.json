@@ -1,0 +1,781 @@
+{
+  "schema_version": 1,
+  "projection": "sfm-4.35.0/mc-1.20.2",
+  "selected_lock_sha256": "DF4FD41C7BDE7B3C622E68E92C0FA3C6F7EEE8895BE847FF57F11A3A5503BDD9",
+  "minecraft_version_sha256": "C54DDB02A61C80212FF9C4531F5734D403C88ABC00068830FC122FDF7BDE3512",
+  "neoforge_pom_sha256": "AB5BD9C5882CDDF345D45DB6D7B65CA170C61F912E0293B524E78F3B15E079F7",
+  "frozen_lock_publisher_receipt_sha256": "1DAAE5FE9A56717932978139D57982BD6B030F95DADA1B22AC46991EE4DA0B5F",
+  "cache_root": "sfm-toolchain-data",
+  "locked_maven_repository": "minecraft-toolchain/maven",
+  "minecraft_libraries_repository": "minecraft-toolchain/minecraft/libraries",
+  "neoforge_version": "20.2.86",
+  "artifact_count": 85,
+  "files": [
+    {
+      "coordinate": "com.github.oshi:oshi-core:6.4.5",
+      "repository": "minecraft_libraries",
+      "path": "com/github/oshi/oshi-core/6.4.5/oshi-core-6.4.5.jar",
+      "bytes": 970546,
+      "sha256": "7e634fb57b8763b7803d5f9caaed46d19c3bdbe81ddd8a93e61528c700cdc09e",
+      "published_sha1": "943ba26de047eb6b28fff47f5ee939a34eb5fc8e",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.10.1",
+      "repository": "minecraft_libraries",
+      "path": "com/google/code/gson/gson/2.10.1/gson-2.10.1.jar",
+      "bytes": 283367,
+      "sha256": "4241c14a7727c34feea6507ec801318a3d4a90f070e4525681079fb94ee4c593",
+      "published_sha1": "b3add478d4382b78ea20b1671390a858002feb6c",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.google.guava:failureaccess:1.0.1",
+      "repository": "locked_maven",
+      "path": "com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar",
+      "bytes": 4617,
+      "sha256": "a171ee4c734dd2da837e4b16be9df4661afab72a41adaf31eb84dfdaf936ca26",
+      "published_sha1": null,
+      "lock_blake3": "blake3:ef22899364361f72dab03ee9a344ab2e1e13215a"
+    },
+    {
+      "coordinate": "com.google.guava:guava:32.1.2-jre",
+      "repository": "minecraft_libraries",
+      "path": "com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar",
+      "bytes": 3041591,
+      "sha256": "bc65dea7cfd9e4dacf8419d8af0e741655857d27885bb35d943d7187fc3a8fce",
+      "published_sha1": "5e64ec7e056456bef3a4bc4c6fdaef71e8ab6318",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.ibm.icu:icu4j:73.2",
+      "repository": "minecraft_libraries",
+      "path": "com/ibm/icu/icu4j/73.2/icu4j-73.2.jar",
+      "bytes": 14567819,
+      "sha256": "29280822f4b0796acef1f79b90b1d0c1edd86c10e876a848e04b8a6298a16bf9",
+      "published_sha1": "61ad4ef7f9131fcf6d25c34b817f90d6da06c9e9",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.mojang:authlib:5.0.47",
+      "repository": "minecraft_libraries",
+      "path": "com/mojang/authlib/5.0.47/authlib-5.0.47.jar",
+      "bytes": 111087,
+      "sha256": "ba4f7ca8bf98de78d0c00739e565b18f89b4e7da268f930b6cf7473e90facf53",
+      "published_sha1": "ff7fd2e80a767f6c369fa2065f018ba21d153cbd",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.mojang:blocklist:1.0.10",
+      "repository": "minecraft_libraries",
+      "path": "com/mojang/blocklist/1.0.10/blocklist-1.0.10.jar",
+      "bytes": 964,
+      "sha256": "830bfd639c8db49236bbd8e45d3a2b8c96c56ff654a10118654958a6235d4c44",
+      "published_sha1": "5c685c5ffa94c4cd39496c7184c1d122e515ecef",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.mojang:brigadier:1.1.8",
+      "repository": "minecraft_libraries",
+      "path": "com/mojang/brigadier/1.1.8/brigadier-1.1.8.jar",
+      "bytes": 77121,
+      "sha256": "cf65afa612fffbe4dc976115dac0312f48b9c84b3ddaf58bec8018a9454440d7",
+      "published_sha1": "5244ce82c3337bba4a196a3ce858bfaecc74404a",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.mojang:datafixerupper:6.0.8",
+      "repository": "minecraft_libraries",
+      "path": "com/mojang/datafixerupper/6.0.8/datafixerupper-6.0.8.jar",
+      "bytes": 689960,
+      "sha256": "6e38e9fc5404be7e45189aa14ca6058bc85df20d6760a212b6d48e666abf0fef",
+      "published_sha1": "3ba4a30557a9b057760af4011f909ba619fc5125",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.mojang:logging:1.1.1",
+      "repository": "locked_maven",
+      "path": "com/mojang/logging/1.1.1/logging-1.1.1.jar",
+      "bytes": 15343,
+      "sha256": "c1756eaf0685da94142bacc84309bb7ccddf65e004638c3299ab645710b5938c",
+      "published_sha1": null,
+      "lock_blake3": "blake3:1e9a8233ee3fe8174918ea94ae6d163305938a3f"
+    },
+    {
+      "coordinate": "com.mojang:patchy:2.2.10",
+      "repository": "minecraft_libraries",
+      "path": "com/mojang/patchy/2.2.10/patchy-2.2.10.jar",
+      "bytes": 4439,
+      "sha256": "16d70e7968b45caffc81576268eb000f473fb60bf257182d3447dea8ec919d5a",
+      "published_sha1": "da05971b07cbb379d002cf7eaec6a2048211fefc",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "com.mojang:text2speech:1.17.9",
+      "repository": "minecraft_libraries",
+      "path": "com/mojang/text2speech/1.17.9/text2speech-1.17.9.jar",
+      "bytes": 12243,
+      "sha256": "c2a95b499e76fada7dd63e9b0ec797b678d411c2b0ee6f37f4dc674662bfb0af",
+      "published_sha1": "3cad216e3a7f0c19b4b394388bc9ffc446f13b14",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "commons-codec:commons-codec:1.16.0",
+      "repository": "minecraft_libraries",
+      "path": "commons-codec/commons-codec/1.16.0/commons-codec-1.16.0.jar",
+      "bytes": 360738,
+      "sha256": "56595fb20b0b85bc91d0d503dad50bb7f1b9afc0eed5dffa6cbb25929000484d",
+      "published_sha1": "4e3eb3d79888d76b54e28b350915b5dc3919c9de",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "commons-io:commons-io:2.13.0",
+      "repository": "minecraft_libraries",
+      "path": "commons-io/commons-io/2.13.0/commons-io-2.13.0.jar",
+      "bytes": 483954,
+      "sha256": "671eaa39688dac2ffaa4645b3c9980ae2d0ea2471e4ae6a5da199cd15ae23666",
+      "published_sha1": "8bb2bc9b4df17e2411533a0708a69f983bf5e83b",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "commons-logging:commons-logging:1.2",
+      "repository": "minecraft_libraries",
+      "path": "commons-logging/commons-logging/1.2/commons-logging-1.2.jar",
+      "bytes": 61829,
+      "sha256": "daddea1ea0be0f56978ab3006b8ac92834afeefbd9b7e4e6316fca57df0fa636",
+      "published_sha1": "4bfc12adfe4842bf07b657f0369c4cb522955686",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-buffer:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-buffer/4.1.97.Final/netty-buffer-4.1.97.Final.jar",
+      "bytes": 306590,
+      "sha256": "a4393f5b395486cc74d0325c9b41311abb9513ba0fd7ef8cf46e9345c3bffbea",
+      "published_sha1": "f8f3d8644afa5e6e1a40a3a6aeb9d9aa970ecb4f",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-codec:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-codec/4.1.97.Final/netty-codec-4.1.97.Final.jar",
+      "bytes": 345274,
+      "sha256": "bcc96737a0f912fcf031cf8c45ebda352a90a40437db0832caad3d5a63618b38",
+      "published_sha1": "384ba4d75670befbedb45c4d3b497a93639c206d",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-common:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-common/4.1.97.Final/netty-common-4.1.97.Final.jar",
+      "bytes": 659930,
+      "sha256": "a8aca0c8e9347acc75c885ecc749195d9775369aa520b9276f2d1128210a6c17",
+      "published_sha1": "7cceacaf11df8dc63f23d0fb58e9d4640fc88404",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-handler:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-handler/4.1.97.Final/netty-handler-4.1.97.Final.jar",
+      "bytes": 560040,
+      "sha256": "bd4771d19149cbc9c7464ed2d58035d79cdfed7adb59d38718b0d8e7a3dcc2de",
+      "published_sha1": "abb86c6906bf512bf2b797a41cd7d2e8d3cd7c36",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-resolver:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-resolver/4.1.97.Final/netty-resolver-4.1.97.Final.jar",
+      "bytes": 37792,
+      "sha256": "38a018c6d9fb2cb11b72881354782b45080bbd20b9a0ad6cde28b80d431ed0b1",
+      "published_sha1": "cec8348108dc76c47cf87c669d514be52c922144",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-transport-classes-epoll:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-transport-classes-epoll/4.1.97.Final/netty-transport-classes-epoll-4.1.97.Final.jar",
+      "bytes": 147139,
+      "sha256": "ee65fa17fe65f18fd22269f92bddad85bfb3a263cf65eba01e116a2f30b86ff5",
+      "published_sha1": "795da37ded759e862457a82d9d92c4d39ce8ecee",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-transport-native-epoll:4.1.97.Final:linux-aarch_64",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-transport-native-epoll/4.1.97.Final/netty-transport-native-epoll-4.1.97.Final-linux-aarch_64.jar",
+      "bytes": 40427,
+      "sha256": "93b5fe8f3829dcb5e033d8d40d59159366ff4cf8266c903bbd6a4aeed9e59bac",
+      "published_sha1": "5514744c588190ffda076b35a9b8c9f24946a960",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-transport-native-epoll:4.1.97.Final:linux-x86_64",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-transport-native-epoll/4.1.97.Final/netty-transport-native-epoll-4.1.97.Final-linux-x86_64.jar",
+      "bytes": 38954,
+      "sha256": "1e83fc9f82e5415cdbb688c6a5c6bbbd7d198e9fdd6fdf64b3dc5d54dd1acfd0",
+      "published_sha1": "54188f271e388e7f313aea995e82f58ce2cdb809",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-transport-native-unix-common:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-transport-native-unix-common/4.1.97.Final/netty-transport-native-unix-common-4.1.97.Final.jar",
+      "bytes": 43897,
+      "sha256": "412fe140257c2dda5a5e15bee911298bd61928d03ee6be4db588e82c196c5dc6",
+      "published_sha1": "d469d84265ab70095b01b40886cabdd433b6e664",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "io.netty:netty-transport:4.1.97.Final",
+      "repository": "minecraft_libraries",
+      "path": "io/netty/netty-transport/4.1.97.Final/netty-transport-4.1.97.Final.jar",
+      "bytes": 489624,
+      "sha256": "197fd2d6c6b4afe677d9e95bf2e36b49a0bcabdfce0583683fb73f29a3f5a407",
+      "published_sha1": "f37380d23c9bb079bc702910833b2fd532c9abd0",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "it.unimi.dsi:fastutil:8.5.12",
+      "repository": "minecraft_libraries",
+      "path": "it/unimi/dsi/fastutil/8.5.12/fastutil-8.5.12.jar",
+      "bytes": 23326598,
+      "sha256": "b5543ee08d062d551cf0a5c9bc0fb70588b0382079029ba48941fa9c9be8a5d4",
+      "published_sha1": "c24946d46824bd528054bface3231d2ecb7e95e8",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "net.java.dev.jna:jna-platform:5.13.0",
+      "repository": "minecraft_libraries",
+      "path": "net/java/dev/jna/jna-platform/5.13.0/jna-platform-5.13.0.jar",
+      "bytes": 1363209,
+      "sha256": "474d7b88f6e97009b6ec1d98c3024dd95c23187c65dabfbc35331bcac3d173dd",
+      "published_sha1": "88e9a306715e9379f3122415ef4ae759a352640d",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "net.java.dev.jna:jna:5.13.0",
+      "repository": "minecraft_libraries",
+      "path": "net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar",
+      "bytes": 1879325,
+      "sha256": "66d4f819a062a51a1d5627bffc23fac55d1677f0e0a1feba144aabdd670a64bb",
+      "published_sha1": "1200e7ebeedbe0d10062093f32925a912020e747",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
+      "repository": "locked_maven",
+      "path": "net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+      "bytes": 78146,
+      "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28",
+      "published_sha1": null,
+      "lock_blake3": "blake3:c9f31de9dc51d72c8f1173842455542005d524e5"
+    },
+    {
+      "coordinate": "org.apache.commons:commons-compress:1.22",
+      "repository": "minecraft_libraries",
+      "path": "org/apache/commons/commons-compress/1.22/commons-compress-1.22.jar",
+      "bytes": 1039712,
+      "sha256": "53d04a0efc7223baecaa303bd5d298eb0600e6b82b4076f9cecd558b97ba760b",
+      "published_sha1": "691a8b4e6cf4248c3bc72c8b719337d5cb7359fa",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.apache.commons:commons-lang3:3.13.0",
+      "repository": "minecraft_libraries",
+      "path": "org/apache/commons/commons-lang3/3.13.0/commons-lang3-3.13.0.jar",
+      "bytes": 632267,
+      "sha256": "82f528cf718c7a3c2f30fc5bc784e3c6a0a10b17605dadb9e16c82ede11e6064",
+      "published_sha1": "b7263237aa89c1f99b327197c41d0669707a462e",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpclient:4.5.13",
+      "repository": "minecraft_libraries",
+      "path": "org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar",
+      "bytes": 780321,
+      "sha256": "6fe9026a566c6a5001608cf3fc32196641f6c1e5e1986d1037ccdbd5f31ef743",
+      "published_sha1": "e5f6cae5ca7ecaac1ec2827a9e2d65ae2869cada",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcore:4.4.16",
+      "repository": "minecraft_libraries",
+      "path": "org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar",
+      "bytes": 327891,
+      "sha256": "6c9b3dd142a09dc468e23ad39aad6f75a0f2b85125104469f026e52a474e464f",
+      "published_sha1": "51cf043c87253c9f58b539c9f7e44c8894223850",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.apache.logging.log4j:log4j-api:2.19.0",
+      "repository": "locked_maven",
+      "path": "org/apache/logging/log4j/log4j-api/2.19.0/log4j-api-2.19.0.jar",
+      "bytes": 317566,
+      "sha256": "5ccb24ad9f92e768d0bc456d3061a737951262df803e004d2cad096b75a88d60",
+      "published_sha1": null,
+      "lock_blake3": "blake3:6036255706ef54c9fb10d78c6d3322bdd8e5f4b1"
+    },
+    {
+      "coordinate": "org.apache.logging.log4j:log4j-core:2.19.0",
+      "repository": "locked_maven",
+      "path": "org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar",
+      "bytes": 1864386,
+      "sha256": "b4a1796fab7bfc36df015c1b4052459147997e8d215a7199d71d05f9e747e4f4",
+      "published_sha1": null,
+      "lock_blake3": "blake3:72c46add99835f68ba44614a3c61dc6f291eb11e"
+    },
+    {
+      "coordinate": "org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0",
+      "repository": "minecraft_libraries",
+      "path": "org/apache/logging/log4j/log4j-slf4j2-impl/2.19.0/log4j-slf4j2-impl-2.19.0.jar",
+      "bytes": 27721,
+      "sha256": "825605eacb2d5605b105c53d4108c18125e0f82f62960d0be583278b9c524f3c",
+      "published_sha1": "5c04bfdd63ce9dceb2e284b81e96b6a70010ee10",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.joml:joml:1.10.5",
+      "repository": "minecraft_libraries",
+      "path": "org/joml/joml/1.10.5/joml-1.10.5.jar",
+      "bytes": 712082,
+      "sha256": "cac9f22f83a7aa33eebda73c16ff5261e3cb4911b6bafcf4c79ea486099d0c9a",
+      "published_sha1": "22566d58af70ad3d72308bab63b8339906deb649",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-glfw:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-glfw/3.3.2/lwjgl-glfw-3.3.2.jar",
+      "bytes": 135828,
+      "sha256": "29f2fff9dfa7247bde7abc20c3e074d2384dbdd64ffbea172c86a392000f8b48",
+      "published_sha1": "757920418805fb90bfebb3d46b1d9e7669fca2eb",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-glfw:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-glfw/3.3.2/lwjgl-glfw-3.3.2-natives-linux.jar",
+      "bytes": 115553,
+      "sha256": "2a65e24cf41e120a66296c05092774d5864fbf8df05d6759085df2ce5c037794",
+      "published_sha1": "0766bb0e8e829598b1c8052fd8173c62af741c52",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-jemalloc:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-jemalloc/3.3.2/lwjgl-jemalloc-3.3.2.jar",
+      "bytes": 43233,
+      "sha256": "9e1a6a76b2c08fc72c2e893151930b2018cafd5a23d8242187c72d181cb587b0",
+      "published_sha1": "877e17e39ebcd58a9c956dc3b5b777813de0873a",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-jemalloc:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-jemalloc/3.3.2/lwjgl-jemalloc-3.3.2-natives-linux.jar",
+      "bytes": 204677,
+      "sha256": "3c1d4d643fb595481fb9654dbdd63523f6f42ac993c28571c575ab1de78413c2",
+      "published_sha1": "2bc33176cdfabf34a63df154b80914e8f433316b",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-openal:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-openal/3.3.2/lwjgl-openal-3.3.2.jar",
+      "bytes": 108230,
+      "sha256": "2a58483b99c882a332d086402fccb8272664327016dc5a261a98d87f19d0f562",
+      "published_sha1": "ae5357ed6d934546d3533993ea84c0cfb75eed95",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-openal:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-openal/3.3.2/lwjgl-openal-3.3.2-natives-linux.jar",
+      "bytes": 579919,
+      "sha256": "7378eb675963247b2912251502646a206ed01ba64629c91d614a1c3b429f7abd",
+      "published_sha1": "650981780b8bbfb3ce43657b22ec8e77bfb1f37a",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-opengl:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-opengl/3.3.2/lwjgl-opengl-3.3.2.jar",
+      "bytes": 928871,
+      "sha256": "0ebaaf92d306c946ce9d3db25496b9068b7aab782b15966be2544b6a24838038",
+      "published_sha1": "ee8e95be0b438602038bc1f02dc5e3d011b1b216",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-opengl:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-opengl/3.3.2/lwjgl-opengl-3.3.2-natives-linux.jar",
+      "bytes": 80464,
+      "sha256": "8956bca64d2851dc14ec6bfbfc55ce35fdff89270b5f2a3c9f70aea77f6d1e17",
+      "published_sha1": "b8368430ef0d91a5acbc6fbfa47b20c3ec083aec",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-stb:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-stb/3.3.2/lwjgl-stb-3.3.2.jar",
+      "bytes": 118874,
+      "sha256": "48ad3b167188dc29482ae51a318b3b486e0db7b1c414fc4f09856789220f56b6",
+      "published_sha1": "a2550795014d622b686e9caac50b14baa87d2c70",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-stb:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-stb/3.3.2/lwjgl-stb-3.3.2-natives-linux.jar",
+      "bytes": 231821,
+      "sha256": "8b45045d90bbd49d202de35d4650f2450c2ed5aa7dc870f2ac5b7d3941719854",
+      "published_sha1": "5c987f43b342d722b54970159040af76f1c87403",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-tinyfd:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-tinyfd/3.3.2/lwjgl-tinyfd-3.3.2.jar",
+      "bytes": 13404,
+      "sha256": "0fd2aa644f3b937cc38102fe1fde8103f5aa6ba00de587cec378f92f50101cfa",
+      "published_sha1": "9f65c248dd77934105274fcf8351abb75b34327c",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-tinyfd:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl-tinyfd/3.3.2/lwjgl-tinyfd-3.3.2-natives-linux.jar",
+      "bytes": 43961,
+      "sha256": "7e1e74a67223a4c0103e2efee99d2fd3f513543eca1fcc860dbfc20e966f8c39",
+      "published_sha1": "05d27fc67172b3fcd8400d61a7cfb75da881f609",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl:3.3.2",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl/3.3.2/lwjgl-3.3.2.jar",
+      "bytes": 786196,
+      "sha256": "f8016606e74f3cafd63eae07b1331f903f999c9f40726c838399a144c3809217",
+      "published_sha1": "4421d94af68e35dcaa31737a6fc59136a1e61b94",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl:3.3.2:natives-linux",
+      "repository": "minecraft_libraries",
+      "path": "org/lwjgl/lwjgl/3.3.2/lwjgl-3.3.2-natives-linux.jar",
+      "bytes": 114144,
+      "sha256": "89f53089a5f8a983db25140a1c94c72fe2a8f56feb6ddb597f55b8329ce5b400",
+      "published_sha1": "767684973f259d97e7dc66a125eb153986f177e7",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-api:2.0.9",
+      "repository": "locked_maven",
+      "path": "org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar",
+      "bytes": 64579,
+      "sha256": "0818930dc8d7debb403204611691da58e49d42c50b6ffcfdce02dadb7c3c2b6c",
+      "published_sha1": null,
+      "lock_blake3": "blake3:1f4a497cc597e5a68fa151804aeff0a9f927dccb"
+    },
+    {
+      "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
+      "repository": "locked_maven",
+      "path": "com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+      "bytes": 19936,
+      "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7",
+      "published_sha1": null,
+      "lock_blake3": "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81"
+    },
+    {
+      "coordinate": "ca.weblite:java-objc-bridge:1.1",
+      "repository": "minecraft_libraries",
+      "path": "ca/weblite/java-objc-bridge/1.1/java-objc-bridge-1.1.jar",
+      "bytes": 1330045,
+      "sha256": "77e34a13bccffc6c8b1a0e3ed46ddb0ea7dd56f2104ecdfacaaec9e4054ac332",
+      "published_sha1": "1227f9e0666314f9de41477e3ec277e542ed7f7b",
+      "lock_blake3": null
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.0:api",
+      "repository": "locked_maven",
+      "path": "net/neoforged/mergetool/2.0.0/mergetool-2.0.0-api.jar",
+      "bytes": 2550,
+      "sha256": "0260881294d8b218afe3d673f084d3745a55c28b35205d07d5e62d7f22202a00",
+      "published_sha1": null,
+      "lock_blake3": "blake3:4d6f4fc870173ec42e08ea1cc77196e85757138f"
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:24.0.1",
+      "repository": "locked_maven",
+      "path": "org/jetbrains/annotations/24.0.1/annotations-24.0.1.jar",
+      "bytes": 30651,
+      "sha256": "61666dbce7e42e6c85b43c04fcfb8293a21dcb55b3c80e869270ce42c01a6b35",
+      "published_sha1": null,
+      "lock_blake3": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:events:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/events/1.0.16/events-1.0.16.jar",
+      "bytes": 14351,
+      "sha256": "cdf7abe16f63ed1ca539437993feb2a41e060ca22ff9edc210a6cf245cb3cac1",
+      "published_sha1": null,
+      "lock_blake3": "blake3:bb9179164dbc1b309cb2bcb6d0cf548347a08869"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:core:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/core/1.0.16/core-1.0.16.jar",
+      "bytes": 117585,
+      "sha256": "817eb81a03e5cd10d7fbfff83f4fbf484fbe84da2bf09f6d1f8c993a42e2d312",
+      "published_sha1": null,
+      "lock_blake3": "blake3:77d44db2165dab282c64a25187465ddce8b2ae68"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:language-java:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/language-java/1.0.16/language-java-1.0.16.jar",
+      "bytes": 16774,
+      "sha256": "c2b570bbb809b16e76114af2d502f553a4c3d31432bcd4f77622ba754c0bdb83",
+      "published_sha1": null,
+      "lock_blake3": "blake3:f671868db1fd7d7e4af2d56d47b066342a3af236"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:language-lowcode:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/language-lowcode/1.0.16/language-lowcode-1.0.16.jar",
+      "bytes": 7232,
+      "sha256": "de3df1f270e6f21a3c617c30e95ca303f0dd4b1aafba36192d3058ddb787b947",
+      "published_sha1": null,
+      "lock_blake3": "blake3:3e12436250a5e6bd4c2c73cfdf18c200f1a8b3a0"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:language-minecraft:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/language-minecraft/1.0.16/language-minecraft-1.0.16.jar",
+      "bytes": 4970,
+      "sha256": "06683eed1ea8c7e2318eadc66902fddf59232f2cec081565c90fc685f6290c2e",
+      "published_sha1": null,
+      "lock_blake3": "blake3:5fa7d7318fdd913af35a26af54dabc1139d30128"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:loader:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/loader/1.0.16/loader-1.0.16.jar",
+      "bytes": 266487,
+      "sha256": "a335ee8d684ad57b028956a5350c85940e6e3dd16dd1884a2914d53fc6acee79",
+      "published_sha1": null,
+      "lock_blake3": "blake3:0876ea206ff47118347f3f25f6d6da4cc58d70b4"
+    },
+    {
+      "coordinate": "net.neoforged.fancymodloader:earlydisplay:1.0.16",
+      "repository": "locked_maven",
+      "path": "net/neoforged/fancymodloader/earlydisplay/1.0.16/earlydisplay-1.0.16.jar",
+      "bytes": 260143,
+      "sha256": "4b6e792746c3d0de85c890c1163c23694246fe9f4d1681bd1fe65d56b79f5ebb",
+      "published_sha1": null,
+      "lock_blake3": "blake3:d4f1a3472e6bcc78cbdddb9ce07fced457302181"
+    },
+    {
+      "coordinate": "cpw.mods:securejarhandler:2.1.24",
+      "repository": "locked_maven",
+      "path": "cpw/mods/securejarhandler/2.1.24/securejarhandler-2.1.24.jar",
+      "bytes": 103854,
+      "sha256": "41429e55a77e25cf7b261cbf3ac138b19c91f9f1372490c27dd14fe5658c0bb4",
+      "published_sha1": null,
+      "lock_blake3": "blake3:917be7cd6c077e9273ed9097a65a59b11b0cd80a"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.5",
+      "repository": "locked_maven",
+      "path": "org/ow2/asm/asm/9.5/asm-9.5.jar",
+      "bytes": 121863,
+      "sha256": "b62e84b5980729751b0458c534cf1366f727542bb8d158621335682a460f0353",
+      "published_sha1": null,
+      "lock_blake3": "blake3:56df078607b3ba0ab75201c1feb9da35880f96f5"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-commons:9.5",
+      "repository": "locked_maven",
+      "path": "org/ow2/asm/asm-commons/9.5/asm-commons-9.5.jar",
+      "bytes": 72209,
+      "sha256": "72eee9fbafb9de8d9463f20dd584a48ceeb7e5152ad4c987bfbe17dd4811c9ae",
+      "published_sha1": null,
+      "lock_blake3": "blake3:19c89f1f40d3cc9d408a2b2076f904f178de48af"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-tree:9.5",
+      "repository": "locked_maven",
+      "path": "org/ow2/asm/asm-tree/9.5/asm-tree-9.5.jar",
+      "bytes": 51944,
+      "sha256": "3c33a648191079aeaeaeb7c19a49b153952f9e40fe86fbac5205554ddd9acd94",
+      "published_sha1": null,
+      "lock_blake3": "blake3:e8af669fc7eaae63613912f79a9583026e8ad2de"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-util:9.5",
+      "repository": "locked_maven",
+      "path": "org/ow2/asm/asm-util/9.5/asm-util-9.5.jar",
+      "bytes": 91076,
+      "sha256": "c467f1bb3c08888f47243e2d475209b34a772d627e44fca06752e18bb038bd74",
+      "published_sha1": null,
+      "lock_blake3": "blake3:467583e601278692a3ba40819ad23212ae11d958"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-analysis:9.5",
+      "repository": "locked_maven",
+      "path": "org/ow2/asm/asm-analysis/9.5/asm-analysis-9.5.jar",
+      "bytes": 33978,
+      "sha256": "39f1cf1791335701c3b02cae7b2bc21057ec9a55b2240789cb6d552b2b2c62fa",
+      "published_sha1": null,
+      "lock_blake3": "blake3:74a8529bf90b32cdef97de947562f1d28798bd44"
+    },
+    {
+      "coordinate": "net.neoforged:accesstransformers:10.0.1",
+      "repository": "locked_maven",
+      "path": "net/neoforged/accesstransformers/10.0.1/accesstransformers-10.0.1.jar",
+      "bytes": 67234,
+      "sha256": "89fb0dc3d68f8a5961f309ee110dad7d2c1094ba204595602b71e02e104838a1",
+      "published_sha1": null,
+      "lock_blake3": "blake3:49186ce636dee5b7c7773bd99b3cd1d5bd897b00"
+    },
+    {
+      "coordinate": "net.neoforged:bus:7.2.0",
+      "repository": "locked_maven",
+      "path": "net/neoforged/bus/7.2.0/bus-7.2.0.jar",
+      "bytes": 35117,
+      "sha256": "80ab7fe07790c8a43ef83e5b525155e5c99182279e79c7cf71c97bbec7da32d9",
+      "published_sha1": null,
+      "lock_blake3": "blake3:d879350b0b07af896fffa6759d8b13373b43156e"
+    },
+    {
+      "coordinate": "net.neoforged:neoforgespi:8.0.0",
+      "repository": "locked_maven",
+      "path": "net/neoforged/neoforgespi/8.0.0/neoforgespi-8.0.0.jar",
+      "bytes": 29531,
+      "sha256": "8cd2aaaba4768ae4373cc90ca2c06b8b56abb6af4acd6d7df6aadf0476927707",
+      "published_sha1": null,
+      "lock_blake3": "blake3:48573b8e6f1ef1d74f1fbe35158dafb69c9939e5"
+    },
+    {
+      "coordinate": "net.neoforged:coremods:6.0.2",
+      "repository": "locked_maven",
+      "path": "net/neoforged/coremods/6.0.2/coremods-6.0.2.jar",
+      "bytes": 24182,
+      "sha256": "289c35c4c23da14a87f8b69e093932b0c2ab601142b27f14c66d40560900e601",
+      "published_sha1": null,
+      "lock_blake3": "blake3:4246be244e8a9fc50f83f9f7257ed487557b938e"
+    },
+    {
+      "coordinate": "cpw.mods:modlauncher:10.0.9",
+      "repository": "locked_maven",
+      "path": "cpw/mods/modlauncher/10.0.9/modlauncher-10.0.9.jar",
+      "bytes": 130343,
+      "sha256": "a9b3dcde1434d02702a251ef1d0671dbc90250b349778e1c27151d86c2a4aa81",
+      "published_sha1": null,
+      "lock_blake3": "blake3:4915dd783a0d462d4bb303530cbc13520af9df51"
+    },
+    {
+      "coordinate": "net.minecraftforge:unsafe:0.2.0",
+      "repository": "locked_maven",
+      "path": "net/minecraftforge/unsafe/0.2.0/unsafe-0.2.0.jar",
+      "bytes": 2834,
+      "sha256": "946937e182ab3b518b5b88264f367e1f35ac12bc83abed220490c60c717be239",
+      "published_sha1": null,
+      "lock_blake3": "blake3:53cc83cfe5ad1e830ca024b142d85396fb06530c"
+    },
+    {
+      "coordinate": "com.electronwill.night-config:core:3.6.4",
+      "repository": "locked_maven",
+      "path": "com/electronwill/night-config/core/3.6.4/core-3.6.4.jar",
+      "bytes": 199834,
+      "sha256": "1bc71c67b54ba9c8e5030b3ddaef7dee16ae43fee6850368f76b0cffef819700",
+      "published_sha1": null,
+      "lock_blake3": "blake3:48fc6bae43e80bbaf9c7ee7cb627bf56bc1c5f52"
+    },
+    {
+      "coordinate": "com.electronwill.night-config:toml:3.6.4",
+      "repository": "locked_maven",
+      "path": "com/electronwill/night-config/toml/3.6.4/toml-3.6.4.jar",
+      "bytes": 31816,
+      "sha256": "3cb3d0ef3352e204cda68215fbe41afdc7f56425ef4fd8e84006964a656117d4",
+      "published_sha1": null,
+      "lock_blake3": "blake3:0ecbb5e8d8d3f8cdc7a7ad4c4bfad3ae8366a166"
+    },
+    {
+      "coordinate": "org.apache.maven:maven-artifact:3.8.5",
+      "repository": "locked_maven",
+      "path": "org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.jar",
+      "bytes": 58077,
+      "sha256": "91172bc294d6eab02fc9f45f4ea01fd0e418962d128cf489abea7b6957d988ee",
+      "published_sha1": null,
+      "lock_blake3": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a"
+    },
+    {
+      "coordinate": "net.jodah:typetools:0.6.3",
+      "repository": "locked_maven",
+      "path": "net/jodah/typetools/0.6.3/typetools-0.6.3.jar",
+      "bytes": 18281,
+      "sha256": "408300867804be05d1083cc0287dd3a21295a9e76090e288013ba5a4182dc96d",
+      "published_sha1": null,
+      "lock_blake3": "blake3:f4c1ed2af614b2ae7a8087e96fa6f9fd4b986f9f"
+    },
+    {
+      "coordinate": "net.minecrell:terminalconsoleappender:1.2.0",
+      "repository": "locked_maven",
+      "path": "net/minecrell/terminalconsoleappender/1.2.0/terminalconsoleappender-1.2.0.jar",
+      "bytes": 15977,
+      "sha256": "912e432c9355c4b2025d788ed87fd72bb95542e2fc967ad6875fbbeb6e1c7a1c",
+      "published_sha1": null,
+      "lock_blake3": "blake3:4d40de2defbf016c8f9d380575792d5d77e0be8e"
+    },
+    {
+      "coordinate": "org.spongepowered:mixin:0.8.5",
+      "repository": "locked_maven",
+      "path": "org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar",
+      "bytes": 1089277,
+      "sha256": "ca15a907e4d1f6b38cefed51d7df96a83347dcfb0bc8ced53111519e991d887d",
+      "published_sha1": null,
+      "lock_blake3": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd"
+    },
+    {
+      "coordinate": "org.openjdk.nashorn:nashorn-core:15.4",
+      "repository": "locked_maven",
+      "path": "org/openjdk/nashorn/nashorn-core/15.4/nashorn-core-15.4.jar",
+      "bytes": 2167292,
+      "sha256": "6f816e84dfd63a81d4eaa7829c08337bbaff3ec683ff3bf6bbd90d017a00dc6f",
+      "published_sha1": null,
+      "lock_blake3": "blake3:b1cded0a306035a1e3b9e508686ce07812351525"
+    },
+    {
+      "coordinate": "net.neoforged:JarJarSelector:0.4.0",
+      "repository": "locked_maven",
+      "path": "net/neoforged/JarJarSelector/0.4.0/JarJarSelector-0.4.0.jar",
+      "bytes": 17198,
+      "sha256": "960c0257d1ad451d17f0ed5027365e9987965b355f95200eb1b7bf78a3d36905",
+      "published_sha1": null,
+      "lock_blake3": "blake3:5409c5ae82004f94a19a23f7a642222aa985bda9"
+    },
+    {
+      "coordinate": "net.neoforged:JarJarMetadata:0.4.0",
+      "repository": "locked_maven",
+      "path": "net/neoforged/JarJarMetadata/0.4.0/JarJarMetadata-0.4.0.jar",
+      "bytes": 15676,
+      "sha256": "7e581a280284786164efd51e4d35f07522366317544b31cc6321253206ebb4b0",
+      "published_sha1": null,
+      "lock_blake3": "blake3:9d146872227e354b46aac6cb738adaf0fc8909b6"
+    },
+    {
+      "coordinate": "cpw.mods:bootstraplauncher:1.1.2",
+      "repository": "locked_maven",
+      "path": "cpw/mods/bootstraplauncher/1.1.2/bootstraplauncher-1.1.2.jar",
+      "bytes": 8284,
+      "sha256": "853b61fd165caf4103b5b969afbc5b2b037abc310ed644518cd967b50d5189a4",
+      "published_sha1": null,
+      "lock_blake3": "blake3:f8767a36e474ef7a5680b4b6c2805a7bbb26527a"
+    }
+  ],
+  "limit": "Exact 85 NeoForge 20.2.86 POM dependency JARs for offline Gradle diagnostic. Other project/task inputs and full closure remain separate."
+}

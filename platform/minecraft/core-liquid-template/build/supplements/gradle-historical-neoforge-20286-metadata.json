@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "purpose": "Historical NeoForge 20.2.86 base POM metadata plus existing selected-lock classifier JAR identity; no additional JAR copy",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "minecraft-toolchain/maven",
+  "artifact_count": 4,
+  "artifacts": [
+    {
+      "coordinate": "net.neoforged:neoforge:20.2.86@pom",
+      "path": "net/neoforged/neoforge/20.2.86/neoforge-20.2.86.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/20.2.86/neoforge-20.2.86.pom",
+      "bytes": 17770,
+      "sha256": "ab5bd9c5882cddf345d45db6d7b65ca170c61f912e0293b524e78f3b15e079f7",
+      "authentication": "publisher_sha256_sidecar",
+      "status": "pending_create_only"
+    },
+    {
+      "coordinate": "net.neoforged:neoforge:20.2.86:sources@jar",
+      "path": "net/neoforged/neoforge/20.2.86/neoforge-20.2.86-sources.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/20.2.86/neoforge-20.2.86-sources.jar",
+      "bytes": 1192334,
+      "sha256": "3302831681b1a3f4354c0a0041928193ca914c0d001af768b448ea16b847bc08",
+      "authentication": "publisher_sha256_sidecar_and_selected_lock_provenance",
+      "status": "existing_checked_cache"
+    },
+    {
+      "coordinate": "net.neoforged:neoforge:20.2.86:universal@jar",
+      "path": "net/neoforged/neoforge/20.2.86/neoforge-20.2.86-universal.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/20.2.86/neoforge-20.2.86-universal.jar",
+      "bytes": 2205878,
+      "sha256": "fec97f7f1d5ccb186b080711d3b2f0093e6eec54a311626fade06b3e52e7cdfe",
+      "authentication": "publisher_sha256_sidecar_and_selected_lock_provenance",
+      "status": "existing_checked_cache"
+    },
+    {
+      "coordinate": "net.neoforged:neoforge:20.2.86:userdev@jar",
+      "path": "net/neoforged/neoforge/20.2.86/neoforge-20.2.86-userdev.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/20.2.86/neoforge-20.2.86-userdev.jar",
+      "bytes": 3588851,
+      "sha256": "d25c8a4b7ab0a7f8bf96ad8d97aa7373ad41a103472b4d766f261e358dd32fb4",
+      "authentication": "publisher_sha256_sidecar_and_selected_lock_provenance",
+      "status": "existing_checked_cache"
+    }
+  ]
+}

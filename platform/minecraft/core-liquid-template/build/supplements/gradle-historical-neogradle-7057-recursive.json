@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "purpose": "Second-level Maven metadata and runtime inputs selected by historical NeoGradle userdev 7.0.57 offline classpath",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "gradle/bootstrap-maven/historical-neogradle-7.0.57-recursive",
+  "coordinate_count": 10,
+  "artifact_count": 15,
+  "total_bytes": 833720,
+  "artifacts": [
+    {
+      "coordinate": "com.beust:jcommander:1.78@pom",
+      "path": "com/beust/jcommander/1.78/jcommander-1.78.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/beust/jcommander/1.78/jcommander-1.78.pom",
+      "bytes": 1191,
+      "sha256": "6fee231c0aeee6de1256b6b5590ce9e6f6cf6c39797ed668573520bc3412e2a7",
+      "published_sha1": "d99f5df85ea6656189de6865d34653a804feca16",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.beust:jcommander:1.78@jar",
+      "path": "com/beust/jcommander/1.78/jcommander-1.78.jar",
+      "url": "https://repo.maven.apache.org/maven2/com/beust/jcommander/1.78/jcommander-1.78.jar",
+      "bytes": 83782,
+      "sha256": "7891debb84b5f83e9bd57593ebece3399abbe0fd938cf306b3534c57913b9615",
+      "published_sha1": "a3927de9bd6f351429bcf763712c9890629d8f51",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.github.javaparser:javaparser-parent:3.25.1@pom",
+      "path": "com/github/javaparser/javaparser-parent/3.25.1/javaparser-parent-3.25.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/github/javaparser/javaparser-parent/3.25.1/javaparser-parent-3.25.1.pom",
+      "bytes": 23722,
+      "sha256": "118bd4d0f31e46f358e5e1c6c30e1fc1937aefeb51e5e1c199e43f42fc2c7400",
+      "published_sha1": "821af4c04bd7a05f149625b8a5eb8df9956718cb",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson-parent:2.9.0@pom",
+      "path": "com/google/code/gson/gson-parent/2.9.0/gson-parent-2.9.0.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson-parent/2.9.0/gson-parent-2.9.0.pom",
+      "bytes": 4515,
+      "sha256": "af781c9a5766ffea311a0df0536576a64decc661aa110c4de5c73ac8bf434424",
+      "published_sha1": "c6a7218f3573c254d33ffac6aa6efe7cb4f8186b",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "net.covers1624:Quack:0.4.7.72@pom",
+      "path": "net/covers1624/Quack/0.4.7.72/Quack-0.4.7.72.pom",
+      "url": "https://repo.maven.apache.org/maven2/net/covers1624/Quack/0.4.7.72/Quack-0.4.7.72.pom",
+      "bytes": 1094,
+      "sha256": "f3b668efaecc4803590878635612088943a32471363260b3a575c0d2095579ef",
+      "published_sha1": "3249961d602b1a770d291f6a0616b050dfd56c4b",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "net.covers1624:Quack:0.4.7.72@jar",
+      "path": "net/covers1624/Quack/0.4.7.72/Quack-0.4.7.72.jar",
+      "url": "https://repo.maven.apache.org/maven2/net/covers1624/Quack/0.4.7.72/Quack-0.4.7.72.jar",
+      "bytes": 290850,
+      "sha256": "29114d808b515e022024afa1b004f6eb15bcd4958d869f782aefbd0cb7bd636d",
+      "published_sha1": "732626fcf3b0e59354099a840ccbe698b9fb8142",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-parent:1.10.12@pom",
+      "path": "org/apache/ant/ant-parent/1.10.12/ant-parent-1.10.12.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-parent/1.10.12/ant-parent-1.10.12.pom",
+      "bytes": 6522,
+      "sha256": "c519f4d47bbf9cdfd0d011ec6854295fca81e5a09e38b85f96e26f76d80e5f88",
+      "published_sha1": "9895cfcddfaae8003860279f033ccd533c8a5767",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.codehaus:codehaus-parent:4@pom",
+      "path": "org/codehaus/codehaus-parent/4/codehaus-parent-4.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/codehaus-parent/4/codehaus-parent-4.pom",
+      "bytes": 4821,
+      "sha256": "6b87237de8c2e1740cf80627c7f3ce3e15de1930bb250c55a1eca94fa3e014df",
+      "published_sha1": "8b133202d50bec1e59bddc9392cb44d1fe5facc8",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.hamcrest:hamcrest-core:1.3@pom",
+      "path": "org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.pom",
+      "bytes": 766,
+      "sha256": "fde386a7905173a1b103de6ab820727584b50d0e32282e2797787c20a64ffa93",
+      "published_sha1": "872e413497b906e7c9fa85ccc96046c5d1ef7ece",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.hamcrest:hamcrest-core:1.3@jar",
+      "path": "org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar",
+      "bytes": 45024,
+      "sha256": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9",
+      "published_sha1": "42a25dc3219429f0e5d060061f71acb49bf010a0",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit:junit-bom:5.9.2@pom",
+      "path": "org/junit/junit-bom/5.9.2/junit-bom-5.9.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/junit-bom/5.9.2/junit-bom-5.9.2.pom",
+      "bytes": 5630,
+      "sha256": "2ed07d65845131f5336a86476c9a4056b59d0b58b9815ab3679bb0f36f35f705",
+      "published_sha1": "645a08cbe455cad14d8bfb25a35d7f594c53cafd",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-api:1.7.32@pom",
+      "path": "org/slf4j/slf4j-api/1.7.32/slf4j-api-1.7.32.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.32/slf4j-api-1.7.32.pom",
+      "bytes": 3835,
+      "sha256": "001cde5b3c6ba91070425cfe9f2e695e4aeb8bc290a2d4cd96531127ab244fe5",
+      "published_sha1": "dd71cee8b1ef6f54fa6e60f3814fa748f03642e2",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-api:1.7.32@jar",
+      "path": "org/slf4j/slf4j-api/1.7.32/slf4j-api-1.7.32.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.32/slf4j-api-1.7.32.jar",
+      "bytes": 41513,
+      "sha256": "3624f8474c1af46d75f98bc097d7864a323c81b3808aa43689a6e1c601c027be",
+      "published_sha1": "cdcff33940d9f2de763bc41ea05a0be5941176c3",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.webjars:jquery:3.5.1@pom",
+      "path": "org/webjars/jquery/3.5.1/jquery-3.5.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/webjars/jquery/3.5.1/jquery-3.5.1.pom",
+      "bytes": 7385,
+      "sha256": "4fbae081d74852ff2943cd069696a799628ae6df22828b53fa456334104c9878",
+      "published_sha1": "4deae828c1ebefc5af390b85728b64814234c510",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.webjars:jquery:3.5.1@jar",
+      "path": "org/webjars/jquery/3.5.1/jquery-3.5.1.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/webjars/jquery/3.5.1/jquery-3.5.1.jar",
+      "bytes": 313070,
+      "sha256": "83168112220ac912a3dba0eebae90a4da5bf1e24b1bafd401e3d4f9f598bb2cb",
+      "published_sha1": "2392938e374f561c27c53872bdc9b6b351b6ba34",
+      "authentication": "official_sha1_sidecar"
+    }
+  ]
+}

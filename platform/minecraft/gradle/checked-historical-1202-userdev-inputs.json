@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "purpose": "Additional frozen-lock JARs named by authenticated historical NeoForge 20.2.86 userdev config, excluding 85 direct POM inputs and separately checked NeoForm ZIP",
+  "projection": "sfm-4.35.0/mc-1.20.2",
+  "repository_path": "minecraft-toolchain/maven",
+  "selected_lock_sha256": "DF4FD41C7BDE7B3C622E68E92C0FA3C6F7EEE8895BE847FF57F11A3A5503BDD9",
+  "direct_consumer_sha256": "5C65A7A8DA22E5DFFA35432B9152F136EAF255302BAA5F05C702B5DBA1D6E242",
+  "userdev_jar_sha256": "D25C8A4B7AB0A7F8BF96AD8D97AA7373AD41A103472B4D766F261E358DD32FB4",
+  "userdev_config_library_count": 56,
+  "artifact_count": 18,
+  "files": [
+    {
+      "coordinate": "net.neoforged:JarJarFileSystems:0.4.0",
+      "path": "net/neoforged/JarJarFileSystems/0.4.0/JarJarFileSystems-0.4.0.jar",
+      "repository": "locked_maven",
+      "bytes": 31835,
+      "sha256": "c94e80670bf91d311432abfc10b92a5470f7c14538502e936be296da2deb1e61",
+      "locked_blake3": "blake3:cde6de1ee081dcd309bdab73659b99e89e7a87d9",
+      "source_url": "https://maven.neoforged.net/releases/net/neoforged/JarJarFileSystems/0.4.0/JarJarFileSystems-0.4.0.jar",
+      "provenance_sha256": "eb3970a3299ee3ff6dd7f6fbb18e087979634431b4fa1ea98941a8b37b7a4f17"
+    },
+    {
+      "coordinate": "org.jline:jline-reader:3.12.1",
+      "path": "org/jline/jline-reader/3.12.1/jline-reader-3.12.1.jar",
+      "repository": "locked_maven",
+      "bytes": 150765,
+      "sha256": "4d1037c7110027ed64816c510fad2afa0a5aa9bbc38fb9f0e772870823fcad2a",
+      "locked_blake3": "blake3:52015aa763c5303696b4c512cfb155710276bdeb",
+      "source_url": "https://repo1.maven.org/maven2/org/jline/jline-reader/3.12.1/jline-reader-3.12.1.jar",
+      "provenance_sha256": "936749ae8081a85ac08b187052d6b796282e24bf884ad39a4723d97ef17a52df"
+    },
+    {
+      "coordinate": "com.google.j2objc:j2objc-annotations:1.3",
+      "path": "com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar",
+      "repository": "locked_maven",
+      "bytes": 8781,
+      "sha256": "21af30c92267bd6122c0e0b4d20cccb6641a37eaf956c6540ec471d584e64a7b",
+      "locked_blake3": "blake3:d7d89341f281c248d9f5c400abd71c0d0ac016af",
+      "source_url": "https://maven.minecraftforge.net/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar",
+      "provenance_sha256": "09ab867a105eddbcae9fe1d3e2e55855092644d522c9f1ea84807706c0754db4"
+    },
+    {
+      "coordinate": "org.codehaus.plexus:plexus-utils:3.3.0",
+      "path": "org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.jar",
+      "repository": "locked_maven",
+      "bytes": 263253,
+      "sha256": "76d174792540e2775af94d03d10fb2d3c776e2cd0ac0ebf427d3e570072bb9ce",
+      "locked_blake3": "blake3:983ea86b0ad4c1859ea828d439f865d20b5014dd",
+      "source_url": "https://repo1.maven.org/maven2/org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.jar",
+      "provenance_sha256": "f6abf28ee2a86dff359a4f18d9c881573b37dac312a1d7c3cf025f475f0a3f04"
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:22.0.0",
+      "path": "org/jetbrains/annotations/22.0.0/annotations-22.0.0.jar",
+      "repository": "locked_maven",
+      "bytes": 28482,
+      "sha256": "9f45f5d5184d50a777742389a7a6e6a5b0bf90b316919774d8336f94776c31b2",
+      "locked_blake3": "blake3:067ed59ef2e2211f01556e273ad693488379f9dc",
+      "source_url": "https://repo1.maven.org/maven2/org/jetbrains/annotations/22.0.0/annotations-22.0.0.jar",
+      "provenance_sha256": "aa7dc3c3a02460d705672a3b1f1e6bd1d374bc51d2acda62f9758c4d2211649d"
+    },
+    {
+      "coordinate": "net.minecraftforge:srgutils:0.4.15",
+      "path": "net/minecraftforge/srgutils/0.4.15/srgutils-0.4.15.jar",
+      "repository": "locked_maven",
+      "bytes": 69393,
+      "sha256": "f6bdebb7fae108329acddfc812f237c7f6328a98e3f282a105edfc161d0215e3",
+      "locked_blake3": "blake3:3f82db20b59b41eedeb4a6002cb49ae259aae07e",
+      "source_url": "https://maven.minecraftforge.net/net/minecraftforge/srgutils/0.4.15/srgutils-0.4.15.jar",
+      "provenance_sha256": "e596fade16d7012de060749f58eb0e61341a1850aa850eac7c84fbec774973a5"
+    },
+    {
+      "coordinate": "commons-io:commons-io:2.11.0",
+      "path": "commons-io/commons-io/2.11.0/commons-io-2.11.0.jar",
+      "repository": "locked_maven",
+      "bytes": 327135,
+      "sha256": "961b2f6d87dbacc5d54abf45ab7a6e2495f89b75598962d8c723cea9bc210908",
+      "locked_blake3": "blake3:3ce23246fffebb6787033194e3d61c3beb9377a9",
+      "source_url": "https://maven.minecraftforge.net/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar",
+      "provenance_sha256": "33c55b5beac7a5232e34b1dbf02107756eda62e04e6172aa097dd650ee47532a"
+    },
+    {
+      "coordinate": "io.github.llamalad7:mixinextras-neoforge:0.3.1",
+      "path": "io/github/llamalad7/mixinextras-neoforge/0.3.1/mixinextras-neoforge-0.3.1.jar",
+      "repository": "locked_maven",
+      "bytes": 169110,
+      "sha256": "f69d3249af65bb1c52f6a14439a1f816249fa624b5d71a5849d20bc942bc88d4",
+      "locked_blake3": "blake3:dfe63ac047f9bdf519963098ea53d7de3254f51d",
+      "source_url": "https://maven.minecraftforge.net/io/github/llamalad7/mixinextras-neoforge/0.3.1/mixinextras-neoforge-0.3.1.jar",
+      "provenance_sha256": "f75843d76257e6aa2a9ddfaa4f31afa29f5275a8b2401ce9d125dea1b2d4ae82"
+    },
+    {
+      "coordinate": "org.antlr:antlr4-runtime:4.13.1",
+      "path": "org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
+      "repository": "locked_maven",
+      "bytes": 326305,
+      "sha256": "54665d2838cc66458343468efc539e454fc95b46a8a04b13c6ac43fc9be63505",
+      "locked_blake3": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90",
+      "source_url": "https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
+      "provenance_sha256": "7c662536ad0f23d9ccf3879a14d0b7b0424c70f52a81379ef54ee7ad0f7ad8c3"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.10",
+      "path": "com/google/code/gson/gson/2.10/gson-2.10.jar",
+      "repository": "locked_maven",
+      "bytes": 286235,
+      "sha256": "0cdd163ce3598a20fc04eee71b140b24f6f2a3b35f0a499dbbdd9852e83fbfaf",
+      "locked_blake3": "blake3:1f7d75f14d950bee58d58f6d64aa8d3f7005b830",
+      "source_url": "https://maven.minecraftforge.net/com/google/code/gson/gson/2.10/gson-2.10.jar",
+      "provenance_sha256": "754c61d38c0185b346569f16a325ed2a214d84905b70704cc53eeb51b0e54a1e"
+    },
+    {
+      "coordinate": "com.machinezoo.noexception:noexception:1.7.1",
+      "path": "com/machinezoo/noexception/noexception/1.7.1/noexception-1.7.1.jar",
+      "repository": "locked_maven",
+      "bytes": 250861,
+      "sha256": "3d70aaea3904918587a21bdf99ab6ade9ab1dd0eaf6119344ba513f60f575816",
+      "locked_blake3": "blake3:c726e16b01bef81b9b7f32817e0467113b00dabf",
+      "source_url": "https://maven.minecraftforge.net/com/machinezoo/noexception/noexception/1.7.1/noexception-1.7.1.jar",
+      "provenance_sha256": "b60cd395e1006bfb805707a6cfe49202cbec6295e7108cdc422af38b9a920ee3"
+    },
+    {
+      "coordinate": "com.google.errorprone:error_prone_annotations:2.11.0",
+      "path": "com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar",
+      "repository": "locked_maven",
+      "bytes": 15979,
+      "sha256": "721cb91842b46fa056847d104d5225c8b8e1e8b62263b993051e1e5a0137b7ec",
+      "locked_blake3": "blake3:bce93b5ebd15900654dd3ed5045beb59dc925251",
+      "source_url": "https://maven.minecraftforge.net/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar",
+      "provenance_sha256": "14d588865dfcc088f2cfda1179d8f6113f40494911b8185fb733f5b99e01926c"
+    },
+    {
+      "coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+      "path": "com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "repository": "locked_maven",
+      "bytes": 2199,
+      "sha256": "b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99",
+      "locked_blake3": "blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f",
+      "source_url": "https://maven.minecraftforge.net/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "provenance_sha256": "bfb379eca4be57752f3336766429556535357a4561caa9b743eb4b010e8f16c1"
+    },
+    {
+      "coordinate": "net.neoforged.accesstransformers:at-modlauncher:10.0.1",
+      "path": "net/neoforged/accesstransformers/at-modlauncher/10.0.1/at-modlauncher-10.0.1.jar",
+      "repository": "locked_maven",
+      "bytes": 2347,
+      "sha256": "2a4b447c6944a2b89e383c1eed9a26bb5cc60330a5bb26ef0a912a38d52df935",
+      "locked_blake3": "blake3:4f9eeccdcade17d09aab2d9dd34a7d5e7491dfaf",
+      "source_url": "https://maven.neoforged.net/releases/net/neoforged/accesstransformers/at-modlauncher/10.0.1/at-modlauncher-10.0.1.jar",
+      "provenance_sha256": "73228a1b517be84e831ac0b5f01e334aa91916fa3c4a715ded407a171bf1b3df"
+    },
+    {
+      "coordinate": "com.google.guava:guava:31.1-jre",
+      "path": "com/google/guava/guava/31.1-jre/guava-31.1-jre.jar",
+      "repository": "locked_maven",
+      "bytes": 2959479,
+      "sha256": "a42edc9cab792e39fe39bb94f3fca655ed157ff87a8af78e1d6ba5b07c4a00ab",
+      "locked_blake3": "blake3:8791a4645a357d3a0640c0555f8a45f05334a92b",
+      "source_url": "https://maven.minecraftforge.net/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar",
+      "provenance_sha256": "f893c376c33bee95f2dc61fe05348e4fa005ee098e9f06124c27fee1cf09f302"
+    },
+    {
+      "coordinate": "org.checkerframework:checker-qual:3.12.0",
+      "path": "org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
+      "repository": "locked_maven",
+      "bytes": 208835,
+      "sha256": "ff10785ac2a357ec5de9c293cb982a2cbb605c0309ea4cc1cb9b9bc6dbe7f3cb",
+      "locked_blake3": "blake3:e506f0ed0b0df2a6ece0bbb90b342ccb09e20161",
+      "source_url": "https://repo1.maven.org/maven2/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
+      "provenance_sha256": "2d1ace5e865649cef8e91a9528ab1fe77632170c7dc2a105f8db7eb34afb27a2"
+    },
+    {
+      "coordinate": "org.jline:jline-terminal:3.12.1",
+      "path": "org/jline/jline-terminal/3.12.1/jline-terminal-3.12.1.jar",
+      "repository": "locked_maven",
+      "bytes": 211712,
+      "sha256": "eb6115680f732562f0e8e6777f127dece81e23b25015925f3c4a2a900d48cc9e",
+      "locked_blake3": "blake3:d6b248905e367f187ed6d41e7a22ba07a39d1a81",
+      "source_url": "https://repo1.maven.org/maven2/org/jline/jline-terminal/3.12.1/jline-terminal-3.12.1.jar",
+      "provenance_sha256": "9533f3237efa57031fac5b6207fdd339a2522f331a0f2e62792155ece03ef026"
+    },
+    {
+      "coordinate": "org.apache.commons:commons-lang3:3.12.0",
+      "path": "org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar",
+      "repository": "locked_maven",
+      "bytes": 587402,
+      "sha256": "d919d904486c037f8d193412da0c92e22a9fa24230b9d67a57855c5c31c7e94e",
+      "locked_blake3": "blake3:da4d0fa0e146331977ab2eddd0d0fe48f05aa52e",
+      "source_url": "https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar",
+      "provenance_sha256": "82b0af16a786fb9fea59ea29db8f52e723dc2562f4cef631fae7d9ee4a61a85a"
+    }
+  ]
+}
