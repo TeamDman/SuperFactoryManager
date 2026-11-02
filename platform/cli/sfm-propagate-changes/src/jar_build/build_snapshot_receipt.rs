@@ -806,8 +806,8 @@ fn inventory(
     let mut files = BTreeMap::new();
     let mut directories = BTreeSet::new();
     let mut names = BTreeSet::new();
-    let mut file_count = 0;
-    let mut total = 0;
+    let mut pending = Vec::new();
+    let mut total = 0_u64;
     for entry in walkdir::WalkDir::new(&root)
         .follow_links(false)
         .min_depth(1)
@@ -838,18 +838,46 @@ fn inventory(
                 metadata.is_file(),
                 "snapshot tree contains a nonregular file"
             );
-            let raw = read_bounded(entry.path(), MAX_FILE_BYTES)?;
-            add_bytes(&mut total, raw.len())?;
-            file_count += 1;
-            ensure!(file_count <= MAX_FILES, "snapshot file count exceeds limit");
-            if !(skip_receipt && relative == "receipt.json") {
-                files.insert(relative, digest(&raw));
-            }
+            ensure!(
+                metadata.len() <= MAX_FILE_BYTES,
+                "snapshot file exceeds byte limit"
+            );
+            total = total
+                .checked_add(metadata.len())
+                .ok_or_else(|| eyre::eyre!("snapshot byte count overflow"))?;
+            ensure!(total <= MAX_TOTAL_BYTES, "snapshot total exceeds byte limit");
+            pending.push((relative, entry.path().to_path_buf(), metadata.len()));
+            ensure!(pending.len() <= MAX_FILES, "snapshot file count exceeds limit");
+        }
+    }
+    // The directory shape and bounds are admitted before parallel payload reads.
+    // Preserve input order for deterministic error selection and receipt output.
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build()?;
+    let hashed = pool.install(|| {
+        use rayon::prelude::*;
+        pending
+            .par_iter()
+            .map(|(relative, path, expected_bytes)| {
+                if let Some(cancellation_token) = cancellation_token {
+                    cancellation_token.bail_if_cancelled()?;
+                }
+                let raw = read_bounded(path, MAX_FILE_BYTES)?;
+                ensure!(
+                    u64::try_from(raw.len())? == *expected_bytes,
+                    "snapshot file size changed during inventory"
+                );
+                Ok::<_, eyre::Report>((relative.clone(), digest(&raw)))
+            })
+            .collect::<Vec<_>>()
+    });
+    for row in hashed {
+        let (relative, hash) = row?;
+        if !(skip_receipt && relative == "receipt.json") {
+            files.insert(relative, hash);
         }
     }
     Ok((files, directories))
 }
-
 fn add_bytes(total: &mut u64, bytes: usize) -> Result<()> {
     *total = total
         .checked_add(u64::try_from(bytes)?)

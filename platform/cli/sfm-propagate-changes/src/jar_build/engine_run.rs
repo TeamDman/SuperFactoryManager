@@ -721,7 +721,9 @@ fn execute_run_with_context(
     if plan.identity.is_catalog_owned() {
         ensure_projection_client_plan(plan)?;
     }
+    let run_config_started = Instant::now();
     let run_config = read_forge_run_config(context, kind)?;
+    tracing::info!(phase = "warm_run_config_read", elapsed_ms = run_config_started.elapsed().as_millis(), "warm_run_stage");
     context.bail_if_cancelled()?;
     if run_config.main.is_empty() {
         eyre::bail!(
@@ -738,7 +740,11 @@ fn execute_run_with_context(
     }
 
     #[cfg(windows)]
+    let held_preparation_started = Instant::now();
+    #[cfg(windows)]
     let _held_preparation = forge_preparation_cache::hold_preparation_for_run(context)?;
+    #[cfg(windows)]
+    tracing::info!(phase = "warm_run_preparation_hold", elapsed_ms = held_preparation_started.elapsed().as_millis(), "warm_run_stage");
 
     retain_launch_preparation_lock(context, build_cache_lock)?;
     let roots = runtime_snapshot_roots(snapshot, kind, run_options);
@@ -810,6 +816,7 @@ fn execute_run_with_context(
     } else {
         plan.lockfile.clone()
     };
+    let run_resolution_started = Instant::now();
     let resolver = Resolver::new(
         plan.maven_cache_dir.clone(),
         plan.repositories.clone(),
@@ -824,6 +831,7 @@ fn execute_run_with_context(
     context.bail_if_cancelled()?;
     let mut launch_classpath = resolve_run_classpath(context, &resolver, kind, run_options)?;
     context.bail_if_cancelled()?;
+    tracing::info!(phase = "warm_run_classpath_resolution", elapsed_ms = run_resolution_started.elapsed().as_millis(), "warm_run_stage");
     let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
     let mut captured_inputs = BTreeMap::new();
@@ -833,6 +841,7 @@ fn execute_run_with_context(
         .iter()
         .map(|held| held.path().to_path_buf())
         .collect::<std::collections::BTreeSet<_>>();
+    let classpath_capture_started = Instant::now();
     for path in launch_classpath
         .legacy
         .iter_mut()
@@ -849,6 +858,7 @@ fn execute_run_with_context(
             &mut copy_budget,
         )?;
     }
+    tracing::info!(phase = "warm_run_classpath_capture", elapsed_ms = classpath_capture_started.elapsed().as_millis(), "warm_run_stage");
     // The JVM consumes private session copies; no store reader is needed
     // after every selected remap has been captured successfully.
     launch_classpath.held_dependency_remaps.clear();
@@ -865,11 +875,13 @@ fn execute_run_with_context(
     let minecraft_classpath_file = run_state_dir.join("minecraftClasspath.txt");
     write_classpath_file(&minecraft_classpath_file, &launch_classpath.legacy)?;
 
+    let assets_started = Instant::now();
     let assets = if run_config_requires_assets(&run_config) {
         Some(prepare_minecraft_assets(context)?)
     } else {
         None
     };
+    tracing::info!(phase = "warm_run_asset_prepare", elapsed_ms = assets_started.elapsed().as_millis(), "warm_run_stage");
     context.bail_if_cancelled()?;
 
     let source_roots = run_source_roots(context, &session)?;
@@ -1066,6 +1078,7 @@ fn execute_run_with_context(
     java_args.push(launch_main);
     java_args.extend(program_args);
 
+    let rewrite_started = Instant::now();
     rewrite_owned_launch_values(
         context,
         &session.receipt.session_dir,
@@ -1074,6 +1087,7 @@ fn execute_run_with_context(
         &mut captured_inputs,
         &mut copy_budget,
     )?;
+    tracing::info!(phase = "warm_run_value_rewrite", elapsed_ms = rewrite_started.elapsed().as_millis(), "warm_run_stage");
     fs::write(
         run_state_dir.join("owned-launch-inputs.json"),
         facet_json::to_string_pretty(
@@ -1127,6 +1141,8 @@ fn execute_run_with_context(
     // keeps its mutable run directory in the slot, outside these roots. A
     // failed capture disables optional retirement, never the launch itself.
     #[cfg(windows)]
+    let owned_capture_started = Instant::now();
+    #[cfg(windows)]
     let owned_inputs = if retires_successful_session_inputs(kind) {
         match OwnedSessionInputs::capture(&session.receipt.session_dir) {
             Ok(inputs) => Some(inputs),
@@ -1138,6 +1154,8 @@ fn execute_run_with_context(
     } else {
         None
     };
+    #[cfg(windows)]
+    tracing::info!(phase = "warm_run_owned_capture", elapsed_ms = owned_capture_started.elapsed().as_millis(), "warm_run_stage");
     let launch_log = run_state_dir.join("console.log");
     *owned_console_log = Some(launch_log.clone());
     if dry_run {
