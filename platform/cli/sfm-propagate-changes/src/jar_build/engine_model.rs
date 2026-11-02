@@ -60,6 +60,8 @@ struct BuildPlan {
     identity: BuildProjectIdentity,
     #[facet(default, proxy = JsonOptionalPath, skip_serializing_if = Option::is_none)]
     derived_cache_root: Option<PathBuf>,
+    #[facet(skip_serializing, opaque)]
+    pinned_sdk: Option<Arc<NamedPinnedSdk>>,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -385,6 +387,8 @@ struct JavaPlan {
     selection: String,
     pin_url: Option<String>,
     pin_sha512: Option<String>,
+    #[facet(default, skip_unless_truthy)]
+    pin_spec_identity: Option<String>,
     #[facet(skip_serializing)]
     execution_identity: Option<String>,
 }

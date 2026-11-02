@@ -206,6 +206,15 @@ fn create_plan_for_project(
         options.derived_cache_root.is_none() || target.is_catalog_owned(),
         "Derived cache override requires an exact catalog-owned compile"
     );
+    if let Some(selected) = &options.pinned_sdk {
+        eyre::ensure!(
+            options.derived_cache_root.as_ref().map(|root| root.path())
+                == Some(selected.cache_root())
+                && options.java_home.as_deref() == Some(selected.home()),
+            "Pinned native SDK does not match the planned root and home"
+        );
+        selected.recheck(cancellation_token)?;
+    }
     eyre::ensure!(
         options.isolated_project_cache.is_none()
             || (options.derived_cache_root.is_some() && target.development_target().is_some()),
@@ -524,6 +533,18 @@ fn create_plan_for_project(
                     false,
                 )?
             };
+            let mut jdk_resolution = jdk_resolution;
+            if let Some(selected) = &options.pinned_sdk {
+                eyre::ensure!(
+                    jdk_resolution.home.as_deref() == Some(selected.home())
+                        && jdk_resolution.major_version == selected.pin.major,
+                    "Planned Java does not match the held exact JBRSDK pin"
+                );
+                jdk_resolution.selection = "lockfile-pin".to_owned();
+                jdk_resolution.pin_url = Some(selected.artifact.url.clone());
+                jdk_resolution.pin_sha512 =
+                    Some(selected.artifact.sha512.to_ascii_lowercase());
+            }
             JavaPlan {
                 executable: jdk_resolution.executable,
                 home: jdk_resolution.home,
@@ -532,6 +553,7 @@ fn create_plan_for_project(
                 selection: jdk_resolution.selection,
                 pin_url: jdk_resolution.pin_url,
                 pin_sha512: jdk_resolution.pin_sha512,
+                pin_spec_identity: options.pinned_sdk.as_ref().map(|selected| selected.spec_identity()),
                 execution_identity: None,
             }
         };
@@ -826,6 +848,7 @@ fn create_plan_for_project(
                 .derived_cache_root
                 .as_ref()
                 .map(|root| root.path().to_path_buf()),
+            pinned_sdk: options.pinned_sdk.clone(),
         }
     };
     {

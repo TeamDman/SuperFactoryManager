@@ -90,6 +90,7 @@ mod authenticated_library_batch_integration_tests {
                 selection: "synthetic-files-no-jvm-run".to_owned(),
                 pin_url: None,
                 pin_sha512: None,
+                pin_spec_identity: None,
                 execution_identity: None,
             };
             java.execution_identity = Some(named_sdk_identity(&java)?);
@@ -135,6 +136,7 @@ mod authenticated_library_batch_integration_tests {
                 output_name: None,
                 cache_dir: runtime.join("native-cache-not-executed"),
                 derived_cache_root: None,
+                pinned_sdk: None,
                 common_cache_dir: runtime.clone(),
                 state_dir: runtime.join("state-not-published"),
                 maven_cache_dir: runtime.join("maven-not-resolved"),

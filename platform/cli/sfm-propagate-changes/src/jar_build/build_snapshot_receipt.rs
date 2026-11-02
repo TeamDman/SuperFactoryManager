@@ -262,6 +262,9 @@ impl BuildSnapshotReceipt {
             || previous.sdk_identity != identities.0
             || previous.runtime_contract != identities.1
             || previous.java_major != java.major_version
+            // The native project key is portable for a verified pinned SDK.
+            // This snapshot also supplies Java paths to the hot-swap launch
+            // consumer, so its physical launch spelling remains path-bound.
             || previous.java_executable != java.executable
             || previous.java_home != java.home
             || previous.java_version_output != java.version_output

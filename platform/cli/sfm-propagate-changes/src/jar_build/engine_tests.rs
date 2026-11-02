@@ -162,6 +162,7 @@ fn java_cache_identity_changes_with_verified_archive_digest() {
         selection: "lockfile-pin".to_owned(),
         pin_url: Some("https://example.invalid/jbrsdk.zip".to_owned()),
         pin_sha512: Some("a".repeat(128)),
+        pin_spec_identity: None,
         execution_identity: None,
     };
     let first = java.cache_identity();
@@ -3276,6 +3277,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         output_name: None,
         cache_dir: PathBuf::from("build/sfm-toolchain"),
         derived_cache_root: None,
+        pinned_sdk: None,
         common_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain"),
         state_dir: PathBuf::from("build/sfm-toolchain/state"),
         maven_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain/maven"),
@@ -3303,6 +3305,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
             selection: "legacy-discovery".to_string(),
             pin_url: None,
             pin_sha512: None,
+            pin_spec_identity: None,
             execution_identity: None,
         },
         java_release: 17,
@@ -4215,6 +4218,7 @@ pub(super) fn minimal_plan_for_paths() -> BuildPlan {
             "D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft/build/sfm-toolchain",
         ),
         derived_cache_root: None,
+        pinned_sdk: None,
         common_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain"),
         state_dir: PathBuf::from("build/sfm-toolchain/state"),
         maven_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain/maven"),
@@ -4236,6 +4240,7 @@ pub(super) fn minimal_plan_for_paths() -> BuildPlan {
             selection: "legacy-discovery".to_string(),
             pin_url: None,
             pin_sha512: None,
+            pin_spec_identity: None,
             execution_identity: None,
         },
         java_release: 17,
@@ -6179,6 +6184,7 @@ fn fresh_jar_output_worktree_external_cache_is_refused_before_planning() -> eyre
     let planning = super::NativePlanningOptions {
         output_name: Some("fresh.jar".to_owned()),
         derived_cache_root: Some(derived),
+        pinned_sdk: None,
         isolated_project_cache: None,
         mode: BuildMode::Plan,
         java_home: None,

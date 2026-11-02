@@ -164,6 +164,209 @@ pub(crate) fn preflight_named_cache_root(
     )
 }
 
+/// A selected lock-pinned JBR and its held native-root/SDK reader capability.
+/// The ordinary cache-root path remains for explicit SDKs and unpinned locks.
+#[derive(Debug)]
+pub(crate) struct NamedPinnedSdk {
+    owner: Arc<native_cache_root::NativeCacheRoot>,
+    repository: PathBuf,
+    source_project: PathBuf,
+    pin: crate::toolchain_lockfile_schema::version::v4::JdkPinV4,
+    artifact: crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4,
+    home: PathBuf,
+}
+
+impl NamedPinnedSdk {
+    pub(crate) fn home(&self) -> &Path {
+        &self.home
+    }
+
+    pub(crate) fn cache_root(&self) -> &Path {
+        self.owner.path()
+    }
+
+    fn spec_identity(&self) -> String {
+        let mut evidence = format!("sfm:pinned_jbrsdk_spec@1\nmajor={}\n", self.pin.major);
+        for field in [
+            self.pin.vendor.as_str(),
+            self.pin.version.as_str(),
+            self.pin.build.as_str(),
+            self.pin.flavor.as_str(),
+            self.artifact.platform.as_str(),
+            self.artifact.url.as_str(),
+            self.artifact.sha512.as_str(),
+        ] {
+            // Length prefixes keep the identity unambiguous without depending
+            // on a host path, local preference, or non-selected platforms.
+            let _ = writeln!(evidence, "{}:{field}", field.len());
+        }
+        crate::source_projection::provenance::sha256(evidence.as_bytes())
+    }
+
+    fn recheck(&self, cancellation: &CancellationToken) -> eyre::Result<()> {
+        self.owner.recheck_verified_pinned_sdk(cancellation)
+    }
+
+    pub(crate) fn recheck_lock(
+        &self,
+        lockfile: &Path,
+        required_major: u32,
+        cancellation: &CancellationToken,
+    ) -> eyre::Result<()> {
+        let input = fs::read_to_string(lockfile)?;
+        let pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)?
+            .ok_or_else(|| eyre::eyre!("Selected JBRSDK pin disappeared from projection lock"))?;
+        let platform = crate::jdk::host_jbrsdk_platform().unwrap_or("unsupported-host");
+        let crate::jdk::JdkSource::Pinned { pin, artifact } =
+            crate::jdk::select_jdk_source(None, Some(&pins), required_major, platform)?
+        else {
+            eyre::bail!("Selected JBRSDK pin disappeared from projection lock");
+        };
+        eyre::ensure!(
+            pin == &self.pin && artifact == &self.artifact,
+            "Selected JBRSDK pin changed after native admission"
+        );
+        self.recheck(cancellation)
+    }
+}
+
+pub(crate) fn select_named_pinned_sdk(
+    root: &Path,
+    repository: &Path,
+    source_project: &Path,
+    required_major: u32,
+    cancellation: &CancellationToken,
+) -> eyre::Result<Option<Arc<NamedPinnedSdk>>> {
+    let lockfile = source_project.join("sfm-toolchain.lock.json");
+    let input = fs::read_to_string(&lockfile).wrap_err_with(|| {
+        format!(
+            "Cannot select the projection's pinned JBRSDK without {}",
+            lockfile.display()
+        )
+    })?;
+    let Some(pins) = crate::toolchain_lockfile_schema::read_jdk_pins(&input)? else {
+        return Ok(None);
+    };
+    let platform = crate::jdk::host_jbrsdk_platform().unwrap_or("unsupported-host");
+    let crate::jdk::JdkSource::Pinned { pin, artifact } =
+        crate::jdk::select_jdk_source(None, Some(&pins), required_major, platform)?
+    else {
+        eyre::bail!("Selected lock has no exact pinned JBRSDK");
+    };
+    // Claim a new, empty root before downloading or reading an SDK within it.
+    // Existing unmarked or mismatched roots fail closed in acquire_for_source.
+    let root_owner = native_cache_root::NativeCacheRoot::acquire_for_source(
+        root,
+        repository,
+        source_project,
+        cancellation,
+    )?;
+    let cache = root_owner.prepare_directory("minecraft-toolchain/jbrsdk", cancellation)?;
+    let mut image = crate::jdk_artifact_cache::acquire_verified_pinned_jbrsdk_zip(
+        pin, artifact, &cache, false,
+    )?;
+    native_cache_root::NativeCacheRoot::preflight_for_verified_pinned_sdk(
+        root, repository, source_project, &mut image, pin, artifact,
+    )?;
+    let home = image.home().to_path_buf();
+    let owner = native_cache_root::NativeCacheRoot::acquire_for_verified_pinned_sdk(
+        root, repository, source_project, image, pin, artifact, cancellation,
+    )?;
+    let resolved = crate::jdk::resolve_java_for_lockfile(
+        None, Some(&pins), required_major, &cache, false,
+    )?;
+    eyre::ensure!(
+        resolved.home.as_deref() == Some(home.as_path()),
+        "Selected pinned JBRSDK home differs from the held native-root SDK"
+    );
+    let selected = Arc::new(NamedPinnedSdk {
+        owner,
+        repository: repository.to_path_buf(),
+        source_project: source_project.to_path_buf(),
+        pin: pin.clone(),
+        artifact: artifact.clone(),
+        home,
+    });
+    selected.recheck_lock(
+        &source_project.join("sfm-toolchain.lock.json"),
+        required_major,
+        cancellation,
+    )?;
+    Ok(Some(selected))
+}
+
+#[cfg(all(test, windows))]
+mod named_pinned_sdk_selection_tests {
+    use super::*;
+
+    #[test]
+    fn changed_lock_pin_and_wrong_root_fail_before_reuse() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let repository = dunce::canonicalize(temporary.path())?.join("repository");
+        let source = repository.join("platform").join("minecraft");
+        fs::create_dir_all(&source)?;
+        let root = repository.join("sfm-toolchain-data");
+        let cancellation = CancellationToken::new();
+        let owner = native_cache_root::NativeCacheRoot::acquire_for_source(
+            &root,
+            &repository,
+            &source,
+            &cancellation,
+        )?;
+        let lockfile = source.join("sfm-toolchain.lock.json");
+        let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
+        fs::write(&lockfile, input)?;
+        let pins = crate::toolchain_lockfile_schema::read_jdk_pins(input)?
+            .ok_or_else(|| eyre::eyre!("SDK fixture has no pins"))?;
+        let crate::jdk::JdkSource::Pinned { pin, artifact } =
+            crate::jdk::select_jdk_source(None, Some(&pins), 17, "windows-x64")?
+        else {
+            eyre::bail!("SDK fixture has no Windows Java 17 pin");
+        };
+        let selected = Arc::new(NamedPinnedSdk {
+            owner,
+            repository: repository.clone(),
+            source_project: source,
+            pin: pin.clone(),
+            artifact: artifact.clone(),
+            home: root.join("synthetic-sdk-not-admitted"),
+        });
+        let identity = BuildProjectIdentity::Worktree {
+            branch: BranchName::from("1.19.2"),
+            root: repository,
+        };
+        let wrong_root = NamedCompileOptions {
+            java_home: selected.home().to_path_buf(),
+            cache_root: Some(root.join("wrong-root")),
+            pinned_sdk: Some(Arc::clone(&selected)),
+            isolated_project_cache: None,
+            explain_rebuild: false,
+            wait_for_build_lock: false,
+        };
+        assert!(selected_named_cache_owner(&wrong_root, &identity, &cancellation)
+            .unwrap_err()
+            .to_string()
+            .contains("differs from its selected owner"));
+        let mut changed_pin = selected.pin.clone();
+        changed_pin.version.push_str("-different");
+        let changed = NamedPinnedSdk {
+            owner: Arc::clone(&selected.owner),
+            repository: selected.repository.clone(),
+            source_project: selected.source_project.clone(),
+            pin: changed_pin,
+            artifact: selected.artifact.clone(),
+            home: selected.home.clone(),
+        };
+        assert!(changed.recheck_lock(&lockfile, 17, &cancellation)
+            .unwrap_err()
+            .to_string()
+            .contains("pin changed"));
+        fs::write(&lockfile, b"changed lock bytes")?;
+        assert!(selected.recheck_lock(&lockfile, 17, &cancellation).is_err());
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod named_forge_compile_cohort_tests {
     use super::*;
@@ -805,6 +1008,7 @@ impl TryFrom<JsonOptionalBranchName> for Option<BranchName> {
 struct NativePlanningOptions {
     output_name: Option<String>,
     derived_cache_root: Option<Arc<native_cache_root::NativeCacheRoot>>,
+    pinned_sdk: Option<Arc<NamedPinnedSdk>>,
     isolated_project_cache: Option<String>,
     mode: BuildMode,
     java_home: Option<PathBuf>,
@@ -818,6 +1022,7 @@ impl From<&BuildOptions> for NativePlanningOptions {
     fn from(value: &BuildOptions) -> Self {
         Self {
             derived_cache_root: None,
+            pinned_sdk: None,
             isolated_project_cache: None,
             output_name: value.output_name.clone(),
             mode: value.mode,
@@ -875,6 +1080,20 @@ impl BuildPlan {
 
     fn recheck_named_sdk(&self) -> eyre::Result<()> {
         if self.identity.is_catalog_owned() {
+            if let Some(selected) = &self.pinned_sdk {
+                selected.recheck_lock(
+                    &self.lockfile_path,
+                    selected.pin.major,
+                    &CancellationToken::new(),
+                )?;
+            }
+            if let Some(selected) = &self.pinned_sdk {
+                eyre::ensure!(
+                    self.java.pin_spec_identity.as_deref()
+                        == Some(selected.spec_identity().as_str()),
+                    "Planned JBRSDK spec differs from its held exact pin"
+                );
+            }
             verify_named_sdk_identity(&self.java)?;
         }
         Ok(())
@@ -958,9 +1177,47 @@ fn prepared_parsed_dependencies(
 pub(crate) struct NamedCompileOptions {
     pub(crate) java_home: PathBuf,
     pub(crate) cache_root: Option<PathBuf>,
+    pub(crate) pinned_sdk: Option<Arc<NamedPinnedSdk>>,
     pub(crate) isolated_project_cache: Option<String>,
     pub(crate) explain_rebuild: bool,
     pub(crate) wait_for_build_lock: bool,
+}
+
+fn selected_named_cache_owner(
+    options: &NamedCompileOptions,
+    identity: &BuildProjectIdentity,
+    cancellation: &CancellationToken,
+) -> eyre::Result<Option<Arc<native_cache_root::NativeCacheRoot>>> {
+    if let Some(selected) = &options.pinned_sdk {
+        let root = options.cache_root.as_deref().ok_or_else(|| {
+            eyre::eyre!("Pinned native SDK requires its selected guarded cache root")
+        })?;
+        let source_project = identity.minecraft_dir();
+        eyre::ensure!(
+            root == selected.cache_root()
+                && options.java_home == selected.home()
+                && dunce::canonicalize(identity.repository_root())?
+                    == dunce::canonicalize(&selected.repository)?
+                && dunce::canonicalize(&source_project)?
+                    == dunce::canonicalize(&selected.source_project)?,
+            "Pinned native SDK root, source or home differs from its selected owner"
+        );
+        selected.recheck(cancellation)?;
+        return Ok(Some(Arc::clone(&selected.owner)));
+    }
+    options
+        .cache_root
+        .as_deref()
+        .map(|path| {
+            native_cache_root::NativeCacheRoot::acquire(
+                path,
+                identity.repository_root(),
+                &identity.minecraft_dir(),
+                &options.java_home,
+                cancellation,
+            )
+        })
+        .transpose()
 }
 
 #[derive(Debug, Facet)]
@@ -1051,22 +1308,11 @@ fn invoke_named_compile_attempt(
     options: &NamedCompileOptions,
     cancellation: &CancellationToken,
 ) -> eyre::Result<NamedCompileReport> {
-    let derived_cache_root = options
-        .cache_root
-        .as_deref()
-        .map(|path| {
-            native_cache_root::NativeCacheRoot::acquire(
-                path,
-                identity.repository_root(),
-                &identity.minecraft_dir(),
-                &options.java_home,
-                cancellation,
-            )
-        })
-        .transpose()?;
+    let derived_cache_root = selected_named_cache_owner(options, &identity, cancellation)?;
     let planning = NativePlanningOptions {
         output_name: None,
         derived_cache_root,
+        pinned_sdk: options.pinned_sdk.clone(),
         isolated_project_cache: None,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
@@ -1367,6 +1613,56 @@ fn named_sdk_identity(java: &JavaPlan) -> eyre::Result<String> {
         .home
         .as_deref()
         .ok_or_else(|| eyre::eyre!("named compile requires an explicit verified SDK home"))?;
+    if java.selection == "lockfile-pin" {
+        let spec = java.pin_spec_identity.as_deref().ok_or_else(|| {
+            eyre::eyre!("Pinned SDK requires its verified portable spec identity")
+        })?;
+        let pin_url = java.pin_url.as_deref().ok_or_else(|| {
+            eyre::eyre!("Pinned SDK requires its exact selected archive URL")
+        })?;
+        let pin_sha512 = java.pin_sha512.as_deref().ok_or_else(|| {
+            eyre::eyre!("Pinned SDK requires its exact selected archive SHA-512")
+        })?;
+        eyre::ensure!(
+            spec.starts_with("sha256:") && pin_sha512.len() == 128,
+            "Pinned SDK spec or archive identity is malformed"
+        );
+        let expected_java = home.join("bin").join(if cfg!(windows) {
+            "java.exe"
+        } else {
+            "java"
+        });
+        eyre::ensure!(
+            java.executable == expected_java,
+            "Pinned SDK executable is not the selected home Java"
+        );
+        let mut evidence = format!("sfm:native_sdk_identity@2\nmajor={}\n", java.major_version);
+        for field in [
+            spec,
+            pin_url,
+            pin_sha512,
+            java.version_output.as_str(),
+        ] {
+            writeln!(evidence, "{}:{field}", field.len())?;
+        }
+        for (relative, path) in [
+            ("bin/java", expected_java),
+            (
+                "bin/javac",
+                home.join("bin")
+                    .join(if cfg!(windows) { "javac.exe" } else { "javac" }),
+            ),
+            ("release", home.join("release")),
+            ("lib/modules", home.join("lib").join("modules")),
+        ] {
+            require_named_regular_file(&path, &fs::symlink_metadata(&path)?)?;
+            let hash = ContentHash::from_path(&path, ContentHashAlgorithm::Blake3)?;
+            writeln!(evidence, "{relative}={hash}")?;
+        }
+        return Ok(crate::source_projection::provenance::sha256(
+            evidence.as_bytes(),
+        ));
+    }
     let javac = home
         .join("bin")
         .join(if cfg!(windows) { "javac.exe" } else { "javac" });
@@ -1400,6 +1696,62 @@ fn verify_named_sdk_identity(java: &JavaPlan) -> eyre::Result<()> {
         "named SDK bytes changed after preparation; refusing cache reuse or subprocess without rekeying"
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod portable_pinned_sdk_identity_tests {
+    use super::*;
+
+    fn fixture(home: &Path, spec: &str) -> eyre::Result<JavaPlan> {
+        fs::create_dir_all(home.join("bin"))?;
+        fs::create_dir_all(home.join("lib"))?;
+        let executable = home.join("bin").join(if cfg!(windows) {
+            "java.exe"
+        } else {
+            "java"
+        });
+        for path in [
+            executable.clone(),
+            home.join("bin")
+                .join(if cfg!(windows) { "javac.exe" } else { "javac" }),
+            home.join("release"),
+            home.join("lib").join("modules"),
+        ] {
+            fs::write(path, b"same verified test bytes")?;
+        }
+        Ok(JavaPlan {
+            executable,
+            home: Some(home.to_path_buf()),
+            version_output: "openjdk version \"17.0.14\"".to_owned(),
+            major_version: 17,
+            selection: "lockfile-pin".to_owned(),
+            pin_url: Some("https://vendor.example/selected.zip".to_owned()),
+            pin_sha512: Some("a".repeat(128)),
+            pin_spec_identity: Some(spec.to_owned()),
+            execution_identity: None,
+        })
+    }
+
+    #[test]
+    fn pinned_identity_reuses_across_safe_home_paths_but_not_changed_pin_or_bytes(
+    ) -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let first = fixture(&temporary.path().join("first"), &format!("sha256:{}", "b".repeat(64)))?;
+        let mut second = fixture(&temporary.path().join("second"), &format!("sha256:{}", "b".repeat(64)))?;
+        let identity = named_sdk_identity(&first)?;
+        assert_eq!(identity, named_sdk_identity(&second)?);
+        second.execution_identity = Some(identity.clone());
+        verify_named_sdk_identity(&second)?;
+        second.pin_spec_identity = Some(format!("sha256:{}", "c".repeat(64)));
+        assert_ne!(identity, named_sdk_identity(&second)?);
+        second.pin_spec_identity = first.pin_spec_identity.clone();
+        second.pin_sha512 = Some("d".repeat(128));
+        assert_ne!(identity, named_sdk_identity(&second)?);
+        second.pin_sha512 = first.pin_sha512.clone();
+        fs::write(second.home.as_ref().unwrap().join("lib/modules"), b"changed bytes")?;
+        assert!(verify_named_sdk_identity(&second).is_err());
+        Ok(())
+    }
 }
 
 fn resolve_frozen_minecraft_plan(
@@ -2108,6 +2460,7 @@ mod named_compile_wire_tests {
             selection: "explicit".to_owned(),
             pin_url: None,
             pin_sha512: None,
+            pin_spec_identity: None,
             execution_identity: None,
         };
         let identity = named_sdk_identity(&java)?;

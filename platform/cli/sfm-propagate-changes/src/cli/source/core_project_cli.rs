@@ -41,6 +41,7 @@ use std::fs;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Debug, Facet)]
 pub struct CoreProjectArgs {
@@ -315,19 +316,7 @@ fn invoke_native_compile(
     let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
-    let home = resolve_native_sdk_home(args, &initial, invocation_dir)?;
-    let selected = crate::jar_build::engine::catalog_native_cache_path(
-        &initial.repo_root,
-        args.cache_root.as_deref(),
-    );
-    let cache_root = Some(crate::jar_build::engine::preflight_named_cache_root(
-        &selected,
-        &initial.repo_root,
-        &initial
-            .repo_root
-            .join(initial.catalog.project_dir(&args.project.projection)?),
-        &home,
-    )?);
+    let sdk = select_native_sdk(args, &initial, invocation_dir, cancellation)?;
     let report = project_report(
         &args.project,
         GenerationPolicy::BuildRun,
@@ -354,15 +343,16 @@ fn invoke_native_compile(
         "named compile build metadata changed after generation"
     );
     ensure!(
-        resolve_native_sdk_home(args, &loaded, invocation_dir)? == home,
+        sdk.recheck(args, &loaded, invocation_dir, cancellation)?,
         "selected Java changed after generation; retry with the current lock"
     );
     let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
     let result = crate::jar_build::invoke_named_compile(
         frozen,
         &crate::jar_build::NamedCompileOptions {
-            java_home: home,
-            cache_root,
+            java_home: sdk.home,
+            cache_root: Some(sdk.cache_root),
+            pinned_sdk: sdk.pinned,
             isolated_project_cache: None,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
@@ -397,19 +387,7 @@ fn invoke_native_jar(
     let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
-    let home = resolve_native_sdk_home(args, &initial, invocation_dir)?;
-    let selected = crate::jar_build::engine::catalog_native_cache_path(
-        &initial.repo_root,
-        args.cache_root.as_deref(),
-    );
-    let cache_root = Some(crate::jar_build::engine::preflight_named_cache_root(
-        &selected,
-        &initial.repo_root,
-        &initial
-            .repo_root
-            .join(initial.catalog.project_dir(&args.project.projection)?),
-        &home,
-    )?);
+    let sdk = select_native_sdk(args, &initial, invocation_dir, cancellation)?;
     let report = project_report(
         &args.project,
         GenerationPolicy::BuildRun,
@@ -436,7 +414,7 @@ fn invoke_native_jar(
         "named jar build metadata changed after generation"
     );
     ensure!(
-        resolve_native_sdk_home(args, &loaded, invocation_dir)? == home,
+        sdk.recheck(args, &loaded, invocation_dir, cancellation)?,
         "selected Java changed after generation; retry with the current lock"
     );
     let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
@@ -444,8 +422,9 @@ fn invoke_native_jar(
     let result = crate::jar_build::invoke_named_jar(
         frozen,
         &crate::jar_build::NamedCompileOptions {
-            java_home: home,
-            cache_root,
+            java_home: sdk.home,
+            cache_root: Some(sdk.cache_root),
+            pinned_sdk: sdk.pinned,
             isolated_project_cache: None,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
@@ -503,25 +482,13 @@ fn invoke_native_development(
     crate::source_projection::native_project_target::validate_collected_native_profile(
         &collected, profile,
     )?;
-    let home = resolve_native_sdk_home(args, &initial, invocation_dir)?;
+    let sdk = select_native_sdk(args, &initial, invocation_dir, cancellation)?;
     cancellation.bail_if_cancelled()?;
-    let selected = crate::jar_build::engine::catalog_native_cache_path(
-        &initial.repo_root,
-        args.cache_root.as_deref(),
-    );
-    let cache_root = Some(crate::jar_build::engine::preflight_named_cache_root(
-        &selected,
-        &initial.repo_root,
-        &initial
-            .repo_root
-            .join(initial.catalog.project_dir(&args.project.projection)?),
-        &home,
-    )?);
     // Verify the complete source snapshot once after guarded sync. This owner
     // can safely recheck held remap inputs while a per-key cache lock is held.
     let checked = collected.prepare_development_invocation(false)?;
     ensure!(
-        resolve_native_sdk_home(args, &initial, invocation_dir)? == home,
+        sdk.recheck(args, &initial, invocation_dir, cancellation)?,
         "selected Java changed after generation; retry with the current lock"
     );
     Ok(CliOutput::facet(
@@ -529,8 +496,9 @@ fn invoke_native_development(
             checked,
             profile,
             &crate::jar_build::NamedCompileOptions {
-                java_home: home,
-                cache_root,
+                java_home: sdk.home,
+                cache_root: Some(sdk.cache_root),
+                pinned_sdk: sdk.pinned,
                 isolated_project_cache: args.isolated_project_cache.clone(),
                 explain_rebuild: args.explain_rebuild,
                 wait_for_build_lock: args.wait_for_build_lock,
@@ -539,6 +507,100 @@ fn invoke_native_development(
             cancellation,
         )?,
     ))
+}
+
+struct NativeSdkSelection {
+    home: PathBuf,
+    cache_root: PathBuf,
+    pinned: Option<Arc<crate::jar_build::engine::NamedPinnedSdk>>,
+    required_major: u32,
+}
+
+impl NativeSdkSelection {
+    fn recheck(
+        &self,
+        args: &CoreProjectCompileArgs,
+        selected: &CoreCatalog,
+        invocation_dir: &Path,
+        cancellation: &CancellationToken,
+    ) -> Result<bool> {
+        let current_root = crate::jar_build::engine::catalog_native_cache_path(
+            &selected.repo_root,
+            args.cache_root.as_deref(),
+        );
+        if current_root != self.cache_root {
+            return Ok(false);
+        }
+        if let Some(pinned) = &self.pinned {
+            let project = selected
+                .repo_root
+                .join(selected.catalog.project_dir(&args.project.projection)?);
+            pinned.recheck_lock(
+                &project.join("sfm-toolchain.lock.json"),
+                self.required_major,
+                cancellation,
+            )?;
+            return Ok(pinned.home() == self.home);
+        }
+        Ok(resolve_native_sdk_home(args, selected, invocation_dir)? == self.home)
+    }
+}
+
+fn select_native_sdk(
+    args: &CoreProjectCompileArgs,
+    selected: &CoreCatalog,
+    invocation_dir: &Path,
+    cancellation: &CancellationToken,
+) -> Result<NativeSdkSelection> {
+    let entry = selected.catalog.entry(&args.project.projection)?;
+    let metadata_bytes = read_project_metadata(&selected.repo_root)?;
+    let metadata = CoreProjectInputs::from_json(
+        std::str::from_utf8(&metadata_bytes)?,
+        &selected.registered_features,
+    )?;
+    let required_major = u32::from(
+        metadata
+            .targets
+            .get(entry.target_id()?)
+            .ok_or_else(|| eyre::eyre!("missing named build target"))?
+            .java_major,
+    );
+    let project = selected
+        .repo_root
+        .join(selected.catalog.project_dir(&args.project.projection)?);
+    let root = crate::jar_build::engine::catalog_native_cache_path(
+        &selected.repo_root,
+        args.cache_root.as_deref(),
+    );
+    if args.java_home.is_none() {
+        if let Some(pinned) = crate::jar_build::engine::select_named_pinned_sdk(
+            &root,
+            &selected.repo_root,
+            &project,
+            required_major,
+            cancellation,
+        )? {
+            return Ok(NativeSdkSelection {
+                home: pinned.home().to_path_buf(),
+                cache_root: pinned.cache_root().to_path_buf(),
+                pinned: Some(pinned),
+                required_major,
+            });
+        }
+    }
+    let home = resolve_native_sdk_home(args, selected, invocation_dir)?;
+    let cache_root = crate::jar_build::engine::preflight_named_cache_root(
+        &root,
+        &selected.repo_root,
+        &project,
+        &home,
+    )?;
+    Ok(NativeSdkSelection {
+        home,
+        cache_root,
+        pinned: None,
+        required_major,
+    })
 }
 
 fn resolve_native_sdk_home(
@@ -1112,6 +1174,16 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(error.contains("synchronize its lock"), "{error}");
+        let missing = select_native_sdk(
+            &args,
+            &selected,
+            temp.path(),
+            &CancellationToken::new(),
+        )
+        .err()
+        .expect("an absent generated lock cannot select a pinned SDK");
+        assert!(missing.to_string().contains("sfm-toolchain.lock.json"));
+        assert!(!selected.repo_root.join("sfm-toolchain-data").exists());
 
         let jdk = temp.path().join("jdk");
         fs::create_dir_all(jdk.join("bin")).unwrap();
@@ -1128,6 +1200,16 @@ mod tests {
         assert!(resolve_native_sdk_home(&args, &selected, temp.path())
             .unwrap()
             .ends_with("jdk"));
+        let explicit = select_native_sdk(
+            &args,
+            &selected,
+            temp.path(),
+            &CancellationToken::new(),
+        )
+        .unwrap();
+        assert!(explicit.pinned.is_none());
+        assert_eq!(dunce::simplified(&explicit.home), dunce::simplified(&dunce::canonicalize(jdk).unwrap()));
+        assert_eq!(dunce::simplified(&explicit.cache_root), dunce::simplified(&selected.repo_root.join("sfm-toolchain-data")));
     }
 
     fn git(root: &Path, args: &[&str]) {

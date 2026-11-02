@@ -215,22 +215,11 @@ pub(crate) fn invoke_named_jar(
     let identity = BuildProjectIdentity::Catalog {
         frozen: Arc::new(project),
     };
-    let derived_cache_root = options
-        .cache_root
-        .as_deref()
-        .map(|path| {
-            native_cache_root::NativeCacheRoot::acquire(
-                path,
-                identity.repository_root(),
-                &identity.minecraft_dir(),
-                &options.java_home,
-                cancellation,
-            )
-        })
-        .transpose()?;
+    let derived_cache_root = selected_named_cache_owner(options, &identity, cancellation)?;
     let planning = NativePlanningOptions {
         output_name: output_name.map(str::to_owned),
         derived_cache_root,
+        pinned_sdk: options.pinned_sdk.clone(),
         isolated_project_cache: None,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
