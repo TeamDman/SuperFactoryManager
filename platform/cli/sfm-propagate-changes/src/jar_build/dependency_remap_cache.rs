@@ -1,5 +1,5 @@
 //! Windows development 1.19.2 two-output dependency producer reuse.
-//! Receipts detect accidental changes under a trusted-local authority. They do
+//! Versioned receipts trust complete tool-owned entries on warm reuse. They do
 //! not authenticate a store against a writer replacing both receipt and bytes.
 #[path = "dependency_remap_attempt.rs"]
 mod attempt;
@@ -83,8 +83,8 @@ pub(super) fn execute(
         None
     } else {
         NfrtPreparationPhase::run("dependency_remap.lookup", || {
-            // The immutable entry scanner calls its check for every archive
-            // chunk. Keep its original artifact checked there, while the held
+            // Unsealed entries can scan every archive chunk on first admission.
+            // The original artifact is checked there, while the held
             // common mapping/tool/SDK authority is checked at both ends of the
             // lookup, before any result may reach a compiler or launch.
             held_lookup_with_common_authority(&key_root, fingerprint, shared_check, &|| {

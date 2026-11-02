@@ -8,6 +8,8 @@ mod at_transport;
 mod held_outputs;
 #[path = "forge_preparation_inputs.rs"]
 mod inputs;
+#[path = "managed_remap_receipt.rs"]
+mod managed_remap_receipt;
 #[cfg(test)]
 #[path = "dependency_remap_cache_tests.rs"]
 mod remap_tests;
@@ -75,7 +77,7 @@ fn record_shared_paths(context: &ExecutionContext<'_>, held: &HeldSharedPreparat
 }
 
 /// A completed two-output remap entry held while its JAR is read directly.
-/// The file and every ancestor are opened before the receipt is checked.
+/// A complete receipt is checked before the selected payload and ancestors are held.
 pub(super) struct HeldDependencyRemapJar {
     path: PathBuf,
     _outputs: HeldForgePreparationOutputs,
@@ -104,6 +106,11 @@ pub(super) fn hold_dependency_remap_entry(
     check()?;
     let payload = entry.join("payload");
     let path = payload.join("remapped.jar");
+    // The first full check publishes a seal in this entry. Do it before
+    // opening the directory reader leases, which correctly deny that write.
+    if !managed_remap_receipt::matches_or_seals(entry, fingerprint, check)? {
+        return Ok(None);
+    }
     let held =
         match HeldForgePreparationOutputs::open_paths(&[("remapped.jar", path.clone())], check) {
             Ok(Some(held)) => held,
@@ -114,15 +121,6 @@ pub(super) fn hold_dependency_remap_entry(
                 return Ok(None);
             }
         };
-    if !project_compilation_cache::matches(
-        entry,
-        &entry.join("inputs.sha256"),
-        fingerprint,
-        &[("payload", &payload)],
-        check,
-    )? {
-        return Ok(None);
-    }
     check()?;
     Ok(Some(HeldDependencyRemapJar {
         path,
