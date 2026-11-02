@@ -40,6 +40,129 @@ fn install_key(sha512: &str) -> String {
     )
 }
 
+#[cfg(windows)]
+const MAX_HELD_SDK_PATHS: usize = 16_384;
+
+// The authenticated ZIP comparison runs while all installed paths are held
+// read-only, without FILE_SHARE_WRITE or FILE_SHARE_DELETE. Later consumers
+// verify exact membership and file identities instead of decompressing and
+// comparing the same installed bytes at every gate in one CLI process.
+#[cfg(windows)]
+#[derive(Debug)]
+struct HeldInstalledEntry {
+    path: PathBuf,
+    handle: File,
+    identity: crate::file_identity::FileIdentity,
+    bytes: u64,
+    modified: std::time::SystemTime,
+    is_file: bool,
+}
+
+#[cfg(windows)]
+impl HeldInstalledEntry {
+    fn open(path: &Path, is_file: bool) -> eyre::Result<Self> {
+        let metadata = fs::symlink_metadata(path)?;
+        eyre::ensure!(
+            !is_reparse_point(&metadata) && metadata.file_type().is_file() == is_file
+                && (is_file || metadata.file_type().is_dir()),
+            "Verified JBRSDK installed path is unsafe: {}",
+            path.display()
+        );
+        let handle = Self::open_guard(path, is_file)?;
+        let metadata = handle.metadata()?;
+        eyre::ensure!(
+            !is_reparse_point(&metadata) && metadata.file_type().is_file() == is_file
+                && (is_file || metadata.file_type().is_dir()),
+            "Verified JBRSDK installed handle is unsafe: {}",
+            path.display()
+        );
+        let entry = Self {
+            path: path.to_path_buf(),
+            identity: crate::file_identity::file_identity(&handle)?,
+            bytes: metadata.len(),
+            modified: metadata.modified()?,
+            handle,
+            is_file,
+        };
+        entry.recheck()?;
+        Ok(entry)
+    }
+
+    fn open_guard(path: &Path, is_file: bool) -> eyre::Result<File> {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        let mut options = OpenOptions::new();
+        if is_file {
+            options.read(true).share_mode(1).custom_flags(0x0020_0000);
+        } else {
+            options.access_mode(0x0081).share_mode(1).custom_flags(0x0220_0000);
+        }
+        Ok(options.open(path)?)
+    }
+
+    fn recheck(&self) -> eyre::Result<()> {
+        let metadata = fs::symlink_metadata(&self.path)?;
+        let reopened = Self::open_guard(&self.path, self.is_file)?;
+        let current = reopened.metadata()?;
+        let held = self.handle.metadata()?;
+        eyre::ensure!(
+            !is_reparse_point(&metadata)
+                && metadata.file_type().is_file() == self.is_file
+                && (self.is_file || metadata.file_type().is_dir())
+                && current.len() == self.bytes
+                && held.len() == self.bytes
+                && current.modified()? == self.modified
+                && held.modified()? == self.modified
+                && crate::file_identity::file_identity(&reopened)? == self.identity
+                && crate::file_identity::file_identity(&self.handle)? == self.identity,
+            "Verified JBRSDK installed path changed: {}",
+            self.path.display()
+        );
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+#[derive(Debug)]
+struct HeldInstalledTree {
+    home: PathBuf,
+    shape: BTreeMap<PathBuf, bool>,
+    root: HeldInstalledEntry,
+    entries: Vec<HeldInstalledEntry>,
+}
+
+#[cfg(windows)]
+impl HeldInstalledTree {
+    fn capture(home: &Path) -> eyre::Result<Self> {
+        let shape = installed_paths(home, MAX_HELD_SDK_PATHS)?;
+        let root = HeldInstalledEntry::open(home, false)?;
+        let mut entries = Vec::with_capacity(shape.len());
+        for (relative, is_file) in &shape {
+            entries.push(HeldInstalledEntry::open(&home.join(relative), *is_file)?);
+        }
+        let tree = Self {
+            home: home.to_path_buf(),
+            shape,
+            root,
+            entries,
+        };
+        tree.recheck(home)?;
+        Ok(tree)
+    }
+
+    fn recheck(&self, home: &Path) -> eyre::Result<()> {
+        eyre::ensure!(home == self.home, "Verified JBRSDK installed home changed");
+        eyre::ensure!(
+            installed_paths(home, self.shape.len())? == self.shape,
+            "Cached JBRSDK installation membership changed"
+        );
+        self.root.recheck()?;
+        for entry in &self.entries {
+            entry.recheck()?;
+        }
+        Ok(())
+    }
+}
+
 /// A pinned SDK image checked against the authenticated ZIP at acquisition.
 /// Keep the archive handle alive so a later consumer can recheck the same bytes.
 #[derive(Debug)]
@@ -50,6 +173,8 @@ pub(crate) struct VerifiedPinnedJbrsdk {
     artifact: JdkArtifactV4,
     archive: File,
     archive_len: u64,
+    #[cfg(windows)]
+    held_install: HeldInstalledTree,
 }
 
 impl VerifiedPinnedJbrsdk {
@@ -103,10 +228,19 @@ impl VerifiedPinnedJbrsdk {
         }
         #[cfg(windows)]
         tracing::info!(phase = "warm_sdk_archive_held_identity", "warm_run_stage");
-        let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
-        let install_started = std::time::Instant::now();
-        verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
-        tracing::info!(phase = "warm_sdk_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
+        #[cfg(windows)]
+        {
+            let held_started = std::time::Instant::now();
+            self.held_install.recheck(&self.home)?;
+            tracing::info!(phase = "warm_sdk_installed_held_identity", elapsed_ms = held_started.elapsed().as_millis(), "warm_run_stage");
+        }
+        #[cfg(not(windows))]
+        {
+            let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
+            let install_started = std::time::Instant::now();
+            verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
+            tracing::info!(phase = "warm_sdk_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
+        }
         Ok(&self.home)
     }
 }
@@ -250,6 +384,16 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         }
         Err(error) => return Err(error).wrap_err("Failed to inspect cached JBRSDK installation"),
     }
+    #[cfg(windows)]
+    let held_install = {
+        let tree = HeldInstalledTree::capture(&installed)?;
+        // The first comparison preceded the complete file hold. Authenticate
+        // the same ZIP and installed bytes once more with all handles held,
+        // then confirm every path still names its held file or directory.
+        verify_installed_home(&installed, artifact, &expected_receipt, &mut verified_zip)?;
+        tree.recheck(&installed)?;
+        tree
+    };
     let archive = verified_zip.into_inner();
     let archive_len = archive.metadata()?.len();
     Ok(VerifiedPinnedJbrsdk {
@@ -259,6 +403,8 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         artifact: artifact.clone(),
         archive,
         archive_len,
+        #[cfg(windows)]
+        held_install,
     })
 }
 
@@ -892,16 +1038,51 @@ mod tests {
             },
         )
         .unwrap();
-        fs::write(image.home().join("bin/java.exe"), b"tampered").unwrap();
-        assert!(
-            image
-                .recheck_for(root.path(), &pin, &pin.artifacts[0])
-                .unwrap_err()
-                .to_string()
-                .contains("does not match verified ZIP")
-        );
+        let java = image.home().join("bin/java.exe");
+        #[cfg(windows)]
+        {
+            assert!(fs::write(&java, b"tampered").is_err());
+            assert!(fs::rename(&java, root.path().join("replaced-java.exe")).is_err());
+            image.recheck_for(root.path(), &pin, &pin.artifacts[0]).unwrap();
+            drop(image);
+            fs::write(&java, b"tampered").unwrap();
+            assert!(acquire_verified_pinned_jbrsdk_zip_with(
+                &pin, &pin.artifacts[0], root.path(), true,
+                |_, _| unreachable!("corrupt cached install must not fetch"),
+            ).is_err());
+        }
+        #[cfg(not(windows))]
+        {
+            fs::write(&java, b"tampered").unwrap();
+            assert!(image.recheck_for(root.path(), &pin, &pin.artifacts[0])
+                .unwrap_err().to_string().contains("does not match verified ZIP"));
+        }
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn held_verified_install_blocks_or_rejects_new_member() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        let extra = image.home().join("lib/extra.dll");
+        if fs::write(&extra, b"unexpected member").is_ok() {
+            assert!(image.recheck_for(root.path(), &pin, &pin.artifacts[0]).is_err());
+        } else {
+            image.recheck_for(root.path(), &pin, &pin.artifacts[0]).unwrap();
+        }
+    }
     #[test]
     fn verified_pinned_image_rejects_wrong_root_and_pin() {
         let bytes = sdk_zip();

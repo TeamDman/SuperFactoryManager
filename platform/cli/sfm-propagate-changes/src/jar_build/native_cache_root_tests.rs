@@ -157,21 +157,10 @@ fn native_cache_verified_pinned_sdk_rejects_wrong_root_and_pin_before_claim() ->
 #[test]
 fn native_cache_verified_pinned_sdk_rejects_tampered_image_and_marker() -> Result<()> {
     let (_temporary, repository, source, root, pin, mut image) = verified_pinned_sdk_fixture()?;
-    fs::write(
-        image.home().join("lib").join("modules"),
-        b"tampered modules",
+    assert!(fs::write(image.home().join("lib/modules"), b"tampered modules").is_err());
+    NativeCacheRoot::preflight_for_verified_pinned_sdk(
+        &root, &repository, &source, &mut image, &pin, &pin.artifacts[0],
     )?;
-    assert!(
-        NativeCacheRoot::preflight_for_verified_pinned_sdk(
-            &root,
-            &repository,
-            &source,
-            &mut image,
-            &pin,
-            &pin.artifacts[0],
-        )
-        .is_err()
-    );
 
     let (_temporary, repository, source, root, pin, mut image) = verified_pinned_sdk_fixture()?;
     fs::write(root.join(MARKER), b"wrong owner")?;
