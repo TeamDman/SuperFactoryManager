@@ -5016,6 +5016,8 @@ fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionCont
         held_forge_dev_jar_path: std::sync::Mutex::new(None),
         #[cfg(windows)]
         held_shared_preparation: std::sync::Mutex::new(Vec::new()),
+        #[cfg(windows)]
+        forge_sdk_image: std::sync::Mutex::new(None),
         selected_dependency_remaps: std::sync::Mutex::new(None),
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,
@@ -6207,5 +6209,31 @@ fn fresh_jar_output_worktree_external_cache_is_refused_before_planning() -> eyre
     assert_eq!(fs::read(&marker)?, before);
     assert!(!external.join("projects").exists());
     assert!(!repository.join("platform/minecraft").exists());
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn held_forge_sdk_image_reuses_hold_and_rechecks_membership() -> eyre::Result<()> {
+    let owner = tempfile::tempdir()?;
+    let home = owner.path().join("synthetic-sdk");
+    for directory in ["bin", "lib", "conf"] {
+        fs::create_dir_all(home.join(directory))?;
+    }
+    fs::write(home.join("bin/java.exe"), b"synthetic java")?;
+    fs::write(home.join("lib/modules"), b"synthetic modules")?;
+    let mut plan = minimal_plan_for_paths();
+    plan.java.home = Some(home.clone());
+    plan.java.execution_identity = Some("synthetic-sdk-identity".to_owned());
+    let context = super::all_hit_compile_tests::context(&plan);
+    let first = context.held_forge_sdk_image()?;
+    let second = context.held_forge_sdk_image()?;
+    assert!(Arc::ptr_eq(&first, &second), "one context must retain one SDK image");
+    fs::write(home.join("conf/new-selected-input.cfg"), b"new input")?;
+    let error = context.held_forge_sdk_image().unwrap_err();
+    assert!(
+        format!("{error:#}").contains("SDK image gained a selected entry"),
+        "{error:#}"
+    );
     Ok(())
 }

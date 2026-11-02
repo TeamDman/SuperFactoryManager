@@ -133,6 +133,8 @@ impl<'a> ExecutionContext<'a> {
             held_forge_dev_jar_path: Mutex::new(None),
             #[cfg(windows)]
             held_shared_preparation: Mutex::new(Vec::new()),
+            #[cfg(windows)]
+            forge_sdk_image: Mutex::new(None),
             selected_dependency_remaps: Mutex::new(None),
             held_neoform_compile_jar: None,
             immutable_neoform_profile: false,
@@ -141,6 +143,41 @@ impl<'a> ExecutionContext<'a> {
             #[cfg(any(windows, target_os = "linux"))]
             compiler_image: None,
         })
+    }
+
+    #[cfg(windows)]
+    fn held_forge_sdk_image(
+        &self,
+    ) -> eyre::Result<Arc<super::local_dependency_image::LocalDependencyImage>> {
+        let home = self
+            .plan
+            .java
+            .home
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("Selected Forge SDK has no home"))?;
+        let identity = self
+            .plan
+            .java
+            .execution_identity
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("Selected Forge SDK has no execution identity"))?;
+        let mut slot = self
+            .forge_sdk_image
+            .lock()
+            .map_err(|_| eyre::eyre!("Held Forge SDK image slot poisoned"))?;
+        if let Some(image) = slot.as_ref() {
+            // Held handles reject writes/deletes to captured files. Membership
+            // still needs a fresh check because a new child can be created.
+            image.recheck(&self.cancellation_token)?;
+            return Ok(Arc::clone(image));
+        }
+        let image = Arc::new(super::local_dependency_image::LocalDependencyImage::capture_home(
+            home,
+            identity,
+            &self.cancellation_token,
+        )?);
+        *slot = Some(Arc::clone(&image));
+        Ok(image)
     }
 
     fn bail_if_cancelled(&self) -> eyre::Result<()> {

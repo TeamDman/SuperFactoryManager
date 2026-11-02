@@ -53,6 +53,7 @@ use sha2::Digest as _;
 use sha2::Sha256;
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::sync::Arc;
 
 const MAX_INPUT_FILES: usize = 4096;
 const MAX_INPUT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
@@ -63,7 +64,7 @@ pub(in crate::jar_build::engine) struct ForgePreparationInputs {
     fingerprint: String,
     kind: String,
     sdk_identity: String,
-    sdk_image: Option<LocalDependencyImage>,
+    sdk_image: Option<Arc<LocalDependencyImage>>,
     files: Vec<HeldForgePreparationInput>,
     directories: DirectoryLeases,
     // Mutually exclusive bounded role bytes: Forge AT or the remap mapping.
@@ -262,7 +263,7 @@ impl ForgePreparationInputs {
         recheck_captured_inputs(
             context,
             &self.sdk_identity,
-            self.sdk_image.as_ref(),
+            self.sdk_image.as_deref(),
             &self.files,
         )
     }
@@ -273,7 +274,7 @@ impl ForgePreparationInputs {
         &self,
     ) -> impl Fn(&ExecutionContext<'_>) -> Result<()> + Sync + '_ {
         let sdk_identity = self.sdk_identity.as_str();
-        let image = self.sdk_image.as_ref();
+        let image = self.sdk_image.as_deref();
         let files = self.files.as_slice();
         move |context| recheck_captured_inputs(context, sdk_identity, image, files)
     }
@@ -294,11 +295,7 @@ impl ForgePreparationInputs {
                 return Ok(false);
             }
         }
-        let image = match LocalDependencyImage::capture_home(
-            home,
-            &self.sdk_identity,
-            &context.cancellation_token,
-        ) {
+        let image = match context.held_forge_sdk_image() {
             Ok(image) => image,
             Err(error) => {
                 context.bail_if_cancelled()?;

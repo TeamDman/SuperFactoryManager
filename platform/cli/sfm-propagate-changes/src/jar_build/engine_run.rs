@@ -7729,6 +7729,10 @@ struct ExecutionContext<'a> {
     held_forge_dev_jar_path: Mutex<Option<PathBuf>>,
     #[cfg(windows)]
     held_shared_preparation: Mutex<Vec<(String, String, PathBuf)>>,
+    // One held, exact SDK image per execution context. Every Forge input
+    // authority shares its file handles and independently rechecks membership.
+    #[cfg(windows)]
+    forge_sdk_image: Mutex<Option<Arc<super::local_dependency_image::LocalDependencyImage>>>,
     // Exact deobfuscated classpath selected for this build. Its shared leaves
     // are held by execute_project_build through compile and package.
     selected_dependency_remaps: Mutex<Option<Vec<PathBuf>>>,
