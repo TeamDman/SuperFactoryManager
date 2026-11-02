@@ -42,7 +42,7 @@ pub struct JarBuildOptionsArgs {
     #[facet(default, args::named)]
     pub plan_json: Option<PathBuf>,
 
-    /// Explicit Java home, required for guarded catalog build/run admission.
+    /// Explicit Java home; otherwise select the projection's pinned JBRSDK or legacy exact-major JDK.
     #[facet(default, args::named)]
     pub java_home: Option<PathBuf>,
 

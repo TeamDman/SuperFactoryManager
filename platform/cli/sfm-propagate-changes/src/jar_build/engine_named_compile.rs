@@ -185,6 +185,10 @@ impl NamedPinnedSdk {
         self.owner.path()
     }
 
+    fn owner(&self) -> Arc<native_cache_root::NativeCacheRoot> {
+        Arc::clone(&self.owner)
+    }
+
     fn spec_identity(&self) -> String {
         let mut evidence = format!("sfm:pinned_jbrsdk_spec@1\nmajor={}\n", self.pin.major);
         for field in [

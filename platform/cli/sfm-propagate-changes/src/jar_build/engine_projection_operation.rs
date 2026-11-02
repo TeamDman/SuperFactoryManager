@@ -87,10 +87,6 @@ fn invoke_projection_operation(
         &root,
         options.cache_root.as_deref(),
     ));
-    eyre::ensure!(
-        matches!(operation, ProjectionOperation::Catalog(_)) || effective.java_home.is_some(),
-        "catalog native operations require --java-home for the guarded checkout toolchain root"
-    );
     let options = &effective;
     tracing::info!(
         projection_selector = selector,
@@ -279,18 +275,55 @@ fn execute_projection_identity_operation(
     let plan_phase = ProjectionPreparationPhase::start(key, "resolve_native_build_plan");
     let mut planning = NativePlanningOptions::from(options);
     if let Some(path) = options.cache_root.as_deref() {
-        let java_home = options.java_home.as_deref().ok_or_else(|| {
-            eyre::eyre!(
-                "--cache-root requires an explicit --java-home for guarded native admission"
-            )
-        })?;
-        planning.derived_cache_root = Some(native_cache_root::NativeCacheRoot::acquire(
-            path,
-            identity.repository_root(),
-            &identity.minecraft_dir(),
-            java_home,
-            cancellation,
-        )?);
+        let minecraft_dir = identity.minecraft_dir();
+        if let Some(java_home) = options.java_home.as_deref() {
+            planning.derived_cache_root = Some(native_cache_root::NativeCacheRoot::acquire(
+                path,
+                identity.repository_root(),
+                &minecraft_dir,
+                java_home,
+                cancellation,
+            )?);
+        } else {
+            let required_major = if let Some(project) = identity.named_project() {
+                u32::from(project.receipt().tool_jvm_minimum)
+            } else if let Some(target) = identity.development_target() {
+                u32::from(target.receipt.java_major)
+            } else {
+                eyre::bail!("selected projection has no checked Java toolchain requirement")
+            };
+            if let Some(selected) = select_named_pinned_sdk(
+                path,
+                identity.repository_root(),
+                &minecraft_dir,
+                required_major,
+                cancellation,
+            )? {
+                planning.java_home = Some(selected.home().to_path_buf());
+                planning.derived_cache_root = Some(selected.owner());
+                planning.pinned_sdk = Some(selected);
+            } else {
+                let java = crate::jdk::resolve_exact_java_for_minecraft_dir(
+                    &minecraft_dir,
+                    required_major,
+                    None,
+                )?;
+                let home = java.home.ok_or_else(|| {
+                    eyre::eyre!(
+                        "selected Java {} has no JDK home; install a checked JDK or pass --java-home",
+                        java.executable.display()
+                    )
+                })?;
+                planning.derived_cache_root = Some(native_cache_root::NativeCacheRoot::acquire(
+                    path,
+                    identity.repository_root(),
+                    &minecraft_dir,
+                    &home,
+                    cancellation,
+                )?);
+                planning.java_home = Some(home);
+            }
+        }
     }
     let plan = create_plan_for_project(&planning, &identity, cancellation)?;
     // A failed admitted attempt drops its plan/capability before strict retry.
