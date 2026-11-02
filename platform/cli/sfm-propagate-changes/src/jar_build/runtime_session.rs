@@ -16,6 +16,7 @@ use std::io::Write as _;
 use std::path::Path;
 #[cfg(windows)]
 use std::path::PathBuf;
+use std::time::Instant;
 
 #[cfg(windows)]
 type OwnedInputFiles = BTreeMap<PathBuf, (u64, blake3::Hash)>;
@@ -43,8 +44,11 @@ impl RuntimeSession {
         share_runtime: bool,
     ) -> eyre::Result<Self> {
         ensure!(safe_component(run_kind), "invalid runtime run kind");
-        snapshot.recheck()?;
+        // materialize_roots checks the complete snapshot before and after
+        // copying. A third identical read here adds no admission boundary.
+        let slot_started = Instant::now();
         let slot = RuntimeSlot::claim(&snapshot.minecraft_dir, requested_slot, share_runtime)?;
+        tracing::info!(phase = "warm_session_slot_claim", elapsed_ms = slot_started.elapsed().as_millis(), "warm_run_stage");
         let parent = slot.data_dir.join("launches");
         ensure_owned_directory(&slot.data_dir, &parent)?;
         let directory = tempfile::Builder::new()
@@ -73,7 +77,9 @@ impl RuntimeSession {
         };
         fs::create_dir(receipt.state_dir())?;
         fs::create_dir(receipt.mod_root())?;
+        let materialize_started = Instant::now();
         snapshot.materialize_roots(&receipt.mod_root(), roots)?;
+        tracing::info!(phase = "warm_session_materialize", elapsed_ms = materialize_started.elapsed().as_millis(), "warm_run_stage");
         receipt.write()?;
         let latest = snapshot.cache_dir.join("run").join(run_kind);
         ensure_owned_directory(&snapshot.cache_dir, &latest)?;
@@ -492,6 +498,30 @@ mod tests {
             fs::read(&readable)?,
             facet_json::to_string_pretty(&receipt)?.as_bytes()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn corrupt_snapshot_never_publishes_a_runtime_session() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let minecraft = dunce::canonicalize(temporary.path())?;
+        let cache = minecraft.join("build/sfm-toolchain/native-project/fixture");
+        let project = cache.join("project");
+        fs::create_dir_all(project.join("classes"))?;
+        fs::write(project.join("classes/Main.class"), b"good class")?;
+        let java = ResolvedJava {
+            executable: minecraft.join("jdk/bin/java"),
+            home: Some(minecraft.join("jdk")),
+            version_output: "openjdk version 17 fixture".to_owned(),
+            major_version: 17,
+            selection: "fixture".to_owned(),
+            pin_url: None,
+            pin_sha512: None,
+        };
+        let snapshot = BuildSnapshotReceipt::publish(&minecraft, &cache, "1.19.2", &java, &project, "fixture-sdk")?;
+        fs::write(snapshot.snapshot_dir.join("project/classes/Main.class"), b"corrupt")?;
+        assert!(RuntimeSession::prepare(&snapshot, "runClientSmoke", &["classes"], None, None, false).is_err());
+        assert!(!cache.join("run/runClientSmoke/latest-session.json").exists());
         Ok(())
     }
 

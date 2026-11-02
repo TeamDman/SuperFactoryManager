@@ -384,7 +384,9 @@ fn execute_prepared_projection_operation(
                 if run_options.client_hotswap_port.is_some() {
                     crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
                 }
+                let snapshot_started = Instant::now();
                 let snapshot = publish_run_snapshot(&plan, cancellation)?;
+                tracing::info!(phase = "warm_run_snapshot_publish", elapsed_ms = snapshot_started.elapsed().as_millis(), "warm_run_stage");
                 let mut owned_log = None;
                 let result = if run_options.game_test_bisect.is_some() {
                     execute_game_test_bisect(
@@ -412,6 +414,7 @@ fn execute_prepared_projection_operation(
                 {
                     publish_owned_preview_console(&log, &plan.minecraft_dir)?;
                 }
+                tracing::info!(phase = "warm_run_execute_run", elapsed_ms = snapshot_started.elapsed().as_millis(), "warm_run_stage");
                 result
             }
             ProjectionOperation::Test(test_options) => {
@@ -445,7 +448,9 @@ fn execute_prepared_projection_operation(
             consume(held)
         })?;
     } else {
+        let build_started = Instant::now();
         execute_build(&plan, options.explain_rebuild, target, cancellation)?;
+        tracing::info!(phase = "warm_run_build", elapsed_ms = build_started.elapsed().as_millis(), "warm_run_stage");
         consume(&ExecutionContext::new(&plan, cancellation.clone())?)?;
     }
     Ok(Some(plan))

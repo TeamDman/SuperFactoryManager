@@ -26,6 +26,7 @@ use std::io::Write as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Instant;
 
 const SCHEMA: &str = "sfm:successful_build_snapshot@1";
 const MAX_FILES: usize = 100_000;
@@ -250,13 +251,15 @@ impl BuildSnapshotReceipt {
         }
         // A stale or damaged previous success cannot authorize reuse. Fresh
         // publication may still replace its latest pointer without deleting it.
-        let previous = match Self::load(&latest, minecraft_dir) {
+        let load_started = Instant::now();
+        let previous = match Self::load_receipt(&latest, minecraft_dir) {
             Ok(previous) => previous,
             Err(error) => {
                 tracing::debug!(%error, "previous build snapshot cannot be reused");
                 return Ok(None);
             }
         };
+        tracing::info!(phase = "warm_snapshot_receipt_load", elapsed_ms = load_started.elapsed().as_millis(), "warm_run_stage");
         if previous.cache_dir != cache_dir
             || previous.minecraft_version != minecraft_version
             || previous.sdk_identity != identities.0
@@ -279,16 +282,33 @@ impl BuildSnapshotReceipt {
         else {
             return Ok(None);
         };
+        let source_started = Instant::now();
         if !source.matches_snapshot(&previous, cancellation_token)? {
             return Ok(None);
         }
-        previous.recheck()?;
+        tracing::info!(phase = "warm_snapshot_source_match", elapsed_ms = source_started.elapsed().as_millis(), "warm_run_stage");
+        let final_started = Instant::now();
+        // The final full inventory is still mandatory before reuse.
+        // Damage to an old snapshot selects fresh publication instead.
+        if let Err(error) = previous.recheck() {
+            tracing::debug!(%error, "previous build snapshot cannot be reused");
+            return Ok(None);
+        }
+        tracing::info!(phase = "warm_snapshot_final_recheck", elapsed_ms = final_started.elapsed().as_millis(), "warm_run_stage");
         tracing::info!(snapshot = %previous.snapshot_dir.display(),
             "Reusing checked successful-build snapshot for identical compiler outputs");
         Ok(Some(previous))
     }
 
     pub(crate) fn load(receipt_path: &Path, expected_minecraft_dir: &Path) -> Result<Self> {
+        let receipt = Self::load_receipt(receipt_path, expected_minecraft_dir)?;
+        receipt.recheck()?;
+        Ok(receipt)
+    }
+
+    // Candidate-only parse. The reuse caller performs the same complete
+    // receipt and filetree recheck immediately before returning the hit.
+    fn load_receipt(receipt_path: &Path, expected_minecraft_dir: &Path) -> Result<Self> {
         let raw = if receipt_path
             .file_name()
             .is_some_and(|name| name == "latest-successful-build.json")
@@ -320,7 +340,6 @@ impl BuildSnapshotReceipt {
             raw == receipt.json_bytes()?,
             "snapshot receipt encoding changed"
         );
-        receipt.recheck()?;
         Ok(receipt)
     }
 
@@ -374,7 +393,9 @@ impl BuildSnapshotReceipt {
     /// Merge admitted output roots into a new or checked empty session directory.
     /// Later roots intentionally replace same-named files from earlier roots.
     pub(crate) fn materialize_roots(&self, destination: &Path, root_names: &[&str]) -> Result<()> {
+        let precheck_started = Instant::now();
         self.recheck()?;
+        tracing::info!(phase = "warm_session_snapshot_precheck", elapsed_ms = precheck_started.elapsed().as_millis(), "warm_run_stage");
         ensure!(!root_names.is_empty(), "runtime snapshot roots are empty");
         for root in root_names {
             ensure!(
@@ -389,10 +410,14 @@ impl BuildSnapshotReceipt {
         let destination = self.prepare_materialization(destination)?;
         let mut expected = BTreeMap::new();
         let mut expected_directories = BTreeSet::new();
+        let copy_started = Instant::now();
         for root in root_names {
             self.materialize_root(&destination, root, &mut expected, &mut expected_directories)?;
         }
+        tracing::info!(phase = "warm_session_copy_roots", elapsed_ms = copy_started.elapsed().as_millis(), "warm_run_stage");
+        let destination_started = Instant::now();
         let (files, directories) = inventory(&destination, false, None)?;
+        tracing::info!(phase = "warm_session_destination_check", elapsed_ms = destination_started.elapsed().as_millis(), "warm_run_stage");
         ensure!(
             files == expected,
             "materialized session file inventory changed"
@@ -401,7 +426,9 @@ impl BuildSnapshotReceipt {
             directories == expected_directories,
             "materialized session directory inventory changed"
         );
+        let postcheck_started = Instant::now();
         self.recheck()?;
+        tracing::info!(phase = "warm_session_snapshot_postcheck", elapsed_ms = postcheck_started.elapsed().as_millis(), "warm_run_stage");
         Ok(())
     }
 
@@ -1446,6 +1473,21 @@ mod tests {
                 .directories
                 .contains("project/staged-resources/empty")
         );
+        Ok(())
+    }
+
+    #[test]
+    fn corrupt_previous_snapshot_requires_fresh_verified_publication() -> Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let (minecraft, cache) = project(temporary.path(), "projection-a")?;
+        let old = publish(&minecraft, &cache)?;
+        let changed = old.snapshot_dir.join("project/classes/example/Main.class");
+        fs::write(&changed, b"corrupted old snapshot")?;
+        let fresh = publish(&minecraft, &cache)?;
+        assert_ne!(old.snapshot_dir, fresh.snapshot_dir);
+        assert_eq!(fs::read(&changed)?, b"corrupted old snapshot");
+        fresh.recheck()?;
+        assert_eq!(fs::read(fresh.snapshot_dir.join("project/classes/example/Main.class"))?, b"main class fixture");
         Ok(())
     }
 

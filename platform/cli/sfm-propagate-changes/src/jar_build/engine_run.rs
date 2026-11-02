@@ -703,6 +703,7 @@ fn execute_run_with_context(
     owned_console_log: &mut Option<PathBuf>,
 ) -> eyre::Result<()> {
     *owned_console_log = None;
+    let run_started = Instant::now();
     let plan = context.plan;
     if matches!(kind, RunKind::GameTestPreview) && run_options.inspection_workspace.is_some() {
         let supported = matches!(&plan.identity, BuildProjectIdentity::Development { project, .. }
@@ -1161,7 +1162,9 @@ fn execute_run_with_context(
         );
         return Ok(());
     }
+    tracing::info!(phase = "warm_run_prelaunch", elapsed_ms = run_started.elapsed().as_millis(), "warm_run_stage");
     release_launch_preparation_lock(kind, run_options, build_cache_lock);
+    let launch_started = Instant::now();
     let max_launch_attempts = run_max_launch_attempts(kind);
     let mut launch_output = None;
     for attempt in 1..=max_launch_attempts {
@@ -1202,6 +1205,7 @@ fn execute_run_with_context(
             launch_log.display()
         );
     }
+    tracing::info!(phase = "warm_run_jvm_wait", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
     let launch_output = launch_output.ok_or_else(|| {
         eyre::eyre!(
             "Failed to launch {} using {}",
@@ -1348,6 +1352,7 @@ fn execute_run_with_context(
                 "Bounded run completed; session receipt could not close before retirement; retaining inputs"),
         }
     }
+    tracing::info!(phase = "warm_run_postlaunch", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
     Ok(())
 }
 
