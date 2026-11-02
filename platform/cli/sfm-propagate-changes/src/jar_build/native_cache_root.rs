@@ -99,8 +99,12 @@ impl HeldPinnedSdk {
 
     fn recheck(&mut self, root: &Path, cancel: &CancellationToken) -> Result<()> {
         cancel.bail_if_cancelled()?;
+        let image_started = std::time::Instant::now();
         checked_pinned_sdk_home(root, &mut self.image, &self.pin, &self.artifact)?;
+        tracing::info!(phase = "warm_sdk_held_image_recheck", elapsed_ms = image_started.elapsed().as_millis(), "warm_run_stage");
+        let launch_started = std::time::Instant::now();
         self.launch.recheck(cancel)?;
+        tracing::info!(phase = "warm_sdk_launch_recheck", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
         Ok(())
     }
 }

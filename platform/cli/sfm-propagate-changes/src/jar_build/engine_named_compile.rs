@@ -266,16 +266,22 @@ pub(crate) fn select_named_pinned_sdk(
         cancellation,
     )?;
     let cache = root_owner.prepare_directory("minecraft-toolchain/jbrsdk", cancellation)?;
+    let image_started = std::time::Instant::now();
     let mut image = crate::jdk_artifact_cache::acquire_verified_pinned_jbrsdk_zip(
         pin, artifact, &cache, false,
     )?;
+    tracing::info!(phase = "warm_sdk_acquire_image", elapsed_ms = image_started.elapsed().as_millis(), "warm_run_stage");
+    let preflight_started = std::time::Instant::now();
     native_cache_root::NativeCacheRoot::preflight_for_verified_pinned_sdk(
         root, repository, source_project, &mut image, pin, artifact,
     )?;
+    tracing::info!(phase = "warm_sdk_root_preflight", elapsed_ms = preflight_started.elapsed().as_millis(), "warm_run_stage");
     let home = image.home().to_path_buf();
+    let owner_started = std::time::Instant::now();
     let owner = native_cache_root::NativeCacheRoot::acquire_for_verified_pinned_sdk(
         root, repository, source_project, image, pin, artifact, cancellation,
     )?;
+    tracing::info!(phase = "warm_sdk_owner_capture", elapsed_ms = owner_started.elapsed().as_millis(), "warm_run_stage");
     let resolved = crate::jdk::resolve_pinned_java_from_verified_home(&home, pin, artifact)?;
     eyre::ensure!(
         resolved.home.as_deref() == Some(home.as_path()),
@@ -289,11 +295,13 @@ pub(crate) fn select_named_pinned_sdk(
         artifact: artifact.clone(),
         home,
     });
+    let final_started = std::time::Instant::now();
     selected.recheck_lock(
         &source_project.join("sfm-toolchain.lock.json"),
         required_major,
         cancellation,
     )?;
+    tracing::info!(phase = "warm_sdk_selection_recheck", elapsed_ms = final_started.elapsed().as_millis(), "warm_run_stage");
     Ok(Some(selected))
 }
 

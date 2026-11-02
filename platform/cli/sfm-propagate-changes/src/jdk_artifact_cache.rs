@@ -49,6 +49,7 @@ pub(crate) struct VerifiedPinnedJbrsdk {
     pin: JdkPinV4,
     artifact: JdkArtifactV4,
     archive: File,
+    archive_len: u64,
 }
 
 impl VerifiedPinnedJbrsdk {
@@ -85,9 +86,27 @@ impl VerifiedPinnedJbrsdk {
                     == crate::file_identity::file_identity(&self.archive)?,
             "Verified JBRSDK archive path changed"
         );
-        verify_archive_sha512(&mut self.archive, &sha)?;
+        // The same Windows handle was SHA-512 authenticated at acquisition and
+        // opened with FILE_SHARE_READ only. As the focused regression proves,
+        // concurrent writes and replacement fail until that handle drops.
+        // Keep the path/identity and size checks on every recheck; on systems
+        // without that held-file guarantee, hash the complete archive again.
+        eyre::ensure!(
+            self.archive.metadata()?.len() == self.archive_len,
+            "Verified JBRSDK archive length changed"
+        );
+        #[cfg(not(windows))]
+        {
+            let archive_started = std::time::Instant::now();
+            verify_archive_sha512(&mut self.archive, &sha)?;
+            tracing::info!(phase = "warm_sdk_archive_sha512", elapsed_ms = archive_started.elapsed().as_millis(), "warm_run_stage");
+        }
+        #[cfg(windows)]
+        tracing::info!(phase = "warm_sdk_archive_held_identity", "warm_run_stage");
         let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
+        let install_started = std::time::Instant::now();
         verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
+        tracing::info!(phase = "warm_sdk_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
         Ok(&self.home)
     }
 }
@@ -200,13 +219,17 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
     }
     // The same file handle is hashed, parsed, and extracted. Reopening after
     // verification would allow replacement of the path between those steps.
+    let archive_started = std::time::Instant::now();
     let mut verified_zip = open_verified_archive(&archive, &sha)?;
+    tracing::info!(phase = "warm_sdk_initial_archive_sha512", elapsed_ms = archive_started.elapsed().as_millis(), "warm_run_stage");
 
     let installed = install_dir.join(install_key(&sha));
     let expected_receipt = receipt(pin, artifact);
     match fs::symlink_metadata(&installed) {
         Ok(_) => {
+            let install_started = std::time::Instant::now();
             verify_installed_home(&installed, artifact, &expected_receipt, &mut verified_zip)?;
+            tracing::info!(phase = "warm_sdk_initial_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             let stage = tempfile::Builder::new()
@@ -227,12 +250,15 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         }
         Err(error) => return Err(error).wrap_err("Failed to inspect cached JBRSDK installation"),
     }
+    let archive = verified_zip.into_inner();
+    let archive_len = archive.metadata()?.len();
     Ok(VerifiedPinnedJbrsdk {
         home: installed,
         cache_root: cache_root.to_path_buf(),
         pin: pin.clone(),
         artifact: artifact.clone(),
-        archive: verified_zip.into_inner(),
+        archive,
+        archive_len,
     })
 }
 
@@ -810,6 +836,44 @@ mod tests {
                 .unwrap(),
             expected_home.as_path()
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn held_verified_archive_blocks_writes_and_replacement_until_drop() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let archive = root
+            .path()
+            .join("archives")
+            .join(format!("{}.zip", pin.artifacts[0].sha512));
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(fs::write(&archive, b"changed").is_err());
+        assert!(fs::rename(&archive, root.path().join("replacement.zip")).is_err());
+        image
+            .recheck_for(root.path(), &pin, &pin.artifacts[0])
+            .unwrap();
+        drop(image);
+        fs::write(&archive, b"changed").unwrap();
+        assert!(acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, _| unreachable!("corrupt cached archive must not fetch"),
+        )
+        .is_err());
     }
 
     #[test]
