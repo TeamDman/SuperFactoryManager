@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "purpose": "Direct selected external build-plugin inputs for historical NeoGradle userdev 7.0.57; recursive closure separate",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "gradle/bootstrap-maven/historical-neogradle-7.0.57-externals",
+  "coordinate_count": 16,
+  "artifact_count": 33,
+  "total_bytes": 7381962,
+  "artifacts": [
+    {
+      "coordinate": "codechicken:DiffPatch:1.5.0.29@pom",
+      "path": "codechicken/DiffPatch/1.5.0.29/DiffPatch-1.5.0.29.pom",
+      "url": "https://maven.neoforged.net/releases/codechicken/DiffPatch/1.5.0.29/DiffPatch-1.5.0.29.pom",
+      "bytes": 2681,
+      "sha256": "b53c05e3b5b6d639fe4608ee63ee636efd39573b360b8d0fb9a8a4259392c365",
+      "published_sha1": "24ba1548c87a921a3448e5f41f7837aaa1f6387c",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "codechicken:DiffPatch:1.5.0.29@module",
+      "path": "codechicken/DiffPatch/1.5.0.29/DiffPatch-1.5.0.29.module",
+      "url": "https://maven.neoforged.net/releases/codechicken/DiffPatch/1.5.0.29/DiffPatch-1.5.0.29.module",
+      "bytes": 2928,
+      "sha256": "eba17ff8da5a5be58826662d9ae0db1f1a163920c7c53b129e3add988ad6dc92",
+      "published_sha1": null,
+      "authentication": "official_https_module_metadata"
+    },
+    {
+      "coordinate": "codechicken:DiffPatch:1.5.0.29@jar",
+      "path": "codechicken/DiffPatch/1.5.0.29/DiffPatch-1.5.0.29.jar",
+      "url": "https://maven.neoforged.net/releases/codechicken/DiffPatch/1.5.0.29/DiffPatch-1.5.0.29.jar",
+      "bytes": 121348,
+      "sha256": "e52106a1bb0e4371939db1bf73d9c4eb604a9f819fb3cae2ce9e8944b48da593",
+      "published_sha1": "0a6688f94786ef3b7922b8e5ea285a5d204195bb",
+      "authentication": "official_module_sha256"
+    },
+    {
+      "coordinate": "com.github.javaparser:javaparser-core:3.25.1@pom",
+      "path": "com/github/javaparser/javaparser-core/3.25.1/javaparser-core-3.25.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/github/javaparser/javaparser-core/3.25.1/javaparser-core-3.25.1.pom",
+      "bytes": 4996,
+      "sha256": "2c9bb434e3fc63be7c746aeab77eb01171081ca12d4d672f873a6130b276779e",
+      "published_sha1": "11ec3d5c2208df43fa09a29b3dcdb2c7025045b2",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.github.javaparser:javaparser-core:3.25.1@jar",
+      "path": "com/github/javaparser/javaparser-core/3.25.1/javaparser-core-3.25.1.jar",
+      "url": "https://repo.maven.apache.org/maven2/com/github/javaparser/javaparser-core/3.25.1/javaparser-core-3.25.1.jar",
+      "bytes": 1382993,
+      "sha256": "997bd35e15810336962b8165c16183ba0e45171ee3e61ab9d077bed36a73e0f3",
+      "published_sha1": "277a540e2b8d0ed205a8e8d31a7759a769d979be",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.9.0@pom",
+      "path": "com/google/code/gson/gson/2.9.0/gson-2.9.0.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.9.0/gson-2.9.0.pom",
+      "bytes": 8065,
+      "sha256": "7190d0b07f278e9f4c603f44e543940f81cf1a2559f851c6f298c9bb2be2978c",
+      "published_sha1": "bfedf86dd09fdbb51b11621570b75d0697bf7a2a",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.9.0@jar",
+      "path": "com/google/code/gson/gson/2.9.0/gson-2.9.0.jar",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.9.0/gson-2.9.0.jar",
+      "bytes": 249277,
+      "sha256": "c96d60551331a196dac54b745aa642cd078ef89b6f267146b705f2c2cbef052d",
+      "published_sha1": "8a1167e089096758b49f9b34066ef98b2f4b37aa",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.thoughtworks.qdox:qdox:1.12.1@pom",
+      "path": "com/thoughtworks/qdox/qdox/1.12.1/qdox-1.12.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/com/thoughtworks/qdox/qdox/1.12.1/qdox-1.12.1.pom",
+      "bytes": 17598,
+      "sha256": "c52a6616d04efb30c9edeab9ee82b0591e4d04d38e030bf81e250776552d215d",
+      "published_sha1": "461db3fbd183b9ed27751bbdbafcd1bc9654fe7c",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "com.thoughtworks.qdox:qdox:1.12.1@jar",
+      "path": "com/thoughtworks/qdox/qdox/1.12.1/qdox-1.12.1.jar",
+      "url": "https://repo.maven.apache.org/maven2/com/thoughtworks/qdox/qdox/1.12.1/qdox-1.12.1.jar",
+      "bytes": 179818,
+      "sha256": "21fba22f830e9268f07cf4ab2d99e8181abbdcb0cb91ee0228eb3cb918dcdd1d",
+      "published_sha1": "f7122f6ab1f64bdf9f5970b0e89bfb355e036897",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.1.6@pom",
+      "path": "gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.1.6/gradle-idea-ext-1.1.6.pom",
+      "url": "https://plugins.gradle.org/m2/gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.1.6/gradle-idea-ext-1.1.6.pom",
+      "bytes": 976,
+      "sha256": "f243a7200aaee540b9f1e61e7f86c504c68a85dd70394933aed216b07e420eea",
+      "published_sha1": "5b4041f3adeee09e9143178b9476ac73213d543d",
+      "authentication": "official_https_exact_bytes"
+    },
+    {
+      "coordinate": "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.1.6@jar",
+      "path": "gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.1.6/gradle-idea-ext-1.1.6.jar",
+      "url": "https://plugins.gradle.org/m2/gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.1.6/gradle-idea-ext-1.1.6.jar",
+      "bytes": 269758,
+      "sha256": "edfe0921b3d16d69aa9e22855365114fefd74671321c1a6fe78a107115bf9453",
+      "published_sha1": "4908f856bbf9fdc994350a009754efee511a9eef",
+      "authentication": "official_https_exact_bytes"
+    },
+    {
+      "coordinate": "info.picocli:picocli:4.6.3@pom",
+      "path": "info/picocli/picocli/4.6.3/picocli-4.6.3.pom",
+      "url": "https://repo.maven.apache.org/maven2/info/picocli/picocli/4.6.3/picocli-4.6.3.pom",
+      "bytes": 1375,
+      "sha256": "24150c7dbdc8a5bb987cbeb4898ee1515d2893d3f6224acfc563da1a7fd5c283",
+      "published_sha1": "aac6a42a7b12a0bd8cbf888c3e0cef35d3a06d74",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "info.picocli:picocli:4.6.3@jar",
+      "path": "info/picocli/picocli/4.6.3/picocli-4.6.3.jar",
+      "url": "https://repo.maven.apache.org/maven2/info/picocli/picocli/4.6.3/picocli-4.6.3.jar",
+      "bytes": 405953,
+      "sha256": "b0a5159e926de8084ff066025142270443533656bc599b8bb31d14d11fd138a4",
+      "published_sha1": "18177f4c3d65cc94e6d4039775ec5aed8089f8d0",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "jline:jline:2.14.6@pom",
+      "path": "jline/jline/2.14.6/jline-2.14.6.pom",
+      "url": "https://repo.maven.apache.org/maven2/jline/jline/2.14.6/jline-2.14.6.pom",
+      "bytes": 19892,
+      "sha256": "1df7b6f08dfb81a268d6b93b659a6a9e389c5d8c32bdf0754238ba6483a4e982",
+      "published_sha1": "378c8caace8e1e65314477420d9734373cf29531",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "jline:jline:2.14.6@jar",
+      "path": "jline/jline/2.14.6/jline-2.14.6.jar",
+      "url": "https://repo.maven.apache.org/maven2/jline/jline/2.14.6/jline-2.14.6.jar",
+      "bytes": 268780,
+      "sha256": "97d1acaac82409be42e622d7a54d3ae9d08517e8aefdea3d2ba9791150c2f02d",
+      "published_sha1": "c3aeac59c022bdc497c8c48ed86fa50450e4896a",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "junit:junit:4.13.2@pom",
+      "path": "junit/junit/4.13.2/junit-4.13.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.pom",
+      "bytes": 27018,
+      "sha256": "569b6977ee4603c965c1c46c3058fa6e969291b0160eb6964dd092cd89eadd94",
+      "published_sha1": "73bc5be628edeb297a1caf421a5a2e494798b92f",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "junit:junit:4.13.2@jar",
+      "path": "junit/junit/4.13.2/junit-4.13.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar",
+      "bytes": 384581,
+      "sha256": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3",
+      "published_sha1": "8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-antlr:1.10.12@pom",
+      "path": "org/apache/ant/ant-antlr/1.10.12/ant-antlr-1.10.12.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-antlr/1.10.12/ant-antlr-1.10.12.pom",
+      "bytes": 4355,
+      "sha256": "975b846ef3aba2bde553fb9fbf8048d10710f3285ab9aef53448dd3d4b2a2bfe",
+      "published_sha1": "698275bd284483b0e20124c26852cbfe7f755ec5",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-antlr:1.10.12@jar",
+      "path": "org/apache/ant/ant-antlr/1.10.12/ant-antlr-1.10.12.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-antlr/1.10.12/ant-antlr-1.10.12.jar",
+      "bytes": 12157,
+      "sha256": "9066143e0298c3e0782214baad6a75cc253eaf157c4666640e74053b057cfdd4",
+      "published_sha1": "74b17ef7229f3d7c0d55d42486889cc553ab04d6",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-junit:1.10.12@pom",
+      "path": "org/apache/ant/ant-junit/1.10.12/ant-junit-1.10.12.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-junit/1.10.12/ant-junit-1.10.12.pom",
+      "bytes": 7502,
+      "sha256": "3b34b331dcda3c0d5556ffcf1490a44d688f8580ce9bc42a54e9b04acd2364d6",
+      "published_sha1": "4213f217db956d1e466da2daae15440a3eea853f",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-junit:1.10.12@jar",
+      "path": "org/apache/ant/ant-junit/1.10.12/ant-junit-1.10.12.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-junit/1.10.12/ant-junit-1.10.12.jar",
+      "bytes": 139915,
+      "sha256": "800eb1f75188fd1e2cd9e7ba31561f16e3bd81b94e813821440f03a0fa07ce50",
+      "published_sha1": "81bde3486c2ed79cb6f699c2a5a77b0340d1f2e8",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-launcher:1.10.12@pom",
+      "path": "org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.pom",
+      "bytes": 3165,
+      "sha256": "11b8712a4ce9a80912ae9505a46abc5b2d06cfd18892c9dd268eb3069056e4c9",
+      "published_sha1": "f659a81ee36541c6bd07d843a0bd61fa307f04dd",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant-launcher:1.10.12@jar",
+      "path": "org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant-launcher/1.10.12/ant-launcher-1.10.12.jar",
+      "bytes": 18705,
+      "sha256": "42a7ca7e7bb777fe7ee75a5ed4cc529c766bc43486367fdaad0ab4a32ee9c249",
+      "published_sha1": "e090b4f9d3ecf45491cc16e759f1e843a1a224c0",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant:1.10.12@pom",
+      "path": "org/apache/ant/ant/1.10.12/ant-1.10.12.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant/1.10.12/ant-1.10.12.pom",
+      "bytes": 16517,
+      "sha256": "a774efed935890270accd460e5d465d2f45a019c78a0e78217c42bc9cf6f65d0",
+      "published_sha1": "127e4b8df05ecae52bc0dd41df667df432058873",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.apache.ant:ant:1.10.12@jar",
+      "path": "org/apache/ant/ant/1.10.12/ant-1.10.12.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ant/ant/1.10.12/ant-1.10.12.jar",
+      "bytes": 2254148,
+      "sha256": "5c6a438c3ebe7a306eba452b09fa307b0e60314926177920bca896c4a504eaf6",
+      "published_sha1": "be08c4f63e92e03bac761404cf77bc270928b6c5",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-api:5.9.2@pom",
+      "path": "org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.pom",
+      "bytes": 3181,
+      "sha256": "10af60fa690accdcebf394ec58409dcecff1dec370268a670360a115f731c55c",
+      "published_sha1": "05b0a44eb28527f99f81b8faff1757cf621aef51",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-api:5.9.2@jar",
+      "path": "org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar",
+      "bytes": 207759,
+      "sha256": "f767a170f97127b0ad3582bf3358eabbbbe981d9f96411853e629d9276926fd5",
+      "published_sha1": "fed843581520eac594bc36bb4b0f55e7b947dda9",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-engine:5.9.2@pom",
+      "path": "org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.pom",
+      "bytes": 3199,
+      "sha256": "9df38e823e1add9a656acfb959ce73b07004df6c9f7c0367c26b743e656b59af",
+      "published_sha1": "b5b17911499589d4deeebf921913586a7b10bbad",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-engine:5.9.2@jar",
+      "path": "org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar",
+      "bytes": 246608,
+      "sha256": "74cfc49388f760413ff348ca2c9ab39527484b57deecd157f2275a5f8a5fe971",
+      "published_sha1": "572f7a553b53f83ee59cc045ce1c3772864ab76c",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-launcher:1.9.2@pom",
+      "path": "org/junit/platform/junit-platform-launcher/1.9.2/junit-platform-launcher-1.9.2.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-launcher/1.9.2/junit-platform-launcher-1.9.2.pom",
+      "bytes": 3026,
+      "sha256": "ce9148998a8ef1de67e5a8f44079c03e1752eab52a23a1f76e07a8147f2c198e",
+      "published_sha1": "dd64f9bf235716c64a62ac61c4e71deb27088f29",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-launcher:1.9.2@jar",
+      "path": "org/junit/platform/junit-platform-launcher/1.9.2/junit-platform-launcher-1.9.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-launcher/1.9.2/junit-platform-launcher-1.9.2.jar",
+      "bytes": 169236,
+      "sha256": "eef139eb09c98e9cdd358b6ce4c6cdd59b30c6a88096e369c33ba96e67edf0e4",
+      "published_sha1": "38e0bfad8c57d4cd1a8f27926c25ffe9543068d6",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.testng:testng:7.5@pom",
+      "path": "org/testng/testng/7.5/testng-7.5.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/testng/testng/7.5/testng-7.5.pom",
+      "bytes": 3051,
+      "sha256": "a78b246abf12f7bd3fa50736a1b2d7686337222e4bfe4124cd35b3584b1a5821",
+      "published_sha1": "2f230c277eac0035f94495d2c41176e606710865",
+      "authentication": "official_sha1_sidecar"
+    },
+    {
+      "coordinate": "org.testng:testng:7.5@jar",
+      "path": "org/testng/testng/7.5/testng-7.5.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/testng/testng/7.5/testng-7.5.jar",
+      "bytes": 941401,
+      "sha256": "e549db50dcc421f9501d6af933af15e4fba96617577409d939724cd7e1a25033",
+      "published_sha1": "1416a607fae667c14e390b484e8d02b5824c0674",
+      "authentication": "official_sha1_sidecar"
+    }
+  ]
+}

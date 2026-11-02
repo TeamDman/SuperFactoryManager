@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "purpose": "Existing historical NeoGradle 7.0.57 Groovy-all 3.0.17 aggregate and 22 direct Groovy modules; external transitives separate",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "gradle/bootstrap-maven/historical-groovy-3.0.17",
+  "artifact_count": 45,
+  "total_bytes": 13149618,
+  "artifacts": [
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-all/3.0.17/groovy-all-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-all/3.0.17/groovy-all-3.0.17.pom",
+      "bytes": 25300,
+      "sha256": "48d16cf48b02ec291d7eb20ad9b541060e483f074d56d1b2bc4c64ec20959428",
+      "published_sha1": "f8e179ba4c19cbfe90edef2e01b5e26037f49f9a"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy/3.0.17/groovy-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy/3.0.17/groovy-3.0.17.pom",
+      "bytes": 23680,
+      "sha256": "207afde880172806c0a3b20f122d9679f175f22d15b05e87f589f7255dd38362",
+      "published_sha1": "5fc8c8f7b55ef44a71b72d9f118c3fea42df09fc"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy/3.0.17/groovy-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy/3.0.17/groovy-3.0.17.jar",
+      "bytes": 8038657,
+      "sha256": "9ed2a565a8592a9f63f410afed892d0ca6bec1ff96277ce4cc7f3e2e366e794f",
+      "published_sha1": "23a103e379f90f9271209c97129d5568676b2cda"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-ant/3.0.17/groovy-ant-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-ant/3.0.17/groovy-ant-3.0.17.pom",
+      "bytes": 23310,
+      "sha256": "e09dff737fb0abf9db1f416ee5966e0280f1386bb2487de5f5cc9af7fcb10594",
+      "published_sha1": "6e42caec301e9569b1aef7c8ca14aa4e931c7263"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-ant/3.0.17/groovy-ant-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-ant/3.0.17/groovy-ant-3.0.17.jar",
+      "bytes": 82789,
+      "sha256": "baf25567b0a5c7e13fe57a48d1f7458cafb33bed8e4f0aefa1874491f8291c51",
+      "published_sha1": "4d9da686976ac4dd13a744815271143c259e3d45"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-astbuilder/3.0.17/groovy-astbuilder-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-astbuilder/3.0.17/groovy-astbuilder-3.0.17.pom",
+      "bytes": 21919,
+      "sha256": "78bd357bd9d62f9bfecf4878f8306f7864c2d2cccfbf0e07f148c170e7a31642",
+      "published_sha1": "9fd004913d3053499bc43716cfe17fcb94023e3f"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-astbuilder/3.0.17/groovy-astbuilder-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-astbuilder/3.0.17/groovy-astbuilder-3.0.17.jar",
+      "bytes": 6181,
+      "sha256": "372fb74dfea9cb4f5bf32f31b9d12314705777745ec915333d18a5b14b37923b",
+      "published_sha1": "705f7ec2f71b4e93cdc6d80a82b34d7334192cc0"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-cli-picocli/3.0.17/groovy-cli-picocli-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-cli-picocli/3.0.17/groovy-cli-picocli-3.0.17.pom",
+      "bytes": 22098,
+      "sha256": "9f80c141a242b79e74f52e111b0f7644729e5fbe73921316efbd5f0133d41a97",
+      "published_sha1": "f84ee4e5236d3e0d0c7fa2d0e6178ef66b93856f"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-cli-picocli/3.0.17/groovy-cli-picocli-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-cli-picocli/3.0.17/groovy-cli-picocli-3.0.17.jar",
+      "bytes": 60564,
+      "sha256": "44d2a5eec44179f90b7216ceba83f0f8f8e4f799f7820db48efac6f5033fdab3",
+      "published_sha1": "a1290930331ce1dfa1cbb8d97c86413b3c9add46"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-console/3.0.17/groovy-console-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-console/3.0.17/groovy-console-3.0.17.pom",
+      "bytes": 23508,
+      "sha256": "ada07b84e504afbedb7d51ef3cedad8c67d5119d216cd6d707b222b10fbecded",
+      "published_sha1": "47213cb95d6661c5bbc1eb1e8e6f176e520f78c8"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-console/3.0.17/groovy-console-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-console/3.0.17/groovy-console-3.0.17.jar",
+      "bytes": 1556615,
+      "sha256": "448f34031e95485cc2b326e6cb47f2d8a89e009c45833ceebc00958658eff108",
+      "published_sha1": "12327efd413b6f30e185731a4316544d2c095feb"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-datetime/3.0.17/groovy-datetime-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-datetime/3.0.17/groovy-datetime-3.0.17.pom",
+      "bytes": 21917,
+      "sha256": "64529ae1dd3b9446a897b3653e20b41b34d9ecef1de71aa9fb767c204f6889cc",
+      "published_sha1": "71f45405f65a3fee7ca9980e08a296e0aaf56530"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-datetime/3.0.17/groovy-datetime-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-datetime/3.0.17/groovy-datetime-3.0.17.jar",
+      "bytes": 15178,
+      "sha256": "98f2889a3f133e2c5a502722732e488366599578e5dbd56dcdcaf5e0790c9d7e",
+      "published_sha1": "8fd38f63f651fe611cf51cc8538e878e16af556b"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-docgenerator/3.0.17/groovy-docgenerator-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-docgenerator/3.0.17/groovy-docgenerator-3.0.17.pom",
+      "bytes": 23507,
+      "sha256": "edfbc06b5decaf24c37ffc4c84f7fe1eb2d98cb8521b11e040a3cdb85cf1b6b8",
+      "published_sha1": "bc0bde899925e384af1898408183e3ced20e0e8b"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-docgenerator/3.0.17/groovy-docgenerator-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-docgenerator/3.0.17/groovy-docgenerator-3.0.17.jar",
+      "bytes": 122803,
+      "sha256": "2383575ffa9cf4f30b3a45038d5b6c6e954804620046656fff5614c0186aeac4",
+      "published_sha1": "5eec5e04a23a4a6db53e4f00d49f249cec35c58d"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-groovydoc/3.0.17/groovy-groovydoc-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-groovydoc/3.0.17/groovy-groovydoc-3.0.17.pom",
+      "bytes": 23713,
+      "sha256": "5f4d0732753df08b20b2087b54756e7c68cb075755e5262451f35e2647238aff",
+      "published_sha1": "098f29583d1e4b745be72f37edb84f07a86eb529"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-groovydoc/3.0.17/groovy-groovydoc-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-groovydoc/3.0.17/groovy-groovydoc-3.0.17.jar",
+      "bytes": 161394,
+      "sha256": "85056d2f835954929564aa4295e73d310a54622b720346d8068f07a2ae9a5f1d",
+      "published_sha1": "0024fd3673a58b46dbce0cddd715927271740125"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-groovysh/3.0.17/groovy-groovysh-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-groovysh/3.0.17/groovy-groovysh-3.0.17.pom",
+      "bytes": 24032,
+      "sha256": "bd53d0e006bd7f18263f7146bdb1f9c0951a48d57d4a1badd3e8111c1449b120",
+      "published_sha1": "b632e3e5926289b82402420950959654bb3469b6"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-groovysh/3.0.17/groovy-groovysh-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-groovysh/3.0.17/groovy-groovysh-3.0.17.jar",
+      "bytes": 992265,
+      "sha256": "679ebc4bbbab99058345e0c0cb0b95964f96cf2735d45c7327bc251f573ad31e",
+      "published_sha1": "aa9edefcbd85f7f0d1316b552ebdabf2594a6166"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-jmx/3.0.17/groovy-jmx-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-jmx/3.0.17/groovy-jmx-3.0.17.pom",
+      "bytes": 21912,
+      "sha256": "5fcaf8760aa0a49ea1d145f7da1da8fc801125df6cc2b24387905057a3f4d122",
+      "published_sha1": "150dbe0cf3d7d6fcbb8b567dd3719cfc9ed573cb"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-jmx/3.0.17/groovy-jmx-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-jmx/3.0.17/groovy-jmx-3.0.17.jar",
+      "bytes": 132953,
+      "sha256": "786f621ec3bc6a6457f3d8cbee6b50451d5df78ae050f9e89e0b2e06a468a026",
+      "published_sha1": "f66471150910516765fd82c72e23c141330443d8"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-json/3.0.17/groovy-json-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-json/3.0.17/groovy-json-3.0.17.pom",
+      "bytes": 21913,
+      "sha256": "ea4481e262fb4a3a61f0bba163afcfee27f3b7feffc28bf0a6e7418ec3f91efc",
+      "published_sha1": "3ede00896302c82ecb1b544ddf8a2cd09a5d6d32"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-json/3.0.17/groovy-json-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-json/3.0.17/groovy-json-3.0.17.jar",
+      "bytes": 128879,
+      "sha256": "f577bd1551570162d42f22373ff164894ebf2f295d72d8ee914866aaa2ac37d4",
+      "published_sha1": "ba5599b4f39bb3251904341824f7fb629fc76f7f"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-jsr223/3.0.17/groovy-jsr223-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-jsr223/3.0.17/groovy-jsr223-3.0.17.pom",
+      "bytes": 21915,
+      "sha256": "d575ddfd3b6a6f3fff9d2c6509ac18b5c28f38aaf3054da12958bc49694a9fdf",
+      "published_sha1": "6652e2b4f4aa2d590d0c2093b4a89cbf8a47f96c"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-jsr223/3.0.17/groovy-jsr223-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-jsr223/3.0.17/groovy-jsr223-3.0.17.jar",
+      "bytes": 16838,
+      "sha256": "babb1f4097ca06b3d4c1e43b0f7855339e6226b1a87826f64aca343f42cbbb98",
+      "published_sha1": "a296f5e8d846edbfe53a29000f26a978bac84a15"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-macro/3.0.17/groovy-macro-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-macro/3.0.17/groovy-macro-3.0.17.pom",
+      "bytes": 21914,
+      "sha256": "0b12b20dda5f7aa3ac5d82c2b3495b9f078de9f10fddc98883dd851037ff623d",
+      "published_sha1": "49296defa46e3dc203e37c67525fdb29e8959369"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-macro/3.0.17/groovy-macro-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-macro/3.0.17/groovy-macro-3.0.17.jar",
+      "bytes": 233320,
+      "sha256": "fed72aed84459993b0f96668110d2ae37f7a69eca5d22705dca7c816a535d766",
+      "published_sha1": "9ad0f2a78f4a34c496e04b47128246496b21f270"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-nio/3.0.17/groovy-nio-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-nio/3.0.17/groovy-nio-3.0.17.pom",
+      "bytes": 21912,
+      "sha256": "1fdff21c79a0f92113ffe79b35a7ee899de328f6327fd949c631a6c065a5c674",
+      "published_sha1": "7361fbbbd7b63217ffbd9d55f890b1757a9884f2"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-nio/3.0.17/groovy-nio-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-nio/3.0.17/groovy-nio-3.0.17.jar",
+      "bytes": 29430,
+      "sha256": "d06180fc0f591bf7c62818a653d8e128533bc1ef2604463ffb73c7e962486ae8",
+      "published_sha1": "52b06a7c0a391852bd40a48ebd7b68298abeacb2"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-servlet/3.0.17/groovy-servlet-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-servlet/3.0.17/groovy-servlet-3.0.17.pom",
+      "bytes": 24076,
+      "sha256": "7d9375dab014fd1d61bae09564002d0ecd4490ea729a1ed4a24b3b783f57e1f8",
+      "published_sha1": "2a43b88e4bc9f7252370bc39a451c18fe10b52b4"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-servlet/3.0.17/groovy-servlet-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-servlet/3.0.17/groovy-servlet-3.0.17.jar",
+      "bytes": 22733,
+      "sha256": "3f483e9217424c012941bf0902d5bc459fde48b3d8af026d3bd8b21da8684630",
+      "published_sha1": "7e4e8992d0461d13bc632c169e2ad46a867f1dfc"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-sql/3.0.17/groovy-sql-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-sql/3.0.17/groovy-sql-3.0.17.pom",
+      "bytes": 21912,
+      "sha256": "88489b92d66545ca30252273bb69a6aa970b1d76309a7d07a1ba494c04f0915d",
+      "published_sha1": "c5496a8a3ead9c22dec9453ccb12c51312ed36f8"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-sql/3.0.17/groovy-sql-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-sql/3.0.17/groovy-sql-3.0.17.jar",
+      "bytes": 78915,
+      "sha256": "b78710a77fb7c7973d613448db99a08d2f880e040e82981900fb645f726bfe31",
+      "published_sha1": "7739b3975aae93e2719ed7c9be74af35cb9dae47"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-swing/3.0.17/groovy-swing-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-swing/3.0.17/groovy-swing-3.0.17.pom",
+      "bytes": 21914,
+      "sha256": "078f8c3312f62f8f15ef6d84c94ce2857f744c225d82f5b01b21857bb543fa4b",
+      "published_sha1": "ca01958e32eae55807b26050bc97cf5837ce8ad9"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-swing/3.0.17/groovy-swing-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-swing/3.0.17/groovy-swing-3.0.17.jar",
+      "bytes": 429066,
+      "sha256": "a8a022a42d0b1ca21624e76a554a1a99d4b3ab6487b9450fd03265ffc760da32",
+      "published_sha1": "8937a42f3b4186def8d5bdbc62b8cc4ce503ad2b"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-templates/3.0.17/groovy-templates-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-templates/3.0.17/groovy-templates-3.0.17.pom",
+      "bytes": 22107,
+      "sha256": "536b19c53d5cf6d860615340ded3ac22fe333ccf09d82d5384eda78c28e4d99c",
+      "published_sha1": "2a8e54c1bc7542e0a36dfb3afa8cee517d51d539"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-templates/3.0.17/groovy-templates-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-templates/3.0.17/groovy-templates-3.0.17.jar",
+      "bytes": 94160,
+      "sha256": "64aea1cad62685bbf71d4a69ca5b21ff1b50d4bb364b0c1308170e6f3ad317a3",
+      "published_sha1": "7b49fb0567936885e293455ca8ba37b911952d68"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-test/3.0.17/groovy-test-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-test/3.0.17/groovy-test-3.0.17.pom",
+      "bytes": 22083,
+      "sha256": "6956e8b78f951d11b1831caadc1a3fd0ad35ccb1e823414db62f99fbbbf31d47",
+      "published_sha1": "cd02c18a3551f70c1eac5d60729f33b3517a1688"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-test/3.0.17/groovy-test-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-test/3.0.17/groovy-test-3.0.17.jar",
+      "bytes": 118019,
+      "sha256": "8073ffe1fc574c3ddd45e100eac125fe64e2be35e204909ec1f3f1d28627b396",
+      "published_sha1": "191975fcd48af66ae273c44f02def10e1fa252d3"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-test-junit5/3.0.17/groovy-test-junit5-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-test-junit5/3.0.17/groovy-test-junit5-3.0.17.pom",
+      "bytes": 23206,
+      "sha256": "72efddd31950f0bd875648fc44f6cee0c297b00e3a25b02c4f3d183ae2164380",
+      "published_sha1": "1a850b25969fa7204474844797a4d5bfd7593bdb"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-test-junit5/3.0.17/groovy-test-junit5-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-test-junit5/3.0.17/groovy-test-junit5-3.0.17.jar",
+      "bytes": 9118,
+      "sha256": "1b3a5bda909de4338c1d25abb11452c8a5f4cb7f5735c20ba4f0f19cf78313ea",
+      "published_sha1": "d02db74c19f2051526c80e6bf30e93d84db5bcbb"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-testng/3.0.17/groovy-testng-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-testng/3.0.17/groovy-testng-3.0.17.pom",
+      "bytes": 22780,
+      "sha256": "10db28e6c364227506f4be3aadd19d3ef460f242fadff8f02ab5b221f9bbfa1a",
+      "published_sha1": "4565f755a26b8bc02791fc178571517eef7b3f25"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-testng/3.0.17/groovy-testng-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-testng/3.0.17/groovy-testng-3.0.17.jar",
+      "bytes": 5484,
+      "sha256": "623750963a4aff7b7291e4f2d64f24313ca615b279291b85d47fc215202d0c4e",
+      "published_sha1": "d690770ad24413ec5c7f23f202efe6db5e691bac"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@pom",
+      "path": "org/codehaus/groovy/groovy-xml/3.0.17/groovy-xml-3.0.17.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-xml/3.0.17/groovy-xml-3.0.17.pom",
+      "bytes": 21912,
+      "sha256": "8926b767cc0f15fcd6f848f152e6d9f8f68d426dd36e259792ba28515e74ff9e",
+      "published_sha1": "7a5be8e08fc6d6c30e680a9ceb44fda853358533"
+    },
+    {
+      "coordinate": "org.codehaus.groovy:.0.17@jar",
+      "path": "org/codehaus/groovy/groovy-xml/3.0.17/groovy-xml-3.0.17.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/groovy/groovy-xml/3.0.17/groovy-xml-3.0.17.jar",
+      "bytes": 291717,
+      "sha256": "52fc4047a3dcb870b05ad73f6b1dcebb5a0ae97b5a58f58b581f8960ab128ab1",
+      "published_sha1": "a2d033d00d2bc62406c2be1c391dda1898348474"
+    }
+  ]
+}
