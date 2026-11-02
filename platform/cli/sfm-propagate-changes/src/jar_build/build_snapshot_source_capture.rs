@@ -239,14 +239,7 @@ impl SnapshotSourceCapture {
         receipt: &BuildSnapshotReceipt,
         cancellation: &CancellationToken,
     ) -> Result<bool> {
-        if receipt.directories.len() != self.directories.len() + 1
-            || !receipt.directories.contains("project")
-            || !self
-                .directories
-                .iter()
-                .all(|path| receipt.directories.contains(&format!("project/{path}")))
-            || receipt.files.len() != self.files.len()
-        {
+        if !self.matches_names(receipt) {
             return Ok(false);
         }
         for relative in &self.files {
@@ -261,6 +254,46 @@ impl SnapshotSourceCapture {
             if receipt.files.get(&format!("project/{relative}")) != Some(&digest(&raw)) {
                 return Ok(false);
             }
+        }
+        Ok(true)
+    }
+
+    pub(super) fn matches_names(&self, receipt: &BuildSnapshotReceipt) -> bool {
+        receipt.directories.len() == self.directories.len() + 1
+            && receipt.directories.contains("project")
+            && self
+                .directories
+                .iter()
+                .all(|path| receipt.directories.contains(&format!("project/{path}")))
+            && receipt.files.len() == self.files.len()
+            && self.files.iter().all(|path| receipt.files.contains_key(&format!("project/{path}")))
+    }
+
+    /// A published managed snapshot is content-sealed already. Hold selected
+    /// classpath files against replacement for the owned JVM without reading
+    /// all payloads again on every warm launch.
+    pub(super) fn hold_selected_without_hash(
+        &mut self,
+        receipt: &BuildSnapshotReceipt,
+        selected: &[&str],
+        cancellation: &CancellationToken,
+    ) -> Result<bool> {
+        if !self.matches_names(receipt) {
+            return Ok(false);
+        }
+        for relative in &self.files {
+            if !selected.iter().any(|root| relative.starts_with(&format!("{root}/"))) {
+                continue;
+            }
+            cancellation.bail_if_cancelled()?;
+            let path = self.ancestry.prepare(&self.project, relative)?;
+            let file = open_read(&path)?;
+            let metadata = file.metadata()?;
+            ensure!(
+                metadata.is_file() && !is_reparse(&metadata) && metadata.len() <= MAX_FILE_BYTES,
+                "shared runtime snapshot input is not a bounded regular file"
+            );
+            self.held_files.push(file);
         }
         Ok(true)
     }

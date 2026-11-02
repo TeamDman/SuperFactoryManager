@@ -855,6 +855,39 @@ fn execute_run_with_context(
 
     retain_launch_preparation_lock(context, build_cache_lock)?;
     let roots = runtime_snapshot_roots(snapshot, kind, run_options);
+    #[cfg(windows)]
+    let shared_session = if uses_shared_forge_session(
+        &plan.loader_toolchain.kind,
+        kind,
+        run_options.client_hotswap_port,
+    ) {
+        RuntimeSession::prepare_shared(
+            snapshot,
+            kind.command_name(),
+            &roots,
+            run_options.client_hotswap_port,
+            run_options.runtime_slot,
+            run_options.share_runtime,
+            &context.cancellation_token,
+        )?
+    } else {
+        None
+    };
+    #[cfg(windows)]
+    let mut session = if let Some(shared) = shared_session {
+        tracing::info!("Using held shared Forge runtime snapshot roots");
+        shared
+    } else {
+        RuntimeSession::prepare(
+            snapshot,
+            kind.command_name(),
+            &roots,
+            run_options.client_hotswap_port,
+            run_options.runtime_slot,
+            run_options.share_runtime,
+        )?
+    };
+    #[cfg(not(windows))]
     let mut session = RuntimeSession::prepare(
         snapshot,
         kind.command_name(),
@@ -1472,6 +1505,8 @@ fn execute_run_with_context(
         );
     }
     #[cfg(windows)]
+    session.recheck_shared_snapshot(snapshot, &context.cancellation_token)?;
+    #[cfg(windows)]
     if let Some(inputs) = owned_inputs {
         match session.close_for_retirement() {
             Ok(()) => match inputs.retire() {
@@ -1493,6 +1528,31 @@ fn execute_run_with_context(
         "warm_run_stage"
     );
     Ok(())
+}
+
+#[cfg(windows)]
+fn uses_shared_forge_session(
+    loader: &LoaderToolchainKind,
+    kind: RunKind,
+    hotswap_port: Option<u16>,
+) -> bool {
+    *loader == LoaderToolchainKind::ForgeGradleForge
+        && matches!(kind, RunKind::Client | RunKind::ClientSmoke)
+        // A JDWP session advertises a mutable live-class workflow through its
+        // session receipt. Keep that workflow on its existing private mod tree.
+        && hotswap_port.is_none()
+}
+
+#[cfg(all(test, windows))]
+#[test]
+fn shared_forge_session_stays_with_the_bounded_client_workflow() {
+    let forge = LoaderToolchainKind::ForgeGradleForge;
+    let neo = LoaderToolchainKind::NeoGradleUserdev;
+    assert!(uses_shared_forge_session(&forge, RunKind::Client, None));
+    assert!(uses_shared_forge_session(&forge, RunKind::ClientSmoke, None));
+    assert!(!uses_shared_forge_session(&forge, RunKind::Client, Some(5005)));
+    assert!(!uses_shared_forge_session(&forge, RunKind::GameTestServer, None));
+    assert!(!uses_shared_forge_session(&neo, RunKind::Client, None));
 }
 
 #[cfg(windows)]
@@ -6909,6 +6969,14 @@ fn run_source_roots(
     session: &RuntimeSession,
 ) -> eyre::Result<String> {
     let mod_id = required_property(&context.plan.properties, "mod_id")?;
+    #[cfg(windows)]
+    if let Some(roots) = session.shared_roots() {
+        return Ok(roots
+            .iter()
+            .map(|root| format!("{mod_id}%%{}", root.display()))
+            .collect::<Vec<_>>()
+            .join(";"));
+    }
     Ok(format!(
         "{mod_id}%%{}",
         session.receipt.mod_root().display()

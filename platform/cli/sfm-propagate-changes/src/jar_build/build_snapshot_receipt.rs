@@ -11,6 +11,11 @@ use super::nfrt_preparation_phase::NfrtPreparationPhase;
 #[cfg(windows)]
 #[path = "build_snapshot_source_capture.rs"]
 mod source_capture;
+#[cfg(windows)]
+#[path = "build_snapshot_shared_runtime.rs"]
+mod shared_runtime;
+#[cfg(windows)]
+pub(crate) use shared_runtime::SharedRuntimeSnapshot;
 use crate::cancellation::CancellationToken;
 use crate::jdk::ResolvedJava;
 use crate::source_projection::candidate_lock::is_reparse;

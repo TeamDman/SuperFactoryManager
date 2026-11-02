@@ -1,9 +1,13 @@
 //! Launch ownership is separate from the mutable compiler-cache lock.
 use super::build_snapshot_receipt::BuildSnapshotReceipt;
 use super::build_snapshot_receipt::ensure_owned_directory;
+#[cfg(windows)]
+use super::build_snapshot_receipt::SharedRuntimeSnapshot;
 use super::runtime_session_receipt::RuntimeSessionReceipt;
 use super::runtime_session_receipt::safe_component;
 use super::runtime_slot::RuntimeSlot;
+#[cfg(windows)]
+use crate::cancellation::CancellationToken;
 #[cfg(windows)]
 use crate::source_projection::core_input_leases::DirectoryLeases;
 use eyre::ensure;
@@ -24,6 +28,14 @@ type OwnedInputFiles = BTreeMap<PathBuf, (u64, blake3::Hash)>;
 pub(crate) struct RuntimeSession {
     pub receipt: RuntimeSessionReceipt,
     pub slot: RuntimeSlot,
+    #[cfg(windows)]
+    shared_snapshot: Option<SharedRuntimeSnapshot>,
+}
+
+enum RuntimeModSource {
+    Private,
+    #[cfg(windows)]
+    Shared(SharedRuntimeSnapshot),
 }
 
 impl RuntimeSession {
@@ -43,9 +55,71 @@ impl RuntimeSession {
         requested_slot: Option<u32>,
         share_runtime: bool,
     ) -> eyre::Result<Self> {
+        Self::prepare_inner(
+            snapshot,
+            run_kind,
+            roots,
+            jdwp_port,
+            requested_slot,
+            share_runtime,
+            RuntimeModSource::Private,
+        )
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn prepare_shared(
+        snapshot: &BuildSnapshotReceipt,
+        run_kind: &str,
+        roots: &[&str],
+        jdwp_port: Option<u16>,
+        requested_slot: Option<u32>,
+        share_runtime: bool,
+        cancellation: &CancellationToken,
+    ) -> eyre::Result<Option<Self>> {
+        let Some(shared) = SharedRuntimeSnapshot::acquire(snapshot, roots, cancellation)? else {
+            return Ok(None);
+        };
+        Self::prepare_inner(
+            snapshot,
+            run_kind,
+            roots,
+            jdwp_port,
+            requested_slot,
+            share_runtime,
+            RuntimeModSource::Shared(shared),
+        )
+        .map(Some)
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn shared_roots(&self) -> Option<&[PathBuf]> {
+        self.shared_snapshot.as_ref().map(SharedRuntimeSnapshot::roots)
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn recheck_shared_snapshot(
+        &self,
+        snapshot: &BuildSnapshotReceipt,
+        cancellation: &CancellationToken,
+    ) -> eyre::Result<()> {
+        if let Some(shared) = &self.shared_snapshot {
+            shared.recheck_membership(snapshot, cancellation)?;
+        }
+        Ok(())
+    }
+
+    fn prepare_inner(
+        snapshot: &BuildSnapshotReceipt,
+        run_kind: &str,
+        roots: &[&str],
+        jdwp_port: Option<u16>,
+        requested_slot: Option<u32>,
+        share_runtime: bool,
+        mod_source: RuntimeModSource,
+    ) -> eyre::Result<Self> {
         ensure!(safe_component(run_kind), "invalid runtime run kind");
-        // materialize_roots checks the managed snapshot receipt and selected
-        // copy bytes before validating the new private session inventory.
+        // Private sessions materialize a checked copy; the shared route holds
+        // published files across the JVM lifetime and leaves mod/ empty.
         let slot_started = Instant::now();
         let slot = RuntimeSlot::claim(&snapshot.minecraft_dir, requested_slot, share_runtime)?;
         tracing::info!(phase = "warm_session_slot_claim", elapsed_ms = slot_started.elapsed().as_millis(), "warm_run_stage");
@@ -78,7 +152,9 @@ impl RuntimeSession {
         fs::create_dir(receipt.state_dir())?;
         fs::create_dir(receipt.mod_root())?;
         let materialize_started = Instant::now();
-        snapshot.materialize_roots(&receipt.mod_root(), roots)?;
+        if matches!(&mod_source, RuntimeModSource::Private) {
+            snapshot.materialize_roots(&receipt.mod_root(), roots)?;
+        }
         tracing::info!(phase = "warm_session_materialize", elapsed_ms = materialize_started.elapsed().as_millis(), "warm_run_stage");
         receipt.write()?;
         let latest = snapshot.cache_dir.join("run").join(run_kind);
@@ -94,7 +170,15 @@ impl RuntimeSession {
         let _retained = directory.keep();
         tracing::info!(session = %receipt.session_id, receipt = %receipt.receipt_path().display(),
             snapshot = %snapshot.receipt_path().display(), "Prepared owned runtime session");
-        Ok(Self { receipt, slot })
+        Ok(Self {
+            receipt,
+            slot,
+            #[cfg(windows)]
+            shared_snapshot: match mod_source {
+                RuntimeModSource::Private => None,
+                RuntimeModSource::Shared(shared) => Some(shared),
+            },
+        })
     }
 }
 
