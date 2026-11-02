@@ -174,6 +174,253 @@ def adapt_stable_gradle_trace(receipt: dict[str, Any], stdout: str,
             "raw_evidence": [receipt_ref, stdout_ref]}
 
 
+def pinned_digest(value: Any) -> tuple[str, str]:
+    """Preserve the pin's algorithm; never equate SHA-1 or BLAKE3 with SHA-256."""
+    if not isinstance(value, str):
+        raise ValueError("pin has no digest")
+    if value.startswith("blake3:"):
+        algorithm = "blake3-20"
+    elif value.startswith("sha1:"):
+        algorithm = "sha1"
+    elif value.startswith("sha256:") or len(value) == 64:
+        algorithm = "sha256"
+    else:
+        raise ValueError("unknown pin digest algorithm")
+    return algorithm, digest(value, algorithm)
+
+
+def normalize_classified_upstream(classified: dict[str, Any],
+                                  captured: dict[str, Any],
+                                  document: dict[str, Any],
+                                  document_sha256: str,
+                                  selected_lock_sha256: str) -> dict[str, Any]:
+    """Join one captured JAR to its exact lock, version or supplement record.
+
+    `classified` is an earlier measured-digest witness. This does not recompute
+    BLAKE3 from a live JAR or upgrade a SHA-1 pin to SHA-256 provenance.
+    """
+    if classified.get("status") != "exact" or any(
+        classified.get(field) != captured.get(field)
+        for field in ("index", "path", "bytes")
+    ) or digest(classified.get("sha256")) != digest(captured.get("sha256")):
+        raise ValueError("classified artifact differs from captured classpath")
+    coordinate = classified.get("coordinate")
+    if not isinstance(coordinate, str) or not coordinate:
+        raise ValueError("upstream artifact lacks a coordinate")
+    kind = classified.get("kind")
+    if kind == "selected-historical-lock":
+        if digest(document_sha256) != digest(selected_lock_sha256):
+            raise ValueError("selected lock document hash differs")
+        records = [item for item in document.get("artifacts", [])
+                   if item.get("coordinate") == coordinate]
+        if len(records) != 1 or records[0].get("source") != "remote-maven":
+            raise ValueError("selected lock has no unique remote Maven artifact")
+        record = records[0]
+        recorded_pin = record.get("hash")
+        domain = "selected-lock"
+        source_url = record.get("url")
+    elif kind == "frozen-minecraft-version-library":
+        records = [item for item in document.get("libraries", [])
+                   if item.get("name") == coordinate]
+        if len(records) != 1:
+            raise ValueError("version snapshot has no unique library")
+        record = records[0].get("downloads", {}).get("artifact", {})
+        if record.get("size") != captured["bytes"]:
+            raise ValueError("version snapshot library size differs")
+        recorded_pin = "sha1:" + str(record.get("sha1", ""))
+        domain = "minecraft-version-snapshot"
+        source_url = record.get("url")
+    elif kind == "checked-antlr-supplement":
+        if digest(document.get("selected_lock_sha256")) != digest(selected_lock_sha256):
+            raise ValueError("supplement selects another lock")
+        records = [item for item in document.get("files", [])
+                   if item.get("coordinate") == coordinate and item.get("kind") == "jar"]
+        if len(records) != 1 or records[0].get("bytes") != captured["bytes"]:
+            raise ValueError("supplement has no exact unique JAR")
+        record = records[0]
+        recorded_pin = record.get("sha256")
+        domain = "tracked-supplement"
+        source_url = record.get("url")
+    else:
+        raise ValueError(f"unknown upstream pin source: {kind}")
+    algorithm, expected = pinned_digest(recorded_pin)
+    classified_algorithm, classified_expected = pinned_digest(classified.get("expected"))
+    observed_algorithm, observed = pinned_digest(classified.get("actual"))
+    if (algorithm, expected) != (classified_algorithm, classified_expected) \
+            or (algorithm, expected) != (observed_algorithm, observed):
+        raise ValueError("recorded pin or measured digest differs")
+    if not isinstance(source_url, str) or not source_url.startswith("https://"):
+        raise ValueError("upstream pin lacks an HTTPS source URL")
+    return {"index": captured["index"], "kind": "upstream",
+            "path": captured["path"], "coordinate": coordinate,
+            "bytes": captured["bytes"], "sha256": digest(captured["sha256"]),
+            "pin": {"algorithm": algorithm, "digest": expected,
+                    "domain": domain, "source_document_sha256": digest(document_sha256),
+                    "source_url": source_url},
+            "digest_witness": "classified-measurement"}
+
+
+def normalize_recorded_upstream(classification: dict[str, Any],
+                                trace: dict[str, Any],
+                                documents: dict[str, tuple[str, bytes]]) -> list[dict[str, Any]]:
+    """Normalize all upstream entries; reject missing or changed source documents."""
+    if classification.get("projection") != trace.get("row", {}).get("projection"):
+        raise ValueError("classification and trace name different projections")
+    entries = classification.get("entries")
+    captured = trace.get("ordered_classpath")
+    if not isinstance(entries, list) or not isinstance(captured, list) \
+            or len(entries) != len(captured):
+        raise ValueError("classification does not cover the complete classpath")
+    recorded = {}
+    for side in ("before", "after"):
+        files = classification.get(side)
+        if not isinstance(files, list):
+            raise ValueError("classification lacks source-document inventory")
+        recorded[side] = {item["path"].lower(): digest(item["sha256"])
+                          for item in files}
+        if len(recorded[side]) != len(files):
+            raise ValueError("classification repeats a source document")
+    if recorded["before"] != recorded["after"]:
+        raise ValueError("classification source documents changed")
+    selected_lock_sha256 = trace.get("lock_sha256")
+    source_documents = {}
+    for kind in ("selected-historical-lock", "frozen-minecraft-version-library",
+                 "checked-antlr-supplement"):
+        path, data = documents[kind]
+        sha = hashlib.sha256(data).hexdigest()
+        if recorded["before"].get(path.lower()) != sha:
+            raise ValueError(f"recorded source document differs: {kind}")
+        source_documents[kind] = (read_json_bytes(data), sha)
+    result = []
+    for index, classified in enumerate(entries):
+        current = captured[index]
+        if classified.get("index") != index or current.get("index") != index:
+            raise ValueError("classification order differs from captured trace")
+        if classified.get("kind") == "derived-neogradle":
+            continue
+        document, sha = source_documents[classified["kind"]]
+        result.append(normalize_classified_upstream(
+            classified, current, document, sha, selected_lock_sha256))
+    if len(result) + sum(item.get("kind") == "derived-neogradle" for item in entries) \
+            != len(captured):
+        raise ValueError("unclassified classpath input")
+    return result
+
+
+def read_json_bytes(data: bytes) -> Any:
+    return json.loads(data.decode("utf-8-sig"), object_pairs_hook=unique_object)
+
+
+def normalize_recorded_derived(classification: dict[str, Any],
+                               trace: dict[str, Any],
+                               adjudication_bytes: bytes,
+                               comparison_bytes: bytes,
+                               join: dict[str, Any]) -> list[dict[str, Any]]:
+    """Join rebuilt outputs to producer evidence without inventing recipe keys.
+
+    One adjudication can support several consumers only when their later typed
+    recipe, tool, relevant-input and output identities all match. This legacy
+    adjudication proves output handoff and replay, but lacks those complete keys.
+    """
+    adjudication = read_json_bytes(adjudication_bytes)
+    comparison = read_json_bytes(comparison_bytes)
+    if adjudication.get("schema") != "sfm:historical1202_fresh_producer_adjudication@1" \
+            or comparison.get("schema") != "sfm:historical1202_rebuilt_jar_entry_comparison@1" \
+            or join.get("schema") != "sfm:historical1202_rebuilt_classpath_join@1" \
+            or digest(adjudication.get("source_sha256")) != digest(trace.get("source_sha256")) \
+            or digest(adjudication.get("archive_comparison_sha256")) \
+            != hashlib.sha256(comparison_bytes).hexdigest() \
+            or digest(join.get("producer_adjudication_sha256")) \
+            != hashlib.sha256(adjudication_bytes).hexdigest() \
+            or digest(join.get("archive_comparison_sha256")) \
+            != hashlib.sha256(comparison_bytes).hexdigest() \
+            or digest(join.get("new_trace_sha256")) \
+            != digest(trace.get("raw_evidence", [{}])[0].get("sha256")):
+        raise ValueError("derived producer evidence identity differs")
+    if adjudication.get("handoffs_equal") is not True:
+        raise ValueError("derived producer output handoff differs")
+    tasks = adjudication.get("task_results")
+    if not isinstance(tasks, list) or not tasks or any(
+        item.get("executed") is not True or item.get("count") != 1
+        for item in tasks
+    ):
+        raise ValueError("derived producer tasks did not all execute once")
+    outputs = adjudication.get("published_jars")
+    pairs = comparison.get("pairs")
+    changed = join.get("derived_changed")
+    entries = classification.get("entries")
+    captured = trace.get("ordered_classpath")
+    if not all(isinstance(value, list) for value in (outputs, pairs, changed, entries, captured)) \
+            or len(entries) != len(captured):
+        raise ValueError("derived producer inventory is incomplete")
+    derived = []
+    for index, classified in enumerate(entries):
+        if classified.get("kind") != "derived-neogradle":
+            continue
+        entry = captured[index]
+        if classified.get("index") != index or entry.get("index") != index \
+                or classified.get("path") != entry.get("path") \
+                or classified.get("bytes") != entry.get("bytes"):
+            raise ValueError("derived output changed position or path")
+        matches = [item for item in outputs if item.get("path") == entry["path"]
+                   and item.get("bytes") == entry["bytes"]
+                   and digest(item.get("sha256")) == digest(entry["sha256"])]
+        archive_matches = [item for item in pairs
+                           if digest(item.get("after_sha256")) == digest(entry["sha256"])
+                           and item.get("after_bytes") == entry["bytes"]]
+        join_matches = [item for item in changed if item.get("index") == index
+                        and item.get("path") == entry["path"]
+                        and item.get("bytes") == entry["bytes"]
+                        and digest(item.get("after_sha256")) == digest(entry["sha256"])]
+        if len(matches) != 1 or len(archive_matches) != 1 or len(join_matches) != 1:
+            raise ValueError("derived output lacks exact publication/archive join")
+        archive = archive_matches[0]
+        if any(archive.get(field) != 0 for field in (
+            "missing_or_added", "payload_mismatches", "attribute_changes",
+            "compressed_length_changes", "order_changes",
+        )):
+            raise ValueError("derived archive payload or structure differs")
+        derived.append({"index": index, "kind": "derived", "path": entry["path"],
+                        "bytes": entry["bytes"], "sha256": digest(entry["sha256"]),
+                        "adjudication_sha256": hashlib.sha256(adjudication_bytes).hexdigest(),
+                        "comparison_sha256": hashlib.sha256(comparison_bytes).hexdigest(),
+                        "producer_task_set": [item["task"] for item in tasks],
+                        "input_log_sha256": digest(adjudication.get("input_log_sha256")),
+                        "tool_sha256": None, "recipe_id": None,
+                        "relevant_inputs_sha256": None,
+                        "claim_ready": False})
+    if len(derived) != len(changed) or not derived:
+        raise ValueError("derived producer classification is incomplete")
+    return derived
+
+
+def normalize_recorded_consumer(trace: dict[str, Any],
+                                classification: dict[str, Any],
+                                documents: dict[str, tuple[str, bytes]],
+                                adjudication_bytes: bytes,
+                                comparison_bytes: bytes,
+                                join: dict[str, Any]) -> dict[str, Any]:
+    """Produce a complete ordered evidence inventory, never a credited G6 row."""
+    upstream = normalize_recorded_upstream(classification, trace, documents)
+    derived = normalize_recorded_derived(classification, trace, adjudication_bytes,
+                                        comparison_bytes, join)
+    ordered = sorted(upstream + derived, key=lambda item: item["index"])
+    if len(ordered) != trace.get("configured_count") or any(
+        item["index"] != index for index, item in enumerate(ordered)
+    ):
+        raise ValueError("normalized records do not cover the ordered classpath")
+    return {"schema": "sfm:g6_recorded_consumer_normalization@1",
+            "row": trace["row"], "configured_count": len(ordered),
+            "upstream_count": len(upstream), "derived_count": len(derived),
+            "ordered_inputs": ordered, "claim_ready": False,
+            "remaining_proofs": [
+                "coordinator writer exclusion and active-reader clearance",
+                "typed producer recipe/tool/relevant-input identity for derived outputs",
+                "source-stable executed consumer task and unchanged repeat",
+                "authoritative current ledger head",
+            ]}
+
+
 class Evidence:
     def __init__(self, root: Path):
         self.root = root.resolve(strict=True)

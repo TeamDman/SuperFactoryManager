@@ -150,6 +150,91 @@ class TypedAcceptanceTests(unittest.TestCase):
             g6.adapt_stable_gradle_trace(receipt, stdout.replace(entries[1] + "\n", ""),
                                          self.row, receipt_ref, stdout_ref)
 
+    def test_normalizes_distinct_upstream_pin_algorithms_and_rejects_mismatch(self):
+        captured = {"index": 0, "path": r"D:\cache\a.jar", "bytes": 100,
+                    "sha256": h("1")}
+        base = {**captured, "coordinate": "a:b:1", "status": "exact"}
+        lock = {"artifacts": [{"coordinate": "a:b:1", "source": "remote-maven",
+                               "url": "https://repo.example/a.jar", "hash": "blake3:" + "a" * 40}]}
+        lock_sha = hashlib.sha256(json.dumps(lock).encode()).hexdigest()
+        selected = {**base, "kind": "selected-historical-lock",
+                    "expected": "blake3:" + "a" * 40,
+                    "actual": "blake3:" + "a" * 40}
+        normalized = g6.normalize_classified_upstream(selected, captured, lock,
+                                                       lock_sha, lock_sha)
+        self.assertEqual("blake3-20", normalized["pin"]["algorithm"])
+        with self.assertRaisesRegex(ValueError, "selected lock document hash differs"):
+            g6.normalize_classified_upstream(selected, captured, lock, h("9"), lock_sha)
+        snapshot = {"libraries": [{"name": "a:b:1", "downloads": {"artifact": {
+            "size": 100, "sha1": "b" * 40, "url": "https://libraries.minecraft.net/a.jar"}}}]}
+        frozen = {**base, "kind": "frozen-minecraft-version-library",
+                  "expected": "sha1:" + "b" * 40, "actual": "sha1:" + "b" * 40}
+        normalized = g6.normalize_classified_upstream(frozen, captured, snapshot,
+                                                       h("2"), lock_sha)
+        self.assertEqual("sha1", normalized["pin"]["algorithm"])
+        supplement = {"selected_lock_sha256": lock_sha,
+                      "files": [{"coordinate": "a:b:1", "kind": "jar", "bytes": 100,
+                                 "sha256": h("1"), "url": "https://repo.example/a.jar"}]}
+        checked = {**base, "kind": "checked-antlr-supplement",
+                   "expected": h("1"), "actual": h("1")}
+        normalized = g6.normalize_classified_upstream(checked, captured, supplement,
+                                                       h("3"), lock_sha)
+        self.assertEqual("sha256", normalized["pin"]["algorithm"])
+        with self.assertRaisesRegex(ValueError, "recorded pin or measured digest"):
+            g6.normalize_classified_upstream({**frozen, "actual": "sha1:" + "c" * 40},
+                                             captured, snapshot, h("2"), lock_sha)
+        with self.assertRaisesRegex(ValueError, "supplement selects another lock"):
+            g6.normalize_classified_upstream(checked, captured,
+                                             {**supplement, "selected_lock_sha256": h("9")},
+                                             h("3"), lock_sha)
+
+    def test_normalizes_derived_handoff_without_inventing_recipe_identity(self):
+        entry = {"index": 0, "path": r"D:\cache\derived.jar", "bytes": 200,
+                 "sha256": h("f")}
+        classification = {"entries": [{"index": 0, "kind": "derived-neogradle",
+                                        "path": entry["path"], "bytes": 200}]}
+        trace = {"source_sha256": h("a"), "ordered_classpath": [entry],
+                 "raw_evidence": [{"sha256": h("4")}]}
+        adjudication = {"schema": "sfm:historical1202_fresh_producer_adjudication@1",
+                        "source_sha256": h("a"), "handoffs_equal": True,
+                        "input_log_sha256": h("5"),
+                        "task_results": [{"task": "derivedTask", "executed": True, "count": 1}],
+                        "published_jars": [{"path": entry["path"], "bytes": 200,
+                                            "sha256": h("f")}],
+                        "archive_comparison_sha256": None}
+        comparison = {"schema": "sfm:historical1202_rebuilt_jar_entry_comparison@1",
+                      "pairs": [{"after_sha256": h("f"), "after_bytes": 200,
+                                 "missing_or_added": 0, "payload_mismatches": 0,
+                                 "attribute_changes": 0, "compressed_length_changes": 0,
+                                 "order_changes": 0}]}
+        comparison_bytes = json.dumps(comparison).encode()
+        adjudication["archive_comparison_sha256"] = hashlib.sha256(comparison_bytes).hexdigest()
+        adjudication_bytes = json.dumps(adjudication).encode()
+        join = {"schema": "sfm:historical1202_rebuilt_classpath_join@1",
+                "new_trace_sha256": h("4"),
+                "producer_adjudication_sha256": hashlib.sha256(adjudication_bytes).hexdigest(),
+                "archive_comparison_sha256": hashlib.sha256(comparison_bytes).hexdigest(),
+                "derived_changed": [{"index": 0, "path": entry["path"], "bytes": 200,
+                                     "after_sha256": h("f")}]}
+        normalized = g6.normalize_recorded_derived(classification, trace,
+                                                    adjudication_bytes, comparison_bytes, join)
+        self.assertEqual(1, len(normalized))
+        self.assertIs(normalized[0]["claim_ready"], False)
+        self.assertIsNone(normalized[0]["relevant_inputs_sha256"])
+        with self.assertRaisesRegex(ValueError, "publication/archive join"):
+            changed = copy.deepcopy(join)
+            changed["derived_changed"][0]["after_sha256"] = h("9")
+            g6.normalize_recorded_derived(classification, trace, adjudication_bytes,
+                                          comparison_bytes, changed)
+        with self.assertRaisesRegex(ValueError, "output handoff differs"):
+            broken = copy.deepcopy(adjudication)
+            broken["handoffs_equal"] = False
+            broken_bytes = json.dumps(broken).encode()
+            changed = {**join, "producer_adjudication_sha256":
+                       hashlib.sha256(broken_bytes).hexdigest()}
+            g6.normalize_recorded_derived(classification, trace, broken_bytes,
+                                          comparison_bytes, changed)
+
     def check(self, claims: list[dict] | None = None, prior_hash: str | None = None):
         batch = {"schema": g6.SCHEMA, "scope_sha256": self.scope_hash,
                  "prior_ledger_sha256": prior_hash or self.prior_hash,
