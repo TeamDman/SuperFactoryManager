@@ -16,6 +16,83 @@ def sha256 = { File file ->
     digest.digest().encodeHex().toString().toUpperCase(Locale.ROOT)
 }
 
+// Seal the effective historical plugin execution graph while leaving the
+// released projection's dynamic plugin declarations byte-identical.
+def expectedPluginManifestSha256 = '20F7E8AC0513BAC30AC64586CBC8416D020295E69710839737E69A7B7C0F5384'
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    if (projection.fileName.toString() != 'mc-1.19.4'
+            || projection.parent.fileName.toString() != 'sfm-4.35.0'
+            || projection.parent.parent != checkout.resolve('platform/minecraft/projections')
+            || !checkout.resolve('.git').toFile().exists()) {
+        throw new GradleException('SFM plugin seal requires the selected repository projection')
+    }
+    def manifestFile = checkout.resolve(
+            'platform/minecraft/gradle/checked-historical-1194-plugin-inputs.json').toFile()
+    if (sha256(manifestFile) != expectedPluginManifestSha256) {
+        throw new GradleException('SFM historical plugin manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    def lock = projection.resolve('sfm-toolchain.lock.json').toFile()
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.19.4'
+            || manifest.file_count != 37 || manifest.files.size() != 37
+            || sha256(lock) != manifest.selected_lock_sha256) {
+        throw new GradleException('SFM historical plugin selection or lock changed')
+    }
+    def requiredMarkers = [
+            'net.minecraftforge.gradle:net.minecraftforge.gradle.gradle.plugin|5.1.+|5.1.77',
+            'org.parchmentmc.librarian.forgegradle:org.parchmentmc.librarian.forgegradle.gradle.plugin|1.+|1.2.0.7-dev-SNAPSHOT',
+            'org.spongepowered.mixin:org.spongepowered.mixin.gradle.plugin|0.7.+|0.7.38'
+    ]
+    def actualMarkers = manifest.root_plugin_markers.collect {
+        "${it.coordinate}|${it.requested}|${it.selected}"
+    }
+    if (actualMarkers != requiredMarkers) {
+        throw new GradleException('SFM historical plugin marker selection changed')
+    }
+    def markers = manifest.root_plugin_markers.collectEntries { [(it.coordinate): it] }
+    def classpath = project.buildscript.configurations.getByName('classpath')
+    classpath.resolutionStrategy.eachDependency { requested ->
+        def id = requested.requested
+        def marker = markers["${id.group}:${id.name}"]
+        if (marker != null) {
+            if (id.version != marker.requested) {
+                throw new GradleException("SFM plugin marker request changed: ${id.group}:${id.name}:${id.version}")
+            }
+            requested.useVersion(marker.selected)
+        }
+    }
+    classpath.incoming.afterResolve {
+        def files = classpath.files.toList()
+        if (files.size() != 37) {
+            throw new GradleException("SFM historical plugin classpath count changed: ${files.size()}")
+        }
+        def artifacts = classpath.resolvedConfiguration.resolvedArtifacts
+        def coordinateByFile = [:]
+        artifacts.each { artifact ->
+            def id = artifact.moduleVersion.id
+            def path = artifact.file.canonicalPath
+            if (coordinateByFile.put(path, "${id.group}:${id.name}:${id.version}") != null) {
+                throw new GradleException("SFM historical plugin artifact path repeated: ${path}")
+            }
+        }
+        files.eachWithIndex { file, index ->
+            def expected = manifest.files[index]
+            if (expected.index != index || file.name != expected.filename
+                    || file.length() != expected.bytes
+                    || sha256(file) != expected.sha256
+                    || coordinateByFile[file.canonicalPath] != expected.coordinate) {
+                throw new GradleException("SFM historical plugin classpath differs at ${index}: ${file.name}")
+            }
+        }
+        if (coordinateByFile.size() != 37) {
+            throw new GradleException('SFM historical plugin artifact coordinate count changed')
+        }
+        println 'SFM_CHECKED_HISTORICAL_PLUGINS1194 files=37 markers=3'
+    }
+}
 gradle.beforeSettings { settings ->
     def projection = settings.settingsDir.toPath().toAbsolutePath().normalize()
     def checkout = projection.resolve('../../../../../').normalize()
