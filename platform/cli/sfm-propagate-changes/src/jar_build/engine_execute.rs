@@ -522,6 +522,14 @@ impl<'a> ExecutionContext<'a> {
 #[path = "forge_preparation_cache.rs"]
 mod forge_preparation_cache;
 
+#[cfg(windows)]
+pub(crate) fn audit_managed_remaps(
+    root: &std::path::Path,
+    key: Option<&str>,
+) -> eyre::Result<forge_preparation_cache::RemapAuditSummary> {
+    forge_preparation_cache::audit_managed_remaps(root, key)
+}
+
 #[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
 fn execute_mcp_config_joined(
     context: &ExecutionContext<'_>,

@@ -10,6 +10,9 @@ mod held_outputs;
 mod inputs;
 #[path = "managed_remap_receipt.rs"]
 mod managed_remap_receipt;
+#[path = "remap_cache_audit.rs"]
+mod remap_cache_audit;
+pub(super) use remap_cache_audit::{RemapAuditSummary, audit_managed_remaps};
 #[cfg(test)]
 #[path = "dependency_remap_cache_tests.rs"]
 mod remap_tests;

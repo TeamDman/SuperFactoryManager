@@ -38,7 +38,7 @@ pub(super) fn matches_or_seals(
     check: &impl Fn() -> Result<()>,
 ) -> Result<bool> {
     check()?;
-    let result = checked_match_or_seal(entry, fingerprint, check);
+    let result = checked_match_or_seal(entry, fingerprint, check, true);
     check()?;
     match result {
         Ok(hit) => Ok(hit),
@@ -53,6 +53,7 @@ fn checked_match_or_seal(
     entry: &Path,
     fingerprint: &str,
     check: &impl Fn() -> Result<()>,
+    seal_if_missing: bool,
 ) -> Result<bool> {
     let state = entry.join("inputs.sha256");
     let mut state_file = project_compilation_cache::open_read(&state)?;
@@ -120,6 +121,9 @@ fn checked_match_or_seal(
             Ok(bytes == expected.as_bytes())
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            if !seal_if_missing {
+                return Ok(true);
+            }
             // The producer writes the input marker last. Full verification is
             // mandatory before first adoption, including retained old entries.
             if !project_compilation_cache::matches(
@@ -150,6 +154,25 @@ fn checked_match_or_seal(
         }
         Err(error) => Err(error.into()),
     }
+}
+
+/// Explicit doctor path. It never publishes a missing seal and always rehashes
+/// the complete two-output inventory, even when warm reuse trusts a seal.
+pub(super) fn audit_full(
+    entry: &Path,
+    fingerprint: &str,
+    check: &impl Fn() -> Result<()>,
+) -> Result<bool> {
+    if !checked_match_or_seal(entry, fingerprint, check, false)? {
+        return Ok(false);
+    }
+    project_compilation_cache::matches(
+        entry,
+        &entry.join("inputs.sha256"),
+        fingerprint,
+        &[("payload", &entry.join("payload"))],
+        check,
+    )
 }
 
 #[cfg(test)]

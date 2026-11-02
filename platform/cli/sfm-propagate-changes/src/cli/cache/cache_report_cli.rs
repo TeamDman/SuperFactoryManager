@@ -272,7 +272,7 @@ impl CacheReportArgs {
     }
 }
 
-fn checked_existing_root(logical: &Path) -> eyre::Result<PathBuf> {
+pub(super) fn checked_existing_root(logical: &Path) -> eyre::Result<PathBuf> {
     let physical = dunce::canonicalize(logical).wrap_err_with(|| {
         format!(
             "cache root is missing or a broken link: {}",
