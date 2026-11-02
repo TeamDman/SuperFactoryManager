@@ -83,7 +83,13 @@ pub(super) fn execute(
         None
     } else {
         NfrtPreparationPhase::run("dependency_remap.lookup", || {
-            forge_preparation_cache::held_dependency_remap_entry(&key_root, fingerprint, &check)
+            // The immutable entry scanner calls its check for every archive
+            // chunk. Keep its original artifact checked there, while the held
+            // common mapping/tool/SDK authority is checked at both ends of the
+            // lookup, before any result may reach a compiler or launch.
+            held_lookup_with_common_authority(&key_root, fingerprint, shared_check, &|| {
+                inputs.recheck(context)
+            })
         })?
     };
     check()?;
@@ -324,6 +330,22 @@ fn selected_consumer_outputs<'a>(outputs: &[(&'a str, PathBuf)]) -> Vec<(&'a str
         .collect()
 }
 
+fn held_lookup_with_common_authority(
+    key_root: &Path,
+    fingerprint: &str,
+    common_check: &impl Fn() -> eyre::Result<()>,
+    artifact_check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<Option<(PathBuf, HeldDependencyRemapJar)>> {
+    common_check()?;
+    let held = forge_preparation_cache::held_dependency_remap_entry(
+        key_root,
+        fingerprint,
+        artifact_check,
+    )?;
+    common_check()?;
+    Ok(held)
+}
+
 fn decline(
     coordinate: &str,
     reason: &str,
@@ -422,7 +444,56 @@ fn observe(
 mod selective_tests {
     use super::*;
     use eyre::Result;
+    use std::cell::Cell;
     use std::fs;
+
+    #[test]
+    fn held_lookup_checks_common_authority_at_boundaries_and_artifact_inside() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let producer = fixture_dir(&root.path().join("producer"))?;
+        let outputs = vec![
+            ("specialsource.jar", producer.join("specialsource.jar")),
+            ("remapped.jar", producer.join("remapped.jar")),
+        ];
+        fs::write(&outputs[0].1, b"intermediate-only")?;
+        fs::write(&outputs[1].1, b"compiled-consumer")?;
+        let key = fixture_dir(&root.path().join("key"))?;
+        forge_preparation_cache::publish_entry(&key, "pair-fixture", &outputs, || Ok(()))?
+            .ok_or_else(|| eyre::eyre!("fixture publication unavailable"))?;
+        let common = Cell::new(0);
+        let artifact = Cell::new(0);
+        let held = held_lookup_with_common_authority(
+            &key,
+            "pair-fixture",
+            &|| {
+                common.set(common.get() + 1);
+                Ok(())
+            },
+            &|| {
+                artifact.set(artifact.get() + 1);
+                Ok(())
+            },
+        )?;
+        assert!(held.is_some());
+        assert_eq!(common.get(), 2);
+        assert!(artifact.get() >= 2);
+        drop(held);
+
+        let calls = Cell::new(0);
+        let rejected = held_lookup_with_common_authority(
+            &key,
+            "pair-fixture",
+            &|| {
+                calls.set(calls.get() + 1);
+                eyre::ensure!(calls.get() == 1, "common authority changed after lookup");
+                Ok(())
+            },
+            &|| Ok(()),
+        );
+        assert!(rejected.is_err());
+        assert_eq!(calls.get(), 2);
+        Ok(())
+    }
 
     fn fixture_dir(path: &Path) -> Result<PathBuf> {
         let (path, _lease) = forge_preparation_cache::make_held_directory(path)?
