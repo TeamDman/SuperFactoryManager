@@ -40,6 +40,70 @@ fn install_key(sha512: &str) -> String {
     )
 }
 
+/// A pinned SDK image checked against the authenticated ZIP at acquisition.
+/// Keep the archive handle alive so a later consumer can recheck the same bytes.
+#[derive(Debug)]
+pub(crate) struct VerifiedPinnedJbrsdk {
+    home: PathBuf,
+    cache_root: PathBuf,
+    pin: JdkPinV4,
+    artifact: JdkArtifactV4,
+    archive: File,
+}
+
+impl VerifiedPinnedJbrsdk {
+    pub(crate) fn home(&self) -> &Path {
+        &self.home
+    }
+
+    /// Recheck the selected root, exact pin and complete installed tree before
+    /// handing this image to a future native cache owner or JVM child.
+    #[allow(dead_code)] // The native owner integration is a separate guarded slice.
+    pub(crate) fn recheck_for(
+        &mut self,
+        cache_root: &Path,
+        pin: &JdkPinV4,
+        artifact: &JdkArtifactV4,
+    ) -> eyre::Result<&Path> {
+        eyre::ensure!(
+            cache_root == self.cache_root && pin == &self.pin && artifact == &self.artifact,
+            "Verified JBRSDK root or lock pin changed"
+        );
+        for directory in [
+            &self.cache_root,
+            &self.cache_root.join("archives"),
+            &self.cache_root.join("installs"),
+            &self.home,
+        ] {
+            require_existing_safe_cache_dir(directory)?;
+        }
+        let sha = self.artifact.sha512.to_ascii_lowercase();
+        let archive_path = self.cache_root.join("archives").join(format!("{sha}.zip"));
+        eyre::ensure!(
+            is_real_file(&archive_path)
+                && crate::file_identity::file_identity(&File::open(&archive_path)?)?
+                    == crate::file_identity::file_identity(&self.archive)?,
+            "Verified JBRSDK archive path changed"
+        );
+        verify_archive_sha512(&mut self.archive, &sha)?;
+        let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
+        verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
+        Ok(&self.home)
+    }
+}
+
+fn require_existing_safe_cache_dir(path: &Path) -> eyre::Result<()> {
+    for component_path in path.ancestors().collect::<Vec<_>>().into_iter().rev() {
+        let metadata = fs::symlink_metadata(component_path)?;
+        eyre::ensure!(
+            metadata.file_type().is_dir() && !is_reparse_point(&metadata),
+            "Verified JBRSDK cache directory is not a real directory: {}",
+            component_path.display()
+        );
+    }
+    Ok(())
+}
+
 /// Acquire an exact ZIP artifact in a caller-selected cache root. This does not
 /// choose a pin, install a runtime into the user's JDK directory, or run Java.
 pub(crate) fn acquire_pinned_jbrsdk_zip(
@@ -48,7 +112,21 @@ pub(crate) fn acquire_pinned_jbrsdk_zip(
     cache_root: &Path,
     offline: bool,
 ) -> eyre::Result<PathBuf> {
-    acquire_pinned_jbrsdk_zip_with(pin, artifact, cache_root, offline, fetch_zip_url)
+    Ok(
+        acquire_verified_pinned_jbrsdk_zip(pin, artifact, cache_root, offline)?
+            .home()
+            .to_path_buf(),
+    )
+}
+
+/// Retain the authenticated archive handle and exact pin for guarded callers.
+pub(crate) fn acquire_verified_pinned_jbrsdk_zip(
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+    cache_root: &Path,
+    offline: bool,
+) -> eyre::Result<VerifiedPinnedJbrsdk> {
+    acquire_verified_pinned_jbrsdk_zip_with(pin, artifact, cache_root, offline, fetch_zip_url)
 }
 
 fn acquire_pinned_jbrsdk_zip_with(
@@ -58,7 +136,25 @@ fn acquire_pinned_jbrsdk_zip_with(
     offline: bool,
     fetch: impl FnOnce(&str, &mut File) -> eyre::Result<()>,
 ) -> eyre::Result<PathBuf> {
+    Ok(
+        acquire_verified_pinned_jbrsdk_zip_with(pin, artifact, cache_root, offline, fetch)?
+            .home()
+            .to_path_buf(),
+    )
+}
+
+fn acquire_verified_pinned_jbrsdk_zip_with(
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+    cache_root: &Path,
+    offline: bool,
+    fetch: impl FnOnce(&str, &mut File) -> eyre::Result<()>,
+) -> eyre::Result<VerifiedPinnedJbrsdk> {
     verify_zip_identity(pin, artifact)?;
+    eyre::ensure!(
+        pin.artifacts.contains(artifact),
+        "Verified JBRSDK artifact is not present in its selected lock pin"
+    );
     let sha = artifact.sha512.to_ascii_lowercase();
     let archive_dir = cache_root.join("archives");
     let install_dir = cache_root.join("installs");
@@ -107,32 +203,37 @@ fn acquire_pinned_jbrsdk_zip_with(
     let mut verified_zip = open_verified_archive(&archive, &sha)?;
 
     let installed = install_dir.join(install_key(&sha));
-    let receipt = receipt(pin, artifact);
+    let expected_receipt = receipt(pin, artifact);
     match fs::symlink_metadata(&installed) {
         Ok(_) => {
-            verify_installed_home(&installed, artifact, &receipt, &mut verified_zip)?;
-            return Ok(installed);
+            verify_installed_home(&installed, artifact, &expected_receipt, &mut verified_zip)?;
         }
-        Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            let stage = tempfile::Builder::new()
+                .prefix(".sfm-jbrsdk-install.")
+                .tempdir_in(&install_dir)?;
+            let payload = stage.path().join("payload");
+            fs::create_dir(&payload)?;
+            extract_zip_safely(&mut verified_zip, &payload)?;
+            let home = locate_jdk_home(&payload, artifact)?;
+            write_receipt(&home, &expected_receipt)?;
+            verify_installed_home(&home, artifact, &expected_receipt, &mut verified_zip)?;
+            fs::rename(&home, &installed).wrap_err_with(|| {
+                format!(
+                    "Failed to publish JBRSDK installation {}",
+                    installed.display()
+                )
+            })?;
+        }
         Err(error) => return Err(error).wrap_err("Failed to inspect cached JBRSDK installation"),
     }
-
-    let stage = tempfile::Builder::new()
-        .prefix(".sfm-jbrsdk-install.")
-        .tempdir_in(&install_dir)?;
-    let payload = stage.path().join("payload");
-    fs::create_dir(&payload)?;
-    extract_zip_safely(&mut verified_zip, &payload)?;
-    let home = locate_jdk_home(&payload, artifact)?;
-    write_receipt(&home, &receipt)?;
-    verify_installed_home(&home, artifact, &receipt, &mut verified_zip)?;
-    fs::rename(&home, &installed).wrap_err_with(|| {
-        format!(
-            "Failed to publish JBRSDK installation {}",
-            installed.display()
-        )
-    })?;
-    Ok(installed)
+    Ok(VerifiedPinnedJbrsdk {
+        home: installed,
+        cache_root: cache_root.to_path_buf(),
+        pin: pin.clone(),
+        artifact: artifact.clone(),
+        archive: verified_zip.into_inner(),
+    })
 }
 
 fn verify_zip_identity(pin: &JdkPinV4, artifact: &JdkArtifactV4) -> eyre::Result<()> {
@@ -683,6 +784,89 @@ mod tests {
                 sha512: format!("{:x}", Sha512::digest(bytes)),
             }],
         }
+    }
+
+    #[test]
+    fn verified_pinned_image_rechecks_exact_archive_and_install() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(image.home().join("bin/java.exe").is_file());
+        let expected_home = image.home().to_path_buf();
+        assert_eq!(
+            image
+                .recheck_for(root.path(), &pin, &pin.artifacts[0])
+                .unwrap(),
+            expected_home.as_path()
+        );
+    }
+
+    #[test]
+    fn verified_pinned_image_rejects_tampered_install() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        fs::write(image.home().join("bin/java.exe"), b"tampered").unwrap();
+        assert!(
+            image
+                .recheck_for(root.path(), &pin, &pin.artifacts[0])
+                .unwrap_err()
+                .to_string()
+                .contains("does not match verified ZIP")
+        );
+    }
+
+    #[test]
+    fn verified_pinned_image_rejects_wrong_root_and_pin() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(
+            image
+                .recheck_for(other.path(), &pin, &pin.artifacts[0])
+                .is_err()
+        );
+        let mut wrong_pin = pin.clone();
+        wrong_pin.build = "b1367.23".to_owned();
+        assert!(
+            image
+                .recheck_for(root.path(), &wrong_pin, &pin.artifacts[0])
+                .is_err()
+        );
     }
 
     #[test]
