@@ -93,15 +93,25 @@ pub(crate) fn resolve_java_for_lockfile(
             let home = crate::jdk_artifact_cache::acquire_pinned_jbrsdk_zip(
                 pin, artifact, cache_root, offline,
             )?;
-            let jdk = JdkInstallation::from_home(&home, "exact JBRSDK lockfile pin".to_owned())?;
-            verify_pinned_runtime(&jdk, pin)?;
-            let mut resolved = jdk.into_resolved_java();
-            "lockfile-pin".clone_into(&mut resolved.selection);
-            resolved.pin_url = Some(artifact.url.clone());
-            resolved.pin_sha512 = Some(artifact.sha512.to_ascii_lowercase());
-            Ok(resolved)
+            resolve_pinned_java_from_verified_home(&home, pin, artifact)
         }
     }
+}
+
+/// Use only after the caller has authenticated and holds the pinned SDK image.
+/// This checks the live java/javac identity without acquiring the archive again.
+pub(crate) fn resolve_pinned_java_from_verified_home(
+    home: &Path,
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+) -> eyre::Result<ResolvedJava> {
+    let jdk = JdkInstallation::from_home(home, "exact JBRSDK lockfile pin".to_owned())?;
+    verify_pinned_runtime(&jdk, pin)?;
+    let mut resolved = jdk.into_resolved_java();
+    "lockfile-pin".clone_into(&mut resolved.selection);
+    resolved.pin_url = Some(artifact.url.clone());
+    resolved.pin_sha512 = Some(artifact.sha512.to_ascii_lowercase());
+    Ok(resolved)
 }
 
 /// Project builds and Prism require an exact Java major on unpinned targets.

@@ -276,9 +276,7 @@ pub(crate) fn select_named_pinned_sdk(
     let owner = native_cache_root::NativeCacheRoot::acquire_for_verified_pinned_sdk(
         root, repository, source_project, image, pin, artifact, cancellation,
     )?;
-    let resolved = crate::jdk::resolve_java_for_lockfile(
-        None, Some(&pins), required_major, &cache, false,
-    )?;
+    let resolved = crate::jdk::resolve_pinned_java_from_verified_home(&home, pin, artifact)?;
     eyre::ensure!(
         resolved.home.as_deref() == Some(home.as_path()),
         "Selected pinned JBRSDK home differs from the held native-root SDK"
