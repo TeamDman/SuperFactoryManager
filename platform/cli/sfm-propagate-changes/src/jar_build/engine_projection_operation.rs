@@ -374,7 +374,9 @@ fn execute_prepared_projection_operation(
         | ProjectionOperation::Test(_)
         | ProjectionOperation::Catalog(_) => BuildTarget::Run,
     };
-    let mut consume = |context: &ExecutionContext<'_>| -> eyre::Result<()> {
+    let mut consume = |context: &ExecutionContext<'_>,
+                       mut build_holds: Option<&mut ForgeBuildHolds>|
+     -> eyre::Result<()> {
         match operation {
             ProjectionOperation::Build
             | ProjectionOperation::Catalog(_)
@@ -389,6 +391,9 @@ fn execute_prepared_projection_operation(
                 tracing::info!(phase = "warm_run_snapshot_publish", elapsed_ms = snapshot_started.elapsed().as_millis(), "warm_run_stage");
                 let mut owned_log = None;
                 let result = if run_options.game_test_bisect.is_some() {
+                    if let Some(held) = build_holds.as_deref_mut() {
+                        held.release_prelaunch_input_owners(context)?;
+                    }
                     execute_game_test_bisect(
                         context,
                         &snapshot,
@@ -406,6 +411,7 @@ fn execute_prepared_projection_operation(
                         options.dry_run,
                         &mut lock,
                         &mut owned_log,
+                        build_holds,
                     )
                 };
                 if matches!(kind, RunKind::GameTestPreview)
@@ -445,13 +451,21 @@ fn execute_prepared_projection_operation(
                 }
                 _ => execute_project_build(held, target, Instant::now())?,
             }
-            consume(held)
+            consume(held, None)
         })?;
     } else {
         let build_started = Instant::now();
-        execute_build(&plan, options.explain_rebuild, target, cancellation)?;
+        let context = ExecutionContext::new(&plan, cancellation.clone())?;
+        let held = execute_build_with_context(
+            &plan,
+            &context,
+            options.explain_rebuild,
+            target,
+            cancellation,
+        )?;
         tracing::info!(phase = "warm_run_build", elapsed_ms = build_started.elapsed().as_millis(), "warm_run_stage");
-        consume(&ExecutionContext::new(&plan, cancellation.clone())?)?;
+        let mut held = held;
+        consume(&context, Some(&mut held))?;
     }
     Ok(Some(plan))
 }

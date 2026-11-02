@@ -171,11 +171,13 @@ impl<'a> ExecutionContext<'a> {
             image.recheck(&self.cancellation_token)?;
             return Ok(Arc::clone(image));
         }
-        let image = Arc::new(super::local_dependency_image::LocalDependencyImage::capture_home(
-            home,
-            identity,
-            &self.cancellation_token,
-        )?);
+        let image = Arc::new(
+            super::local_dependency_image::LocalDependencyImage::capture_home(
+                home,
+                identity,
+                &self.cancellation_token,
+            )?,
+        );
         *slot = Some(Arc::clone(&image));
         Ok(image)
     }
@@ -521,27 +523,29 @@ impl<'a> ExecutionContext<'a> {
 mod forge_preparation_cache;
 
 #[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
-fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<McpHold> {
+fn execute_mcp_config_joined(
+    context: &ExecutionContext<'_>,
+) -> eyre::Result<(McpHold, ForgeInputHold)> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
-        let (_, held_mcp) = forge_preparation_cache::execute(
+        let (_, held_mcp, owner) = forge_preparation_cache::execute(
             context,
             "mcp",
             false,
             || execute_mcp_config_joined_uncached(context, true),
             |_| execute_mcp_config_joined_uncached(context, false),
         )?;
-        return Ok(held_mcp);
+        return Ok((held_mcp, owner));
     }
     execute_mcp_config_joined_uncached(context, true)?;
-    Ok(McpHold::default())
+    Ok((McpHold::default(), ForgeInputHold::default()))
 }
 
 #[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
 fn execute_forge_userdev(
     context: &ExecutionContext<'_>,
     target: BuildTarget,
-) -> eyre::Result<(ForgeDevHold, McpHold)> {
+) -> eyre::Result<(ForgeDevHold, McpHold, ForgeInputHold)> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
         return forge_preparation_cache::execute(
@@ -555,7 +559,11 @@ fn execute_forge_userdev(
     #[cfg(not(windows))]
     let _ = target;
     execute_forge_userdev_uncached(context, true, None)?;
-    Ok((ForgeDevHold::default(), McpHold::default()))
+    Ok((
+        ForgeDevHold::default(),
+        McpHold::default(),
+        ForgeInputHold::default(),
+    ))
 }
 
 include!("forge_preparation_producers.rs");

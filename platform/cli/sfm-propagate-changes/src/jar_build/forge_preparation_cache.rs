@@ -296,7 +296,11 @@ pub(super) fn execute(
     materialize_sources: bool,
     legacy: impl FnOnce() -> eyre::Result<()>,
     fresh: impl FnOnce(Option<&Path>) -> eyre::Result<()>,
-) -> eyre::Result<(Option<HeldForgeDevJar>, Option<HeldSharedPreparation>)> {
+) -> eyre::Result<(
+    Option<HeldForgeDevJar>,
+    Option<HeldSharedPreparation>,
+    Option<ForgePreparationInputs>,
+)> {
     let inputs = NfrtPreparationPhase::run("forge_preparation.input_admission", || {
         ForgePreparationInputs::prepare(context, kind)
     })?;
@@ -307,7 +311,7 @@ pub(super) fn execute(
             "forge_preparation_cache_declined"
         );
         legacy()?;
-        return Ok((None, None));
+        return Ok((None, None, None));
     };
     let Some((base, _base_ancestry)) = store_base(context, kind)? else {
         tracing::info!(
@@ -316,7 +320,7 @@ pub(super) fn execute(
             "forge_preparation_cache_declined"
         );
         legacy()?;
-        return Ok((None, None));
+        return Ok((None, None, None));
     };
     let fingerprint = inputs.fingerprint();
     let key = fingerprint.trim_start_matches("sha256:");
@@ -337,7 +341,7 @@ pub(super) fn execute(
             "forge_preparation_cache_declined"
         );
         legacy()?;
-        return Ok((None, None));
+        return Ok((None, None, None));
     };
     let outputs = output_paths(context, kind)?;
     let hold_dev_jar = kind == "forge" && !materialize_sources;
@@ -426,7 +430,7 @@ pub(super) fn execute(
             node_outputs.push(("dev_compile.jar", path));
         }
         write_cached_node(context, kind, &node_outputs)?;
-        return Ok((held_dev_jar, shared));
+        return Ok((held_dev_jar, shared, Some(inputs)));
     }
     // Never turn an old existence-only project hit into a new validated entry.
     // This route deliberately invokes the original producer with that hit disabled.
@@ -438,7 +442,7 @@ pub(super) fn execute(
                 "forge_preparation_cache_declined"
             );
             legacy()?;
-            return Ok((None, None));
+            return Ok((None, None, None));
         };
         Some(at)
     } else {
@@ -462,7 +466,7 @@ pub(super) fn execute(
         stored,
         "forge_dependency_preparation"
     );
-    Ok((None, None))
+    Ok((None, None, None))
 }
 
 fn restore_held_dev_jar(

@@ -6214,6 +6214,19 @@ fn fresh_jar_output_worktree_external_cache_is_refused_before_planning() -> eyre
 
 #[cfg(windows)]
 #[test]
+fn forge_build_hold_release_invalidates_path_only_library_cache() -> eyre::Result<()> {
+    let plan = minimal_plan_for_paths();
+    let context = super::all_hit_compile_tests::context(&plan);
+    *context.minecraft_libraries_cache.lock().unwrap() =
+        Some(vec![std::path::PathBuf::from("synthetic-old-library.jar")]);
+    let mut holds = super::ForgeBuildHolds::default();
+    holds.release_prelaunch_input_owners(&context)?;
+    assert!(context.minecraft_libraries_cache.lock().unwrap().is_none());
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
 fn held_forge_sdk_image_reuses_hold_and_rechecks_membership() -> eyre::Result<()> {
     let owner = tempfile::tempdir()?;
     let home = owner.path().join("synthetic-sdk");
@@ -6228,7 +6241,10 @@ fn held_forge_sdk_image_reuses_hold_and_rechecks_membership() -> eyre::Result<()
     let context = super::all_hit_compile_tests::context(&plan);
     let first = context.held_forge_sdk_image()?;
     let second = context.held_forge_sdk_image()?;
-    assert!(Arc::ptr_eq(&first, &second), "one context must retain one SDK image");
+    assert!(
+        Arc::ptr_eq(&first, &second),
+        "one context must retain one SDK image"
+    );
     fs::write(home.join("conf/new-selected-input.cfg"), b"new input")?;
     let error = context.held_forge_sdk_image().unwrap_err();
     assert!(

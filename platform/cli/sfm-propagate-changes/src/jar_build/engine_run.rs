@@ -22,10 +22,84 @@ enum BuildTarget {
 type ForgeDevHold = Option<forge_preparation_cache::HeldForgeDevJar>;
 #[cfg(windows)]
 type McpHold = Option<forge_preparation_cache::HeldSharedPreparation>;
+#[cfg(windows)]
+type ForgeInputHold = Option<forge_preparation_cache::ForgePreparationInputs>;
 #[cfg(not(windows))]
 type ForgeDevHold = ();
 #[cfg(not(windows))]
 type McpHold = ();
+#[cfg(not(windows))]
+type ForgeInputHold = ();
+
+/// Invocation-local proof. The MCP owner also holds every selected Minecraft
+/// library file while this context's path cache is reused by run. Release the
+/// producer input owners after launch inputs are captured, before the JVM runs.
+#[derive(Default)]
+struct ForgeBuildHolds {
+    _dev: ForgeDevHold,
+    _mcp: McpHold,
+    _forge_mappings: McpHold,
+    mcp_inputs: ForgeInputHold,
+    forge_inputs: ForgeInputHold,
+}
+
+impl ForgeBuildHolds {
+    fn recheck_shared_preparation(&self, context: &ExecutionContext<'_>) -> eyre::Result<bool> {
+        #[cfg(windows)]
+        if let (Some(_), Some(_), Some(mcp), Some(forge)) = (
+            &self._mcp,
+            &self._forge_mappings,
+            &self.mcp_inputs,
+            &self.forge_inputs,
+        ) {
+            context.bail_if_cancelled()?;
+            mcp.recheck(context)?;
+            forge.recheck(context)?;
+            return Ok(true);
+        }
+        #[cfg(not(windows))]
+        let _ = context;
+        Ok(false)
+    }
+
+    fn release_prelaunch_input_owners(
+        &mut self,
+        context: &ExecutionContext<'_>,
+    ) -> eyre::Result<()> {
+        #[cfg(windows)]
+        {
+            if let Some(owner) = &self.mcp_inputs {
+                owner.recheck(context)?;
+            }
+            if let Some(owner) = &self.forge_inputs {
+                owner.recheck(context)?;
+            }
+            // After output selection, no later stage may use a path-only
+            // library cache without recapturing its authenticated bytes.
+            *context
+                .minecraft_libraries_cache
+                .lock()
+                .map_err(|_| eyre::eyre!("Minecraft library cache lock poisoned"))? = None;
+            self.mcp_inputs = None;
+            self.forge_inputs = None;
+        }
+        #[cfg(not(windows))]
+        let _ = context;
+        Ok(())
+    }
+}
+
+fn execute_build(
+    plan: &BuildPlan,
+    explain_rebuild: bool,
+    target: BuildTarget,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    let context = ExecutionContext::new(plan, cancellation_token.clone())?;
+    let _held =
+        execute_build_with_context(plan, &context, explain_rebuild, target, cancellation_token)?;
+    Ok(())
+}
 
 #[tracing::instrument(
     level = "info",
@@ -39,16 +113,16 @@ type McpHold = ();
         target = ?target,
     )
 )]
-fn execute_build(
+fn execute_build_with_context(
     plan: &BuildPlan,
+    context: &ExecutionContext<'_>,
     explain_rebuild: bool,
     target: BuildTarget,
     cancellation_token: &CancellationToken,
-) -> eyre::Result<()> {
+) -> eyre::Result<ForgeBuildHolds> {
     cancellation_token.bail_if_cancelled()?;
     plan.recheck_named_inputs()?;
     validate_named_native_build_target(plan, target)?;
-    let context = ExecutionContext::new(plan, cancellation_token.clone())?;
     let total_started = Instant::now();
 
     if explain_rebuild {
@@ -86,15 +160,20 @@ fn execute_build(
     if plan.identity.is_catalog_owned()
         && plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
     {
-        return execute_named_neoform_compile(&context, target, total_started);
+        execute_named_neoform_compile(context, target, total_started)?;
+        return Ok(ForgeBuildHolds::default());
     }
     let held_forge_dev_jar: ForgeDevHold;
     let held_mcp: McpHold;
     let held_forge_mappings: McpHold;
+    let mcp_inputs: ForgeInputHold;
+    let forge_inputs: ForgeInputHold;
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         held_forge_dev_jar = ForgeDevHold::default();
         held_mcp = McpHold::default();
         held_forge_mappings = McpHold::default();
+        mcp_inputs = ForgeInputHold::default();
+        forge_inputs = ForgeInputHold::default();
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
         context.bail_if_cancelled()?;
@@ -109,7 +188,7 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node execute-mcp-config-joined: start");
         context.bail_if_cancelled()?;
-        held_mcp = execute_mcp_config_joined(&context)?;
+        (held_mcp, mcp_inputs) = execute_mcp_config_joined(context)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-mcp-config-joined: done in {} ms",
@@ -119,7 +198,8 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node execute-forge-userdev: start");
         context.bail_if_cancelled()?;
-        (held_forge_dev_jar, held_forge_mappings) = execute_forge_userdev(&context, target)?;
+        (held_forge_dev_jar, held_forge_mappings, forge_inputs) =
+            execute_forge_userdev(context, target)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-forge-userdev: done in {} ms",
@@ -131,13 +211,22 @@ fn execute_build(
             "Rust transformed source outputs prepared in {} ms",
             total_started.elapsed().as_millis()
         );
-        return Ok(());
+        return Ok(ForgeBuildHolds {
+            _dev: held_forge_dev_jar,
+            _mcp: held_mcp,
+            _forge_mappings: held_forge_mappings,
+            mcp_inputs,
+            forge_inputs,
+        });
     }
-    let result = execute_project_build(&context, target, total_started);
-    drop(held_forge_dev_jar);
-    drop(held_forge_mappings);
-    drop(held_mcp);
-    result
+    execute_project_build(context, target, total_started)?;
+    Ok(ForgeBuildHolds {
+        _dev: held_forge_dev_jar,
+        _mcp: held_mcp,
+        _forge_mappings: held_forge_mappings,
+        mcp_inputs,
+        forge_inputs,
+    })
 }
 
 fn execute_project_build(
@@ -685,6 +774,7 @@ fn execute_run(
         dry_run,
         build_cache_lock,
         &mut owned_log,
+        None,
     )?;
     Ok(owned_log)
 }
@@ -701,6 +791,7 @@ fn execute_run_with_context(
     dry_run: bool,
     build_cache_lock: &mut Option<ArtifactLock>,
     owned_console_log: &mut Option<PathBuf>,
+    mut build_holds: Option<&mut ForgeBuildHolds>,
 ) -> eyre::Result<()> {
     *owned_console_log = None;
     let run_started = Instant::now();
@@ -742,9 +833,25 @@ fn execute_run_with_context(
     #[cfg(windows)]
     let held_preparation_started = Instant::now();
     #[cfg(windows)]
-    let _held_preparation = forge_preparation_cache::hold_preparation_for_run(context)?;
     #[cfg(windows)]
-    tracing::info!(phase = "warm_run_preparation_hold", elapsed_ms = held_preparation_started.elapsed().as_millis(), "warm_run_stage");
+    let reuse_build_preparation = build_holds
+        .as_deref()
+        .map(|holds| holds.recheck_shared_preparation(context))
+        .transpose()?
+        .unwrap_or(false);
+    #[cfg(windows)]
+    let _held_preparation = if reuse_build_preparation {
+        (None, None)
+    } else {
+        forge_preparation_cache::hold_preparation_for_run(context)?
+    };
+    #[cfg(windows)]
+    tracing::info!(
+        phase = "warm_run_preparation_hold",
+        reused_build_authority = reuse_build_preparation,
+        elapsed_ms = held_preparation_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
 
     retain_launch_preparation_lock(context, build_cache_lock)?;
     let roots = runtime_snapshot_roots(snapshot, kind, run_options);
@@ -1158,6 +1265,15 @@ fn execute_run_with_context(
     tracing::info!(phase = "warm_run_owned_capture", elapsed_ms = owned_capture_started.elapsed().as_millis(), "warm_run_stage");
     let launch_log = run_state_dir.join("console.log");
     *owned_console_log = Some(launch_log.clone());
+    if let Some(holds) = build_holds.as_deref_mut() {
+        let release_started = Instant::now();
+        holds.release_prelaunch_input_owners(context)?;
+        tracing::info!(
+            phase = "warm_run_build_input_release",
+            elapsed_ms = release_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
+    }
     if dry_run {
         let mut run_outputs = vec![argfile.clone(), minecraft_classpath_file.clone()];
         if let Some(path) = automation_options_path {
@@ -1224,6 +1340,7 @@ fn execute_run_with_context(
         );
     }
     tracing::info!(phase = "warm_run_jvm_wait", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
+    let post_launch_started = Instant::now();
     let launch_output = launch_output.ok_or_else(|| {
         eyre::eyre!(
             "Failed to launch {} using {}",
@@ -1370,7 +1487,11 @@ fn execute_run_with_context(
                 "Bounded run completed; session receipt could not close before retirement; retaining inputs"),
         }
     }
-    tracing::info!(phase = "warm_run_postlaunch", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_postlaunch",
+        elapsed_ms = post_launch_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     Ok(())
 }
 
@@ -2966,6 +3087,7 @@ fn run_game_test_bisect_attempt(
         false,
         build_cache_lock,
         &mut owned_log,
+        None,
     );
     let launch_error = launch_result
         .as_ref()
