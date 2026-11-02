@@ -15,6 +15,7 @@ pub mod jar_build;
 pub mod java_analysis;
 pub(crate) mod java_source_catalog;
 pub mod jdk;
+pub mod jdk_preferences;
 pub(crate) mod jdk_artifact_cache;
 pub mod logging;
 pub mod modrinth;
