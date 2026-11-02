@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import ntpath
 import os
 import re
 from pathlib import Path
@@ -68,6 +69,109 @@ def digest(value: Any, algorithm: str = "sha256") -> str:
 
 def row_id(row: dict[str, Any]) -> tuple[str, str, str]:
     return tuple(row[name] for name in ("projection", "profile", "operation"))
+
+
+def stable_inventory_hash(value: dict[str, Any]) -> str:
+    """Hash the recorded source and exact preflight files, excluding free space."""
+    files = value.get("files")
+    if not isinstance(files, list) or not files:
+        raise ValueError("trace preflight lacks an input file inventory")
+    normalized = []
+    for item in files:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str) \
+                or not ntpath.isabs(item["path"]):
+            raise ValueError("trace preflight has a nonabsolute input path")
+        normalized.append({"path": item["path"], "sha256": digest(item.get("sha256"))})
+    if len({item["path"].lower() for item in normalized}) != len(normalized):
+        raise ValueError("trace preflight repeats an input path")
+    source = digest(value.get("source"))
+    head = value.get("head")
+    if not isinstance(head, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", head):
+        raise ValueError("trace preflight lacks a Git head")
+    encoded = json.dumps({"head": head.lower(), "source": source, "files": normalized},
+                         separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def adapt_stable_gradle_trace(receipt: dict[str, Any], stdout: str,
+                              row: dict[str, Any], receipt_ref: dict[str, str],
+                              stdout_ref: dict[str, str]) -> dict[str, Any]:
+    """Adapt an existing stable Gradle trace; never infer a missing classpath item.
+
+    The original receipt and Gradle stdout must both be SHA-checked by Evidence.
+    The adapter returns only a consumer trace, not upstream pin or producer proof.
+    """
+    if receipt.get("schema") != "sfm:supported_historical1202_ordered_compile_classpath@1" \
+            or receipt.get("projection") != row.get("projection") \
+            or row.get("operation") != "gradle_compile" \
+            or receipt.get("stable") is not True \
+            or receipt.get("exit_code") != 0 \
+            or receipt.get("build_successful") is not True:
+        raise ValueError("receipt is not a successful stable Gradle compile trace")
+    if digest(receipt.get("stdout_sha256")) != digest(stdout_ref.get("sha256")):
+        raise ValueError("trace stdout SHA-256 differs from receipt")
+    before = receipt.get("before")
+    after = receipt.get("after")
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        raise ValueError("trace lacks before/after input inventory")
+    before_hash = stable_inventory_hash(before)
+    after_hash = stable_inventory_hash(after)
+    if before_hash != after_hash:
+        raise ValueError("trace input inventory changed")
+    files = before["files"]
+    lock = [item for item in files if item["path"].lower().endswith("sfm-toolchain.lock.json")]
+    jdk = [item for item in files if item["path"].lower().endswith(r"\bin\java.exe")]
+    gradle = [item for item in files if item["path"].lower().endswith(r"\bin\gradle.bat")]
+    if len(lock) != 1 or len(jdk) != 1 or len(gradle) != 1 \
+            or digest(lock[0]["sha256"]) != digest(row.get("lock_sha256")):
+        raise ValueError("trace lacks exact selected lock, Gradle, or JDK executable")
+    if "> Task :sfmTraceCompileClasspath" not in stdout:
+        raise ValueError("trace task execution is absent from stdout")
+    captured = []
+    totals = []
+    for line in stdout.splitlines():
+        if line.startswith("SFM_TRACE_COMPILE\t"):
+            parts = line.split("\t", 4)
+            if len(parts) != 5:
+                raise ValueError("malformed ordered classpath entry")
+            _, index, size, sha, path = parts
+            if not index.isdecimal() or not size.isdecimal() or not ntpath.isabs(path):
+                raise ValueError("invalid ordered classpath index, size, or path")
+            captured.append({"index": int(index), "path": path, "bytes": int(size),
+                             "sha256": digest(sha)})
+        elif line.startswith("SFM_TRACE_TOTAL\t"):
+            totals.append(line)
+    if not captured or len(totals) != 1 or receipt.get("ordered_classpath") != [
+        f'SFM_TRACE_COMPILE\t{entry["index"]}\t{entry["bytes"]}\t{entry["sha256"]}\t{entry["path"]}'
+        for entry in captured
+    ] or receipt.get("total") != totals:
+        raise ValueError("receipt differs from raw ordered classpath capture")
+    for index, entry in enumerate(captured):
+        if entry["index"] != index or entry["bytes"] <= 0:
+            raise ValueError("ordered classpath is incomplete or reordered")
+    total = totals[0].split("\t")
+    if len(total) != 3 or not total[1].isdecimal() or not total[2].isdecimal() \
+            or int(total[1]) != len(captured) \
+            or int(total[2]) != sum(entry["bytes"] for entry in captured):
+        raise ValueError("ordered classpath total count or bytes differ")
+    tools = [item for item in files if item is not lock[0] and item is not jdk[0]]
+    tool_identity = hashlib.sha256(json.dumps(tools, sort_keys=True,
+                                               separators=(",", ":")).encode("utf-8")).hexdigest()
+    return {"schema": TRACE_SCHEMA,
+            "row": {key: row[key] for key in ("projection", "profile", "operation")},
+            "lock_sha256": digest(lock[0]["sha256"]),
+            "source_sha256": digest(before["source"]),
+            "tool_sha256": tool_identity,
+            "tool_identity_basis": "recorded-preflight-file-inventory",
+            "jdk_sha256": digest(jdk[0]["sha256"]),
+            "complete": True, "configured_count": len(captured),
+            "capture_command": "Gradle sfmTraceCompileClasspath",
+            # A stable receipt is not proof that all other writers were excluded.
+            # A coordinator-owned source-freeze receipt must establish that separately.
+            "writer_excluded": False,
+            "input_before_sha256": before_hash, "input_after_sha256": after_hash,
+            "ordered_classpath": captured,
+            "raw_evidence": [receipt_ref, stdout_ref]}
 
 
 class Evidence:
@@ -227,9 +331,11 @@ def verify_consumer(claim: dict[str, Any], evidence: Evidence) -> None:
         captured = trace_entries[index]
         if not isinstance(captured, dict) or any(
             captured.get(field) != entry[field]
-            for field in ("index", "path", "coordinate", "bytes", "sha256")
+            for field in ("index", "path", "bytes", "sha256")
         ):
             raise ValueError(f"claimed classpath differs from captured trace at {index}")
+        if "coordinate" in captured and captured["coordinate"] != entry["coordinate"]:
+            raise ValueError(f"claimed coordinate differs from captured trace at {index}")
         if entry.get("kind") == "upstream":
             verify_digest_join(entry, evidence, claim["lock_sha256"])
         elif entry.get("kind") == "derived":

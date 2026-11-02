@@ -118,6 +118,38 @@ class TypedAcceptanceTests(unittest.TestCase):
             ],
         }
 
+    def test_adapts_stable_gradle_trace_and_rejects_missing_capture_entry(self):
+        paths = (r"D:\cache\first.jar", r"D:\cache\second.jar")
+        entries = [
+            f"SFM_TRACE_COMPILE\t{i}\t{100 + i}\t{h(str(i + 1))}\t{path}"
+            for i, path in enumerate(paths)
+        ]
+        total = "SFM_TRACE_TOTAL\t2\t201"
+        stdout = "> Task :sfmTraceCompileClasspath\n" + "\n".join(entries + [total]) + "\n"
+        stdout_ref = self.write_text("legacy-trace.out.txt", stdout)
+        files = [
+            {"path": r"D:\cache\gradle\bin\gradle.bat", "sha256": h("1")},
+            {"path": r"D:\checkout\sfm-toolchain.lock.json", "sha256": h("d")},
+            {"path": r"C:\jdk\bin\java.exe", "sha256": h("c")},
+        ]
+        preflight = {"head": "f" * 40, "source": h("a"), "files": files}
+        receipt = {"schema": "sfm:supported_historical1202_ordered_compile_classpath@1",
+                   "projection": self.row["projection"], "stable": True,
+                   "exit_code": 0, "build_successful": True,
+                   "stdout_sha256": stdout_ref["sha256"],
+                   "before": preflight, "after": copy.deepcopy(preflight),
+                   "ordered_classpath": entries, "total": [total]}
+        receipt_ref = self.write("legacy-trace.receipt.json", receipt)
+        trace = g6.adapt_stable_gradle_trace(receipt, stdout, self.row,
+                                             receipt_ref, stdout_ref)
+        self.assertEqual(2, trace["configured_count"])
+        self.assertEqual(paths[1], trace["ordered_classpath"][1]["path"])
+        self.assertEqual(h("a"), trace["source_sha256"])
+        self.assertIs(trace["writer_excluded"], False)
+        with self.assertRaisesRegex(ValueError, "receipt differs from raw"):
+            g6.adapt_stable_gradle_trace(receipt, stdout.replace(entries[1] + "\n", ""),
+                                         self.row, receipt_ref, stdout_ref)
+
     def check(self, claims: list[dict] | None = None, prior_hash: str | None = None):
         batch = {"schema": g6.SCHEMA, "scope_sha256": self.scope_hash,
                  "prior_ledger_sha256": prior_hash or self.prior_hash,
