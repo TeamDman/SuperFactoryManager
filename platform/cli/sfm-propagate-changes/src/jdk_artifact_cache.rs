@@ -25,6 +25,7 @@ const MAX_ARCHIVE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_EXTRACTED_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_ZIP_ENTRIES: usize = 100_000;
 const RECEIPT_NAME: &str = ".sfm-jbrsdk-receipt";
+const SEALED_RECEIPT_SCHEMA: &str = "sfm-jbrsdk-sealed-v2\n";
 // Windows java.exe loads bin/server/jvm.dll relative to its installation. A
 // full 128-digit SHA-512 directory can put that DLL beyond the legacy 260
 // character path limit in a normal checkout. The full SHA-512 still verifies
@@ -40,13 +41,9 @@ fn install_key(sha512: &str) -> String {
     )
 }
 
-#[cfg(windows)]
-const MAX_HELD_SDK_PATHS: usize = 16_384;
-
-// The authenticated ZIP comparison runs while all installed paths are held
-// read-only, without FILE_SHARE_WRITE or FILE_SHARE_DELETE. Later consumers
-// verify exact membership and file identities instead of decompressing and
-// comparing the same installed bytes at every gate in one CLI process.
+// A completed install is immutable to SFM writers and sealed after full
+// ZIP comparison. Hold only launch-critical paths during normal reuse;
+// explicit audit performs the recursive comparison.
 #[cfg(windows)]
 #[derive(Debug)]
 struct HeldInstalledEntry {
@@ -125,7 +122,6 @@ impl HeldInstalledEntry {
 #[derive(Debug)]
 struct HeldInstalledTree {
     home: PathBuf,
-    shape: BTreeMap<PathBuf, bool>,
     root: HeldInstalledEntry,
     entries: Vec<HeldInstalledEntry>,
 }
@@ -133,28 +129,25 @@ struct HeldInstalledTree {
 #[cfg(windows)]
 impl HeldInstalledTree {
     fn capture(home: &Path) -> eyre::Result<Self> {
-        let shape = installed_paths(home, MAX_HELD_SDK_PATHS)?;
         let root = HeldInstalledEntry::open(home, false)?;
-        let mut entries = Vec::with_capacity(shape.len());
-        for (relative, is_file) in &shape {
-            entries.push(HeldInstalledEntry::open(&home.join(relative), *is_file)?);
+        let mut entries = Vec::with_capacity(6);
+        for (relative, is_file) in [
+            (RECEIPT_NAME, true),
+            ("bin", false),
+            ("bin/java.exe", true),
+            ("bin/javac.exe", true),
+            ("lib", false),
+            ("lib/modules", true),
+        ] {
+            entries.push(HeldInstalledEntry::open(&home.join(relative), is_file)?);
         }
-        let tree = Self {
-            home: home.to_path_buf(),
-            shape,
-            root,
-            entries,
-        };
+        let tree = Self { home: home.to_path_buf(), root, entries };
         tree.recheck(home)?;
         Ok(tree)
     }
 
     fn recheck(&self, home: &Path) -> eyre::Result<()> {
         eyre::ensure!(home == self.home, "Verified JBRSDK installed home changed");
-        eyre::ensure!(
-            installed_paths(home, self.shape.len())? == self.shape,
-            "Cached JBRSDK installation membership changed"
-        );
         self.root.recheck()?;
         for entry in &self.entries {
             entry.recheck()?;
@@ -353,12 +346,28 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
     }
     // The same file handle is hashed, parsed, and extracted. Reopening after
     // verification would allow replacement of the path between those steps.
+    let installed = install_dir.join(install_key(&sha));
+    let expected_receipt = receipt(pin, artifact);
+    let seal = seal_path(&install_dir, &sha);
+    let expected_seal = format!("{SEALED_RECEIPT_SCHEMA}{expected_receipt}");
+    if read_seal(&seal, &expected_seal)? {
+        // Our only writer publishes a complete, checked install before this
+        // seal. A hit trusts that the user has not edited the managed cache.
+        check_installed_receipt(&installed, artifact, &expected_receipt)?;
+        let archive = open_held_archive(&archive)?;
+        let archive_len = archive.metadata()?.len();
+        #[cfg(windows)]
+        let held_install = HeldInstalledTree::capture(&installed)?;
+        tracing::info!(phase = "warm_sdk_sealed_reuse", "warm_run_stage");
+        return Ok(VerifiedPinnedJbrsdk {
+            home: installed, cache_root: cache_root.to_path_buf(),
+            pin: pin.clone(), artifact: artifact.clone(), archive, archive_len,
+            #[cfg(windows)] held_install,
+        });
+    }
     let archive_started = std::time::Instant::now();
     let mut verified_zip = open_verified_archive(&archive, &sha)?;
     tracing::info!(phase = "warm_sdk_initial_archive_sha512", elapsed_ms = archive_started.elapsed().as_millis(), "warm_run_stage");
-
-    let installed = install_dir.join(install_key(&sha));
-    let expected_receipt = receipt(pin, artifact);
     match fs::symlink_metadata(&installed) {
         Ok(_) => {
             let install_started = std::time::Instant::now();
@@ -394,6 +403,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         tree.recheck(&installed)?;
         tree
     };
+    write_seal(&seal, &expected_seal)?;
     let archive = verified_zip.into_inner();
     let archive_len = archive.metadata()?.len();
     Ok(VerifiedPinnedJbrsdk {
@@ -526,20 +536,26 @@ fn fetch_zip_url(url: &str, destination: &mut File) -> eyre::Result<()> {
     }
 }
 
-fn open_verified_archive(path: &Path, expected: &str) -> eyre::Result<ZipArchive<File>> {
+fn open_held_archive(path: &Path) -> eyre::Result<File> {
     let metadata = fs::symlink_metadata(path)?;
-    if !metadata.file_type().is_file() || is_reparse_point(&metadata) {
-        eyre::bail!("JBRSDK ZIP is not a regular file: {}", path.display());
+    if !metadata.file_type().is_file() || is_reparse_point(&metadata)
+        || metadata.len() > MAX_ARCHIVE_BYTES {
+        eyre::bail!("JBRSDK ZIP is not a regular bounded file: {}", path.display());
     }
     let mut options = OpenOptions::new();
     options.read(true);
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
-        // Hold the verified archive against concurrent writes or replacement.
         options.share_mode(0x1) // FILE_SHARE_READ
     };
-    let mut file = options.open(path)?;
+    let file = options.open(path)?;
+    eyre::ensure!(file.metadata()?.len() == metadata.len(), "JBRSDK ZIP changed while opening");
+    Ok(file)
+}
+
+fn open_verified_archive(path: &Path, expected: &str) -> eyre::Result<ZipArchive<File>> {
+    let mut file = open_held_archive(path)?;
     verify_archive_sha512(&mut file, expected)
         .map_err(|error| eyre::eyre!("Failed to verify JBRSDK ZIP {}: {error}", path.display()))?;
     file.rewind()?;
@@ -711,6 +727,67 @@ fn write_receipt(home: &Path, expected: &str) -> eyre::Result<()> {
     file.write_all(expected.as_bytes())?;
     file.sync_all()?;
     Ok(())
+}
+
+fn seal_path(install_dir: &Path, sha: &str) -> PathBuf {
+    install_dir.join(format!("{}.sealed", install_key(sha)))
+}
+
+fn read_seal(path: &Path, expected: &str) -> eyre::Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            eyre::ensure!(metadata.file_type().is_file() && !is_reparse_point(&metadata),
+                "JBRSDK completion seal is unsafe");
+            eyre::ensure!(fs::read_to_string(path)? == expected,
+                "JBRSDK completion seal differs from the selected pin");
+            Ok(true)
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn write_seal(path: &Path, expected: &str) -> eyre::Result<()> {
+    let parent = path.parent().ok_or_else(|| eyre::eyre!("JBRSDK seal has no parent"))?;
+    let mut temporary = tempfile::Builder::new()
+        .prefix(".sfm-jbrsdk-seal.").tempfile_in(parent)?;
+    temporary.write_all(expected.as_bytes())?;
+    temporary.as_file_mut().sync_all()?;
+    match temporary.persist_noclobber(path) {
+        Ok(_) => Ok(()),
+        Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
+            eyre::ensure!(read_seal(path, expected)?, "JBRSDK completion seal missing");
+            Ok(())
+        }
+        Err(error) => Err(error.error.into()),
+    }
+}
+
+fn check_installed_receipt(home: &Path, artifact: &JdkArtifactV4, expected: &str) -> eyre::Result<()> {
+    eyre::ensure!(is_real_dir(home) && has_jdk_executables(home, artifact)
+        && is_real_file(&home.join("lib/modules")),
+        "Cached JBRSDK installation is incomplete or unsafe: {}", home.display());
+    let path = home.join(RECEIPT_NAME);
+    eyre::ensure!(is_real_file(&path) && fs::read_to_string(path)? == expected,
+        "Cached JBRSDK installation has no matching checksum receipt: {}", home.display());
+    Ok(())
+}
+
+/// Full cache integrity audit. Normal sealed reuse deliberately does not call this.
+pub(crate) fn audit_pinned_jbrsdk_zip(
+    pin: &JdkPinV4, artifact: &JdkArtifactV4, cache_root: &Path,
+) -> eyre::Result<()> {
+    verify_zip_identity(pin, artifact)?;
+    eyre::ensure!(pin.artifacts.contains(artifact), "JBRSDK audit pin mismatch");
+    let sha = artifact.sha512.to_ascii_lowercase();
+    let _lock = ArtifactLock::acquire(
+        cache_root.join("locks").join(format!("{sha}.lock")),
+        format!("JBRSDK audit {} {}", pin.version, artifact.platform),
+    )?;
+    let archive = cache_root.join("archives").join(format!("{sha}.zip"));
+    let mut zip = open_verified_archive(&archive, &sha)?;
+    let home = cache_root.join("installs").join(install_key(&sha));
+    verify_installed_home(&home, artifact, &receipt(pin, artifact), &mut zip)
 }
 
 fn verify_installed_home(
@@ -1012,14 +1089,13 @@ mod tests {
             .unwrap();
         drop(image);
         fs::write(&archive, b"changed").unwrap();
-        assert!(acquire_verified_pinned_jbrsdk_zip_with(
-            &pin,
-            &pin.artifacts[0],
-            root.path(),
-            false,
-            |_, _| unreachable!("corrupt cached archive must not fetch"),
-        )
-        .is_err());
+        // The sealed hit deliberately trusts tool-owned bytes between runs.
+        let reused = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], root.path(), true,
+            |_, _| unreachable!("sealed cache hit must not fetch"),
+        ).unwrap();
+        drop(reused);
+        assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
     }
 
     #[test]
@@ -1046,10 +1122,7 @@ mod tests {
             image.recheck_for(root.path(), &pin, &pin.artifacts[0]).unwrap();
             drop(image);
             fs::write(&java, b"tampered").unwrap();
-            assert!(acquire_verified_pinned_jbrsdk_zip_with(
-                &pin, &pin.artifacts[0], root.path(), true,
-                |_, _| unreachable!("corrupt cached install must not fetch"),
-            ).is_err());
+            assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
         }
         #[cfg(not(windows))]
         {
@@ -1061,7 +1134,7 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn held_verified_install_blocks_or_rejects_new_member() {
+    fn held_verified_install_blocks_selected_writes_and_audit_finds_new_member() {
         let bytes = sdk_zip();
         let pin = pin_for(&bytes);
         let root = tempfile::tempdir().unwrap();
@@ -1077,10 +1150,14 @@ mod tests {
         )
         .unwrap();
         let extra = image.home().join("lib/extra.dll");
-        if fs::write(&extra, b"unexpected member").is_ok() {
-            assert!(image.recheck_for(root.path(), &pin, &pin.artifacts[0]).is_err());
+        let inserted = fs::write(&extra, b"unexpected member").is_ok();
+        let recheck = image.recheck_for(root.path(), &pin, &pin.artifacts[0]).map(|_| ());
+        drop(image);
+        if inserted {
+            assert!(recheck.is_err(), "held directory metadata must detect a new child");
+            assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
         } else {
-            image.recheck_for(root.path(), &pin, &pin.artifacts[0]).unwrap();
+            recheck.unwrap();
         }
     }
     #[test]
@@ -1145,7 +1222,7 @@ mod tests {
     }
 
     #[test]
-    fn modified_cached_java_is_not_reused_offline() {
+    fn explicit_audit_detects_modified_cached_java() {
         let bytes = sdk_zip();
         let pin = pin_for(&bytes);
         let root = tempfile::tempdir().unwrap();
@@ -1161,16 +1238,13 @@ mod tests {
         )
         .unwrap();
         fs::write(home.join("bin/java.exe"), b"evil").unwrap();
-        let error =
-            acquire_pinned_jbrsdk_zip_with(&pin, &pin.artifacts[0], root.path(), true, |_, _| {
-                panic!("offline cache hit must not fetch")
-            })
+        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path())
             .unwrap_err();
         assert!(error.to_string().contains("does not match verified ZIP"));
     }
 
     #[test]
-    fn modified_cached_modules_are_not_reused_offline() {
+    fn explicit_audit_detects_modified_cached_modules() {
         let bytes = sdk_zip();
         let pin = pin_for(&bytes);
         let root = tempfile::tempdir().unwrap();
@@ -1186,16 +1260,13 @@ mod tests {
         )
         .unwrap();
         fs::write(home.join("lib/modules"), b"altered modules").unwrap();
-        let error =
-            acquire_pinned_jbrsdk_zip_with(&pin, &pin.artifacts[0], root.path(), true, |_, _| {
-                panic!("offline cache hit must not fetch")
-            })
+        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path())
             .unwrap_err();
         assert!(error.to_string().contains("does not match verified ZIP"));
     }
 
     #[test]
-    fn unexpected_cached_library_is_not_reused_offline() {
+    fn explicit_audit_detects_unexpected_cached_library() {
         let bytes = sdk_zip();
         let pin = pin_for(&bytes);
         let root = tempfile::tempdir().unwrap();
@@ -1211,12 +1282,50 @@ mod tests {
         )
         .unwrap();
         fs::write(home.join("lib/extra.dll"), b"unexpected library").unwrap();
-        let error =
-            acquire_pinned_jbrsdk_zip_with(&pin, &pin.artifacts[0], root.path(), true, |_, _| {
-                panic!("offline cache hit must not fetch")
-            })
+        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path())
             .unwrap_err();
         assert!(error.to_string().contains("unexpected extra paths"));
+    }
+
+    #[test]
+    fn missing_seal_requires_full_revalidation_before_reuse() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let home = acquire_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], root.path(), false,
+            |_, file| { file.write_all(&bytes)?; Ok(()) },
+        ).unwrap();
+        let seal = seal_path(&root.path().join("installs"), &pin.artifacts[0].sha512);
+        assert!(seal.is_file());
+        fs::remove_file(seal).unwrap();
+        fs::write(home.join("bin/java.exe"), b"altered").unwrap();
+        assert!(acquire_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], root.path(), true,
+            |_, _| panic!("offline reuse must not fetch"),
+        ).is_err());
+    }
+
+    #[test]
+    fn sealed_reuse_rejects_missing_required_file_and_changed_pin() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let root = tempfile::tempdir().unwrap();
+        let home = acquire_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], root.path(), false,
+            |_, file| { file.write_all(&bytes)?; Ok(()) },
+        ).unwrap();
+        let mut changed = pin.clone();
+        changed.build = "different".to_owned();
+        assert!(acquire_pinned_jbrsdk_zip_with(
+            &changed, &pin.artifacts[0], root.path(), true,
+            |_, _| panic!("wrong pin must not fetch"),
+        ).is_err());
+        fs::remove_file(home.join("lib/modules")).unwrap();
+        assert!(acquire_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], root.path(), true,
+            |_, _| panic!("incomplete install must not fetch"),
+        ).is_err());
     }
 
     #[test]

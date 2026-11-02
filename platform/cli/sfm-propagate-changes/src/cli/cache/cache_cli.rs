@@ -3,6 +3,7 @@ use super::CacheOpenArgs;
 use super::CachePathArgs;
 use super::CacheReportArgs;
 use super::CacheRootArgs;
+use super::CacheVerifyJdkArgs;
 use facet::Facet;
 use figue as args;
 
@@ -33,6 +34,8 @@ pub enum CacheCommand {
     Root(CacheRootArgs),
     /// Report checkout expectations and possible unused entries without deleting anything
     Report(CacheReportArgs),
+    /// Full checksum and extracted-tree audit of the selected pinned JBRSDK.
+    VerifyJdk(CacheVerifyJdkArgs),
     /// Open the cache directory in the file explorer
     Open(CacheOpenArgs),
     /// Clean the cache directory
@@ -48,6 +51,7 @@ impl CacheCommand {
             CacheCommand::Path(args) => args.invoke(),
             CacheCommand::Root(args) => args.invoke(),
             CacheCommand::Report(args) => args.invoke(),
+            CacheCommand::VerifyJdk(args) => args.invoke(),
             CacheCommand::Open(args) => args.invoke(),
             CacheCommand::Clean(args) => args.invoke(),
         }
