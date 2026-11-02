@@ -1,0 +1,492 @@
+{
+  "schema_version": 1,
+  "purpose": "Exact official NeoGradle 7.0.57/7.0.192 internal runtime modules, classifiers and plugin marker POMs; historical locks unchanged",
+  "cache_root": "sfm-toolchain-data",
+  "repository_path": "gradle/bootstrap-maven/historical-neogradle-7.0",
+  "runtime_graph": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-24\\task\\action-services-evidence\\m487-neogradle-7057-70192-official-runtime-graph-20261101.json",
+  "runtime_graph_sha256": "678CF61D0AB7EDAB08BBE859D8319073F012BC149C68328BFEB1979848F1F2C5",
+  "artifact_count": 55,
+  "total_bytes": 2383031.0,
+  "artifacts": [
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.0.57@module",
+      "path": "net/neoforged/gradle/userdev/7.0.57/userdev-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.0.57/userdev-7.0.57.module",
+      "bytes": 7833,
+      "sha256": "b88fb128350d55b5635dacc477b638a12bf015cdad1c2c652eb47334dc77dd1e",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.0.57@pom",
+      "path": "net/neoforged/gradle/userdev/7.0.57/userdev-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.0.57/userdev-7.0.57.pom",
+      "bytes": 3251,
+      "sha256": "9aa8f03dd5e469610ec6c40431d59e3acf96150e0a6fa4de49fad88f9c530aae",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.0.57:userdev-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/userdev/7.0.57/userdev-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.0.57/userdev-7.0.57.jar",
+      "bytes": 30549,
+      "sha256": "e6151a3b61bbc6e9ee7fd8546bb6533d4c7675e50607014f42f7aa0c47f7cc5c",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.0.192@module",
+      "path": "net/neoforged/gradle/userdev/7.0.192/userdev-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.0.192/userdev-7.0.192.module",
+      "bytes": 6119,
+      "sha256": "2793134f0236b5ecef8643685a5456456ba01cb6a633166183e2bf08918a9b12",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.0.192@pom",
+      "path": "net/neoforged/gradle/userdev/7.0.192/userdev-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.0.192/userdev-7.0.192.pom",
+      "bytes": 2496,
+      "sha256": "c3df22b5ca0dd875b65f751df328d77e4a5db1cafbb522810b1a03bdb136c6f1",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.0.192:userdev-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/userdev/7.0.192/userdev-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.0.192/userdev-7.0.192.jar",
+      "bytes": 35794,
+      "sha256": "0c33012e85798bd84842c58cb9a32968db04c427ad6da901e9281c984e95e57e",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.10@module",
+      "path": "net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10.module",
+      "bytes": 11467,
+      "sha256": "9bad06a06c8f350a6ec89227ca8d3da2fd02225a0e7e47a7c80011a3dd1fffe0",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.10@pom",
+      "path": "net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10.pom",
+      "bytes": 1644,
+      "sha256": "5eb92fbc95c188b2258a68be17729134fdcebf54e6348709a6bd1b212ea12f89",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.10:groovydslimprover-1.0.10-base.jar@jar",
+      "path": "net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10-base.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10-base.jar",
+      "bytes": 8067,
+      "sha256": "34dbd2c45cb4f56451f8c1e7e7becf5910670282c4ede2dfae39fdfd4061da82",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.10:groovydslimprover-1.0.10-runtime.jar@jar",
+      "path": "net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10-runtime.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10-runtime.jar",
+      "bytes": 4403,
+      "sha256": "9d94f9a728e196c2b7395905801a8c7649a2032dc73affc5be632cd6ef42753c",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.10:groovydslimprover-1.0.10.jar@jar",
+      "path": "net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.10/groovydslimprover-1.0.10.jar",
+      "bytes": 138716,
+      "sha256": "635e8d8dcb6561dc9b958014cc5dd0590b58623d083da892cc7c19b1360d6c78",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.0.57@module",
+      "path": "net/neoforged/gradle/common/7.0.57/common-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.0.57/common-7.0.57.module",
+      "bytes": 16037,
+      "sha256": "3a1d6ed74321873c72b66ea79c9ef3ba891f63db23aa6c6e183810033412fdb6",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.0.57@pom",
+      "path": "net/neoforged/gradle/common/7.0.57/common-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.0.57/common-7.0.57.pom",
+      "bytes": 7984,
+      "sha256": "ec8d95f9ac3ad64eaae35af51af84cd5ac8915eb614180160e7b8563b2c7f4c2",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.0.57:common-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/common/7.0.57/common-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.0.57/common-7.0.57.jar",
+      "bytes": 324508,
+      "sha256": "53f6c46a0d25aa64e392558b90ade246f09c75e315af50456584d6a7c2eba400",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.0.57@module",
+      "path": "net/neoforged/gradle/neoform/7.0.57/neoform-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.0.57/neoform-7.0.57.module",
+      "bytes": 7839,
+      "sha256": "1edd2859eeea7539b22388b3619ff639bb92b15d90dc26d92c57bc6b834692d4",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.0.57@pom",
+      "path": "net/neoforged/gradle/neoform/7.0.57/neoform-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.0.57/neoform-7.0.57.pom",
+      "bytes": 3254,
+      "sha256": "aec5ceb70b208d526279a4bf2af1153874193b0b3bc0bd313c6837beecd09bb5",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.0.57:neoform-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/neoform/7.0.57/neoform-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.0.57/neoform-7.0.57.jar",
+      "bytes": 74600,
+      "sha256": "b6d2c9142c7b67c0bbdb4aaf1e63b0d6290d76748b69f07dc5b3daaef6cdc1a3",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.0.57@module",
+      "path": "net/neoforged/gradle/dsl-userdev/7.0.57/dsl-userdev-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.0.57/dsl-userdev-7.0.57.module",
+      "bytes": 7262,
+      "sha256": "9b69ec27b0a68f1662955f49822eeb85aaab2c648d0fd135daf075096034dbbd",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.0.57@pom",
+      "path": "net/neoforged/gradle/dsl-userdev/7.0.57/dsl-userdev-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.0.57/dsl-userdev-7.0.57.pom",
+      "bytes": 2911,
+      "sha256": "746c09cdf68bb207933c78671b68c944b8332bed3463339b10017bf78540f8f0",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.0.57:dsl-userdev-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/dsl-userdev/7.0.57/dsl-userdev-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.0.57/dsl-userdev-7.0.57.jar",
+      "bytes": 22372,
+      "sha256": "937d32a68f4049fdebf46b58f26e1f8def27535b3ebc6d54fea291fcef63bbc0",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.0.192@module",
+      "path": "net/neoforged/gradle/common/7.0.192/common-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.0.192/common-7.0.192.module",
+      "bytes": 15831,
+      "sha256": "2b588cd2e5dc2e11dd4b4492f8396e2a77fdcce27b55bdf8467167f2cb762dbe",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.0.192@pom",
+      "path": "net/neoforged/gradle/common/7.0.192/common-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.0.192/common-7.0.192.pom",
+      "bytes": 7911,
+      "sha256": "62139f66b80fda54192c175d16bef41d65e60c90361aaabe8273d676754c5e3a",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.0.192:common-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/common/7.0.192/common-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.0.192/common-7.0.192.jar",
+      "bytes": 487956,
+      "sha256": "2d0f5c5718fafa27f136a91618269ed66f400d646059930539442939813e46a3",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.0.192@module",
+      "path": "net/neoforged/gradle/neoform/7.0.192/neoform-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.0.192/neoform-7.0.192.module",
+      "bytes": 6127,
+      "sha256": "226bbdeec1e880a119b9ce4d26f851600f715f26e5981ce498b0df435d2588a7",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.0.192@pom",
+      "path": "net/neoforged/gradle/neoform/7.0.192/neoform-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.0.192/neoform-7.0.192.pom",
+      "bytes": 2499,
+      "sha256": "b4061dc1315b155f58e7ca4773abad3daf99ebc7a54b960616c609a738fb5efe",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.0.192:neoform-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/neoform/7.0.192/neoform-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.0.192/neoform-7.0.192.jar",
+      "bytes": 100851,
+      "sha256": "1cf12f6ccd7be0e205666a34a980d46ae20a2827e9a3cf92a890495c51a0e9e1",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.0.192@module",
+      "path": "net/neoforged/gradle/dsl-userdev/7.0.192/dsl-userdev-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.0.192/dsl-userdev-7.0.192.module",
+      "bytes": 5390,
+      "sha256": "b4cf35862a9e4bc7b652b3fbd1156de8180dc45ebd15200c777478a5da366fde",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.0.192@pom",
+      "path": "net/neoforged/gradle/dsl-userdev/7.0.192/dsl-userdev-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.0.192/dsl-userdev-7.0.192.pom",
+      "bytes": 2266,
+      "sha256": "55e58dc965b693d168b8a340088b6cfb5b3e762025ae0d59ba80e676c48092b7",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.0.192:dsl-userdev-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/dsl-userdev/7.0.192/dsl-userdev-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.0.192/dsl-userdev-7.0.192.jar",
+      "bytes": 22228,
+      "sha256": "80916fa1f13c26bbdb61d2429e60830327a4e1ae6f041f74a602b24e60466e0a",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.18@module",
+      "path": "net/neoforged/groovydslimprover/1.0.18/groovydslimprover-1.0.18.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.18/groovydslimprover-1.0.18.module",
+      "bytes": 12531,
+      "sha256": "18ccb11b734b5f8533f4d78796e298f2b92ee941aa21e2e10706cd20a3a6e3d4",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.18@pom",
+      "path": "net/neoforged/groovydslimprover/1.0.18/groovydslimprover-1.0.18.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.18/groovydslimprover-1.0.18.pom",
+      "bytes": 1644,
+      "sha256": "132d4cb22010f537c03c32ead779c56004c20a77ca00583e18401ef5b6c14043",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:1.0.18:groovydslimprover-1.0.18.jar@jar",
+      "path": "net/neoforged/groovydslimprover/1.0.18/groovydslimprover-1.0.18.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/1.0.18/groovydslimprover-1.0.18.jar",
+      "bytes": 139204,
+      "sha256": "1ee551cd7e3dab14d1332558bca57d37023a91f424b7a73b271940fb666de8ea",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.0.57@module",
+      "path": "net/neoforged/gradle/utils/7.0.57/utils-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.0.57/utils-7.0.57.module",
+      "bytes": 8935,
+      "sha256": "8142162bf10be79a80c79c0560e6594d60074fc6edb99eab03c66f27aa5ebc78",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.0.57@pom",
+      "path": "net/neoforged/gradle/utils/7.0.57/utils-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.0.57/utils-7.0.57.pom",
+      "bytes": 3897,
+      "sha256": "f58cff7f142ffd9137ec7f9a5761b35940102d9831dc1cfe5a318ddf4fc057af",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.0.57:utils-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/utils/7.0.57/utils-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.0.57/utils-7.0.57.jar",
+      "bytes": 44939,
+      "sha256": "b8111d207fb9024821330bc4c33e4f87ba46b7af9ac67ea12dd63f2fad7ee2f5",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.0.57@module",
+      "path": "net/neoforged/gradle/dsl-common/7.0.57/dsl-common-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.0.57/dsl-common-7.0.57.module",
+      "bytes": 9004,
+      "sha256": "88fa69517ef945fcfde5603212ebac410a85273406f5278d214aa759fb908604",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.0.57@pom",
+      "path": "net/neoforged/gradle/dsl-common/7.0.57/dsl-common-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.0.57/dsl-common-7.0.57.pom",
+      "bytes": 3918,
+      "sha256": "559207522ecdbd930fb3f94f875cf2e4e4c54652a936ca5f5a72594ade99b79e",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.0.57:dsl-common-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/dsl-common/7.0.57/dsl-common-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.0.57/dsl-common-7.0.57.jar",
+      "bytes": 309860,
+      "sha256": "0c2facd0fe10f6cf8a19f3be08600a3e52f7d98cd3a3f35f9e8561b9d78b649b",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.0.57@module",
+      "path": "net/neoforged/gradle/dsl-neoform/7.0.57/dsl-neoform-7.0.57.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.0.57/dsl-neoform-7.0.57.module",
+      "bytes": 8440,
+      "sha256": "fee4eb21bc4b5d48e7575552fbd77d956572dc60126ccd6a78723d129fc496d4",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.0.57@pom",
+      "path": "net/neoforged/gradle/dsl-neoform/7.0.57/dsl-neoform-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.0.57/dsl-neoform-7.0.57.pom",
+      "bytes": 3590,
+      "sha256": "7b7e06641702fbc9524fb5680fe50ba64c8e86ae0150263ff080701f64d3c1ca",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.0.57:dsl-neoform-7.0.57.jar@jar",
+      "path": "net/neoforged/gradle/dsl-neoform/7.0.57/dsl-neoform-7.0.57.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.0.57/dsl-neoform-7.0.57.jar",
+      "bytes": 12683,
+      "sha256": "ae22218dbd346e30237be2a5087be5d49a3476c976834a7d579317fa49364316",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.0.192@module",
+      "path": "net/neoforged/gradle/utils/7.0.192/utils-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.0.192/utils-7.0.192.module",
+      "bytes": 6291,
+      "sha256": "959fc6443dc01cbf415df90c498a8b576e2c3f3c42b958d57aa0bada4b1bc6d2",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.0.192@pom",
+      "path": "net/neoforged/gradle/utils/7.0.192/utils-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.0.192/utils-7.0.192.pom",
+      "bytes": 2797,
+      "sha256": "f8f4fca1e556b06b4e6bb65f5d7d53c77ed561627d52b5edf8f147f070420b4b",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.0.192:utils-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/utils/7.0.192/utils-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.0.192/utils-7.0.192.jar",
+      "bytes": 54318,
+      "sha256": "efab9084859f26ac8cd97b0baf2b680950754326a87cf3b428fac92a63f0a522",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.0.192@module",
+      "path": "net/neoforged/gradle/dsl-common/7.0.192/dsl-common-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.0.192/dsl-common-7.0.192.module",
+      "bytes": 8642,
+      "sha256": "7ee469e839c506193ed43a086e0b09f4dfbd868e216a3caa58cab005991319d1",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.0.192@pom",
+      "path": "net/neoforged/gradle/dsl-common/7.0.192/dsl-common-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.0.192/dsl-common-7.0.192.pom",
+      "bytes": 3611,
+      "sha256": "e25f154e467ac5042f6e67558425abac969d666d44164fa808d441b4464f25a6",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.0.192:dsl-common-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/dsl-common/7.0.192/dsl-common-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.0.192/dsl-common-7.0.192.jar",
+      "bytes": 337230,
+      "sha256": "98a1ecd54ccf2d27f342c3de95e9382d4f836de4e3c43ad988a3d85822927a25",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:eclipse:7.0.192@module",
+      "path": "net/neoforged/gradle/eclipse/7.0.192/eclipse-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/eclipse/7.0.192/eclipse-7.0.192.module",
+      "bytes": 15568,
+      "sha256": "ab463ab7eae513be33ce89df121d0eea00eebf0b46c8fb226f2116784fa27ec7",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:eclipse:7.0.192@pom",
+      "path": "net/neoforged/gradle/eclipse/7.0.192/eclipse-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/eclipse/7.0.192/eclipse-7.0.192.pom",
+      "bytes": 1131,
+      "sha256": "b7ff76f1c61439ddb93b79ccc7ee2f876da426fbc6d4419551fbe6f69a4ccb70",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:eclipse:7.0.192:eclipse-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/eclipse/7.0.192/eclipse-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/eclipse/7.0.192/eclipse-7.0.192.jar",
+      "bytes": 1106,
+      "sha256": "a3af72b72cecb48916e59ef20b366ad13d4168c407d91c962ee6c4b66c882010",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.0.192@module",
+      "path": "net/neoforged/gradle/dsl-neoform/7.0.192/dsl-neoform-7.0.192.module",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.0.192/dsl-neoform-7.0.192.module",
+      "bytes": 6572,
+      "sha256": "733b8b2aba1c5416cc99e36c610309f790beba985b0e329aefc8241b34c93a14",
+      "authenticated_by": "official_https_and_graph_identity"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.0.192@pom",
+      "path": "net/neoforged/gradle/dsl-neoform/7.0.192/dsl-neoform-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.0.192/dsl-neoform-7.0.192.pom",
+      "bytes": 2947,
+      "sha256": "b439d97dc396b3b0e350521617a6422adf69c69148ccda4cf5c74c21efd76c34",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.0.192:dsl-neoform-7.0.192.jar@jar",
+      "path": "net/neoforged/gradle/dsl-neoform/7.0.192/dsl-neoform-7.0.192.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.0.192/dsl-neoform-7.0.192.jar",
+      "bytes": 14490,
+      "sha256": "6273983be160064524c7b9de4ab5b4241db5fae20a3ad3a7c2307c0db21cb510",
+      "authenticated_by": "official_gradle_module_sha256"
+    },
+    {
+      "coordinate": "net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.0.57@pom",
+      "path": "net/neoforged/gradle/userdev/net.neoforged.gradle.userdev.gradle.plugin/7.0.57/net.neoforged.gradle.userdev.gradle.plugin-7.0.57.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/net.neoforged.gradle.userdev.gradle.plugin/7.0.57/net.neoforged.gradle.userdev.gradle.plugin-7.0.57.pom",
+      "bytes": 657,
+      "sha256": "152f840883b1c48073b76e339cf8a9994b9c2699ef06a1ab9bf71627f0ad402b",
+      "authenticated_by": "publisher_sha256_sidecar"
+    },
+    {
+      "coordinate": "net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.0.192@pom",
+      "path": "net/neoforged/gradle/userdev/net.neoforged.gradle.userdev.gradle.plugin/7.0.192/net.neoforged.gradle.userdev.gradle.plugin-7.0.192.pom",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/net.neoforged.gradle.userdev.gradle.plugin/7.0.192/net.neoforged.gradle.userdev.gradle.plugin-7.0.192.pom",
+      "bytes": 861,
+      "sha256": "52c2aaac2896bfad6d2bf3e2fff79c26a45ae8af21c74b418832bd9b8032b6a0",
+      "authenticated_by": "publisher_sha256_sidecar"
+    }
+  ],
+  "external_unique_coordinates": [
+    "codechicken:DiffPatch:1.5.0.29",
+    "com.google.code.gson:gson:2.9.0",
+    "com.google.guava:guava:31.1-jre",
+    "commons-codec:commons-codec:1.15",
+    "commons-io:commons-io:2.11.0",
+    "de.siegmar:fastcsv:2.2.0",
+    "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.1.6",
+    "io.codechicken:DiffPatch:2.0.0.35",
+    "net.minecraftforge:srgutils:0.4.13",
+    "net.minecraftforge:unsafe:0.2.0",
+    "net.neoforged:EclipseLaunchConfigs:0.1.3",
+    "net.neoforged:JarJarMetadata:0.4.1",
+    "net.neoforged:JarJarSelector:0.4.1",
+    "net.neoforged:VscLaunchConfigs:1.0.8",
+    "org.apache.httpcomponents:httpclient:4.5.13",
+    "org.apache.ivy:ivy:2.5.1",
+    "org.apache.maven:maven-artifact:3.8.5",
+    "org.codehaus.groovy:groovy-all:3.0.17",
+    "org.codehaus.groovy:groovy-all:3.0.22",
+    "org.jetbrains:annotations:23.0.0"
+  ],
+  "reusable_exact_coordinates_in_26_catalog": [
+    "com.google.guava:guava:31.1-jre",
+    "commons-codec:commons-codec:1.15",
+    "commons-io:commons-io:2.11.0",
+    "de.siegmar:fastcsv:2.2.0",
+    "io.codechicken:DiffPatch:2.0.0.35",
+    "net.minecraftforge:srgutils:0.4.13",
+    "net.minecraftforge:unsafe:0.2.0",
+    "net.neoforged:EclipseLaunchConfigs:0.1.3",
+    "net.neoforged:JarJarMetadata:0.4.1",
+    "net.neoforged:JarJarSelector:0.4.1",
+    "net.neoforged:VscLaunchConfigs:1.0.8",
+    "org.apache.httpcomponents:httpclient:4.5.13",
+    "org.apache.ivy:ivy:2.5.1",
+    "org.apache.maven:maven-artifact:3.8.5",
+    "org.jetbrains:annotations:23.0.0"
+  ],
+  "limit": "Candidate only: external dependency metadata/variants, five coordinates absent from the 26.1.2 catalog and downstream selected Gradle API attributes still need closure before a checked project plugin route."
+}
