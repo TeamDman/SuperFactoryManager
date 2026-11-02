@@ -9,22 +9,25 @@ use super::super::local_dependency_cache::lease_artifact_ancestors;
 #[cfg(any(windows, target_os = "linux"))]
 use super::super::local_dependency_cache::open_read;
 use crate::cancellation::CancellationToken;
+use crate::jdk_artifact_cache::VerifiedPinnedJbrsdk;
 use crate::source_projection::candidate_lock::is_reparse;
+use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use eyre::Result;
 use eyre::WrapErr as _;
 use eyre::ensure;
+use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::collections::BTreeMap;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
-use std::sync::Arc;
 use std::sync::Weak;
 use std::time::Duration;
 use std::time::Instant;
@@ -34,16 +37,114 @@ const SCHEMA: &str = "sfm:native_cache_root@1";
 const MAX_MARKER_BYTES: u64 = 64 * 1024;
 const MAX_GUARDS: usize = 16_384;
 const CLAIM_WAIT: Duration = Duration::from_secs(2);
-static ACTIVE_ROOTS: OnceLock<Mutex<BTreeMap<PathBuf, Vec<Weak<NativeCacheRoot>>>>> = OnceLock::new();
+static ACTIVE_ROOTS: OnceLock<Mutex<BTreeMap<PathBuf, Vec<Weak<NativeCacheRoot>>>>> =
+    OnceLock::new();
 
 fn active_roots() -> &'static Mutex<BTreeMap<PathBuf, Vec<Weak<NativeCacheRoot>>>> {
     ACTIVE_ROOTS.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+struct HeldPinnedSdk {
+    image: VerifiedPinnedJbrsdk,
+    pin: JdkPinV4,
+    artifact: JdkArtifactV4,
+    launch: super::NamedSdkLaunchSpelling,
+    _ancestors: Vec<File>,
+}
+
+impl std::fmt::Debug for HeldPinnedSdk {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("HeldPinnedSdk")
+            .field("home", &self.image.home())
+            .finish_non_exhaustive()
+    }
+}
+
+impl HeldPinnedSdk {
+    fn capture(
+        owner: &NativeCacheRoot,
+        mut image: VerifiedPinnedJbrsdk,
+        pin: &JdkPinV4,
+        artifact: &JdkArtifactV4,
+        cancel: &CancellationToken,
+    ) -> Result<Self> {
+        cancel.bail_if_cancelled()?;
+        let home = checked_pinned_sdk_home(owner.path(), &mut image, pin, artifact)?;
+        let mut ancestors =
+            owner.guard_artifact_parent(&home.join("bin").join("java.exe"), cancel)?;
+        ancestors.extend(owner.guard_artifact_parent(&home.join("lib").join("modules"), cancel)?);
+        let archive = owner
+            .path()
+            .join("minecraft-toolchain")
+            .join("jbrsdk")
+            .join("archives")
+            .join(format!("{}.zip", artifact.sha512.to_ascii_lowercase()));
+        ancestors.extend(owner.guard_artifact_parent(&archive, cancel)?);
+        let launch = super::NamedSdkLaunchSpelling::capture(&home, cancel)?;
+        launch.recheck(cancel)?;
+        image.recheck_for(
+            &owner.path().join("minecraft-toolchain").join("jbrsdk"),
+            pin,
+            artifact,
+        )?;
+        Ok(Self {
+            image,
+            pin: pin.clone(),
+            artifact: artifact.clone(),
+            launch,
+            _ancestors: ancestors,
+        })
+    }
+
+    fn recheck(&mut self, root: &Path, cancel: &CancellationToken) -> Result<()> {
+        cancel.bail_if_cancelled()?;
+        checked_pinned_sdk_home(root, &mut self.image, &self.pin, &self.artifact)?;
+        self.launch.recheck(cancel)?;
+        Ok(())
+    }
+}
+
+fn pinned_sdk_expected_home(root: &Path, artifact: &JdkArtifactV4) -> Result<PathBuf> {
+    let sha = artifact.sha512.to_ascii_lowercase();
+    let prefix = sha
+        .get(..64)
+        .ok_or_else(|| eyre::eyre!("Verified JBRSDK pin has no 256-bit install key"))?;
+    ensure!(
+        prefix.bytes().all(|byte| byte.is_ascii_hexdigit()),
+        "Verified JBRSDK pin has an invalid install key"
+    );
+    Ok(root
+        .join("minecraft-toolchain")
+        .join("jbrsdk")
+        .join("installs")
+        .join(format!("v2-{prefix}")))
+}
+
+fn checked_pinned_sdk_home(
+    root: &Path,
+    image: &mut VerifiedPinnedJbrsdk,
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+) -> Result<PathBuf> {
+    let expected_home = pinned_sdk_expected_home(root, artifact)?;
+    ensure!(
+        image.home() == expected_home,
+        "Verified JBRSDK is not the exact selected native-root descendant"
+    );
+    let sdk_cache = root.join("minecraft-toolchain").join("jbrsdk");
+    ensure!(
+        image.recheck_for(&sdk_cache, pin, artifact)? == expected_home,
+        "Verified JBRSDK changed during native-root admission"
+    );
+    Ok(expected_home)
 }
 
 #[derive(Debug)]
 pub(super) struct NativeCacheRoot {
     path: PathBuf,
     guards: Mutex<Vec<File>>,
+    verified_sdk: Mutex<Option<HeldPinnedSdk>>,
 }
 
 impl NativeCacheRoot {
@@ -88,6 +189,82 @@ impl NativeCacheRoot {
         Self::acquire_with_sdk(path, repository, source_project, None, cancel)
     }
 
+    /// Admit only an already verified pinned image at the exact owned
+    /// JBRSDK descendant. The caller first claims a new empty root with
+    /// `acquire_for_source`, then acquires the pinned image under that owner.
+    /// An existing unmarked root is never adopted. Arbitrary SDKs continue
+    /// through `acquire` and its cache/SDK overlap rejection.
+    pub(super) fn preflight_for_verified_pinned_sdk(
+        path: &Path,
+        repository: &Path,
+        source_project: &Path,
+        image: &mut VerifiedPinnedJbrsdk,
+        pin: &JdkPinV4,
+        artifact: &JdkArtifactV4,
+    ) -> Result<PathBuf> {
+        ensure!(
+            cfg!(any(windows, target_os = "linux")),
+            "Native cache root override is unsupported on this platform"
+        );
+        let checked = validate_location(path, repository, source_project, None)?;
+        ensure!(
+            checked.try_exists()?,
+            "Claim the native root with acquire_for_source before acquiring its pinned JBRSDK"
+        );
+        let _parents = lease_ancestors(checked.parent().expect("validated root has parent"))?;
+        let _root = lease_ancestors(&checked)?;
+        let _marker = wait_for_marker(&checked, &CancellationToken::new())?;
+        checked_pinned_sdk_home(&checked, image, pin, artifact)?;
+        Ok(checked)
+    }
+
+    pub(super) fn acquire_for_verified_pinned_sdk(
+        path: &Path,
+        repository: &Path,
+        source_project: &Path,
+        image: VerifiedPinnedJbrsdk,
+        pin: &JdkPinV4,
+        artifact: &JdkArtifactV4,
+        cancel: &CancellationToken,
+    ) -> Result<Arc<Self>> {
+        cancel.bail_if_cancelled()?;
+        let checked = validate_location(path, repository, source_project, None)?;
+        ensure!(
+            checked.try_exists()?,
+            "Claim the native root with acquire_for_source before acquiring its pinned JBRSDK"
+        );
+        ensure!(
+            image.home() == pinned_sdk_expected_home(&checked, artifact)?,
+            "Verified JBRSDK is not the exact selected native-root descendant"
+        );
+        let owner = Self::acquire_for_source(path, repository, source_project, cancel)?;
+        ensure!(
+            owner.path() == checked,
+            "Native cache root changed during verified JBRSDK admission"
+        );
+        let held = HeldPinnedSdk::capture(&owner, image, pin, artifact, cancel)?;
+        *owner
+            .verified_sdk
+            .lock()
+            .map_err(|error| eyre::eyre!("Native pinned SDK guard was poisoned: {error}"))? =
+            Some(held);
+        owner.recheck_verified_pinned_sdk(cancel)?;
+        Ok(owner)
+    }
+
+    /// Recheck the complete pinned image and held launch inputs immediately
+    /// before a native plan reuses outputs or starts a JVM child.
+    pub(super) fn recheck_verified_pinned_sdk(&self, cancel: &CancellationToken) -> Result<()> {
+        let mut selected = self
+            .verified_sdk
+            .lock()
+            .map_err(|error| eyre::eyre!("Native pinned SDK guard was poisoned: {error}"))?;
+        let held = selected
+            .as_mut()
+            .ok_or_else(|| eyre::eyre!("Native root has no held verified JBRSDK"))?;
+        held.recheck(&self.path, cancel)
+    }
+
     fn acquire_with_sdk(
         path: &Path,
         repository: &Path,
@@ -126,6 +303,7 @@ impl NativeCacheRoot {
         let owner = Arc::new(Self {
             path: checked.clone(),
             guards: Mutex::new(guards),
+            verified_sdk: Mutex::new(None),
         });
         let mut active = active_roots()
             .lock()
@@ -228,9 +406,9 @@ impl NativeCacheRoot {
                 eyre::bail!("Managed cache artifact contains dot or traversal components")
             };
             validate_component(
-                value
-                    .to_str()
-                    .ok_or_else(|| eyre::eyre!("Managed cache artifact component is not Unicode"))?,
+                value.to_str().ok_or_else(|| {
+                    eyre::eyre!("Managed cache artifact component is not Unicode")
+                })?,
             )?;
         }
         let parent_parts = parts.len() - 1;

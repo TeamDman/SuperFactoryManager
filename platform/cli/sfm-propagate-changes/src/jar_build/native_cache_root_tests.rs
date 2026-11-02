@@ -18,6 +18,209 @@ fn cache_path(repository: &Path) -> PathBuf {
     repository.parent().unwrap().join("native-cache")
 }
 
+#[cfg(windows)]
+fn verified_pinned_sdk_fixture() -> Result<(
+    tempfile::TempDir,
+    PathBuf,
+    PathBuf,
+    PathBuf,
+    JdkPinV4,
+    VerifiedPinnedJbrsdk,
+)> {
+    use sha2::Digest as _;
+    use sha2::Sha512;
+    use std::io::Cursor;
+    use std::io::Write as _;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
+
+    let (temporary, repository, source, _) = fixture()?;
+    let root = cache_path(&repository);
+    let cancel = CancellationToken::new();
+    let owner = NativeCacheRoot::acquire_for_source(&root, &repository, &source, &cancel)?;
+    let archive_dir = owner.prepare_directory("minecraft-toolchain/jbrsdk/archives", &cancel)?;
+    let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    for (name, bytes) in [
+        ("sdk/bin/java.exe", &b"java"[..]),
+        ("sdk/bin/javac.exe", &b"javac"[..]),
+        ("sdk/release", &b"JAVA_VERSION=17.0.14"[..]),
+        ("sdk/lib/modules", &b"runtime modules"[..]),
+    ] {
+        writer.start_file(name, SimpleFileOptions::default())?;
+        writer.write_all(bytes)?;
+    }
+    let zip = writer.finish()?.into_inner();
+    let sha = format!("{:x}", Sha512::digest(&zip));
+    let pin = JdkPinV4 {
+        major: 17,
+        vendor: "JetBrains".to_owned(),
+        version: "17.0.14".to_owned(),
+        build: "b1367.22".to_owned(),
+        flavor: "jbrsdk".to_owned(),
+        artifacts: vec![JdkArtifactV4 {
+            platform: "windows-x64".to_owned(),
+            url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-windows-x64-b1367.22.zip".to_owned(),
+            sha512: sha.clone(),
+        }],
+    };
+    fs::write(archive_dir.join(format!("{sha}.zip")), zip)?;
+    let image = crate::jdk_artifact_cache::acquire_verified_pinned_jbrsdk_zip(
+        &pin,
+        &pin.artifacts[0],
+        &root.join("minecraft-toolchain").join("jbrsdk"),
+        true,
+    )?;
+    drop(owner);
+    Ok((temporary, repository, source, root, pin, image))
+}
+
+#[cfg(windows)]
+#[test]
+fn native_cache_verified_pinned_sdk_accepts_exact_owned_child_and_holds_reader() -> Result<()> {
+    let (_temporary, repository, source, root, pin, mut image) = verified_pinned_sdk_fixture()?;
+    let cancel = CancellationToken::new();
+    let home = image.home().to_path_buf();
+    let expected_home = root
+        .join("minecraft-toolchain")
+        .join("jbrsdk")
+        .join("installs")
+        .join(format!("v2-{}", &pin.artifacts[0].sha512[..64]));
+    assert_eq!(home, expected_home);
+    assert_eq!(
+        NativeCacheRoot::preflight_for_verified_pinned_sdk(
+            &root,
+            &repository,
+            &source,
+            &mut image,
+            &pin,
+            &pin.artifacts[0],
+        )?,
+        root
+    );
+    // The ordinary explicit-SDK route still rejects this overlapping home.
+    assert!(NativeCacheRoot::preflight(&root, &repository, &source, &home).is_err());
+    assert!(NativeCacheRoot::acquire(&root, &repository, &source, &home, &cancel).is_err());
+    let owner = NativeCacheRoot::acquire_for_verified_pinned_sdk(
+        &root,
+        &repository,
+        &source,
+        image,
+        &pin,
+        &pin.artifacts[0],
+        &cancel,
+    )?;
+    assert!(NativeCacheRoot::is_active(&root)?);
+    owner.recheck_verified_pinned_sdk(&cancel)?;
+    drop(owner);
+    assert!(!NativeCacheRoot::is_active(&root)?);
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn native_cache_verified_pinned_sdk_rejects_wrong_root_and_pin_before_claim() -> Result<()> {
+    let (_temporary, repository, source, root, pin, image) = verified_pinned_sdk_fixture()?;
+    let other = root.parent().unwrap().join("other-native-cache");
+    assert!(
+        NativeCacheRoot::acquire_for_verified_pinned_sdk(
+            &other,
+            &repository,
+            &source,
+            image,
+            &pin,
+            &pin.artifacts[0],
+            &CancellationToken::new(),
+        )
+        .is_err()
+    );
+    assert!(!other.exists());
+
+    let (_temporary, repository, source, root, pin, image) = verified_pinned_sdk_fixture()?;
+    let mut wrong_pin = pin.clone();
+    wrong_pin.build = "b1367.23".to_owned();
+    assert!(
+        NativeCacheRoot::acquire_for_verified_pinned_sdk(
+            &root,
+            &repository,
+            &source,
+            image,
+            &wrong_pin,
+            &pin.artifacts[0],
+            &CancellationToken::new(),
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn native_cache_verified_pinned_sdk_rejects_tampered_image_and_marker() -> Result<()> {
+    let (_temporary, repository, source, root, pin, mut image) = verified_pinned_sdk_fixture()?;
+    fs::write(
+        image.home().join("lib").join("modules"),
+        b"tampered modules",
+    )?;
+    assert!(
+        NativeCacheRoot::preflight_for_verified_pinned_sdk(
+            &root,
+            &repository,
+            &source,
+            &mut image,
+            &pin,
+            &pin.artifacts[0],
+        )
+        .is_err()
+    );
+
+    let (_temporary, repository, source, root, pin, mut image) = verified_pinned_sdk_fixture()?;
+    fs::write(root.join(MARKER), b"wrong owner")?;
+    assert!(
+        NativeCacheRoot::preflight_for_verified_pinned_sdk(
+            &root,
+            &repository,
+            &source,
+            &mut image,
+            &pin,
+            &pin.artifacts[0],
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn native_cache_verified_pinned_sdk_never_adopts_an_unmarked_cold_root() -> Result<()> {
+    let (_temporary, repository, source, root, pin, mut image) = verified_pinned_sdk_fixture()?;
+    fs::remove_file(root.join(MARKER))?;
+    assert!(
+        NativeCacheRoot::preflight_for_verified_pinned_sdk(
+            &root,
+            &repository,
+            &source,
+            &mut image,
+            &pin,
+            &pin.artifacts[0],
+        )
+        .is_err()
+    );
+    assert!(
+        NativeCacheRoot::acquire_for_verified_pinned_sdk(
+            &root,
+            &repository,
+            &source,
+            image,
+            &pin,
+            &pin.artifacts[0],
+            &CancellationToken::new(),
+        )
+        .is_err()
+    );
+    assert!(!root.join(MARKER).exists());
+    Ok(())
+}
+
 #[test]
 fn native_cache_preflight_has_no_effects_and_allows_future_source_project() -> Result<()> {
     let (_temporary, repository, _, java) = fixture()?;
@@ -291,10 +494,8 @@ fn active_native_root_leases_nested_artifact_parents_without_retaining_them() ->
     )?;
     assert!(NativeCacheRoot::is_active(&cache)?);
     let artifact = cache.join("minecraft-toolchain/maven/org/example/fixture.jar");
-    let guards = NativeCacheRoot::guard_artifact_parent_if_owned(
-        &artifact,
-        &CancellationToken::new(),
-    )?;
+    let guards =
+        NativeCacheRoot::guard_artifact_parent_if_owned(&artifact, &CancellationToken::new())?;
     #[cfg(windows)]
     assert!(guards.len() > 1);
     assert!(artifact.parent().expect("artifact parent").is_dir());
@@ -305,12 +506,13 @@ fn active_native_root_leases_nested_artifact_parents_without_retaining_them() ->
     assert_eq!(fs::read(&artifact)?, b"frozen bytes");
     drop(guards);
 
-    owner.prepare_directory("minecraft-toolchain/minecraft/versions", &CancellationToken::new())?;
-    let client = cache.join("minecraft-toolchain/minecraft/versions/1.19.2/client.jar");
-    let client_guards = NativeCacheRoot::guard_artifact_parent_if_owned(
-        &client,
+    owner.prepare_directory(
+        "minecraft-toolchain/minecraft/versions",
         &CancellationToken::new(),
     )?;
+    let client = cache.join("minecraft-toolchain/minecraft/versions/1.19.2/client.jar");
+    let client_guards =
+        NativeCacheRoot::guard_artifact_parent_if_owned(&client, &CancellationToken::new())?;
     let temporary_client = client.with_extension("jar.tmp");
     fs::write(&temporary_client, b"verified client bytes")?;
     fs::rename(&temporary_client, &client)?;
@@ -319,39 +521,46 @@ fn active_native_root_leases_nested_artifact_parents_without_retaining_them() ->
 
     let blocked = cache.join("minecraft-toolchain/maven/org/blocked");
     fs::write(&blocked, b"unrelated user file")?;
-    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
-        &blocked.join("fixture.jar"),
-        &CancellationToken::new(),
-    )
-    .is_err());
+    assert!(
+        NativeCacheRoot::guard_artifact_parent_if_owned(
+            &blocked.join("fixture.jar"),
+            &CancellationToken::new(),
+        )
+        .is_err()
+    );
     assert_eq!(fs::read(&blocked)?, b"unrelated user file");
     let project = owner.prepare_directory("projects/fixture-key", &CancellationToken::new())?;
     let lock_parent = project.join(".locks");
     fs::write(&lock_parent, b"preexisting user bytes")?;
-    assert!(owner
-        .guard_artifact_parent(&lock_parent.join("build-cache.lock"), &CancellationToken::new())
-        .is_err());
+    assert!(
+        owner
+            .guard_artifact_parent(
+                &lock_parent.join("build-cache.lock"),
+                &CancellationToken::new()
+            )
+            .is_err()
+    );
     assert_eq!(fs::read(&lock_parent)?, b"preexisting user bytes");
-    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
-        &cache.join("minecraft-toolchain/../escape.jar"),
-        &CancellationToken::new(),
-    )
-    .is_err());
+    assert!(
+        NativeCacheRoot::guard_artifact_parent_if_owned(
+            &cache.join("minecraft-toolchain/../escape.jar"),
+            &CancellationToken::new(),
+        )
+        .is_err()
+    );
     assert!(!cache.join("escape.jar").exists());
 
     drop(owner);
     assert!(!NativeCacheRoot::is_active(&cache)?);
-    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
-        &artifact,
-        &CancellationToken::new(),
-    )
-    .is_err());
+    assert!(
+        NativeCacheRoot::guard_artifact_parent_if_owned(&artifact, &CancellationToken::new(),)
+            .is_err()
+    );
     let legacy = repository.join("legacy/fixture.jar");
-    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
-        &legacy,
-        &CancellationToken::new(),
-    )?
-    .is_empty());
+    assert!(
+        NativeCacheRoot::guard_artifact_parent_if_owned(&legacy, &CancellationToken::new(),)?
+            .is_empty()
+    );
     assert!(!legacy.parent().expect("legacy parent").exists());
     Ok(())
 }
