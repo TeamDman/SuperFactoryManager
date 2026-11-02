@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "projection": "sfm-4.35.0/mc-1.20.2",
+  "repository_path": "gradle/bootstrap-maven/26.1.2",
+  "selected_lock_sha256": "DF4FD41C7BDE7B3C622E68E92C0FA3C6F7EEE8895BE847FF57F11A3A5503BDD9",
+  "metadata_supplement_sha256": "FBD48A9221FA6F055AFA93EFBA5BFA19EF212FE4BC1322FF64C3B5C5B8D3E305",
+  "jar_supplement_sha256": "26775B57AFAD4070B49FEA6FC5F82BEC37CEF468A96EC28FA285BDA837A4FFC7",
+  "artifact_count": 9,
+  "files": [
+    {
+      "coordinate": "org.sonatype.oss:oss-parent:9",
+      "kind": "pom",
+      "path": "org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "bytes": 6569,
+      "sha256": "FB40265F982548212FF82E362E59732B2187EC6F0D80182885C14EF1F982827A",
+      "url": "https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "pin_domain": "26.1.2-plugin-metadata-supplement",
+      "historical_blake3": null
+    },
+    {
+      "coordinate": "org.antlr:antlr4-master:4.13.1",
+      "kind": "pom",
+      "path": "org/antlr/antlr4-master/4.13.1/antlr4-master-4.13.1.pom",
+      "bytes": 4818,
+      "sha256": "DBCFC979B80528FC0CB453FCB68DBC9D2B0603A7BE2CDCE99AB2FC6871469D18",
+      "url": "https://repo.maven.apache.org/maven2/org/antlr/antlr4-master/4.13.1/antlr4-master-4.13.1.pom",
+      "pin_domain": "26.1.2-metadata-supplement",
+      "historical_blake3": null
+    },
+    {
+      "coordinate": "org.antlr:antlr4:4.13.1",
+      "kind": "pom",
+      "path": "org/antlr/antlr4/4.13.1/antlr4-4.13.1.pom",
+      "bytes": 7584,
+      "sha256": "6A159A12CFD6628AA736EC3FFD933FA9412E5CBCB7CE7EC5217A3FF420C66A99",
+      "url": "https://repo.maven.apache.org/maven2/org/antlr/antlr4/4.13.1/antlr4-4.13.1.pom",
+      "pin_domain": "26.1.2-metadata-supplement",
+      "historical_blake3": null
+    },
+    {
+      "coordinate": "org.antlr:antlr4:4.13.1",
+      "kind": "jar",
+      "path": "org/antlr/antlr4/4.13.1/antlr4-4.13.1.jar",
+      "bytes": 1349759,
+      "sha256": "CE261DCE69525839AA9FC5BD232CE1B813A7A40A75030713CC4A80EF8170F3D5",
+      "url": "https://repo1.maven.org/maven2/org/antlr/antlr4/4.13.1/antlr4-4.13.1.jar",
+      "pin_domain": "historical-lock-blake3-and-26.1.2-jar-supplement",
+      "historical_blake3": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6"
+    },
+    {
+      "coordinate": "org.antlr:ST4:4.3.4",
+      "kind": "jar",
+      "path": "org/antlr/ST4/4.3.4/ST4-4.3.4.jar",
+      "bytes": 251081,
+      "sha256": "F927AC384C46D749F8B5EC68972A53AED21E00313509299616EDB73BFA15FF33",
+      "url": "https://repo1.maven.org/maven2/org/antlr/ST4/4.3.4/ST4-4.3.4.jar",
+      "pin_domain": "historical-lock-blake3-and-26.1.2-jar-supplement",
+      "historical_blake3": "blake3:f2e791b074daaebc422756dfbb334023640e3f99"
+    },
+    {
+      "coordinate": "org.antlr:antlr-runtime:3.5.3",
+      "kind": "jar",
+      "path": "org/antlr/antlr-runtime/3.5.3/antlr-runtime-3.5.3.jar",
+      "bytes": 173220,
+      "sha256": "68BF9F5A33DFCB34033495C587E6236BEF4E37AA6612919F5B1E843B90669FB9",
+      "url": "https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.5.3/antlr-runtime-3.5.3.jar",
+      "pin_domain": "historical-lock-blake3-and-26.1.2-jar-supplement",
+      "historical_blake3": "blake3:5526b5bc53f5aaae0721d086d88c31a5af88572f"
+    },
+    {
+      "coordinate": "org.abego.treelayout:org.abego.treelayout.core:1.0.3",
+      "kind": "jar",
+      "path": "org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar",
+      "bytes": 26773,
+      "sha256": "FA5E31395C39C2E7D46ACA0F81F72060931607B2FA41BD36038EB2CB6FB93326",
+      "url": "https://repo1.maven.org/maven2/org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar",
+      "pin_domain": "historical-lock-blake3-and-26.1.2-jar-supplement",
+      "historical_blake3": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8"
+    },
+    {
+      "coordinate": "com.ibm.icu:icu4j:72.1",
+      "kind": "jar",
+      "path": "com/ibm/icu/icu4j/72.1/icu4j-72.1.jar",
+      "bytes": 14386028,
+      "sha256": "3DF572B240A68D13B5CD778AD2393E885D26411434CD8F098AC5987EA2E64CE3",
+      "url": "https://maven.minecraftforge.net/com/ibm/icu/icu4j/72.1/icu4j-72.1.jar",
+      "pin_domain": "historical-lock-blake3-and-26.1.2-jar-supplement",
+      "historical_blake3": "blake3:72f3ca071e66c446e43d010806d3822573e69022"
+    },
+    {
+      "coordinate": "org.antlr:antlr4-runtime:4.13.1",
+      "kind": "jar",
+      "path": "org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
+      "bytes": 326305,
+      "sha256": "54665D2838CC66458343468EFC539E454FC95B46A8A04B13C6AC43FC9BE63505",
+      "url": "https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
+      "pin_domain": "historical-lock-blake3-and-26.1.2-jar-supplement",
+      "historical_blake3": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90"
+    }
+  ],
+  "purpose": "Checked ANTLR 4.13.1 POM ancestry, tool and five locked runtime JARs for historical generateGrammarSource",
+  "parent_metadata_supplement_sha256": "CC4F775CE334809EE0D635380E123ED30371544BEB4FC0B903E663F463DF1312"
+}

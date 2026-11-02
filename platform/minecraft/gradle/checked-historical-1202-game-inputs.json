@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "projection": "sfm-4.35.0/mc-1.20.2",
+  "selected_lock_sha256": "DF4FD41C7BDE7B3C622E68E92C0FA3C6F7EEE8895BE847FF57F11A3A5503BDD9",
+  "cache_root": "sfm-toolchain-data",
+  "file_count": 6,
+  "files": [
+    {
+      "kind": "launcher-manifest",
+      "source_path": "minecraft-toolchain/minecraft/metadata/snapshots/13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f.json",
+      "gradle_path": "caches/minecraft/launcher_metadata.json",
+      "bytes": 270953,
+      "sha256": "5B00BE5033BB45C6F647C18A3F879D0118B7FECA1780F37A48B9BC2DCF161AB6",
+      "lock_blake3": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f",
+      "project_path": ".gradle/caches/minecraft/launcher_metadata.json"
+    },
+    {
+      "kind": "version-metadata",
+      "source_path": "minecraft-toolchain/minecraft/versions/1.20.2/version.json",
+      "gradle_path": "caches/minecraft/versions/1.20.2/metadata.json",
+      "bytes": 35011,
+      "sha256": "C54DDB02A61C80212FF9C4531F5734D403C88ABC00068830FC122FDF7BDE3512",
+      "lock_blake3": "blake3:20d90e060024f64038a89f13ea42012e4832b042",
+      "project_path": ".gradle/caches/minecraft/versions/1.20.2/metadata.json"
+    },
+    {
+      "kind": "minecraft-download",
+      "source_path": "minecraft-toolchain/minecraft/versions/1.20.2/client.jar",
+      "gradle_path": "caches/minecraft/versions/1.20.2/client.jar",
+      "bytes": 23186213,
+      "sha256": "FA1A19BE56A506426308ABBC1CAD85F299A7FC6DAE4335559351BA0246713FDA",
+      "official_sha1": "82d1974e75fc984c5ed4b038e764e50958ac61a0",
+      "url": "https://piston-data.mojang.com/v1/objects/82d1974e75fc984c5ed4b038e764e50958ac61a0/client.jar",
+      "project_path": ".gradle/caches/minecraft/versions/1.20.2/client.jar"
+    },
+    {
+      "kind": "minecraft-download",
+      "source_path": "minecraft-toolchain/minecraft/versions/1.20.2/server.jar",
+      "gradle_path": "caches/minecraft/versions/1.20.2/server.jar",
+      "bytes": 48285806,
+      "sha256": "1DAEE4838569AD46E41F0A6F459684C500C7F2685356A40CFB7E838D6E78EAE8",
+      "official_sha1": "5b868151bd02b41319f54c8d4061b8cae84e665c",
+      "url": "https://piston-data.mojang.com/v1/objects/5b868151bd02b41319f54c8d4061b8cae84e665c/server.jar",
+      "project_path": ".gradle/caches/minecraft/versions/1.20.2/server.jar"
+    },
+    {
+      "kind": "minecraft-download",
+      "source_path": "minecraft-toolchain/minecraft/versions/1.20.2/client.txt",
+      "gradle_path": "caches/minecraft/versions/1.20.2/client.txt",
+      "bytes": 8578898,
+      "sha256": "D4E2EB2B32AE7BD2E95EA3A8391813A7B6795E20884CF01D989DCE68F906E2FD",
+      "official_sha1": "5c292ff7d3161977041116698e295083fd5ec8f5",
+      "url": "https://piston-data.mojang.com/v1/objects/5c292ff7d3161977041116698e295083fd5ec8f5/client.txt",
+      "project_path": ".gradle/caches/minecraft/versions/1.20.2/client.txt"
+    },
+    {
+      "kind": "minecraft-download",
+      "source_path": "minecraft-toolchain/minecraft/versions/1.20.2/server.txt",
+      "gradle_path": "caches/minecraft/versions/1.20.2/server.txt",
+      "bytes": 6548145,
+      "sha256": "D2E9D78EE5E4148555D1AF15C85914968C8F0BBD5B4B18366C9E09937FBAFA8C",
+      "official_sha1": "dced504a9b5df367ddd3477adac084cea8024ba4",
+      "url": "https://piston-data.mojang.com/v1/objects/dced504a9b5df367ddd3477adac084cea8024ba4/server.txt",
+      "project_path": ".gradle/caches/minecraft/versions/1.20.2/server.txt"
+    }
+  ],
+  "purpose": "Checked historical Minecraft metadata and game downloads for NeoGradle project-local offline cache; immutable sources are held in the repository toolchain root"
+}

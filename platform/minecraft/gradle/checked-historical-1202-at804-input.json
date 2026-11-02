@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "projection": "sfm-4.35.0/mc-1.20.2",
+  "requested_selector": "net.minecraftforge:accesstransformers:8.0.+",
+  "selected_coordinate": "net.minecraftforge:accesstransformers:8.0.4",
+  "root_lock_sha256": "8432729DE28869AA28A7125988133FE9D7D90D02C7ECB482B61FFEDFBFBA29AF",
+  "repository_path": "minecraft-toolchain/maven",
+  "path": "net/minecraftforge/accesstransformers/8.0.4/accesstransformers-8.0.4.jar",
+  "bytes": 77756,
+  "sha256": "3225E2A513F658DF686FE8B2AE5B4808525851A2C238CE65E38847CC4FFC6441",
+  "blake3": "blake3:4585a5f8ed08b450b1d71f44676710c6d7e60fa0",
+  "url": "https://maven.minecraftforge.net/net/minecraftforge/accesstransformers/8.0.4/accesstransformers-8.0.4.jar",
+  "provenance_sha256": "9B093847B55D2EB3595CBBA132466E0F068078438B191DE064B860D738661352",
+  "retained_gradle_selected_sha256": "3225E2A513F658DF686FE8B2AE5B4808525851A2C238CE65E38847CC4FFC6441",
+  "purpose": "Opt-in checked exact version for existing NeoGradle dynamic 8.0.+ request; selected version matches existing global SFM toolchain lock and retained Gradle cache"
+}

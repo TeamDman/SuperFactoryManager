@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "projection": "sfm-4.35.0/mc-1.20.2",
+  "repository_path": "minecraft-toolchain/maven",
+  "neoform_zip_sha256": "BFE2FC44A7B756A3307A714496E950ABAF3306741AE7717DC4C78A3B527AE974",
+  "neoform_config_sha256": "E63EB63E367175A7EAF87BF8DA13C6B35868822E01D70CE3808E2D08E5C1C892",
+  "tracked_child_supplement_sha256": "EABEB220E2CDFA3F3701E67A401472BD8A2F3ADC696C9F300EF494A5EC4B81B2",
+  "artifact_count": 4,
+  "files": [
+    {
+      "coordinate": "net.minecraftforge:installertools:1.3.2:fatjar",
+      "path": "net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar",
+      "bytes": 5716684,
+      "sha256": "B9CAA6293AA4B291EFCA656E256DC278285278952ED6EB79BF8804B866622765",
+      "official_url": "https://maven.minecraftforge.net/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar",
+      "official_checksum_url": "https://maven.minecraftforge.net/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar.sha256"
+    },
+    {
+      "coordinate": "net.neoforged:AutoRenamingTool:1.0.7:all",
+      "path": "net/neoforged/AutoRenamingTool/1.0.7/AutoRenamingTool-1.0.7-all.jar",
+      "bytes": 740831,
+      "sha256": "AE0B4BDC0AD0A64347DF48422BA7DE40DD8FFB468A34CFD3FFEEE5F86EC8F7C2",
+      "official_url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.7/AutoRenamingTool-1.0.7-all.jar",
+      "official_checksum_url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.7/AutoRenamingTool-1.0.7-all.jar.sha256"
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.0:fatjar",
+      "path": "net/neoforged/mergetool/2.0.0/mergetool-2.0.0-fatjar.jar",
+      "bytes": 467899,
+      "sha256": "D02C919D9D15DB3E4EF5BA5322896F5349C4DA525D7F45F5FFBE1B9854F64DCB",
+      "official_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.0/mergetool-2.0.0-fatjar.jar",
+      "official_checksum_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.0/mergetool-2.0.0-fatjar.jar.sha256"
+    },
+    {
+      "coordinate": "org.vineflower:vineflower:1.9.3",
+      "path": "org/vineflower/vineflower/1.9.3/vineflower-1.9.3.jar",
+      "bytes": 1001253,
+      "sha256": "2E563300AF223B04772195709539FBA69237E61EBA14090EE3A44E2992C41CDB",
+      "official_url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.9.3/vineflower-1.9.3.jar",
+      "official_checksum_url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.9.3/vineflower-1.9.3.jar.sha256"
+    }
+  ],
+  "purpose": "Exact tools selected by authenticated NeoForm 1.20.2 config.json and existing tracked NFRT child identities"
+}

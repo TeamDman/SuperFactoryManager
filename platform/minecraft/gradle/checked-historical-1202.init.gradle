@@ -1,0 +1,570 @@
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+
+def expectedManifest = 'EA3677B8141E25321B3CB337FD28B4CC4EE9C7FEE9F896904A395C1DF650898C'
+def sha256 = { File file ->
+    if (!file.isFile()) throw new GradleException("Missing checked NeoGradle input: ${file}")
+    def digest = MessageDigest.getInstance('SHA-256')
+    file.withInputStream { input ->
+        def buffer = new byte[65536]
+        int count
+        while ((count = input.read(buffer)) != -1) digest.update(buffer, 0, count)
+    }
+    digest.digest().encodeHex().toString().toUpperCase(Locale.ROOT)
+}
+
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    if (projection.fileName.toString() != 'mc-1.20.2'
+            || projection.parent.fileName.toString() != 'sfm-4.35.0'
+            || projection.parent.parent != checkout.resolve('platform/minecraft/projections')
+            || !checkout.resolve('.git').toFile().exists()) {
+        throw new GradleException('Checked NeoGradle probe requires selected repository projection')
+    }
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def markerFile = cache.resolve('.sfm-native-cache-root.json').toFile()
+    def markerExpected = ('["sfm:native_cache_root@1",'
+            + JsonOutput.toJson(cache.toString()) + ']').getBytes('UTF-8')
+    if (!markerFile.isFile() || !java.util.Arrays.equals(markerFile.bytes, markerExpected)) {
+        throw new GradleException('Checked NeoGradle cache marker mismatch')
+    }
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-neogradle-7057-70192-inputs.json').toFile()
+    if (sha256(manifestFile) != expectedManifest) throw new GradleException('Checked NeoGradle manifest changed')
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 55
+            || manifest.repository_path != 'gradle/bootstrap-maven/historical-neogradle-7.0') {
+        throw new GradleException('Checked NeoGradle manifest selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked NeoGradle path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked NeoGradle input changed: ${item.coordinate}")
+        }
+    }
+    project.buildscript.repositories.maven {
+        name = 'SfmCheckedNeoGradle70'
+        url = local.toUri()
+        metadataSources { mavenPom(); gradleMetadata() }
+    }
+    def external = cache.resolve('gradle/bootstrap-maven/26.1.2').toRealPath()
+    project.buildscript.repositories.maven {
+        name = 'SfmExistingCheckedBootstrap26'
+        url = external.toUri()
+        metadataSources { mavenPom(); gradleMetadata() }
+    }
+    println "SFM_CHECKED_NEOGRADLE70\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-groovy-3017-inputs.json').toFile()
+    if (sha256(manifestFile) != '8A1EA0FEA357B9F143B37850E3EA65254DECEEBCB114842064792D86A5DBFC78') {
+        throw new GradleException('Checked Groovy manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 45
+            || manifest.repository_path != 'gradle/bootstrap-maven/historical-groovy-3.0.17') {
+        throw new GradleException('Checked Groovy selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked Groovy path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked Groovy input changed: ${item.coordinate}")
+        }
+    }
+    project.buildscript.repositories.maven {
+        name = 'SfmCheckedGroovy3017'
+        url = local.toUri()
+        metadataSources { mavenPom() }
+    }
+    println "SFM_CHECKED_GROOVY3017\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-neogradle-7057-externals.json').toFile()
+    if (sha256(manifestFile) != 'DDA5F5778694AB0ACC45F3AB9D92B1F77DD5782559E55D7BB5BDB27FF1FC762B') {
+        throw new GradleException('Checked NeoGradle external manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 33
+            || manifest.repository_path != 'gradle/bootstrap-maven/historical-neogradle-7.0.57-externals') {
+        throw new GradleException('Checked NeoGradle external selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked external path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked NeoGradle external input changed: ${item.coordinate}")
+        }
+    }
+    project.buildscript.repositories.maven {
+        name = 'SfmCheckedNeoGradle7057Externals'
+        url = local.toUri()
+        metadataSources { mavenPom(); gradleMetadata() }
+    }
+    println "SFM_CHECKED_NEOGRADLE7057_EXTERNALS\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-neogradle-7057-recursive.json').toFile()
+    if (sha256(manifestFile) != 'B5A8A134D6D9B7E984F33145BDA1459EAFEA25E6E3F1105236BF706F50831EB9') {
+        throw new GradleException('Checked NeoGradle recursive manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 15
+            || manifest.repository_path != 'gradle/bootstrap-maven/historical-neogradle-7.0.57-recursive') {
+        throw new GradleException('Checked NeoGradle recursive selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked recursive path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked recursive input changed: ${item.coordinate}")
+        }
+    }
+    project.buildscript.repositories.maven {
+        name = 'SfmCheckedNeoGradle7057Recursive'
+        url = local.toUri()
+        metadataSources { mavenPom(); gradleMetadata() }
+    }
+    println "SFM_CHECKED_NEOGRADLE7057_RECURSIVE\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-neogradle-7057-recursive3.json').toFile()
+    if (sha256(manifestFile) != '6F0B367B45DF1886C75CB56B07B222A8D9443D5FFAAEFF700D0C7AA0D01EFC59') {
+        throw new GradleException('Checked NeoGradle recursive3 manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 8
+            || manifest.repository_path != 'gradle/bootstrap-maven/historical-neogradle-7.0.57-recursive3') {
+        throw new GradleException('Checked NeoGradle recursive3 selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked recursive3 path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked recursive3 input changed: ${item.coordinate}")
+        }
+    }
+    project.buildscript.repositories.maven {
+        name = 'SfmCheckedNeoGradle7057Recursive3'
+        url = local.toUri()
+        metadataSources { mavenPom(); gradleMetadata() }
+    }
+    println "SFM_CHECKED_NEOGRADLE7057_RECURSIVE3\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-neoforge-20286-metadata.json').toFile()
+    if (sha256(manifestFile) != '4C33DFDF74F0CC395BBE108D71CD8D4D0BC54C1542FC806FC90DC5FBC8FBF42E') {
+        throw new GradleException('Checked NeoForge metadata manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 4
+            || manifest.repository_path != 'minecraft-toolchain/maven') {
+        throw new GradleException('Checked NeoForge metadata selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked NeoForge path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked NeoForge input changed: ${item.coordinate}")
+        }
+    }
+    project.repositories.maven {
+        name = 'SfmCheckedNeoForge20286'
+        url = local.toUri()
+        content { includeVersion('net.neoforged', 'neoforge', '20.2.86') }
+        metadataSources { mavenPom() }
+    }
+    println "SFM_CHECKED_NEOFORGE20286\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    def manifestFile = checkout.resolve('platform/minecraft/gradle/checked-historical-1202-neoforge-inputs.json').toFile()
+    if (sha256(manifestFile) != '5C65A7A8DA22E5DFFA35432B9152F136EAF255302BAA5F05C702B5DBA1D6E242') {
+        throw new GradleException('Checked NeoForge consumer manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.20.2'
+            || manifest.artifact_count != 85 || manifest.files.size() != 85) {
+        throw new GradleException('Checked NeoForge consumer selection changed')
+    }
+    if (sha256(projection.resolve('sfm-toolchain.lock.json').toFile()) != manifest.selected_lock_sha256
+            || sha256(checkout.resolve('sfm-toolchain-data/minecraft-toolchain/minecraft/versions/1.20.2/version.json').toFile()) != manifest.minecraft_version_sha256
+            || sha256(checkout.resolve('sfm-toolchain-data/minecraft-toolchain/maven/net/neoforged/neoforge/20.2.86/neoforge-20.2.86.pom').toFile()) != manifest.neoforge_pom_sha256) {
+        throw new GradleException('Checked NeoForge consumer input recipe changed')
+    }
+    def cache = checkout.resolve('sfm-toolchain-data').toRealPath()
+    def repositories = [
+            locked_maven: cache.resolve('minecraft-toolchain/maven').toRealPath(),
+            minecraft_libraries: cache.resolve('minecraft-toolchain/minecraft/libraries').toRealPath()]
+    def selected = [:].withDefault { new LinkedHashSet<List<String>>() }
+    def seen = new HashSet<String>()
+    manifest.files.each { item ->
+        def coord = item.coordinate.toString()
+        if (!seen.add(coord)) throw new GradleException('Duplicate checked NeoForge coordinate')
+        def parts = coord.split(':')
+        if (!(parts.size() in [3, 4]) || !repositories.containsKey(item.repository.toString())) {
+            throw new GradleException('Invalid checked NeoForge coordinate or repository')
+        }
+        def path = item.path.toString()
+        def expected = parts[0].replace('.', '/') + '/' + parts[1] + '/' + parts[2] + '/' + parts[1] + '-' + parts[2] + (parts.size() == 4 ? '-' + parts[3] : '') + '.jar'
+        if (path != expected) throw new GradleException('Checked NeoForge Maven path differs')
+        def root = repositories[item.repository.toString()]
+        def file = root.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(root) || file.length() != item.bytes
+                || sha256(file) != item.sha256.toString().toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked NeoForge consumer bytes changed: ${coord}")
+        }
+        selected[item.repository.toString()].add([parts[0], parts[1], parts[2]])
+    }
+    repositories.each { repoKey, root ->
+        project.repositories.maven {
+            name = 'SfmCheckedNeoForge20286_' + repoKey
+            url = root.toUri()
+            content {
+                selected[repoKey].each { part -> includeVersion(part[0], part[1], part[2]) }
+            }
+            metadataSources { artifact() }
+        }
+    }
+    println "SFM_CHECKED_NEOFORGE20286_CONSUMER\t${manifest.files.size()}\t${selected.locked_maven.size()}\t${selected.minecraft_libraries.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-neoform-1202-metadata.json').toFile()
+    if (sha256(manifestFile) != '5AF6C6232E390D49E3FF276347E9E6DEE7A47143AE7329AF269DAC7BFB040C34') {
+        throw new GradleException('Checked historical NeoForm manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifact_count != 2 || manifest.artifacts.size() != 2
+            || manifest.repository_path != 'minecraft-toolchain/maven') {
+        throw new GradleException('Checked historical NeoForm selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    def expected = ['net.neoforged:neoform:1.20.2-20231019.002635@pom',
+                    'net.neoforged:neoform:1.20.2-20231019.002635@zip'] as Set
+    def actual = manifest.artifacts.collect { it.coordinate.toString() } as Set
+    if (actual != expected) throw new GradleException('Checked historical NeoForm coordinate changed')
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked NeoForm path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local) || file.length() != item.bytes
+                || sha256(file) != item.sha256.toString().toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked historical NeoForm input changed: ${item.coordinate}")
+        }
+    }
+    project.repositories.maven {
+        name = 'SfmCheckedHistoricalNeoForm1202'
+        url = local.toUri()
+        content { includeVersion('net.neoforged', 'neoform', '1.20.2-20231019.002635') }
+        metadataSources { mavenPom() }
+    }
+    println "SFM_CHECKED_NEOFORM1202\t${local}\t${manifest.artifacts.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def manifestFile = checkout.resolve('platform/minecraft/gradle/checked-historical-1202-userdev-inputs.json').toFile()
+    if (sha256(manifestFile) != 'EBD4D3380E98CAF2DB8AF5A727F5072082343A09DAFC2B2A0327C53D48851878') {
+        throw new GradleException('Checked historical userdev input manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.20.2'
+            || manifest.repository_path != 'minecraft-toolchain/maven'
+            || manifest.artifact_count != 18 || manifest.files.size() != 18
+            || sha256(projection.resolve('sfm-toolchain.lock.json').toFile()) != manifest.selected_lock_sha256
+            || sha256(checkout.resolve('platform/minecraft/gradle/checked-historical-1202-neoforge-inputs.json').toFile()) != manifest.direct_consumer_sha256
+            || sha256(checkout.resolve('sfm-toolchain-data/minecraft-toolchain/maven/net/neoforged/neoforge/20.2.86/neoforge-20.2.86-userdev.jar').toFile()) != manifest.userdev_jar_sha256) {
+        throw new GradleException('Checked historical userdev input identity changed')
+    }
+    def root = checkout.resolve('sfm-toolchain-data').toRealPath().resolve(manifest.repository_path).toRealPath()
+    def versions = new LinkedHashSet<List<String>>()
+    def seen = new HashSet<String>()
+    manifest.files.each { item ->
+        def coord = item.coordinate.toString()
+        if (!seen.add(coord) || item.repository != 'locked_maven') throw new GradleException('Duplicate or unexpected userdev coordinate')
+        def parts = coord.split(':')
+        if (!(parts.size() in [3, 4])) throw new GradleException('Bad userdev coordinate')
+        def expected = parts[0].replace('.', '/') + '/' + parts[1] + '/' + parts[2] + '/' + parts[1] + '-' + parts[2] + (parts.size() == 4 ? '-' + parts[3] : '') + '.jar'
+        if (item.path != expected) throw new GradleException('Checked userdev Maven path changed')
+        def file = root.resolve(expected).toFile()
+        if (!file.canonicalFile.toPath().startsWith(root) || file.length() != item.bytes
+                || sha256(file) != item.sha256.toString().toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked historical userdev input changed: ${coord}")
+        }
+        versions.add([parts[0], parts[1], parts[2]])
+    }
+    project.repositories.maven {
+        name = 'SfmCheckedHistoricalUserdev1202'
+        url = root.toUri()
+        content { versions.each { part -> includeVersion(part[0], part[1], part[2]) } }
+        metadataSources { artifact() }
+    }
+    println "SFM_CHECKED_HISTORICAL_USERDEV1202\t${root}\t${manifest.files.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def manifestFile = checkout.resolve('platform/minecraft/gradle/checked-historical-1202-neoform-tools.json').toFile()
+    if (sha256(manifestFile) != 'FDDBA754770C84B4C75176D09339CFD092C7A3A70846F4F92D8DC3ED6B127492') {
+        throw new GradleException('Checked historical NeoForm tools manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    def cache = checkout.resolve('sfm-toolchain-data').toRealPath()
+    def root = cache.resolve('minecraft-toolchain/maven').toRealPath()
+    def zip = root.resolve('net/neoforged/neoform/1.20.2-20231019.002635/neoform-1.20.2-20231019.002635.zip').toFile()
+    def supplement = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json').toFile()
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.20.2'
+            || manifest.repository_path != 'minecraft-toolchain/maven'
+            || manifest.artifact_count != 4 || manifest.files.size() != 4
+            || sha256(zip) != manifest.neoform_zip_sha256
+            || sha256(supplement) != manifest.tracked_child_supplement_sha256) {
+        throw new GradleException('Checked historical NeoForm producer recipe changed')
+    }
+    def zipReader = new java.util.zip.ZipFile(zip)
+    try {
+        def configEntry = zipReader.getEntry('config.json')
+        if (configEntry == null) throw new GradleException('NeoForm producer config is missing')
+        def configDigest = MessageDigest.getInstance('SHA-256')
+        zipReader.getInputStream(configEntry).withCloseable { input ->
+            def buffer = new byte[65536]
+            int count
+            while ((count = input.read(buffer)) != -1) configDigest.update(buffer, 0, count)
+        }
+        if (configDigest.digest().encodeHex().toString().toUpperCase(Locale.ROOT) != manifest.neoform_config_sha256) {
+            throw new GradleException('NeoForm producer config changed')
+        }
+    } finally { zipReader.close() }
+    def versions = new LinkedHashSet<List<String>>()
+    def seen = new HashSet<String>()
+    manifest.files.each { item ->
+        def coordinate = item.coordinate.toString()
+        def parts = coordinate.split(':')
+        if (!seen.add(coordinate) || !(parts.size() in [3, 4])) {
+            throw new GradleException('Invalid historical NeoForm tool coordinate')
+        }
+        def expected = parts[0].replace('.', '/') + '/' + parts[1] + '/' + parts[2] + '/' + parts[1] + '-' + parts[2] + (parts.size() == 4 ? '-' + parts[3] : '') + '.jar'
+        if (item.path != expected) throw new GradleException('Historical NeoForm tool Maven path changed')
+        def file = root.resolve(expected).toFile()
+        if (!file.canonicalFile.toPath().startsWith(root) || file.length() != item.bytes
+                || sha256(file) != item.sha256.toString().toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked historical NeoForm tool changed: ${coordinate}")
+        }
+        versions.add([parts[0], parts[1], parts[2]])
+    }
+    project.repositories.maven {
+        name = 'SfmCheckedHistoricalNeoFormTools1202'
+        url = root.toUri()
+        content { versions.each { part -> includeVersion(part[0], part[1], part[2]) } }
+        metadataSources { artifact() }
+    }
+    println "SFM_CHECKED_HISTORICAL_NEOFORM_TOOLS1202\t${root}\t${manifest.files.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def manifestFile = checkout.resolve('platform/minecraft/gradle/checked-historical-1202-at804-input.json').toFile()
+    if (sha256(manifestFile) != 'B2816C81E2CA8031E274C2DCF4D2DCD28C2657625B475A1262FDA5F83B01A964') {
+        throw new GradleException('Checked historical AT selector manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    def lock = checkout.resolve('platform/minecraft/sfm-toolchain.lock.json').toFile()
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.20.2'
+            || manifest.requested_selector != 'net.minecraftforge:accesstransformers:8.0.+'
+            || manifest.selected_coordinate != 'net.minecraftforge:accesstransformers:8.0.4'
+            || manifest.repository_path != 'minecraft-toolchain/maven'
+            || manifest.path != 'net/minecraftforge/accesstransformers/8.0.4/accesstransformers-8.0.4.jar'
+            || sha256(lock) != manifest.root_lock_sha256) {
+        throw new GradleException('Checked historical AT selector or root lock changed')
+    }
+    def root = checkout.resolve('sfm-toolchain-data').toRealPath().resolve(manifest.repository_path).toRealPath()
+    def file = root.resolve(manifest.path).toFile()
+    if (!file.canonicalFile.toPath().startsWith(root) || file.length() != manifest.bytes
+            || sha256(file) != manifest.sha256.toString().toUpperCase(Locale.ROOT)) {
+        throw new GradleException('Checked historical AT payload changed')
+    }
+    project.repositories.maven {
+        name = 'SfmCheckedHistoricalAT804'
+        url = root.toUri()
+        content { includeVersion('net.minecraftforge', 'accesstransformers', '8.0.4') }
+        metadataSources { artifact() }
+    }
+    project.configurations.configureEach { configuration ->
+        configuration.resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'net.minecraftforge'
+                    && details.requested.name == 'accesstransformers'
+                    && details.requested.version == '8.0.+') {
+                details.useVersion('8.0.4')
+                details.because('Exact 8.0.4 bytes are pinned by the existing SFM toolchain lock')
+            }
+        }
+    }
+    println "SFM_CHECKED_HISTORICAL_AT804\t${root}\t8.0.4"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def manifestFile = checkout.resolve('platform/minecraft/gradle/checked-historical-1202-antlr-inputs.json').toFile()
+    if (sha256(manifestFile) != '0BB7273988B27078F5B0BD383666CDF0ABADC855971F343EF290B02870881928') {
+        throw new GradleException('Checked historical ANTLR input manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    def metadataCatalog = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-project-bootstrap-26.1.2.json').toFile()
+    def jarCatalog = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-project-jars-26.1.2.json').toFile()
+    def parentCatalog = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-plugin-bootstrap-26.1.2.json').toFile()
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.20.2'
+            || manifest.repository_path != 'gradle/bootstrap-maven/26.1.2'
+            || manifest.artifact_count != 9 || manifest.files.size() != 9
+            || sha256(projection.resolve('sfm-toolchain.lock.json').toFile()) != manifest.selected_lock_sha256
+            || sha256(metadataCatalog) != manifest.metadata_supplement_sha256
+            || sha256(jarCatalog) != manifest.jar_supplement_sha256
+            || sha256(parentCatalog) != manifest.parent_metadata_supplement_sha256) {
+        throw new GradleException('Checked historical ANTLR recipe changed')
+    }
+    def root = checkout.resolve('sfm-toolchain-data').toRealPath().resolve(manifest.repository_path).toRealPath()
+    def versions = new LinkedHashSet<List<String>>()
+    def seen = new HashSet<String>()
+    manifest.files.each { item ->
+        def coordinate = item.coordinate.toString()
+        def parts = coordinate.split(':')
+        if (parts.size() != 3 || !(item.kind in ['pom', 'jar'])
+                || !seen.add(coordinate + ':' + item.kind)) throw new GradleException('Invalid checked ANTLR coordinate')
+        def expected = parts[0].replace('.', '/') + '/' + parts[1] + '/' + parts[2] + '/' + parts[1] + '-' + parts[2] + '.' + item.kind
+        if (item.path != expected) throw new GradleException('Checked ANTLR path changed')
+        def file = root.resolve(expected).toFile()
+        if (!file.canonicalFile.toPath().startsWith(root) || file.length() != item.bytes
+                || sha256(file) != item.sha256.toString().toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked historical ANTLR input changed: ${coordinate} ${item.kind}")
+        }
+        versions.add([parts[0], parts[1], parts[2]])
+    }
+    project.repositories.maven {
+        name = 'SfmCheckedHistoricalANTLR1202'
+        url = root.toUri()
+        content { versions.each { part -> includeVersion(part[0], part[1], part[2]) } }
+        metadataSources { mavenPom(); artifact() }
+    }
+    println "SFM_CHECKED_HISTORICAL_ANTLR1202\t${root}\t${manifest.files.size()}"
+}
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def checkout = project.projectDir.toPath().toAbsolutePath().normalize().resolve('../../../../../').normalize()
+    def manifestFile = checkout.resolve('platform/minecraft/gradle/checked-historical-1202-libraries.json').toFile()
+    if (sha256(manifestFile) != '8BD5CE04FA3820B964AF37E2AEA155D167A68A2958BADC6EF6BEBA73BC13FAE3') {
+        throw new GradleException('Checked historical Minecraft libraries changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    def lockFile = checkout.resolve('platform/minecraft/projections/sfm-4.35.0/mc-1.20.2/sfm-toolchain.lock.json').toFile()
+    def cache = checkout.resolve('sfm-toolchain-data').toRealPath()
+    def versionFile = cache.resolve('minecraft-toolchain/minecraft/versions/1.20.2/version.json').toFile()
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.20.2'
+            || manifest.file_count != 88 || manifest.files.size() != 88
+            || manifest.source_root != 'minecraft-toolchain/minecraft/libraries'
+            || manifest.gradle_root != 'caches/minecraft/libraries'
+            || sha256(lockFile) != manifest.selected_lock_sha256
+            || sha256(versionFile) != manifest.version_json_sha256) {
+        throw new GradleException('Checked historical library recipe changed')
+    }
+    def metadata = new JsonSlurper().parse(versionFile)
+    def official = new LinkedHashMap<String, Map>()
+    metadata.libraries.each { lib ->
+        def downloads = []
+        if (lib.downloads.artifact) downloads.add(lib.downloads.artifact)
+        if (lib.downloads.classifiers) downloads.addAll(lib.downloads.classifiers.values())
+        downloads.each { item ->
+            if (official.put(item.path.toString(), [coordinate:lib.name.toString(), bytes:item.size,
+                    sha1:item.sha1.toString().toUpperCase(Locale.ROOT), url:item.url.toString()]) != null) {
+                throw new GradleException('Duplicate official Minecraft library path')
+            }
+        }
+    }
+    if (official.size() != 88) throw new GradleException('Official Minecraft library set changed')
+    def root = cache.resolve(manifest.source_root).toRealPath()
+    def versions = new LinkedHashSet<List<String>>()
+    manifest.files.each { item ->
+        def path = item.path.toString()
+        def pin = official.remove(path)
+        def parts = item.coordinate.toString().split(':')
+        if (!pin || !(parts.size() in [3, 4]) || pin.coordinate != item.coordinate
+                || pin.bytes != item.bytes || pin.sha1 != item.sha1 || pin.url != item.url
+                || item.url != 'https://libraries.minecraft.net/' + path) {
+            throw new GradleException('Checked historical Minecraft library differs from official version metadata')
+        }
+        def expected = parts[0].replace('.', '/') + '/' + parts[1] + '/' + parts[2] + '/' + parts[1] + '-' + parts[2] + (parts.size() == 4 ? '-' + parts[3] : '') + '.jar'
+        if (path != expected) throw new GradleException('Minecraft library Maven path changed')
+        def file = root.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(root) || file.length() != item.bytes
+                || sha256(file) != item.sha256.toString().toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked historical Minecraft library payload changed: ${path}")
+        }
+        versions.add([parts[0], parts[1], parts[2]])
+    }
+    if (!official.isEmpty()) throw new GradleException('Unchecked Minecraft library remains')
+    def checkedLibraryRepository = project.repositories.maven {
+        name = 'SfmCheckedHistoricalMinecraftLibraries1202'
+        url = root.toUri()
+        metadataSources { artifact() }
+    }
+    project.repositories.exclusiveContent {
+        forRepositories(checkedLibraryRepository)
+        filter { versions.each { part -> includeVersion(part[0], part[1], part[2]) } }
+    }
+    println "SFM_CHECKED_HISTORICAL_GAME_LIBRARIES1202\t${root}\t${manifest.files.size()}"
+}

@@ -1,0 +1,60 @@
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+
+def expectedManifest = 'DA290769492149E9F70221A51D0FD1790E72ADB4ACEA309470C83F237482E6D2'
+def sha256 = { File file ->
+    if (!file.isFile()) throw new GradleException("Missing checked Foojay input: ${file}")
+    def digest = MessageDigest.getInstance('SHA-256')
+    file.withInputStream { input ->
+        def buffer = new byte[65536]
+        int count
+        while ((count = input.read(buffer)) != -1) digest.update(buffer, 0, count)
+    }
+    digest.digest().encodeHex().toString().toUpperCase(Locale.ROOT)
+}
+
+gradle.beforeSettings { settings ->
+    def projection = settings.settingsDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    if (projection.fileName.toString() != 'mc-1.20.2'
+            || projection.parent.fileName.toString() != 'sfm-4.35.0'
+            || projection.parent.parent != checkout.resolve('platform/minecraft/projections')
+            || !checkout.resolve('.git').toFile().exists()) {
+        throw new GradleException('Checked Foojay probe requires the selected repository projection')
+    }
+    def cache = checkout.resolve('sfm-toolchain-data')
+    def markerFile = cache.resolve('.sfm-native-cache-root.json').toFile()
+    def markerExpected = ('["sfm:native_cache_root@1",'
+            + JsonOutput.toJson(cache.toString()) + ']').getBytes('UTF-8')
+    if (!markerFile.isFile() || !java.util.Arrays.equals(markerFile.bytes, markerExpected)) {
+        throw new GradleException('Checked Foojay cache marker mismatch')
+    }
+    def manifestFile = checkout.resolve('platform/minecraft/core-liquid-template/build/supplements/gradle-historical-foojay-050-inputs.json').toFile()
+    if (sha256(manifestFile) != expectedManifest) {
+        throw new GradleException('Checked Foojay manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.artifacts.size() != 8
+            || manifest.repository_path != 'gradle/bootstrap-maven/historical-foojay-0.5.0') {
+        throw new GradleException('Checked Foojay manifest selection changed')
+    }
+    def local = cache.resolve(manifest.repository_path).toRealPath()
+    manifest.artifacts.each { item ->
+        def path = item.path.toString()
+        if (!path.matches('[A-Za-z0-9._/-]+') || path.split('/').any { it in ['', '.', '..'] }) {
+            throw new GradleException('Unsafe checked Foojay path')
+        }
+        def file = local.resolve(path).toFile()
+        if (!file.canonicalFile.toPath().startsWith(local)
+                || file.length() != item.bytes || sha256(file) != item.sha256.toUpperCase(Locale.ROOT)) {
+            throw new GradleException("Checked Foojay input changed: ${item.coordinate}")
+        }
+    }
+    settings.pluginManagement.repositories.maven {
+        name = 'SfmCheckedFoojay050'
+        url = local.toUri()
+        metadataSources { mavenPom(); gradleMetadata() }
+    }
+    println "SFM_CHECKED_FOOJAY050\t${local}\t${manifest.artifacts.size()}"
+}
