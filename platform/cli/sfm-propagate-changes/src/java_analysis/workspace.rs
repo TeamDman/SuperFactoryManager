@@ -1478,6 +1478,7 @@ mod tests {
         let sdk_zip = fixture_zip(&[
             (sdk_java.as_str(), b"java"),
             (sdk_javac.as_str(), b"javac"),
+            ("sdk/lib/modules", b"modules"),
             ("sdk/lib/src.zip", source_zip.as_slice()),
         ]);
         let digest = format!("{:x}", Sha512::digest(&sdk_zip));

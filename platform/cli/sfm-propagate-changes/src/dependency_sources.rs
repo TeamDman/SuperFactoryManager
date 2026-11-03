@@ -772,7 +772,7 @@ mod tests {
         let acquired_cache = tempfile::tempdir().expect("acquired cache");
         let mut acquired = fixture(CacheHome(acquired_cache.path().to_path_buf()));
         set_git_providers(&mut acquired, &["first"]);
-        materialize_git_provider(&acquired, "first");
+        materialize_git_provider(&mut acquired, "first");
         let acquired_preflight = cc_preflight(&acquired);
         assert_eq!(
             acquired_preflight.components[0].status,
@@ -802,7 +802,7 @@ mod tests {
         let partial_cache = tempfile::tempdir().expect("partial cache");
         let mut partial = fixture(CacheHome(partial_cache.path().to_path_buf()));
         set_git_providers(&mut partial, &["first", "second"]);
-        materialize_git_provider(&partial, "first");
+        materialize_git_provider(&mut partial, "first");
         let partial_preflight = cc_preflight(&partial);
         assert_eq!(
             partial_preflight.components[0].status,
@@ -817,7 +817,7 @@ mod tests {
         let cache = tempfile::tempdir().expect("temporary cache");
         let mut inventory = fixture(CacheHome(cache.path().to_path_buf()));
         set_git_providers(&mut inventory, &["first", "second"]);
-        materialize_git_provider(&inventory, "second");
+        materialize_git_provider(&mut inventory, "second");
         let filter = SourceProviderFilter::default();
         let component = cc_component(&inventory);
 
@@ -1108,25 +1108,71 @@ mod tests {
             .collect();
     }
 
-    fn materialize_git_provider(inventory: &DependencyInventory, id: &str) {
+    fn materialize_git_provider(inventory: &mut DependencyInventory, id: &str) {
+        use gix::objs::tree::EntryKind;
+
         let provider = cc_component(inventory)
             .source_providers
             .iter()
             .find(|provider| provider_id(provider) == id)
-            .expect("Git provider");
+            .expect("Git provider")
+            .clone();
         let SourceProviderV3::Git(provider) = provider else {
             panic!("expected Git provider");
         };
-        std::fs::create_dir_all(
-            inventory.local_path(&provider.derived_checks.repository_cache_path),
-        )
-        .expect("repository cache");
-        std::fs::create_dir_all(
-            inventory
-                .local_path(&provider.derived_checks.tree_cache_path)
-                .join("src/main/java"),
-        )
-        .expect("source root");
+        let repository_path = inventory.local_path(&provider.derived_checks.repository_cache_path);
+        let tree_path = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        std::fs::create_dir_all(repository_path.parent().expect("repository parent"))
+            .expect("repository cache parent");
+        let repository = gix::init_bare(&repository_path).expect("synthetic Git repository");
+        let source = b"package example; class Example {}\n";
+        let blob = repository.write_blob(source).expect("source blob").detach();
+        let mut tree = repository
+            .write_object(gix::objs::Tree {
+                entries: vec![gix::objs::tree::Entry {
+                    mode: EntryKind::Blob.into(),
+                    filename: "Example.java".into(),
+                    oid: blob,
+                }],
+            })
+            .expect("source tree")
+            .detach();
+        for segment in ["java", "main", "src"] {
+            tree = repository
+                .write_object(gix::objs::Tree {
+                    entries: vec![gix::objs::tree::Entry {
+                        mode: EntryKind::Tree.into(),
+                        filename: segment.into(),
+                        oid: tree,
+                    }],
+                })
+                .expect("parent tree")
+                .detach();
+        }
+        let commit_bytes = format!(
+            "tree {tree}\nauthor Test <test@example.invalid> 1 +0000\ncommitter Test <test@example.invalid> 1 +0000\n\nsource\n"
+        );
+        let commit = repository
+            .write_object(
+                gix::objs::CommitRef::from_bytes(commit_bytes.as_bytes(), repository.object_hash())
+                    .expect("synthetic commit"),
+            )
+            .expect("commit object")
+            .detach()
+            .to_string();
+        let SourceProviderV3::Git(selected) = cc_component_mut(inventory)
+            .source_providers
+            .iter_mut()
+            .find(|candidate| provider_id(candidate) == id)
+            .expect("selected Git provider")
+        else {
+            panic!("expected Git provider");
+        };
+        selected.derived_checks.commit = commit.clone();
+        let source_root = tree_path.join("src/main/java");
+        std::fs::create_dir_all(&source_root).expect("source root");
+        std::fs::write(source_root.join("Example.java"), source).expect("source file");
+        std::fs::write(tree_path.join(".sfm-git-commit"), commit).expect("completion marker");
     }
 
     fn set_stale_maven_provider(inventory: &mut DependencyInventory) {
