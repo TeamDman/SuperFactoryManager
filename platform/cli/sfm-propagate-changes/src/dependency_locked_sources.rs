@@ -192,7 +192,9 @@ pub(crate) fn append_locked_artifact_source_preflight(
             priority: 0,
             status,
             searchable_roots: searchable_roots.clone(),
-            unavailable_reason: locked_artifact_unavailable_reason(inventory, source),
+            unavailable_reason: (status != SourceStatus::Acquired)
+                .then(|| locked_artifact_unavailable_reason(inventory, source))
+                .flatten(),
         };
         let target = source.target();
         if status == SourceStatus::Acquired {

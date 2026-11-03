@@ -179,21 +179,7 @@ impl DependencyInventory {
             .enumerate()
             .map(|(priority, provider)| SourceProviderView::new(self, provider, priority).status())
             .collect();
-        if statuses.contains(&SourceStatus::Stale) {
-            SourceStatus::Stale
-        } else if statuses
-            .iter()
-            .all(|status| *status == SourceStatus::Acquired)
-        {
-            SourceStatus::Acquired
-        } else if statuses
-            .iter()
-            .all(|status| *status == SourceStatus::Missing)
-        {
-            SourceStatus::Missing
-        } else {
-            SourceStatus::Partial
-        }
+        SourceStatus::from_provider_statuses(&statuses)
     }
 
     pub fn source_providers<'a>(
@@ -263,6 +249,21 @@ pub(crate) enum SourceStatus {
 }
 
 impl SourceStatus {
+    #[must_use]
+    pub(crate) fn from_provider_statuses(statuses: &[Self]) -> Self {
+        if statuses.is_empty() {
+            Self::NoneDeclared
+        } else if statuses.contains(&Self::Stale) {
+            Self::Stale
+        } else if statuses.iter().all(|status| *status == Self::Acquired) {
+            Self::Acquired
+        } else if statuses.iter().all(|status| *status == Self::Missing) {
+            Self::Missing
+        } else {
+            Self::Partial
+        }
+    }
+
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {

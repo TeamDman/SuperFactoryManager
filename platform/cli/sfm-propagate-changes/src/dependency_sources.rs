@@ -153,14 +153,17 @@ pub(crate) struct SourceProviderPreflight {
 }
 
 impl SourceProviderPreflight {
-    fn from_view(view: SourceProviderView<'_>) -> Self {
+    fn from_view(view: SourceProviderView<'_>, status: SourceStatus) -> Self {
         Self {
             id: view.id().to_owned(),
             kind: view.kind(),
             priority: view.priority(),
-            status: view.status(),
+            status,
             searchable_roots: view.searchable_roots(),
-            unavailable_reason: view.unavailable_reason().map(ToOwned::to_owned),
+            unavailable_reason: (status != SourceStatus::Acquired)
+                .then(|| view.unavailable_reason())
+                .flatten()
+                .map(ToOwned::to_owned),
         }
     }
 }
@@ -210,8 +213,10 @@ pub(crate) fn preflight_sources(
         }
         for component in &dependency.components {
             let target = format!("{}/{}", dependency.id, component.id);
-            let matching = inventory
-                .source_providers(component)
+            let declared = inventory.source_providers(component).collect::<Vec<_>>();
+            let matching = declared
+                .iter()
+                .copied()
                 .filter(|view| filter.matches(view.definition()))
                 .collect::<Vec<_>>();
             if matching.is_empty() {
@@ -233,10 +238,17 @@ pub(crate) fn preflight_sources(
                 continue;
             }
 
+            // Evaluate each declared provider once. A managed source status can
+            // authenticate a large archive or complete tree, so recomputing it
+            // for preferred/selected/component views dominates a warm preflight.
+            let statuses = declared
+                .iter()
+                .map(|view| view.status())
+                .collect::<Vec<_>>();
             let preferred_provider = matching
                 .first()
                 .copied()
-                .map(SourceProviderPreflight::from_view);
+                .map(|view| SourceProviderPreflight::from_view(view, statuses[view.priority()]));
             let selected = match selection {
                 SourceProviderSelection::AllMatching => matching.as_slice(),
                 SourceProviderSelection::PreferredMatching => &matching[..1],
@@ -244,7 +256,7 @@ pub(crate) fn preflight_sources(
             let providers = selected
                 .iter()
                 .copied()
-                .map(SourceProviderPreflight::from_view)
+                .map(|view| SourceProviderPreflight::from_view(view, statuses[view.priority()]))
                 .collect::<Vec<_>>();
             for provider in &providers {
                 if provider.status == SourceStatus::Acquired {
@@ -268,7 +280,7 @@ pub(crate) fn preflight_sources(
             }
             result.components.push(SourceComponentPreflight {
                 target,
-                status: inventory.source_status(component),
+                status: SourceStatus::from_provider_statuses(&statuses),
                 preferred_provider,
                 providers,
             });

@@ -360,6 +360,7 @@ impl SymbolIndexRefreshArgs {
         enforce_refresh_parent_memory_limit()?;
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
+        let mut stage_started = Instant::now();
         let resolved = resolve_selected_index_context(
             self.branch.as_ref(),
             self.project_root.as_deref(),
@@ -371,10 +372,13 @@ impl SymbolIndexRefreshArgs {
             .branch
             .clone()
             .unwrap_or_else(|| BranchSelector(resolved.inventory.target.branch.0.clone()));
+        record_index_refresh_stage("resolve_context", &mut stage_started);
         acquire_locked_index_artifact_sources(&resolved, cancellation_token)?;
+        record_index_refresh_stage("acquire_locked_artifacts", &mut stage_started);
         let filter = SourceProviderFilter::default();
         let mut preflight =
             materialize_classfile_stub_source(&resolved, &filter, cancellation_token)?;
+        record_index_refresh_stage("prepare_classfile_stubs", &mut stage_started);
         let missing_targets = preflight
             .missing
             .iter()
@@ -404,9 +408,11 @@ impl SymbolIndexRefreshArgs {
             preflight = preflight_resolved_index_sources(&resolved, &filter)?;
         }
 
+        record_index_refresh_stage("acquire_declared_sources", &mut stage_started);
         cancellation_token.bail_if_cancelled()?;
         let mut held_platform_roots = hold_platform_source_roots(&preflight)?;
         held_platform_roots.recheck()?;
+        record_index_refresh_stage("hold_platform_roots", &mut stage_started);
         let completeness = if preflight.missing.is_empty() {
             DependencySymbolIndexCompleteness::Complete
         } else {
@@ -414,16 +420,19 @@ impl SymbolIndexRefreshArgs {
         };
         let selected_source_inputs = source_inputs(&resolved.identity, &preflight)?;
         if managed_source_roots(&preflight, &cache_home) && !self.rebuild {
-            if let Some((manifest, probe)) = resolved.store.reusable_completed(
+            let reusable = resolved.store.reusable_completed(
                 &resolved.identity,
                 &selected_source_inputs,
                 completeness,
                 cancellation_token,
-            )? {
+            )?;
+            record_index_refresh_stage("managed_receipt_lookup", &mut stage_started);
+            if let Some((manifest, probe)) = reusable {
                 cancellation_token.bail_if_cancelled()?;
                 held_platform_roots.recheck()?;
                 let current = preflight_resolved_index_sources(&resolved, &filter)?;
                 ensure_platform_sources_unchanged(&preflight, &current)?;
+                record_index_refresh_stage("recheck_reused_sources", &mut stage_started);
                 let output = status_output(
                     "refresh",
                     &branch,
@@ -514,12 +523,23 @@ impl SymbolIndexRefreshArgs {
     }
 }
 
+fn record_index_refresh_stage(stage: &'static str, started: &mut Instant) {
+    tracing::info!(
+        stage,
+        elapsed_ms = started.elapsed().as_millis(),
+        "dependency index refresh stage"
+    );
+    *started = Instant::now();
+}
+
 fn materialize_classfile_stub_source(
     resolved: &ResolvedIndexContext,
     filter: &SourceProviderFilter,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<SourcePreflight> {
+    let mut stage_started = Instant::now();
     let preflight = preflight_resolved_index_sources(resolved, filter)?;
+    record_index_refresh_stage("initial_source_preflight", &mut stage_started);
     let classfile_stubs = materialize_locked_minecraft_classfile_stubs(
         &resolved.inventory,
         &resolved.minecraft_classfile_stub_source,
@@ -527,6 +547,7 @@ fn materialize_classfile_stub_source(
         cancellation_token,
         &http_fetcher()?,
     )?;
+    record_index_refresh_stage("materialize_or_reuse_stubs", &mut stage_started);
     tracing::info!(
         libraries = classfile_stubs.libraries,
         types = classfile_stubs.types,
@@ -534,7 +555,9 @@ fn materialize_classfile_stub_source(
         reused = classfile_stubs.reused,
         "materialized locked Minecraft classfile type stubs"
     );
-    preflight_resolved_index_sources(resolved, filter)
+    let current = preflight_resolved_index_sources(resolved, filter)?;
+    record_index_refresh_stage("post_stub_source_preflight", &mut stage_started);
+    Ok(current)
 }
 
 fn apply_portable_origins(
