@@ -400,7 +400,7 @@ fn select_validated_core_inputs(
 
 /// Read only selected core-owned inputs and produce ordinary project artifacts.
 /// Every Java output receives the established generated banner. Exact-copy
-/// assets and wrappers preserve bytes; opted-in non-Java text is rendered.
+/// assets preserve bytes; locked Gradle wrappers receive a checked Java bootstrap.
 ///
 /// # Errors
 ///
@@ -692,6 +692,12 @@ pub(super) fn render_core_input_with(
             artifact.output_bytes.extend_from_slice(rendered.as_bytes());
         }
     }
+    if output == "gradlew.bat"
+        && context.features.get("locked_dependency_projection") == Some(&true)
+        && selected.input.starts_with("build/versions/")
+    {
+        artifact.output_bytes = pinned_gradle_wrapper(&artifact.source_bytes)?;
+    }
     if java || selected.template {
         let source = std::str::from_utf8(&artifact.source_bytes)?.trim_start_matches('\u{feff}');
         artifact.related_references = Some(super::reference_annotations::associations(
@@ -702,6 +708,25 @@ pub(super) fn render_core_input_with(
         )?);
     }
     Ok(artifact)
+}
+
+fn pinned_gradle_wrapper(source: &[u8]) -> Result<Vec<u8>> {
+    const ANCHOR: &str = "@rem Find java.exe";
+    const BOOTSTRAP: &str = "@rem Select the exact lock-pinned JBRSDK from the guarded checkout cache.\n@rem This setlocal scope does not change the user environment.\nset \"JAVA_HOME=\"\nwhere pwsh.exe >NUL 2>&1\nif %ERRORLEVEL% neq 0 (\n  echo ERROR: PowerShell 7 ^(pwsh.exe^) is required to verify the pinned SFM JBRSDK. 1>&2\n  goto fail\n)\nfor /f \"usebackq delims=\" %%i in (`pwsh.exe -NoProfile -File \"%APP_HOME%\\gradle\\sfm-pinned-jbr.ps1\"`) do set \"JAVA_HOME=%%i\"\nif not defined JAVA_HOME (\n  echo ERROR: SFM could not verify the pinned JBRSDK for this projection. 1>&2\n  goto fail\n)\n";
+    let source = std::str::from_utf8(source).wrap_err("Gradle wrapper is not UTF-8")?;
+    ensure!(
+        source.matches(ANCHOR).count() == 1 && !source.contains("sfm-pinned-jbr.ps1"),
+        "locked Gradle wrapper has an unexpected Java launcher shape"
+    );
+    let newline = if source.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let insertion = BOOTSTRAP.replace('\n', newline);
+    Ok(source
+        .replacen(ANCHOR, &format!("{insertion}{ANCHOR}"), 1)
+        .into_bytes())
 }
 
 #[cfg(test)]
@@ -1681,6 +1706,53 @@ pub(super) mod tests {
             files["plain.txt"].source_bytes
         );
         assert_eq!(files["rendered.txt"].output_bytes, b"literal text\n");
+    }
+
+    #[test]
+    fn locked_wrapper_selects_pinned_java_without_changing_plain_bytes() {
+        let selected = SelectedCoreInput {
+            reference_template: None,
+            input: "build/versions/1.21.1/gradlew.bat".to_owned(),
+            template: false,
+        };
+        let source = b"@echo off\r\n@rem Find java.exe\r\nset JAVA_EXE=java.exe\r\n".to_vec();
+        let plain = render_core_input(
+            "gradlew.bat",
+            &selected,
+            source.clone(),
+            &context("1.21.1", false),
+        )
+        .unwrap();
+        assert_eq!(plain.output_bytes, source);
+        let mut locked_context = context("1.21.1", false);
+        locked_context
+            .features
+            .insert("locked_dependency_projection".to_owned(), true);
+        let locked =
+            render_core_input("gradlew.bat", &selected, source.clone(), &locked_context).unwrap();
+        assert_eq!(locked.source_bytes, source);
+        assert!(
+            std::str::from_utf8(&locked.output_bytes)
+                .unwrap()
+                .contains("pwsh.exe -NoProfile -File")
+        );
+        assert!(locked.output_bytes.windows(2).any(|pair| pair == b"\r\n"));
+        assert!(
+            render_core_input(
+                "gradlew.bat",
+                &selected,
+                b"unexpected wrapper".to_vec(),
+                &locked_context
+            )
+            .is_err()
+        );
+        let old_overlay = SelectedCoreInput {
+            input: "build/features/locked_dependency_projection/1.19.2/gradlew.bat".to_owned(),
+            ..selected
+        };
+        let old = render_core_input("gradlew.bat", &old_overlay, source.clone(), &locked_context)
+            .unwrap();
+        assert_eq!(old.output_bytes, source);
     }
 
     #[test]

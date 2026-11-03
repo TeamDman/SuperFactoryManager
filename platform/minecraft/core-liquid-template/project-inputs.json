@@ -32483,7 +32483,7 @@
         "template": false
       }
     ],
-    "gradle/sfm-pinned-jbr.ps1": [{"input":"build/features/locked_dependency_projection/1.19.2/gradle/sfm-pinned-jbr.ps1","when":{"targets":["1.19.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false}],
+    "gradle/sfm-pinned-jbr.ps1": [{"input":"build/features/locked_dependency_projection/1.19.2/gradle/sfm-pinned-jbr.ps1","when":{"targets":["1.19.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/features/locked_dependency_projection/gradle/sfm-pinned-jbr.ps1","when":{"targets":["1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false}],
     "gradle/repositories.gradle": [{"input":"build/standard/gradle/repositories.gradle","when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/features/locked_dependency_projection/gradle/repositories.gradle","when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false}],
     "gradle/run-configurations/1.19.2/run-configurations.gradle": [
       {
