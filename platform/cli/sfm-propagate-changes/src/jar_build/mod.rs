@@ -23,6 +23,7 @@ mod game_puppet_preview_artifact_root;
 pub(crate) use game_puppet_preview_artifact_root::projection_preview_artifact_root;
 pub(crate) mod build_snapshot_receipt;
 mod derived_toolchain_cache;
+mod diagnostic_launch_gate;
 pub(crate) mod hash;
 mod java_max_heap_mib;
 mod json_branch_name;

@@ -25,6 +25,7 @@ pub struct RunOptions {
     pub client_title_screen: Option<ClientTitleScreen>,
     pub client_solo: bool,
     pub client_hotswap_port: Option<u16>,
+    pub diagnostic_launch_gate: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]

@@ -52,6 +52,9 @@ pub struct RunClientArgs {
     /// Exit when the title screen opens after confirming a healthy client boot.
     #[facet(default, args::named)]
     pub smoke: bool,
+    /// Diagnostic handshake directory; wait for an armed trace and release before spawning the smoke JVM.
+    #[facet(default, args::named)]
+    pub diagnostic_launch_gate: Option<PathBuf>,
     /// Run selected SFM game puppets. Supports unqualified names, `*`, `?`, and comma-separated selectors.
     #[facet(default, args::named)]
     pub puppet: Option<String>,
@@ -113,6 +116,7 @@ impl RunClientArgs {
             hotswap,
             hotswap_port,
             smoke,
+            diagnostic_launch_gate,
             puppet,
             game_test,
             width,
@@ -144,6 +148,10 @@ impl RunClientArgs {
         if smoke && puppet.is_some() {
             eyre::bail!("--smoke and --puppet cannot be used together.");
         }
+        eyre::ensure!(
+            diagnostic_launch_gate.is_none() || (smoke && !options.dry_run),
+            "--diagnostic-launch-gate requires --smoke without --dry-run"
+        );
         if let Some(puppet) = puppet {
             if text_editor || input_diag || title_screen.is_some() || solo {
                 eyre::bail!("--puppet cannot be combined with interactive client flags.");
@@ -182,6 +190,7 @@ impl RunClientArgs {
                     runtime_slot,
                     share_runtime,
                     client_solo: solo,
+                    diagnostic_launch_gate,
                     ..RunOptions::default()
                 },
                 cancellation_token,

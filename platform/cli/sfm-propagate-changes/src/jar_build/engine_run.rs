@@ -794,6 +794,11 @@ fn execute_run_with_context(
     mut build_holds: Option<&mut ForgeBuildHolds>,
 ) -> eyre::Result<()> {
     *owned_console_log = None;
+    eyre::ensure!(
+        run_options.diagnostic_launch_gate.is_none()
+            || (matches!(kind, RunKind::ClientSmoke) && !dry_run),
+        "diagnostic launch gate requires a live client smoke run"
+    );
     let run_started = Instant::now();
     let plan = context.plan;
     if matches!(kind, RunKind::GameTestPreview) && run_options.inspection_workspace.is_some() {
@@ -1353,6 +1358,7 @@ fn execute_run_with_context(
             &env,
             &launch_log,
             launch_timeout,
+            run_options.diagnostic_launch_gate.as_deref(),
         )
         .wrap_err_with(|| {
             format!(
@@ -3620,6 +3626,7 @@ fn run_launch_command(
     env: &BTreeMap<String, String>,
     log_path: &Path,
     timeout: Option<Duration>,
+    diagnostic_launch_gate: Option<&Path>,
 ) -> eyre::Result<LaunchOutput> {
     let plan = context.plan;
     let cancellation_token = &context.cancellation_token;
@@ -3631,9 +3638,31 @@ fn run_launch_command(
     }
     let output_mode = launch_output_mode();
     let launch_log = prepare_launch_log_file(output_mode, argfile, working_dir, log_path)?;
+    let gate = diagnostic_launch_gate
+        .map(|root| {
+            super::diagnostic_launch_gate::DiagnosticLaunchGate::ready(
+                root,
+                &session.receipt,
+                &plan.java.executable,
+                argfile,
+            )
+        })
+        .transpose()?;
+    if let Some(gate) = &gate {
+        gate.wait_for_release(cancellation_token)?;
+    }
+    cancellation_token.bail_if_cancelled()?;
+    let spawn_attempt_utc = chrono::Utc::now();
     // Preserve the source argfile; keep any short Windows copy until JVM exit.
     let (mut child, _launch_argfile_copy) =
         spawn_owned_session_child(session, &plan.java.executable, argfile, working_dir, env)?;
+    if let Some(gate) = &gate
+        && let Err(error) = gate.record_spawn(spawn_attempt_utc, child.id())
+    {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(error.wrap_err("Cannot record diagnostic JVM spawn"));
+    }
 
     let stdout = child
         .stdout
