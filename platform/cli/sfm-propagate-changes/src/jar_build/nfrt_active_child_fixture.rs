@@ -104,6 +104,10 @@ impl ActiveChildFixture {
         Ok(())
     }
 
+    pub(crate) fn stderr(&self) -> Result<String> {
+        Ok(fs::read_to_string(self.signals.path().join("stderr"))?)
+    }
+
     pub(crate) fn assert_reaped(self) -> Result<()> {
         let Self {
             child,

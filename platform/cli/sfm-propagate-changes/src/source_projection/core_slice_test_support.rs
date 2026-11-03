@@ -771,6 +771,8 @@ fn historical_2612_lock_is_isolated_from_all_runnable_catalog_contexts() -> Resu
             historical.to_owned()
         } else if key == "sfm-dev/mc-1.21.0" {
             "build/lockfiles/1.21.0/schema-4-dev-catalog-source.json".to_owned()
+        } else if key == "sfm-dev/mc-1.21.1" {
+            "build/lockfiles/1.21.1/schema-4-dev-catalog-source.json".to_owned()
         } else {
             let schema = if context.features["locked_dependency_projection"] {
                 4

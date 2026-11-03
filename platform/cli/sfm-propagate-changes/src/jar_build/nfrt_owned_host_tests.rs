@@ -122,7 +122,7 @@ fn successful_host_exit_joins_its_pipe_reader() -> Result<()> {
         .ok_or_else(|| eyre::eyre!("missing child stdin"))?;
     let finished = Arc::new(AtomicBool::new(false));
     let reader_finished = Arc::clone(&finished);
-    std::thread::scope(|scope| -> Result<()> {
+    let result = std::thread::scope(|scope| -> Result<()> {
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         let reader_thread = scope.spawn(move || {
             let frame = read_frame(&mut reader);
@@ -140,7 +140,10 @@ fn successful_host_exit_joins_its_pipe_reader() -> Result<()> {
             &CancellationToken::new(),
             reader_thread,
         )
-    })?;
+    });
+    if let Err(error) = result {
+        return Err(error.wrap_err(format!("owned fixture stderr: {}", fixture.stderr()?)));
+    }
     ensure!(
         finished.load(Ordering::SeqCst),
         "successful host reader was not joined"
