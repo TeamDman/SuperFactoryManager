@@ -126,9 +126,11 @@ fn successful_host_exit_joins_its_pipe_reader() -> Result<()> {
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         let reader_thread = scope.spawn(move || {
             let frame = read_frame(&mut reader);
-            // A successful child may let the Rust test harness terminate the
-            // partial line normally; completion is independent of frame status.
-            reader_finished.store(true, Ordering::SeqCst);
+            // Keep the pipe open through the child test harness's final result.
+            // read_frame may finish on the first newline while that harness
+            // still has more output; closing stdout then can fail the child.
+            let drained = std::io::copy(&mut reader, &mut std::io::sink());
+            reader_finished.store(drained.is_ok(), Ordering::SeqCst);
             let _ = sender.send(frame);
         });
         let result = fixture.release();
