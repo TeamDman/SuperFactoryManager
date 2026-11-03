@@ -295,6 +295,9 @@ pub(crate) struct PlatformPipelineSourceDerivedChecksV3 {
     /// vary while the complete named, decompressed source payload is stable.
     #[facet(default, skip_serializing_if = Option::is_none)]
     pub(crate) source_payload_sha256: Option<String>,
+    /// Digest of a tracked effective-lock source binding. Emitted locks omit it.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub(crate) source_binding_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -877,6 +880,14 @@ impl SourceProviderV3 {
                     &provider.derived_checks.fingerprint,
                     "platform source fingerprint",
                 )?;
+                if let Some(binding) = provider.derived_checks.source_binding_sha256.as_deref() {
+                    eyre::ensure!(
+                        binding.strip_prefix("sha256:").is_some_and(|hex| {
+                            hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+                        }) && provider.derived_checks.source_payload_sha256.is_some(),
+                        "shared source binding requires a full digest and payload pin"
+                    );
+                }
                 validate_portable_path(
                     &provider.derived_checks.tree_cache_path,
                     "platform source tree path",

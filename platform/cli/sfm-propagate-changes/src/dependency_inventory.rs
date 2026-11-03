@@ -64,8 +64,9 @@ impl DependencyInventory {
             .join("sfm-toolchain.lock.json");
         let input = std::fs::read_to_string(&lockfile_path)
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-        let lockfile = read_editable(&input)
+        let mut lockfile = read_editable(&input)
             .wrap_err_with(|| format!("Failed to load {}", lockfile_path.display()))?;
+        crate::source_binding::apply_for_project(&catalog.repo_root, &key, &input, &mut lockfile)?;
         let target = WorktreeTarget {
             branch: crate::branch_targets::BranchName::new(format!("project:{key}")),
             worktree_path: crate::branch_targets::WorktreePath::new(catalog.repo_root),
@@ -89,20 +90,27 @@ impl DependencyInventory {
 
     /// Persist edits without replacing schema-4 feature/profile authority with a runtime projection.
     pub(crate) fn to_canonical_json(&self) -> eyre::Result<String> {
+        let mut effective = self.lockfile.clone();
+        if let Some(key) = self.target.branch.as_str().strip_prefix("project:") {
+            let base = read_editable(&self.original_input)?;
+            crate::source_binding::restore_base_providers(
+                &self.target.worktree_path,
+                key,
+                &self.original_input,
+                &base,
+                &mut effective,
+            )?;
+        }
         match parse_document(&self.original_input)? {
             ToolchainLockfileDocument::V4(mut document) => {
-                document.platform = self.lockfile.platform.clone();
-                document.policy = self.lockfile.policy.clone();
-                document
-                    .repositories
-                    .clone_from(&self.lockfile.repositories);
-                document
-                    .dependencies
-                    .clone_from(&self.lockfile.dependencies);
-                document.artifacts.clone_from(&self.lockfile.artifacts);
+                document.platform = effective.platform.clone();
+                document.policy = effective.policy.clone();
+                document.repositories.clone_from(&effective.repositories);
+                document.dependencies.clone_from(&effective.dependencies);
+                document.artifacts.clone_from(&effective.artifacts);
                 document.to_canonical_json()
             }
-            ToolchainLockfileDocument::V3(_) => self.lockfile.to_canonical_json(),
+            ToolchainLockfileDocument::V3(_) => effective.to_canonical_json(),
             _ => eyre::bail!("Dependency editing requires schema version 3 or 4"),
         }
     }

@@ -339,6 +339,7 @@ fn configure_platform_pipeline_sources(
                 catalog_projection: None,
                 source_jar_sha256: None,
                 source_payload_sha256: None,
+                source_binding_sha256: None,
             },
         },
     ))

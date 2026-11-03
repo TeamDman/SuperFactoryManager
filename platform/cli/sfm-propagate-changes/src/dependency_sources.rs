@@ -540,6 +540,23 @@ fn acquire_platform_sources(
             "catalog project `{selected_key}` requires a matching locked catalog platform provider"
         );
     }
+    if let Some(provider) =
+        provider.filter(|provider| provider.derived_checks.source_binding_sha256.is_some())
+    {
+        // The strict source-only binding has already selected the owner and
+        // complete payload identity. A sealed shared tree need not rerun its
+        // native producer merely to make a second consumer use it.
+        if crate::source_provider::SourceProviderView::new(
+            inventory,
+            &SourceProviderV3::PlatformPipeline(provider.clone()),
+            0,
+        )
+        .status()
+            == SourceStatus::Acquired
+        {
+            return Ok(());
+        }
+    }
     let (selection, cache_root, java_home) = if let Some(projection) = catalog {
         let home = java_home.ok_or_else(|| {
             eyre::eyre!("catalog platform sources require an explicit --java-home")

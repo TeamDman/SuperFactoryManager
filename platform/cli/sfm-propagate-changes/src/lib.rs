@@ -45,6 +45,7 @@ pub mod sfm_path;
 pub mod source_archive;
 pub mod source_audit;
 pub mod source_cache;
+pub(crate) mod source_binding;
 pub mod source_comparison;
 
 pub(crate) mod source_decompile;

@@ -496,17 +496,33 @@ pub(crate) fn project_dependency_source_provider(
                 property("fingerprint", &provider.derived_checks.fingerprint),
             ],
         ),
-        SourceProviderV3::PlatformPipeline(provider) => (
-            provider.declaration.roots.clone(),
-            vec![property(
-                "toolchain-kind",
-                toolchain_kind_label(provider.declaration.kind),
-            )],
-            vec![property(
-                "fingerprint",
-                &provider.derived_checks.fingerprint,
-            )],
-        ),
+        SourceProviderV3::PlatformPipeline(provider) => {
+            let checks = &provider.derived_checks;
+            let mut identity = vec![property("fingerprint", &checks.fingerprint)];
+            if let Some(payload) = checks.source_payload_sha256.as_deref() {
+                identity.push(property("source-payload-sha256", payload));
+            }
+            if let Some(archive) = checks.source_jar_sha256.as_deref() {
+                identity.push(property("source-jar-sha256", archive));
+            }
+            if let Some(binding) = checks.source_binding_sha256.as_deref() {
+                // An exact tracked binding may intentionally share one immutable
+                // source payload across separately checked project owners.
+                identity.push(property("source-binding-sha256", binding));
+            } else {
+                // An unbound projection-private tree must not inherit another
+                // project's index just because its mapping fingerprint matches.
+                identity.push(property("source-owner", view.owner_identity()));
+            }
+            (
+                provider.declaration.roots.clone(),
+                vec![property(
+                    "toolchain-kind",
+                    toolchain_kind_label(provider.declaration.kind),
+                )],
+                identity,
+            )
+        }
     };
     Ok(DependencySourceProviderProjection {
         id: view.id().to_owned(),
@@ -831,6 +847,58 @@ mod tests {
         assert!(observed_kinds.contains(&DependencySourceProviderKind::Git));
         assert!(observed_kinds.contains(&DependencySourceProviderKind::Decompile));
         assert!(observed_kinds.contains(&DependencySourceProviderKind::PlatformPipeline));
+    }
+
+    #[test]
+    fn private_platform_owner_cannot_inherit_another_index_but_checked_shared_payload_can() {
+        let mut first = fixture("first", " ");
+        let mut second = fixture("second", " ");
+        first.target.branch = BranchName::from("project:sfm-4.35.0-extended/mc-1.21.1");
+        second.target.branch = BranchName::from("project:sfm-4.35.0-issue610/mc-1.21.1");
+        assert_ne!(project(&first), project(&second));
+
+        for inventory in [&mut first, &mut second] {
+            let owner = inventory
+                .target
+                .branch
+                .as_str()
+                .trim_start_matches("project:")
+                .to_owned();
+            for provider in inventory
+                .lockfile
+                .dependencies
+                .iter_mut()
+                .flat_map(|dependency| &mut dependency.components)
+                .flat_map(|component| &mut component.source_providers)
+            {
+                if let SourceProviderV3::PlatformPipeline(provider) = provider {
+                    provider.derived_checks.catalog_projection = Some(owner.clone());
+                    provider.derived_checks.source_jar_sha256 = None;
+                    provider.derived_checks.tree_cache_path = PathBuf::from(
+                        "$sfm-cache/sources/platform/fixture/shared.filetree",
+                    );
+                    provider.derived_checks.source_payload_sha256 =
+                        Some(format!("sha256:{}", "1".repeat(64)));
+                    provider.derived_checks.source_binding_sha256 =
+                        Some(format!("sha256:{}", "2".repeat(64)));
+                }
+            }
+        }
+        assert_eq!(project(&first), project(&second));
+        if let Some(SourceProviderV3::PlatformPipeline(provider)) = second
+            .lockfile
+            .dependencies
+            .iter_mut()
+            .flat_map(|dependency| &mut dependency.components)
+            .flat_map(|component| &mut component.source_providers)
+            .find(|provider| matches!(provider, SourceProviderV3::PlatformPipeline(_)))
+        {
+            provider.derived_checks.source_payload_sha256 =
+                Some(format!("sha256:{}", "3".repeat(64)));
+        } else {
+            panic!("fixture needs a platform source provider");
+        }
+        assert_ne!(project(&first), project(&second));
     }
 
     fn project(inventory: &DependencyInventory) -> DependencySymbolIndexIdentityProjection {

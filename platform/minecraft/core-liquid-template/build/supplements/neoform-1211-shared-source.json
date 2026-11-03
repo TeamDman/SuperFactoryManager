@@ -1,0 +1,13 @@
+{
+  "schema": "sfm.shared-platform-source-binding/1",
+  "base_lock_sha256": "sha256:625d3c74bdc76559833ffaca7075b38c889b26292e796bde15e60e74161a91ad",
+  "project_keys": [
+    "sfm-4.35.0-extended/mc-1.21.1",
+    "sfm-4.35.0-issue610/mc-1.21.1"
+  ],
+  "producer_recipe": "sfm:development-native-inputs/1.21.1@1",
+  "fingerprint": "neogradle-21.1.206",
+  "private_tree_cache_path": "build/sfm-toolchain/neoform/1.21.1/classes/gameSourcesWithNeoForge.filetree",
+  "shared_tree_cache_path": "$sfm-cache/sources/platform/neoforge-21.1.206/minecraft-1.21.1/gameSourcesWithNeoForge-2d0981f7.filetree",
+  "source_payload_sha256": "sha256:2d0981f79bd395d6a0e6dd37bde5377b12e984bdae7699d1ea4d6937b16172cb"
+}

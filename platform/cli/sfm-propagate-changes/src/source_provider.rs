@@ -80,6 +80,11 @@ impl<'a> SourceProviderView<'a> {
     }
 
     #[must_use]
+    pub fn owner_identity(self) -> &'a str {
+        self.inventory.target.branch.as_str()
+    }
+
+    #[must_use]
     pub fn tree_path(self) -> PathBuf {
         self.inventory.local_path(self.tree_cache_path())
     }
@@ -148,6 +153,19 @@ impl<'a> SourceProviderView<'a> {
             SourceProviderV3::PlatformPipeline(provider) => {
                 let tree = self.tree_path();
                 let source_jar = tree.with_extension("jar");
+                if provider
+                    .derived_checks
+                    .source_binding_sha256
+                    .as_deref()
+                    .is_some_and(|digest| {
+                        !crate::source_binding::still_matches(
+                            &self.inventory.target.worktree_path,
+                            digest,
+                        )
+                    })
+                {
+                    return SourceStatus::Stale;
+                }
                 let archive_matches_lock = provider
                     .derived_checks
                     .source_jar_sha256
@@ -224,8 +242,22 @@ impl<'a> SourceProviderView<'a> {
             SourceProviderV3::Decompile(_) => {
                 Some("decompiled tree is missing or does not match its locked fingerprint")
             }
-            SourceProviderV3::PlatformPipeline(_) => {
-                Some("platform source filetree is missing or differs from its source JAR")
+            SourceProviderV3::PlatformPipeline(provider) => {
+                if provider
+                    .derived_checks
+                    .source_binding_sha256
+                    .as_deref()
+                    .is_some_and(|digest| {
+                        !crate::source_binding::still_matches(
+                            &self.inventory.target.worktree_path,
+                            digest,
+                        )
+                    })
+                {
+                    Some("tracked shared source binding changed after selection")
+                } else {
+                    Some("platform source filetree is missing or differs from its source JAR")
+                }
             }
         }
     }
@@ -302,6 +334,7 @@ mod tests {
                 catalog_projection: None,
                 source_jar_sha256: None,
                 source_payload_sha256: None,
+                source_binding_sha256: None,
             },
         });
         let shared_candidate =
@@ -371,6 +404,7 @@ mod tests {
                 catalog_projection: Some("sfm-dev/mc-1.19.2".to_owned()),
                 source_jar_sha256: Some(crate::source_projection::provenance::sha256(&bytes)),
                 source_payload_sha256: None,
+                source_binding_sha256: None,
             },
         });
         let view = SourceProviderView::new(&inventory, &provider, 0);
