@@ -288,7 +288,11 @@ fn execute_projection_identity_operation(
             let required_major = if let Some(project) = identity.named_project() {
                 u32::from(project.receipt().tool_jvm_minimum)
             } else if let Some(target) = identity.development_target() {
-                u32::from(target.receipt.java_major)
+                crate::source_projection::native_project_target::native_tool_java_major(
+                    &target.receipt.target_id,
+                    &target.receipt.minecraft_version,
+                    target.receipt.java_major,
+                )?
             } else {
                 eyre::bail!("selected projection has no checked Java toolchain requirement")
             };
