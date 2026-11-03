@@ -558,13 +558,16 @@ fn select_native_sdk(
         std::str::from_utf8(&metadata_bytes)?,
         &selected.registered_features,
     )?;
-    let required_major = u32::from(
-        metadata
-            .targets
-            .get(entry.target_id()?)
-            .ok_or_else(|| eyre::eyre!("missing named build target"))?
-            .java_major,
-    );
+    let compiler_major = metadata
+        .targets
+        .get(entry.target_id()?)
+        .ok_or_else(|| eyre::eyre!("missing named build target"))?
+        .java_major;
+    let required_major = crate::source_projection::native_project_target::native_tool_java_major(
+        entry.target_id()?,
+        &entry.minecraft_version,
+        compiler_major,
+    )?;
     let project = selected
         .repo_root
         .join(selected.catalog.project_dir(&args.project.projection)?);
@@ -617,17 +620,20 @@ fn resolve_native_sdk_home(
         std::str::from_utf8(&metadata_bytes)?,
         &selected.registered_features,
     )?;
-    let java_major = u32::from(
-        metadata
-            .targets
-            .get(entry.target_id()?)
-            .ok_or_else(|| eyre::eyre!("missing named build target"))?
-            .java_major,
-    );
+    let compiler_major = metadata
+        .targets
+        .get(entry.target_id()?)
+        .ok_or_else(|| eyre::eyre!("missing named build target"))?
+        .java_major;
+    let tool_major = crate::source_projection::native_project_target::native_tool_java_major(
+        entry.target_id()?,
+        &entry.minecraft_version,
+        compiler_major,
+    )?;
     let project_root = selected
         .repo_root
         .join(selected.catalog.project_dir(&args.project.projection)?);
-    let resolved = resolve_exact_java_for_minecraft_dir(&project_root, java_major, None)
+    let resolved = resolve_exact_java_for_minecraft_dir(&project_root, tool_major, None)
         .wrap_err("cannot select the projection's JDK; synchronize its lock or pass --java-home")?;
     let home = resolved.home.as_deref().ok_or_else(|| {
         eyre::eyre!(

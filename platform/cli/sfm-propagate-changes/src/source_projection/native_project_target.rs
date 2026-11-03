@@ -66,6 +66,35 @@ pub(crate) fn development_native_loader(target: &str, minecraft: &str) -> Result
     Ok("neoforge")
 }
 
+/// The JVM executing native preparation may be newer than the Java release
+/// emitted by javac. Keep both identities tied to the captured target recipe.
+pub(crate) fn native_tool_java_major(
+    target: &str,
+    minecraft: &str,
+    compiler_major: u16,
+) -> Result<u32> {
+    development_native_loader(target, minecraft)?;
+    let expected_compiler = match target {
+        "1.19.2" | "1.19.4" | "1.20" | "1.20.1" | "1.20.2" | "1.20.3" | "1.20.4" => 17,
+        "1.21.0" | "1.21.1" => 21,
+        "26.1.2" => 25,
+        _ => eyre::bail!("development target has no captured native tool JVM"),
+    };
+    ensure!(
+        compiler_major == expected_compiler,
+        "native compiler release differs from the captured target recipe"
+    );
+    let tool_major = if matches!(
+        target,
+        "1.20.2" | "1.20.3" | "1.20.4" | "1.21.0" | "1.21.1" | "26.1.2"
+    ) {
+        compiler_major.max(21)
+    } else {
+        compiler_major
+    };
+    Ok(u32::from(tool_major))
+}
+
 /// Portable evidence, separate from the actual repository/project paths.
 ///
 /// The profile is explicit, not an implicit switch to newer dependency inputs.
@@ -636,6 +665,29 @@ mod tests {
             assert!(development_forge_loader(target, minecraft).is_err());
         }
         assert!(development_forge_loader("unknown", "unknown").is_err());
+    }
+
+    #[test]
+    fn native_tool_java_keeps_compiler_release_separate_from_neogradle_minimum() {
+        for (target, minecraft, compiler, tool) in [
+            ("1.19.2", "1.19.2", 17, 17),
+            ("1.19.4", "1.19.4", 17, 17),
+            ("1.20", "1.20", 17, 17),
+            ("1.20.1", "1.20.1", 17, 17),
+            ("1.20.2", "1.20.2", 17, 21),
+            ("1.20.3", "1.20.3", 17, 21),
+            ("1.20.4", "1.20.4", 17, 21),
+            ("1.21.0", "1.21", 21, 21),
+            ("1.21.1", "1.21.1", 21, 21),
+            ("26.1.2", "26.1.2", 25, 25),
+        ] {
+            assert_eq!(
+                native_tool_java_major(target, minecraft, compiler).unwrap(),
+                tool
+            );
+            assert!(native_tool_java_major(target, minecraft, compiler + 1).is_err());
+            assert!(native_tool_java_major(target, "wrong-version", compiler).is_err());
+        }
     }
 
     #[test]
