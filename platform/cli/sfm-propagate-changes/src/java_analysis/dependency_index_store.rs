@@ -1,6 +1,8 @@
 use super::dependency_index_identity::DEPENDENCY_SYMBOL_INDEX_STORE_FORMAT_VERSION;
 use super::dependency_index_identity::DependencySymbolIndexIdentity;
 use crate::artifact_lock::ArtifactLock;
+use crate::artifact_lock::ArtifactReadLock;
+use crate::cancellation::CancellationToken;
 use crate::paths::CacheHome;
 use eyre::Context;
 use facet::Facet;
@@ -333,6 +335,77 @@ impl DependencySymbolIndexStore {
         expected.validate()?;
         let layout = self.layout(expected)?;
         Ok(probe_layout(expected, layout))
+    }
+
+    /// Reuse a completed tool-owned entry without rehashing its immutable payload.
+    ///
+    /// The caller must restrict this to managed source roots and recheck held
+    /// source readers before returning. An explicit `probe`/`validated_payload`
+    /// remains the deep audit path. Missing, changed, or incomplete receipts
+    /// return `None` so refresh can reconstruct under the normal writer lock.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the identity or coordination lock is invalid.
+    pub fn reusable_completed(
+        &self,
+        expected: &DependencySymbolIndexIdentity,
+        source_inputs: &[DependencySymbolIndexSourceInput],
+        completeness: DependencySymbolIndexCompleteness,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<Option<(DependencySymbolIndexManifest, DependencySymbolIndexProbe)>> {
+        expected.validate()?;
+        let layout = self.layout(expected)?;
+        if !matches!(
+            fs::symlink_metadata(&layout.concrete.root),
+            Ok(metadata) if metadata.file_type().is_dir()
+        ) {
+            return Ok(None);
+        }
+        let _reader = ArtifactReadLock::acquire_with_cancellation(
+            &layout.concrete.lock,
+            format!("dependency symbol index {} receipt", expected.digest),
+            cancellation_token.clone(),
+        )?;
+        if !matches!(
+            fs::symlink_metadata(&layout.concrete.manifest),
+            Ok(metadata) if metadata.file_type().is_file()
+        ) {
+            return Ok(None);
+        }
+        let manifest = match read_manifest(&layout.concrete.manifest) {
+            Ok(manifest) => manifest,
+            Err(_) => return Ok(None),
+        };
+        let mut selected_inputs = source_inputs.to_vec();
+        selected_inputs.sort();
+        if validate_manifest_shape(&manifest).is_err()
+            || manifest.identity != *expected
+            || manifest.completeness != completeness
+            || manifest.source_inputs != selected_inputs
+        {
+            return Ok(None);
+        }
+        let payload = match fs::symlink_metadata(&layout.concrete.payload) {
+            Ok(metadata) if metadata.file_type().is_file() => metadata,
+            _ => return Ok(None),
+        };
+        if payload.len() != manifest.payload.size_bytes {
+            return Ok(None);
+        }
+        let status = match completeness {
+            DependencySymbolIndexCompleteness::Complete => DependencySymbolIndexProbeStatus::Ready,
+            DependencySymbolIndexCompleteness::Partial => DependencySymbolIndexProbeStatus::Partial,
+        };
+        let probe = DependencySymbolIndexProbe {
+            status,
+            loadable: true,
+            reason: "managed completed receipt and selected source inputs match; payload not rehashed (use symbol index show for a deep audit)".to_owned(),
+            expected_identity: expected.digest.clone(),
+            observed_identity: Some(manifest.identity.digest.clone()),
+            layout,
+        };
+        Ok(Some((manifest, probe)))
     }
 
     /// Load a payload only after validating the manifest identity and payload bytes.
@@ -1027,6 +1100,105 @@ mod tests {
         let relocated = DependencySymbolIndexStore::new(CacheHome(PathBuf::from("other-cache")))
             .live_query_lock_path();
         assert_ne!(lock_path, relocated);
+    }
+
+    #[test]
+    fn managed_receipt_reuses_matching_partial_entry_and_rejects_changed_inputs() {
+        let directory = tempfile::tempdir().expect("cache root");
+        let store = DependencySymbolIndexStore::new(CacheHome(directory.path().to_path_buf()));
+        let identity = fixture_identity();
+        let mut unavailable = ready_input();
+        unavailable.status = DependencySymbolIndexInputStatus::Unavailable;
+        let inputs = vec![unavailable.clone()];
+        let cancellation = CancellationToken::new();
+        assert!(
+            store
+                .reusable_completed(
+                    &identity,
+                    &inputs,
+                    DependencySymbolIndexCompleteness::Partial,
+                    &cancellation,
+                )
+                .expect("missing receipt")
+                .is_none()
+        );
+
+        let (manifest, payload) = publication(
+            identity.clone(),
+            DependencySymbolIndexCompleteness::Partial,
+            inputs.clone(),
+            "cached",
+        );
+        store.publish(&manifest, &payload).expect("publish");
+        let (reused, probe) = store
+            .reusable_completed(
+                &identity,
+                &inputs,
+                DependencySymbolIndexCompleteness::Partial,
+                &cancellation,
+            )
+            .expect("matching receipt")
+            .expect("managed hit");
+        assert_eq!(reused.counts, manifest.counts);
+        assert_eq!(probe.status, DependencySymbolIndexProbeStatus::Partial);
+        assert!(probe.loadable);
+        assert!(
+            store
+                .reusable_completed(
+                    &identity,
+                    &[ready_input()],
+                    DependencySymbolIndexCompleteness::Complete,
+                    &cancellation,
+                )
+                .expect("changed availability")
+                .is_none()
+        );
+        let layout = store.layout(&identity).expect("layout");
+        fs::remove_file(&layout.concrete.payload).expect("remove payload");
+        assert!(
+            store
+                .reusable_completed(
+                    &identity,
+                    &inputs,
+                    DependencySymbolIndexCompleteness::Partial,
+                    &cancellation,
+                )
+                .expect("missing payload")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn managed_receipt_trust_keeps_explicit_deep_corruption_detection() {
+        let directory = tempfile::tempdir().expect("cache root");
+        let store = DependencySymbolIndexStore::new(CacheHome(directory.path().to_path_buf()));
+        let identity = fixture_identity();
+        let (manifest, payload) = publication(
+            identity.clone(),
+            DependencySymbolIndexCompleteness::Complete,
+            vec![ready_input()],
+            "original",
+        );
+        store.publish(&manifest, &payload).expect("publish");
+        let layout = store.layout(&identity).expect("layout");
+        let mut bytes = fs::read(&layout.concrete.payload).expect("payload bytes");
+        let byte = bytes.last_mut().expect("nonempty payload");
+        *byte = if *byte == b'X' { b'Y' } else { b'X' };
+        fs::write(&layout.concrete.payload, bytes).expect("same-size corruption");
+        assert!(
+            store
+                .reusable_completed(
+                    &identity,
+                    &[ready_input()],
+                    DependencySymbolIndexCompleteness::Complete,
+                    &CancellationToken::new(),
+                )
+                .expect("managed receipt")
+                .is_some()
+        );
+        let deep = store.probe(&identity).expect("deep audit");
+        assert_eq!(deep.status, DependencySymbolIndexProbeStatus::Partial);
+        assert!(!deep.loadable);
     }
 
     #[test]

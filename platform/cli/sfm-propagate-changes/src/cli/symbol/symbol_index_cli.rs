@@ -110,9 +110,9 @@ pub struct SymbolIndexArgs {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum SymbolIndexCommand {
-    /// Acquire preferred dependency sources and atomically rebuild the index.
+    /// Acquire preferred dependency sources and reuse a matching managed index, or rebuild it.
     Refresh(SymbolIndexRefreshArgs),
-    /// Show the expected cache identity, status, and concrete/portable paths.
+    /// Deeply verify the payload and show its identity, status, and paths.
     Show(SymbolIndexShowArgs),
 }
 
@@ -127,6 +127,9 @@ pub struct SymbolIndexRefreshArgs {
     /// Exact JDK for catalog-owned platform source production.
     #[facet(default, args::named)]
     pub java_home: Option<PathBuf>,
+    /// Rebuild even when a managed completed index receipt matches.
+    #[facet(default, args::named)]
+    pub rebuild: bool,
 }
 
 #[derive(Facet, Clone, Debug)]
@@ -220,10 +223,39 @@ mod selected_cache_args_tests {
             panic!("expected refresh");
         };
         assert!(refresh.branch.is_none());
+        assert!(!refresh.rebuild);
         assert_eq!(
             refresh.project_root,
             Some(PathBuf::from("D:/repo/projections/sfm-dev/mc-1.21.0"))
         );
+    }
+
+    #[test]
+    fn managed_index_receipts_exclude_private_and_parent_traversal_roots() {
+        let directory = tempfile::tempdir().expect("roots");
+        let cache_home = CacheHome(directory.path().join("managed"));
+        let mut preflight = SourcePreflight::default();
+        preflight.roots.push(SearchableSourceRoot {
+            identity: "minecraft/main".to_owned(),
+            provider_id: "platform".to_owned(),
+            root: cache_home.0.join("source.filetree"),
+        });
+        assert!(managed_source_roots(&preflight, &cache_home));
+        preflight.roots[0].root = directory.path().join("private/source.filetree");
+        assert!(!managed_source_roots(&preflight, &cache_home));
+        preflight.roots[0].root = cache_home.0.join("../private/source.filetree");
+        assert!(!managed_source_roots(&preflight, &cache_home));
+    }
+
+    #[test]
+    fn parses_explicit_index_rebuild() {
+        let parsed =
+            figue::from_slice::<SymbolIndexArgs>(&["refresh", "--branch", "1.19.2", "--rebuild"])
+                .unwrap();
+        let SymbolIndexCommand::Refresh(refresh) = parsed.command else {
+            panic!("expected refresh");
+        };
+        assert!(refresh.rebuild);
     }
 
     #[test]
@@ -375,6 +407,38 @@ impl SymbolIndexRefreshArgs {
         cancellation_token.bail_if_cancelled()?;
         let mut held_platform_roots = hold_platform_source_roots(&preflight)?;
         held_platform_roots.recheck()?;
+        let completeness = if preflight.missing.is_empty() {
+            DependencySymbolIndexCompleteness::Complete
+        } else {
+            DependencySymbolIndexCompleteness::Partial
+        };
+        let selected_source_inputs = source_inputs(&resolved.identity, &preflight)?;
+        if managed_source_roots(&preflight, &cache_home) && !self.rebuild {
+            if let Some((manifest, probe)) = resolved.store.reusable_completed(
+                &resolved.identity,
+                &selected_source_inputs,
+                completeness,
+                cancellation_token,
+            )? {
+                cancellation_token.bail_if_cancelled()?;
+                held_platform_roots.recheck()?;
+                let current = preflight_resolved_index_sources(&resolved, &filter)?;
+                ensure_platform_sources_unchanged(&preflight, &current)?;
+                let output = status_output(
+                    "refresh",
+                    &branch,
+                    &resolved,
+                    &probe,
+                    completeness,
+                    Some(manifest.counts),
+                    &preflight,
+                )?;
+                return Ok(CliOutput::facet_with_status(
+                    output,
+                    status_for_probe(probe.status),
+                ));
+            }
+        }
         let roots = preflight
             .roots
             .iter()
@@ -416,11 +480,6 @@ impl SymbolIndexRefreshArgs {
         let current = preflight_resolved_index_sources(&resolved, &filter)?;
         ensure_platform_sources_unchanged(&preflight, &current)?;
 
-        let completeness = if preflight.missing.is_empty() {
-            DependencySymbolIndexCompleteness::Complete
-        } else {
-            DependencySymbolIndexCompleteness::Partial
-        };
         let manifest = DependencySymbolIndexManifest::for_prepared_payload(
             resolved.identity.clone(),
             DependencySymbolIndexCreationMetadata {
@@ -429,7 +488,7 @@ impl SymbolIndexRefreshArgs {
                 refresh_duration_ms: u64::try_from(started.elapsed().as_millis())
                     .unwrap_or(u64::MAX),
             },
-            source_inputs(&resolved.identity, &preflight)?,
+            selected_source_inputs,
             artifacts.counts().clone(),
             completeness,
             DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA,
@@ -1340,6 +1399,19 @@ fn ensure_platform_sources_unchanged(
     Ok(())
 }
 
+// Private or editable roots retain exhaustive refresh. A matching receipt
+// alone is only sufficient for tool-owned source trees under the selected cache.
+fn managed_source_roots(preflight: &SourcePreflight, cache_home: &CacheHome) -> bool {
+    preflight.roots.iter().all(|root| {
+        root.root.is_absolute()
+            && root.root.starts_with(&cache_home.0)
+            && !root
+                .root
+                .components()
+                .any(|component| matches!(component, std::path::Component::ParentDir))
+    })
+}
+
 fn source_inputs(
     identity: &DependencySymbolIndexIdentity,
     preflight: &SourcePreflight,
@@ -1512,6 +1584,7 @@ fn render_refresh_command(
                     branch: project_root.is_none().then(|| branch.clone()),
                     project_root: project_root.map(Path::to_path_buf),
                     java_home: None,
+                    rebuild: false,
                 }),
             }),
         }),
