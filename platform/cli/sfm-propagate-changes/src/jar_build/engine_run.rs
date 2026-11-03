@@ -3651,11 +3651,24 @@ fn run_launch_command(
     if let Some(gate) = &gate {
         gate.wait_for_release(cancellation_token)?;
     }
-    cancellation_token.bail_if_cancelled()?;
+    if let Err(error) = cancellation_token.bail_if_cancelled() {
+        if let Some(gate) = &gate {
+            let _ = gate.record_abort(&error.to_string());
+        }
+        return Err(error);
+    }
     let spawn_attempt_utc = chrono::Utc::now();
     // Preserve the source argfile; keep any short Windows copy until JVM exit.
     let (mut child, _launch_argfile_copy) =
-        spawn_owned_session_child(session, &plan.java.executable, argfile, working_dir, env)?;
+        match spawn_owned_session_child(session, &plan.java.executable, argfile, working_dir, env) {
+            Ok(spawned) => spawned,
+            Err(error) => {
+                if let Some(gate) = &gate {
+                    let _ = gate.record_abort(&format!("JVM spawn failed: {error:#}"));
+                }
+                return Err(error);
+            }
+        };
     if let Some(gate) = &gate
         && let Err(error) = gate.record_spawn(spawn_attempt_utc, child.id())
     {

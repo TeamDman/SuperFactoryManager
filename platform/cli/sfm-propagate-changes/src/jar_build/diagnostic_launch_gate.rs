@@ -124,7 +124,7 @@ impl DiagnosticLaunchGate {
     ) -> eyre::Result<()> {
         let result = self.wait_inner(cancellation, timeout);
         if let Err(error) = &result {
-            let _ = self.record_event("sfm-aborted.json", None, None, Some(error.to_string()));
+            let _ = self.record_abort(&error.to_string());
         }
         result
     }
@@ -190,6 +190,10 @@ impl DiagnosticLaunchGate {
             Some(spawn_attempt_utc),
             None,
         )
+    }
+
+    pub(super) fn record_abort(&self, reason: &str) -> eyre::Result<()> {
+        self.record_event("sfm-aborted.json", None, None, Some(reason.to_owned()))
     }
 
     fn record_event(
