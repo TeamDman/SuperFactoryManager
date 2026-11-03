@@ -125,11 +125,50 @@ mod manifestation_argument_tests {
 #[derive(Debug, Facet)]
 pub struct CoreProjectSelectionArgs {
     /// Repository root containing projections.json and the core Liquid tree.
-    #[facet(args::named)]
-    pub repo_root: PathBuf,
+    /// Omitted only when the invocation is inside a discoverable SFM checkout.
+    #[facet(default, args::named)]
+    pub repo_root: Option<PathBuf>,
     /// Exact catalog key; its values, not its spelling, select the context.
     #[facet(args::named)]
     pub projection: String,
+}
+
+impl CoreProjectSelectionArgs {
+    fn resolve_root(&mut self, invocation_dir: &Path) -> Result<()> {
+        if self.repo_root.is_none() {
+            self.repo_root = Some(discover_source_repo_root(invocation_dir)?);
+        }
+        Ok(())
+    }
+
+    fn root(&self) -> Result<&Path> {
+        self.repo_root
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("SFM repository root was not resolved; pass --repo-root"))
+    }
+}
+
+fn discover_source_repo_root(invocation_dir: &Path) -> Result<PathBuf> {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(invocation_dir)
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .wrap_err("cannot discover the SFM checkout from this directory; pass --repo-root")?;
+    ensure!(
+        output.status.success() && output.stdout.len() <= 16 * 1024,
+        "cannot discover the SFM checkout from this directory; pass --repo-root"
+    );
+    let text = std::str::from_utf8(&output.stdout)
+        .wrap_err("discovered Git root is not UTF-8; pass --repo-root")?;
+    let root = PathBuf::from(text.trim_end_matches(['\r', '\n']));
+    ensure!(
+        root.is_absolute(),
+        "discovered Git root is not absolute; pass --repo-root"
+    );
+    let loaded = CoreCatalog::load(&root, invocation_dir)
+        .wrap_err("discovered Git root is not a valid SFM checkout; pass --repo-root")?;
+    Ok(loaded.repo_root)
 }
 
 #[derive(Debug, Facet)]
@@ -232,7 +271,23 @@ impl CoreProjectArgs {
         cancellation: &CancellationToken,
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
-        let (args, mode, operation) = match self.command {
+        let mut command = self.command;
+        let selected = match &mut command {
+            CoreProjectCommand::Manifest(_) => None,
+            CoreProjectCommand::DryRun(args)
+            | CoreProjectCommand::Check(args)
+            | CoreProjectCommand::Sync(args) => Some(args),
+            CoreProjectCommand::Build(args) | CoreProjectCommand::Run(args) => {
+                Some(&mut args.project)
+            }
+            CoreProjectCommand::Compile(args) | CoreProjectCommand::Jar(args) => {
+                Some(&mut args.project)
+            }
+        };
+        if let Some(selected) = selected {
+            selected.resolve_root(invocation_dir)?;
+        }
+        let (args, mode, operation) = match command {
             CoreProjectCommand::Manifest(args) => {
                 let (root, rendered) = crate::source_projection::manifestation::render_selected(
                     &args.repo_root,
@@ -276,7 +331,7 @@ impl CoreProjectArgs {
         if mode == SyncMode::Check {
             // Match native compile: generated source scans must reject unowned files.
             let checked = crate::source_projection::catalog_owned_project::collect_catalog_project(
-                &args.repo_root,
+                args.root()?,
                 invocation_dir,
                 &args.projection,
             )?
@@ -313,7 +368,7 @@ fn invoke_native_compile(
     })?;
     cancellation.bail_if_cancelled()?;
     // Refuse unsupported target/recipe before dev generation or external effects.
-    let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let initial = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
     let sdk = select_native_sdk(args, &initial, invocation_dir, cancellation)?;
@@ -324,7 +379,7 @@ fn invoke_native_compile(
         cancellation,
         invocation_dir,
     )?;
-    let loaded = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let loaded = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     ensure!(
         loaded.catalog_sha256 == report.catalog_sha256
             && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
@@ -333,7 +388,7 @@ fn invoke_native_compile(
         "named compile catalog changed after generation"
     );
     let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
-        &args.project.repo_root,
+        args.project.root()?,
         invocation_dir,
         &args.project.projection,
     )?;
@@ -384,7 +439,7 @@ fn invoke_native_jar(
     crate::jar_build::engine::preflight_named_jar_output_name(args.output_name.as_deref())?;
     cancellation.bail_if_cancelled()?;
     // Refuse unsupported target/recipe before dev generation or external effects.
-    let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let initial = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
     let sdk = select_native_sdk(args, &initial, invocation_dir, cancellation)?;
@@ -395,7 +450,7 @@ fn invoke_native_jar(
         cancellation,
         invocation_dir,
     )?;
-    let loaded = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let loaded = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     ensure!(
         loaded.catalog_sha256 == report.catalog_sha256
             && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
@@ -404,7 +459,7 @@ fn invoke_native_jar(
         "named jar catalog changed after generation"
     );
     let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
-        &args.project.repo_root,
+        args.project.root()?,
         invocation_dir,
         &args.project.projection,
     )?;
@@ -464,7 +519,7 @@ fn invoke_native_development(
             "--isolated-project-cache requires a compile and a 1-64 character ASCII label"
         );
     }
-    let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let initial = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     ensure!(
         entry.environment == ProjectionEnvironment::Dev,
@@ -475,7 +530,7 @@ fn invoke_native_development(
         &entry.minecraft_version,
     )?;
     let collected = crate::source_projection::catalog_owned_project::collect_development_invocation(
-        &args.project.repo_root,
+        args.project.root()?,
         invocation_dir,
         &args.project.projection,
     )?;
@@ -814,7 +869,7 @@ fn invoke_gradle(
         cancellation,
         invocation_dir,
     )?;
-    let loaded = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let loaded = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     ensure!(
         loaded.catalog_sha256 == report.catalog_sha256
             && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
@@ -895,7 +950,7 @@ fn project_report(
     invocation_dir: &Path,
 ) -> Result<CoreProjectReport> {
     cancellation.bail_if_cancelled()?;
-    let loaded = CoreCatalog::load(&args.repo_root, invocation_dir)?;
+    let loaded = CoreCatalog::load(args.root()?, invocation_dir)?;
     let context = loaded.context(&args.projection)?;
     let entry = loaded.catalog.entry(&args.projection)?;
     let mode = match policy {
@@ -1010,6 +1065,54 @@ mod tests {
     use std::process::Command;
 
     #[test]
+    fn omitted_project_root_selects_only_a_valid_current_checkout() -> Result<()> {
+        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&[
+            "--projection",
+            "ignored/nested",
+            "--dependency-profile",
+            "rust-toolchain",
+        ])
+        .unwrap();
+        assert!(parsed.project.repo_root.is_none());
+
+        let (fixture, _) = fixture();
+        let nested = fixture
+            .path()
+            .join("platform/minecraft/projections/ignored/nested");
+        fs::create_dir_all(&nested)?;
+        let mut project = parsed.project;
+        project.resolve_root(&nested)?;
+        let loaded = CoreCatalog::load(fixture.path(), &nested)?;
+        assert_eq!(project.root()?, loaded.repo_root);
+
+        let outside = tempfile::tempdir()?;
+        let error = discover_source_repo_root(outside.path()).unwrap_err();
+        assert!(error.to_string().contains("--repo-root"), "{error:?}");
+
+        let other_git = tempfile::tempdir()?;
+        git(other_git.path(), &["init", "--quiet"]);
+        let error = discover_source_repo_root(other_git.path()).unwrap_err();
+        assert!(
+            error.to_string().contains("valid SFM checkout"),
+            "{error:?}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn explicit_project_root_is_not_discovered_again() -> Result<()> {
+        let (fixture, _) = fixture();
+        let outside = tempfile::tempdir()?;
+        let mut project = CoreProjectSelectionArgs {
+            repo_root: Some(fixture.path().to_path_buf()),
+            projection: "ignored/nested".to_owned(),
+        };
+        project.resolve_root(outside.path())?;
+        assert_eq!(project.root()?, fixture.path());
+        Ok(())
+    }
+
+    #[test]
     fn native_commands_parse_cache_override_and_select_checkout_default() {
         let base = ["--repo-root", "must-not-be-read", "--projection", "unused"];
         let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
@@ -1059,7 +1162,7 @@ mod tests {
     fn isolated_project_cache_rejects_unsafe_label_and_package_before_effects() {
         let mut args = CoreProjectCompileArgs {
             project: CoreProjectSelectionArgs {
-                repo_root: PathBuf::from("must-not-be-read"),
+                repo_root: Some(PathBuf::from("must-not-be-read")),
                 projection: "unused".to_owned(),
             },
             released_recipe: None,
@@ -1087,7 +1190,7 @@ mod tests {
     fn alternate_named_jar_rejects_unsafe_or_unsupported_routes_before_effects() {
         let mut args = CoreProjectCompileArgs {
             project: CoreProjectSelectionArgs {
-                repo_root: PathBuf::from("must-not-be-read"),
+                repo_root: Some(PathBuf::from("must-not-be-read")),
                 projection: "unused".to_owned(),
             },
             released_recipe: Some("historical".to_owned()),
@@ -1126,7 +1229,7 @@ mod tests {
     fn native_recipe_and_development_profile_are_exclusive_before_effects() {
         let args = CoreProjectCompileArgs {
             project: CoreProjectSelectionArgs {
-                repo_root: PathBuf::from("must-not-be-read"),
+                repo_root: Some(PathBuf::from("must-not-be-read")),
                 projection: "unused".to_owned(),
             },
             released_recipe: Some("unused".to_owned()),
@@ -1164,7 +1267,7 @@ mod tests {
     #[test]
     fn native_default_java_refuses_a_missing_project_lock_and_preserves_explicit_home() {
         let (temp, project) = fixture();
-        let selected = CoreCatalog::load(&project.repo_root, temp.path()).unwrap();
+        let selected = CoreCatalog::load(project.root().unwrap(), temp.path()).unwrap();
         let mut args = CoreProjectCompileArgs {
             project,
             released_recipe: Some("historical".to_owned()),
@@ -1299,7 +1402,7 @@ mod tests {
         )
         .unwrap();
         let args = CoreProjectSelectionArgs {
-            repo_root: PathBuf::from("."),
+            repo_root: Some(PathBuf::from(".")),
             projection: "released/nested".to_owned(),
         };
         (temp, args)
@@ -1512,7 +1615,7 @@ mod tests {
             let temp = tempfile::tempdir().unwrap();
             let args = CoreProjectGradleArgs {
                 project: CoreProjectSelectionArgs {
-                    repo_root: temp.path().to_path_buf(),
+                    repo_root: Some(temp.path().to_path_buf()),
                     projection: "anything".to_owned(),
                 },
                 java_home: None,
