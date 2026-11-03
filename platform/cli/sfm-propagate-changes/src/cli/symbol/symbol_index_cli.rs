@@ -6,6 +6,7 @@ use crate::cli::global_args::GlobalArgs;
 use crate::cli::jar::BranchSelector;
 use crate::cli::output::CliOutput;
 use crate::dependency_classfile_stubs::LockedMinecraftClassfileStubSource;
+use crate::dependency_classfile_stubs::MINECRAFT_CLASSFILE_STUB_PROVIDER_ID;
 use crate::dependency_classfile_stubs::attach_locked_minecraft_classfile_stub_source;
 use crate::dependency_classfile_stubs::is_minecraft_classfile_stub_target;
 use crate::dependency_classfile_stubs::materialize_locked_minecraft_classfile_stubs;
@@ -245,6 +246,99 @@ mod selected_cache_args_tests {
         assert!(!managed_source_roots(&preflight, &cache_home));
         preflight.roots[0].root = cache_home.0.join("../private/source.filetree");
         assert!(!managed_source_roots(&preflight, &cache_home));
+    }
+
+    #[test]
+    fn post_stub_preflight_reuse_requires_managed_ready_stubs_and_no_pending_acquisition() {
+        let directory = tempfile::tempdir().expect("roots");
+        let cache_home = CacheHome(directory.path().join("managed"));
+        let target = "minecraft/classpath-type-stubs";
+        let mut preflight = SourcePreflight::default();
+        preflight.roots.push(SearchableSourceRoot {
+            identity: target.to_owned(),
+            provider_id: MINECRAFT_CLASSFILE_STUB_PROVIDER_ID.to_owned(),
+            root: cache_home.0.join("stubs.filetree"),
+        });
+        assert!(reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            true,
+        ));
+        assert!(!reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            false,
+        ));
+
+        preflight
+            .missing
+            .push(crate::dependency_sources::UnavailableSource {
+                target: "new/source".to_owned(),
+                identity: "new/source/provider".to_owned(),
+                reason: "pending".to_owned(),
+                acquirable: true,
+            });
+        assert!(!reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            true,
+        ));
+        preflight.missing.clear();
+        preflight
+            .missing
+            .push(crate::dependency_sources::UnavailableSource {
+                target: "locked/synthetic".to_owned(),
+                identity: "locked/synthetic/provider".to_owned(),
+                reason: "missing locked source".to_owned(),
+                acquirable: false,
+            });
+        assert!(!reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            true,
+        ));
+        preflight.missing.clear();
+        preflight
+            .components
+            .push(crate::dependency_sources::SourceComponentPreflight {
+                target: "undeclared/source".to_owned(),
+                status: SourceStatus::NoneDeclared,
+                preferred_provider: None,
+                providers: Vec::new(),
+            });
+        preflight
+            .missing
+            .push(crate::dependency_sources::UnavailableSource {
+                target: "undeclared/source".to_owned(),
+                identity: "undeclared/source".to_owned(),
+                reason: "no source providers are configured".to_owned(),
+                acquirable: false,
+            });
+        assert!(reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            true,
+        ));
+
+        preflight.roots[0].root = directory.path().join("private/stubs.filetree");
+        assert!(!reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            true,
+        ));
+        preflight.roots.clear();
+        assert!(!reusable_managed_stub_preflight(
+            &preflight,
+            &cache_home,
+            target,
+            true,
+        ));
     }
 
     #[test]
@@ -555,9 +649,46 @@ fn materialize_classfile_stub_source(
         reused = classfile_stubs.reused,
         "materialized locked Minecraft classfile type stubs"
     );
+    if reusable_managed_stub_preflight(
+        &preflight,
+        &resolved.inventory.cache_home,
+        &resolved.minecraft_classfile_stub_source.target,
+        classfile_stubs.reused,
+    ) {
+        // The initial pass already admitted these exact managed roots and the
+        // stub materializer changed nothing. Retain the final preflight after
+        // the index receipt/build: another tool-owned stub writer may replace
+        // this version-scoped tree under a different shadow set meanwhile.
+        record_index_refresh_stage("post_stub_source_preflight_reused", &mut stage_started);
+        return Ok(preflight);
+    }
     let current = preflight_resolved_index_sources(resolved, filter)?;
     record_index_refresh_stage("post_stub_source_preflight", &mut stage_started);
     Ok(current)
+}
+
+fn reusable_managed_stub_preflight(
+    preflight: &SourcePreflight,
+    cache_home: &CacheHome,
+    stub_target: &str,
+    stubs_reused: bool,
+) -> bool {
+    stubs_reused
+        && managed_source_roots(preflight, cache_home)
+        // An unacquirable synthetic source can still appear in a separate
+        // process. Only undeclared providers are permanently unavailable for
+        // this frozen effective lock.
+        && preflight.missing.iter().all(|missing| {
+            !missing.acquirable
+                && preflight.components.iter().any(|component| {
+                    component.target == missing.target
+                        && component.providers.is_empty()
+                        && component.status == SourceStatus::NoneDeclared
+                })
+        })
+        && preflight.roots.iter().any(|root| {
+            root.identity == stub_target && root.provider_id == MINECRAFT_CLASSFILE_STUB_PROVIDER_ID
+        })
 }
 
 fn apply_portable_origins(
