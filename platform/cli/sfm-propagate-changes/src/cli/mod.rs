@@ -3,6 +3,7 @@ pub mod cache;
 mod cli;
 #[cfg(test)]
 mod cli_to_args_tests;
+pub mod check_everything;
 pub mod client;
 pub mod container;
 pub mod curseforge;

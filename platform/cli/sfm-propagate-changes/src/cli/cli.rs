@@ -65,6 +65,14 @@ impl Cli {
 pub enum Command {
     /// Audit tracked Rust and Java source policy violations.
     Audit(super::audit::AuditArgs),
+    /// Legacy name for the resumable validation matrix.
+    CheckEverything(super::check_everything::CheckEverythingArgs),
+    /// Synchronize selected generated projections.
+    Sync(super::check_everything::CheckEverythingArgs),
+    /// Incrementally compile and package selected projections.
+    Build(super::check_everything::CheckEverythingArgs),
+    /// Select and resume strict validation stages across catalog projections.
+    Matrix(super::check_everything::CheckEverythingArgs),
     /// Run arbitrary gradle task(s) for each worktree in strict sequence
     Gradle(super::gradle::GradleArgs),
     /// Client instance tracking and management commands
@@ -138,6 +146,10 @@ impl Command {
     ) -> eyre::Result<CliOutput> {
         match self {
             Command::Audit(args) => legacy_output(args.invoke()),
+            Command::CheckEverything(args) => args.invoke_in(&cancellation_token, invocation_dir),
+            Command::Sync(args) => args.invoke_sync_in(&cancellation_token, invocation_dir),
+            Command::Build(args) => args.invoke_build_in(&cancellation_token, invocation_dir),
+            Command::Matrix(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Gradle(args) => legacy_output(args.invoke()),
             Command::Client(args) => legacy_output(args.invoke()),
             Command::Container(args) => args.invoke_in(&cancellation_token, invocation_dir),
