@@ -38,6 +38,8 @@ When the CLI reports `os_error=5` while opening a lock under the user-level arti
 
 ## Goal execution and testing readiness
 
+For a prepared Codex cloud image, use [the repository-owned cloud setup and offline publication gate](codex-cloud-environment.md). Its declared scope and lock hashes must pass inside a networkless candidate image before publication.
+
 Read the repository-wide [goal execution and testing readiness guidelines](tasks/goal%20execution%20and%20testing%20readiness%20guidelines.md) before starting or completing an autonomous implementation goal. It requires explicit tooling freshness, installer responsibility, bounded in-scope process cleanup, lock diagnostics, and a copyable manual-testing handoff. Goal authority permits stopping and restarting only processes proven to belong to the SFM/Minecraft/toolchain test scope; it does not permit broad process killing, repository reset, recursive deletion, or unrelated-application disruption.
 
 ## Changelog

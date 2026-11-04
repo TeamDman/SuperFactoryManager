@@ -34,6 +34,8 @@ for syntax highlighting 🌈
 
 ## Build from source
 
+For the prepared Codex cloud image, follow the repository-owned [cloud environment setup and offline publication gate](docs/codex-cloud-environment.md).
+
 Before creating a worktree or sharing toolchain data between checkouts, read the
 [worktree cache decision guide](docs/worktree-toolchain-cache.md).
 

@@ -52,6 +52,9 @@ pub struct CheckEverythingArgs {
     /// Print the selected manifest without executing or writing receipts.
     #[facet(default = false, args::named)]
     pub plan_only: bool,
+    /// Execute selected stages even when matching passing receipts exist. Intended for offline image qualification.
+    #[facet(default = false, args::named)]
+    pub fresh: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -102,6 +105,7 @@ struct Manifest {
     headless_filter: String,
     released_recipe: Option<String>,
     state_root: String,
+    fresh: bool,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -171,6 +175,7 @@ struct ContextState {
     filter: String,
     recipe: Option<String>,
     min_free_bytes: u64,
+    fresh: bool,
 }
 
 impl CheckEverythingArgs {
@@ -225,6 +230,10 @@ impl CheckEverythingArgs {
         mode: RunMode,
     ) -> eyre::Result<CliOutput> {
         ensure!(
+            mode == RunMode::Matrix || !self.fresh,
+            "--fresh is only valid for matrix"
+        );
+        ensure!(
             (1..=8).contains(&self.read_workers),
             "--read-workers must be between 1 and 8"
         );
@@ -263,6 +272,7 @@ impl CheckEverythingArgs {
             headless_filter: self.headless_filter.clone(),
             released_recipe: self.released_recipe.clone(),
             state_root: state_root.display().to_string(),
+            fresh: self.fresh,
         };
         if self.plan_only {
             return Ok(CliOutput::facet(manifest));
@@ -283,6 +293,7 @@ impl CheckEverythingArgs {
             filter: self.headless_filter,
             recipe: self.released_recipe,
             min_free_bytes: self.min_free_bytes,
+            fresh: self.fresh,
         };
         let mut rows = Vec::new();
         if mode != RunMode::Matrix {
@@ -523,7 +534,8 @@ fn execute_one(
             "invalid passing receipt {}",
             pass_path.display()
         );
-        if output_available(&prior, stage, &project)? {
+        let available = output_available(&prior, stage, &project)?;
+        if available && !ctx.fresh {
             return Ok(row(
                 key,
                 stage,
@@ -533,16 +545,32 @@ fn execute_one(
                 Some(identity),
             ));
         }
-        return Ok(row(
-            key,
-            stage,
-            "blocked",
-            "passing receipt output is missing or changed; inspect before replacement",
-            Some(pass_path.display().to_string()),
-            Some(identity),
-        ));
+        if !available {
+            return Ok(row(
+                key,
+                stage,
+                "blocked",
+                "passing receipt output is missing or changed; inspect before replacement",
+                Some(pass_path.display().to_string()),
+                Some(identity),
+            ));
+        }
+        if ctx.fresh && stage == Stage::Jar {
+            return Ok(row(
+                key,
+                stage,
+                "blocked",
+                "fresh JAR validation requires a candidate without prior matrix pass receipts",
+                Some(pass_path.display().to_string()),
+                Some(identity),
+            ));
+        }
     }
-    let reason = invalidation(&receipt_dir, &inputs)?;
+    let reason = if ctx.fresh && pass_path.exists() {
+        "explicit fresh execution".to_owned()
+    } else {
+        invalidation(&receipt_dir, &inputs)?
+    };
     let attempt = next_attempt(&receipt_dir, &identity)?;
     let base = receipt_dir.join(format!("{identity}.attempt-{attempt:03}"));
     let started_path = PathBuf::from(format!("{}.started.json", base.display()));
@@ -1464,6 +1492,7 @@ mod resume_tests {
             "--stage",
             "check",
             "--plan-only",
+            "--fresh",
         ])
         .into_result()
         .unwrap()
@@ -1473,6 +1502,7 @@ mod resume_tests {
                 assert_eq!(args.projection, "sfm-dev/mc-1.21.*");
                 assert_eq!(args.stage, ["check"]);
                 assert!(args.plan_only);
+                assert!(args.fresh);
             }
             other => panic!("expected native check-everything, got {other:?}"),
         }
@@ -1513,6 +1543,7 @@ mod resume_tests {
             filter: "*".to_owned(),
             recipe: None,
             min_free_bytes: 0,
+            fresh: false,
         };
         let retained = preserve_generated_jar(&ctx, "sfm-dev/mc-1.20.1", &libs)
             .unwrap()
