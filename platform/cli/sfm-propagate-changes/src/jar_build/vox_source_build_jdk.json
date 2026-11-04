@@ -1,0 +1,19 @@
+{
+  "schema": "sfm:source_build_jdk_pin@1",
+  "coordinate": "org.facet:teamy-vox-java:0.10.0-rc.7",
+  "expected_release": "JetBrains s.r.o.|21.0.11+1-b1163.116",
+  "pin": {
+    "major": 21,
+    "vendor": "JetBrains",
+    "version": "21.0.11",
+    "build": "b1163.116",
+    "flavor": "jbrsdk",
+    "artifacts": [
+      {
+        "platform": "windows-x64",
+        "url": "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.11-windows-x64-b1163.116.zip",
+        "sha512": "457c15d931bb5055ae97574fc7d899aa70917c266d4b40a1c50d949ff1d2b431eb95ad078b2038bd94561fbd57889803f867dd9c295868fbb0c3c870f1f4d1d3"
+      }
+    ]
+  }
+}

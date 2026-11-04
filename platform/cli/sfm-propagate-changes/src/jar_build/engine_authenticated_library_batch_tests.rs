@@ -279,8 +279,8 @@ mod authenticated_library_batch_integration_tests {
             );
             let mut expected_lines = expected
                 .iter()
-                .map(|path| dunce::canonicalize(path).map(|path| format!("-e={}", path.display())))
-                .collect::<std::io::Result<Vec<_>>>()?;
+                .map(|path| format!("-e={}", path.display()))
+                .collect::<Vec<_>>();
             expected_lines.sort();
             assert_eq!(
                 fs::read_to_string(&cfg)?,

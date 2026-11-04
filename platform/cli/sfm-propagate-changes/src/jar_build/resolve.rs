@@ -756,6 +756,8 @@ impl Resolver {
             &self.cancellation_token,
             remote_url,
             &source_git.commit,
+            coordinate,
+            &self.cache_dir,
             source_build,
             &checkout_dir,
             &repository_dir,

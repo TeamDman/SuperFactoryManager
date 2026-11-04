@@ -717,9 +717,7 @@ fn demo_instrumentation_and_project_search_require_explicit_features() -> Result
                 .features
                 .contains(&"projection_test_directory_search".to_owned())
         );
-        let enabled = explicit_search
-            || context.features["client_properties"]
-            || context.features["release_version_4_35_0"];
+        let enabled = explicit_search || context.features["client_properties"];
         let rendered = super::render_java_source(std::str::from_utf8(&search)?, &context)?;
         assert_eq!(rendered.contains("while (cwd != null) {"), enabled, "{key}");
         assert_eq!(

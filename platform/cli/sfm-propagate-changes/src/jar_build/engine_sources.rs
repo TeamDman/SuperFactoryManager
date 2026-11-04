@@ -1050,6 +1050,20 @@ where
     Ok(())
 }
 
+fn minecraft_library_cfg_entry(library_path: &PathBuf) -> eyre::Result<String> {
+    // Verify the selected checked library, but keep its original absolute spelling for Java.
+    // Windows canonicalization adds \\?\ to long paths; Forge's renamer parses this cfg as
+    // Java paths and rejects that prefix even though Java opens the normal long path.
+    if !library_path.is_absolute() {
+        eyre::bail!(
+            "Minecraft library path is not absolute: {}",
+            library_path.display()
+        );
+    }
+    let _ = dunce::canonicalize(library_path)
+        .wrap_err_with(|| format!("Failed to canonicalize {}", library_path.display()))?;
+    Ok(format!("-e={}", library_path.display()))
+}
 fn write_minecraft_libraries_cfg(
     context: &ExecutionContext<'_>,
     client: &Client,
@@ -1058,11 +1072,7 @@ fn write_minecraft_libraries_cfg(
     let library_paths = resolve_current_minecraft_libraries(context, client)?;
     let mut lines = library_paths
         .iter()
-        .map(|library_path| {
-            dunce::canonicalize(library_path)
-                .map(|path| format!("-e={}", path.display()))
-                .wrap_err_with(|| format!("Failed to canonicalize {}", library_path.display()))
-        })
+        .map(minecraft_library_cfg_entry)
         .collect::<eyre::Result<Vec<_>>>()?;
 
     context.plan.recheck_named_inputs()?;
@@ -2254,4 +2264,28 @@ fn write_compilation_argfiles(
         )?;
     }
     Ok(())
+}
+
+#[cfg(all(test, windows))]
+mod minecraft_library_cfg_long_path_tests {
+    use super::*;
+
+    #[test]
+    fn verified_long_library_keeps_java_compatible_path_spelling() {
+        let directory = tempfile::tempdir().unwrap();
+        let long_parent = directory.path().join("a".repeat(100)).join("b".repeat(100));
+        fs::create_dir_all(&long_parent).unwrap();
+        let library = long_parent.join("netty-native-linux-aarch64.jar");
+        fs::write(&library, b"checked library").unwrap();
+        assert!(library.to_string_lossy().len() > 260);
+        assert!(
+            dunce::canonicalize(&library)
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(r"\\?\")
+        );
+        let entry = minecraft_library_cfg_entry(&library).unwrap();
+        assert_eq!(entry, format!("-e={}", library.display()));
+        assert!(!entry.contains(r"\\?\"));
+    }
 }

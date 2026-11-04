@@ -336,7 +336,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
             temporary.as_file_mut().flush()?;
             temporary.as_file_mut().sync_all()?;
             verify_archive_sha512(temporary.as_file_mut(), &sha)?;
-            match temporary.persist_noclobber(&archive) {
+            match temporary.persist_noclobber(&publish_destination(&archive)?) {
                 Ok(_) => (),
                 Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => (),
                 Err(error) => return Err(error.error).wrap_err("Failed to publish JBRSDK ZIP"),
@@ -384,7 +384,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
             let home = locate_jdk_home(&payload, artifact)?;
             write_receipt(&home, &expected_receipt)?;
             verify_installed_home(&home, artifact, &expected_receipt, &mut verified_zip)?;
-            fs::rename(&home, &installed).wrap_err_with(|| {
+            fs::rename(&home, publish_destination(&installed)?).wrap_err_with(|| {
                 format!(
                     "Failed to publish JBRSDK installation {}",
                     installed.display()
@@ -729,6 +729,21 @@ fn write_receipt(home: &Path, expected: &str) -> eyre::Result<()> {
     Ok(())
 }
 
+/// Windows publication APIs need a verbatim destination for long, checked cache
+/// roots. Resolve only the existing parent; the final leaf must remain absent.
+fn publish_destination(path: &Path) -> eyre::Result<PathBuf> {
+    #[cfg(windows)]
+    {
+        let parent = path.parent().ok_or_else(|| eyre::eyre!("JBRSDK publication has no parent"))?;
+        let leaf = path.file_name().ok_or_else(|| eyre::eyre!("JBRSDK publication has no leaf"))?;
+        Ok(fs::canonicalize(parent)?.join(leaf))
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(path.to_path_buf())
+    }
+}
+
 fn seal_path(install_dir: &Path, sha: &str) -> PathBuf {
     install_dir.join(format!("{}.sealed", install_key(sha)))
 }
@@ -753,7 +768,7 @@ fn write_seal(path: &Path, expected: &str) -> eyre::Result<()> {
         .prefix(".sfm-jbrsdk-seal.").tempfile_in(parent)?;
     temporary.write_all(expected.as_bytes())?;
     temporary.as_file_mut().sync_all()?;
-    match temporary.persist_noclobber(path) {
+    match temporary.persist_noclobber(&publish_destination(path)?) {
         Ok(_) => Ok(()),
         Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
             eyre::ensure!(read_seal(path, expected)?, "JBRSDK completion seal missing");
@@ -1059,6 +1074,31 @@ mod tests {
                 .unwrap(),
             expected_home.as_path()
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn long_cache_root_publishes_archive_install_and_seal() {
+        let bytes = sdk_zip();
+        let pin = pin_for(&bytes);
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("x".repeat(100));
+        fs::create_dir(&root).unwrap();
+        let archive = root.join("archives").join(format!("{}.zip", pin.artifacts[0].sha512));
+        assert!(archive.to_string_lossy().len() > 260);
+        let image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], &root, false,
+            |_, file| { file.write_all(&bytes)?; Ok(()) },
+        ).unwrap();
+        assert!(archive.is_file());
+        assert!(image.home().join("bin/java.exe").is_file());
+        assert!(seal_path(&root.join("installs"), &pin.artifacts[0].sha512).is_file());
+        drop(image);
+        let reused = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin, &pin.artifacts[0], &root, true,
+            |_, _| unreachable!("sealed hit must not fetch"),
+        ).unwrap();
+        drop(reused);
     }
 
     #[cfg(windows)]

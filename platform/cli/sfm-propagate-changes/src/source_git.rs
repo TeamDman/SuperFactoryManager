@@ -248,24 +248,46 @@ fn acquire_repository_lock(repository_path: &Path) -> eyre::Result<ArtifactLock>
     )
 }
 
+#[cfg(windows)]
+fn managed_repository_io_path(repository_path: &Path) -> eyre::Result<PathBuf> {
+    let parent = repository_path.parent().ok_or_else(|| {
+        eyre::eyre!(
+            "Managed Git repository has no parent: {}",
+            repository_path.display()
+        )
+    })?;
+    let name = repository_path.file_name().ok_or_else(|| {
+        eyre::eyre!(
+            "Managed Git repository has no name: {}",
+            repository_path.display()
+        )
+    })?;
+    Ok(parent.canonicalize()?.join(name))
+}
 fn open_or_clone_bare_repository(
     remote: &str,
     repository_path: &Path,
 ) -> eyre::Result<gix::Repository> {
+    // Git's objects/pack files can exceed MAX_PATH even when the repository path does not.
+    // Keep the portable cache key unchanged; use a verbatim path only for filesystem I/O.
+    #[cfg(windows)]
+    let io_path = managed_repository_io_path(repository_path)?;
+    #[cfg(not(windows))]
+    let io_path = repository_path.to_path_buf();
     if repository_path.is_dir() {
-        Ok(gix::open(repository_path).map_err(|error| {
+        Ok(gix::open(&io_path).map_err(|error| {
             eyre::eyre!(
                 "Failed to open managed bare repository {}: {error}",
                 repository_path.display()
             )
         })?)
     } else {
-        let mut clone = gix::prepare_clone_bare(remote, repository_path)
+        let mut clone = gix::prepare_clone_bare(remote, &io_path)
             .map_err(|error| eyre::eyre!("Failed to prepare bare clone of {remote}: {error}"))?;
         let interrupted = AtomicBool::new(false);
         let (repository, _) = clone
             .fetch_only(gix::progress::Discard, &interrupted)
-            .map_err(|error| eyre::eyre!("Failed to clone {remote}: {error}"))?;
+            .map_err(|error| eyre::eyre!("Failed to clone {remote}: {error:?}"))?;
         Ok(repository)
     }
 }
@@ -622,6 +644,29 @@ fn validate_roots(tree: &Path, roots: &[String]) -> eyre::Result<()> {
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
+    #[test]
+    fn managed_bare_repository_supports_long_object_paths() {
+        let directory = tempfile::tempdir().unwrap();
+        let parent = directory.path().join("a".repeat(85)).join("b".repeat(85));
+        fs::create_dir_all(&parent).unwrap();
+        let repository_path = parent.join("repo.git");
+        let object_path = repository_path
+            .join("objects")
+            .join("ab")
+            .join("c".repeat(38));
+        assert!(object_path.to_string_lossy().len() > 260);
+        let io_path = managed_repository_io_path(&repository_path).unwrap();
+        assert!(io_path.to_string_lossy().starts_with(r"\\?\"));
+        let repository = gix::init_bare(&io_path).unwrap();
+        let blob = repository.write_blob(b"locked source").unwrap();
+        assert_eq!(
+            repository.find_blob(blob.detach()).unwrap().data,
+            b"locked source"
+        );
+        let reopened = gix::open(&io_path).unwrap();
+        assert!(reopened.find_blob(blob.detach()).is_ok());
+    }
     #[test]
     fn canonical_https_spelling_shares_one_bare_repository_path() {
         let first = canonical_https_remote("https://GitHub.com/CC-Tweaked/CC-Tweaked.git").unwrap();
