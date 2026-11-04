@@ -22,6 +22,8 @@ function SaveAtomic([string]$path,$value) {
 }
 function InputState {
   $paths = @('platform/minecraft/core-liquid-template',"platform/minecraft/projections/$Projection")
+  $coreTree = (& git -C $RepoRoot rev-parse 'HEAD:platform/minecraft/core-liquid-template').Trim()
+  if ($LASTEXITCODE -ne 0 -or $coreTree -notmatch '^[0-9a-f]{40}$') { throw 'Cannot identify committed core source tree' }
   $diff = @(& git -C $RepoRoot diff --binary HEAD -- @paths)
   if ($LASTEXITCODE -ne 0) { throw 'Git diff failed while freezing operation inputs' }
   $untracked = @(& git -C $RepoRoot ls-files --others --exclude-standard -- @paths)
@@ -31,6 +33,18 @@ function InputState {
     if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { throw "Untracked input disappeared: $relative" }
     "$relative|$((Get-FileHash -LiteralPath $full -Algorithm SHA256).Hash)"
   }
+  $sourceFiles = @(
+    Get-ChildItem -LiteralPath $projectRoot -File -Force -ErrorAction Stop
+    Get-ChildItem -LiteralPath (Join-Path $projectRoot 'src') -Recurse -File -Force -ErrorAction Stop
+    if (Test-Path -LiteralPath (Join-Path $projectRoot 'gradle')) {
+      Get-ChildItem -LiteralPath (Join-Path $projectRoot 'gradle') -Recurse -File -Force -ErrorAction Stop
+    }
+  )
+  $sourceRows = foreach ($file in ($sourceFiles | Sort-Object FullName)) {
+    if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Projection source reparse point: $($file.FullName)" }
+    $relative = $file.FullName.Substring($projectRoot.Length + 1).Replace('\','/')
+    "$relative|$($file.Length)|$((Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash)"
+  }
   $jarIdentity = @()
   if ($Stage -eq 'Headless') {
     $libs = Join-Path $projectRoot 'build/libs'
@@ -39,6 +53,7 @@ function InputState {
   }
   [ordered]@{
     head = (& git -C $RepoRoot rev-parse HEAD).Trim()
+    core_tree_oid = $coreTree
     worker_sha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash
     cli_sha256 = (Get-FileHash -LiteralPath $Cli -Algorithm SHA256).Hash
     catalog_sha256 = (Get-FileHash -LiteralPath (Join-Path $RepoRoot 'platform/minecraft/projections.json') -Algorithm SHA256).Hash
@@ -46,8 +61,15 @@ function InputState {
     lock_sha256 = (Get-FileHash -LiteralPath (Join-Path $projectRoot 'sfm-toolchain.lock.json') -Algorithm SHA256).Hash
     dirty_diff_sha256 = DigestText ($diff -join "`n")
     untracked_sha256 = DigestText ($extra -join "`n")
+    project_source_sha256 = DigestText ($sourceRows -join "`n")
+    project_source_files = $sourceFiles.Count
     headless_jar_sha256 = DigestText ($jarIdentity -join "`n")
   }
+}
+function RelevantState($state) {
+  $relevant = [ordered]@{}
+  foreach ($key in $state.Keys) { if ($key -ne 'head') { $relevant[$key] = $state[$key] } }
+  $relevant
 }
 
 if ($Projection -notmatch '^[a-z0-9][a-z0-9.-]*/mc-[0-9.]+$') { throw "Unsafe projection key: $Projection" }
@@ -55,7 +77,7 @@ $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
 $projectRoot = Join-Path $RepoRoot "platform/minecraft/projections/$Projection"
 if (-not (Test-Path -LiteralPath $projectRoot -PathType Container)) { throw "Projection directory missing: $Projection" }
 $before = InputState
-$identity = DigestText (([ordered]@{schema=1;projection=$Projection;stage=$Stage;filter=$HeadlessFilter;recipe=$ReleasedRecipe;inputs=$before} | ConvertTo-Json -Depth 6 -Compress))
+$identity = DigestText (([ordered]@{schema=2;projection=$Projection;stage=$Stage;filter=$HeadlessFilter;recipe=$ReleasedRecipe;inputs=(RelevantState $before)} | ConvertTo-Json -Depth 6 -Compress))
 $receiptDir = Join-Path $StateRoot ("receipts/" + $Projection.Replace('/','_') + "/" + $Stage.ToLowerInvariant())
 [void](New-Item -ItemType Directory -Path $receiptDir -Force)
 $passPath = Join-Path $receiptDir "$identity.pass.json"
@@ -129,6 +151,7 @@ try {
           $failureCount = [regex]::Match($sessionText,'(\d+) required tests failed')
           $failureNames = @([regex]::Matches($sessionText,'(?m)^\[[^\r\n]+\]:\s+-\s+([a-z0-9_]+)\s*$') | ForEach-Object { $_.Groups[1].Value })
           if ($failureCount.Success) { $reason = "exit=$code; $($failureCount.Groups[1].Value) required tests failed: $($failureNames -join ', ')" }
+          elseif ($sessionText -match 'matched zero tests') { $reason = "exit=$code; selector matched zero tests: $HeadlessFilter" }
         }
       }
     }
@@ -142,7 +165,7 @@ try {
 }
 $after = $null
 try { $after = InputState } catch { $status = 'failed'; $reason = "Cannot recheck frozen inputs: $($_.Exception.Message)" }
-if ($after -and (($before | ConvertTo-Json -Depth 4 -Compress) -cne ($after | ConvertTo-Json -Depth 4 -Compress))) {
+if ($after -and (((RelevantState $before) | ConvertTo-Json -Depth 4 -Compress) -cne ((RelevantState $after) | ConvertTo-Json -Depth 4 -Compress))) {
   $status = 'failed'; $reason = 'Frozen source, lock, catalog or CLI identity changed during operation'
 }
 $ended = [DateTime]::UtcNow
