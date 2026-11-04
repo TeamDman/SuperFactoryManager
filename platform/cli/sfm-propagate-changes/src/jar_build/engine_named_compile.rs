@@ -350,6 +350,7 @@ mod named_pinned_sdk_selection_tests {
             cache_root: Some(root.join("wrong-root")),
             pinned_sdk: Some(Arc::clone(&selected)),
             isolated_project_cache: None,
+            rebuild_shared_mcp: false,
             explain_rebuild: false,
             wait_for_build_lock: false,
         };
@@ -1189,6 +1190,7 @@ pub(crate) struct NamedCompileOptions {
     pub(crate) cache_root: Option<PathBuf>,
     pub(crate) pinned_sdk: Option<Arc<NamedPinnedSdk>>,
     pub(crate) isolated_project_cache: Option<String>,
+    pub(crate) rebuild_shared_mcp: bool,
     pub(crate) explain_rebuild: bool,
     pub(crate) wait_for_build_lock: bool,
 }

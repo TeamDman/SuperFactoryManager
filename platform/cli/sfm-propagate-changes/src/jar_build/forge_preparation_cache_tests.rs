@@ -5,6 +5,14 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 
+#[test]
+fn forced_mcp_rebuild_does_not_force_forge() {
+    assert!(!force_fresh_preparation(false, false, "mcp"));
+    assert!(force_fresh_preparation(false, true, "mcp"));
+    assert!(!force_fresh_preparation(false, true, "forge"));
+    assert!(force_fresh_preparation(true, false, "forge"));
+}
+
 fn fixture_outputs(root: &Path, count: usize) -> Result<Vec<(&'static str, PathBuf)>> {
     let names = ["one.jar", "two.jar", "three.tsrg", "four.tsrg", "five.jar"];
     make_directory(root)?;

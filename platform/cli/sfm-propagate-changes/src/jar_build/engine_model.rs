@@ -39,6 +39,8 @@ struct BuildPlan {
     java: JavaPlan,
     java_release: u32,
     refresh: bool,
+    #[facet(default, skip_unless_truthy)]
+    rebuild_shared_mcp: bool,
     allow_local_artifact_cache: bool,
     #[facet(skip_serializing)]
     artifact_sources: Vec<PathBuf>,

@@ -209,6 +209,10 @@ pub struct CoreProjectCompileArgs {
     /// Stable names can be reused for an unchanged reconstruction check.
     #[facet(default, args::named)]
     pub isolated_project_cache: Option<String>,
+    /// Rebuild the checked shared MCP producer without refreshing locked dependencies.
+    /// Requires an isolated dev 1.19.2 compile.
+    #[facet(default = false, args::named)]
+    pub rebuild_shared_mcp: bool,
     /// Create-only alternate JAR basename for an exact released recipe; preserves an existing canonical output.
     #[facet(default, args::named)]
     pub output_name: Option<String>,
@@ -358,8 +362,8 @@ fn invoke_native_compile(
         return invoke_native_development(args, false, cancellation, invocation_dir);
     }
     ensure!(
-        args.isolated_project_cache.is_none(),
-        "--isolated-project-cache requires a development dependency profile"
+        args.isolated_project_cache.is_none() && !args.rebuild_shared_mcp,
+        "--isolated-project-cache and --rebuild-shared-mcp require a development dependency profile"
     );
     let recipe = args.released_recipe.as_deref().ok_or_else(|| {
         eyre::eyre!(
@@ -409,6 +413,7 @@ fn invoke_native_compile(
             cache_root: Some(sdk.cache_root),
             pinned_sdk: sdk.pinned,
             isolated_project_cache: None,
+            rebuild_shared_mcp: false,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -423,8 +428,8 @@ fn invoke_native_jar(
     invocation_dir: &Path,
 ) -> Result<CliOutput> {
     ensure!(
-        args.isolated_project_cache.is_none(),
-        "--isolated-project-cache is compile-only; packaging writes the projection JAR"
+        args.isolated_project_cache.is_none() && !args.rebuild_shared_mcp,
+        "--isolated-project-cache and --rebuild-shared-mcp are compile-only"
     );
     if args.dependency_profile.is_some() {
         ensure!(
@@ -481,6 +486,7 @@ fn invoke_native_jar(
             cache_root: Some(sdk.cache_root),
             pinned_sdk: sdk.pinned,
             isolated_project_cache: None,
+            rebuild_shared_mcp: false,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -519,8 +525,17 @@ fn invoke_native_development(
             "--isolated-project-cache requires a compile and a 1-64 character ASCII label"
         );
     }
+    ensure!(
+        !args.rebuild_shared_mcp || (!package && args.isolated_project_cache.is_some()),
+        "--rebuild-shared-mcp requires a development compile with --isolated-project-cache"
+    );
     let initial = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
+    ensure!(
+        !args.rebuild_shared_mcp
+            || (entry.target_id()? == "1.19.2" && entry.minecraft_version == "1.19.2"),
+        "--rebuild-shared-mcp supports only the dev 1.19.2 Forge projection"
+    );
     ensure!(
         entry.environment == ProjectionEnvironment::Dev,
         "development native admission requires a development projection"
@@ -555,6 +570,7 @@ fn invoke_native_development(
                 cache_root: Some(sdk.cache_root),
                 pinned_sdk: sdk.pinned,
                 isolated_project_cache: args.isolated_project_cache.clone(),
+                rebuild_shared_mcp: args.rebuild_shared_mcp,
                 explain_rebuild: args.explain_rebuild,
                 wait_for_build_lock: args.wait_for_build_lock,
             },
@@ -1119,6 +1135,7 @@ mod tests {
         assert!(default.java_home.is_none());
         assert!(default.cache_root.is_none());
         assert!(default.isolated_project_cache.is_none());
+        assert!(!default.rebuild_shared_mcp);
         assert!(default.output_name.is_none());
         assert_eq!(
             crate::jar_build::engine::catalog_native_cache_path(
@@ -1156,6 +1173,14 @@ mod tests {
         alternate_output.extend(["--output-name", "historical-check.jar"]);
         let parsed = figue::from_slice::<CoreProjectCompileArgs>(&alternate_output).unwrap();
         assert_eq!(parsed.output_name.as_deref(), Some("historical-check.jar"));
+        let mut rebuild = base.to_vec();
+        rebuild.extend([
+            "--isolated-project-cache",
+            "mcp_proof",
+            "--rebuild-shared-mcp",
+        ]);
+        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&rebuild).unwrap();
+        assert!(parsed.rebuild_shared_mcp);
     }
 
     #[test]
@@ -1170,6 +1195,7 @@ mod tests {
             java_home: Some(PathBuf::from("must-not-be-read")),
             cache_root: None,
             isolated_project_cache: Some("../escape".to_owned()),
+            rebuild_shared_mcp: false,
             output_name: None,
             explain_rebuild: false,
             wait_for_build_lock: false,
@@ -1184,6 +1210,12 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(package.contains("compile-only"), "{package}");
+        args.isolated_project_cache = None;
+        args.rebuild_shared_mcp = true;
+        let missing = invoke_native_development(&args, false, &cancellation, Path::new("."))
+            .unwrap_err()
+            .to_string();
+        assert!(missing.contains("--isolated-project-cache"));
     }
 
     #[test]
@@ -1198,6 +1230,7 @@ mod tests {
             java_home: Some(PathBuf::from("must-not-be-read")),
             cache_root: None,
             isolated_project_cache: None,
+            rebuild_shared_mcp: false,
             output_name: Some("../escape.jar".to_owned()),
             explain_rebuild: false,
             wait_for_build_lock: false,
@@ -1237,6 +1270,7 @@ mod tests {
             java_home: Some(PathBuf::from("must-not-be-read")),
             cache_root: None,
             isolated_project_cache: None,
+            rebuild_shared_mcp: false,
             output_name: None,
             explain_rebuild: false,
             wait_for_build_lock: false,
@@ -1275,6 +1309,7 @@ mod tests {
             java_home: None,
             cache_root: None,
             isolated_project_cache: None,
+            rebuild_shared_mcp: false,
             output_name: None,
             explain_rebuild: false,
             wait_for_build_lock: false,

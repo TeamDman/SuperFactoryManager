@@ -149,6 +149,7 @@ mod authenticated_library_batch_integration_tests {
                 java,
                 java_release: 17,
                 refresh: false,
+                rebuild_shared_mcp: false,
                 allow_local_artifact_cache: false,
                 artifact_sources: Vec::new(),
                 properties: BTreeMap::new(),

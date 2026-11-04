@@ -291,6 +291,10 @@ pub(super) fn eligible(context: &ExecutionContext<'_>) -> bool {
         && context.plan.minecraft_version.as_str() == "1.19.2"
 }
 
+fn force_fresh_preparation(refresh: bool, rebuild_shared_mcp: bool, kind: &str) -> bool {
+    refresh || (rebuild_shared_mcp && kind == "mcp")
+}
+
 pub(super) fn execute(
     context: &ExecutionContext<'_>,
     kind: &str,
@@ -302,10 +306,15 @@ pub(super) fn execute(
     Option<HeldSharedPreparation>,
     Option<ForgePreparationInputs>,
 )> {
+    let forced_mcp = context.plan.rebuild_shared_mcp && kind == "mcp";
     let inputs = NfrtPreparationPhase::run("forge_preparation.input_admission", || {
         ForgePreparationInputs::prepare(context, kind)
     })?;
     let Some(inputs) = inputs else {
+        eyre::ensure!(
+            !forced_mcp,
+            "forced MCP rebuild requires checked input admission"
+        );
         tracing::info!(
             kind,
             reason = "input_capability",
@@ -315,6 +324,7 @@ pub(super) fn execute(
         return Ok((None, None, None));
     };
     let Some((base, _base_ancestry)) = store_base(context, kind)? else {
+        eyre::ensure!(!forced_mcp, "forced MCP rebuild requires held shared store");
         tracing::info!(
             kind,
             reason = "store_ancestry",
@@ -336,6 +346,10 @@ pub(super) fn execute(
     )?;
     inputs.recheck(context)?;
     let Some((key_root, _key_ancestry)) = make_held_directory(&base.join(key))? else {
+        eyre::ensure!(
+            !forced_mcp,
+            "forced MCP rebuild requires held key directory"
+        );
         tracing::info!(
             kind,
             reason = "key_ancestry",
@@ -357,7 +371,9 @@ pub(super) fn execute(
         restore_outputs.clone()
     };
     let mut shared = None;
-    let (reused, held_dev_jar) = if context.plan.refresh {
+    let force_fresh =
+        force_fresh_preparation(context.plan.refresh, context.plan.rebuild_shared_mcp, kind);
+    let (reused, held_dev_jar) = if force_fresh {
         (false, None)
     } else if kind == "mcp" && !materialize_sources {
         shared = hold_shared_preparation(
@@ -460,6 +476,10 @@ pub(super) fn execute(
         })
     })?;
     inputs.recheck(context)?;
+    eyre::ensure!(
+        !forced_mcp || stored,
+        "forced MCP rebuild did not publish a checked shared entry"
+    );
     tracing::info!(
         kind,
         key,

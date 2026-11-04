@@ -827,6 +827,7 @@ fn create_plan_for_project(
             java,
             java_release,
             refresh: options.refresh,
+            rebuild_shared_mcp: false,
             allow_local_artifact_cache: options.allow_local_artifact_cache,
             artifact_sources: options.artifact_sources.clone(),
             properties,

@@ -105,6 +105,13 @@ pub(crate) fn invoke_development_project(
         .ok_or_else(|| eyre::eyre!("development identity lost its profile receipt"))?
         .receipt
         .clone();
+    eyre::ensure!(
+        !options.rebuild_shared_mcp
+            || (!package && options.isolated_project_cache.is_some()
+                && preparation.target_id == "1.19.2"
+                && preparation.minecraft_version == "1.19.2"),
+        "shared MCP rebuild requires isolated dev 1.19.2 compile"
+    );
     let derived_cache_root = selected_named_cache_owner(options, &identity, cancellation)?;
     let planning = NativePlanningOptions {
         output_name: None,
@@ -118,7 +125,8 @@ pub(crate) fn invoke_development_project(
         artifact_sources: Vec::new(),
         require_portable_artifacts: true,
     };
-    let plan = create_plan_for_project(&planning, &identity, cancellation)?;
+    let mut plan = create_plan_for_project(&planning, &identity, cancellation)?;
+    plan.rebuild_shared_mcp = options.rebuild_shared_mcp;
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()?;
     let path = build_cache_lock_path(&plan);
