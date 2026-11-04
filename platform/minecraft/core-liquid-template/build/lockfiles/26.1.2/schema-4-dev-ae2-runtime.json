@@ -699,7 +699,8 @@
               }
             },
             "scopes": [
-              "compile"
+              "compile",
+              "runtime"
             ],
             "artifact_treatment": "loader-managed-mod",
             "data_run_policy": "exclude"

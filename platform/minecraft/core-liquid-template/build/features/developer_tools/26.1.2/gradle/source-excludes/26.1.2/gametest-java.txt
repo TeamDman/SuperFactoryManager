@@ -7,7 +7,5 @@ ca/teamdman/sfm/gametest/tests/ai/**
 ca/teamdman/sfm/gametest/tests/compat/multiple/**
 ca/teamdman/sfm/gametest/tests/compat/thermal/**
 ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/**
-# AE2 energy acceptor uses removed Mekanism getBlock() on 26.1.2.
-ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2EnergyAcceptorGameTest.java
 ca/teamdman/sfm/gametest/tests/compat/mekanism/**
 ca/teamdman/sfm/gametest/tests/compat/dank/**
