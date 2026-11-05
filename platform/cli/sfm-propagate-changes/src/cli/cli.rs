@@ -1332,6 +1332,8 @@ mod tests {
             "mekanism/main",
             "--project-root",
             "projection",
+            "--cache-root",
+            "fresh-managed-cache",
             "--file",
             "main.jar",
             "--producer-receipt",
@@ -1354,6 +1356,10 @@ mod tests {
         };
         assert_eq!(args.target, "mekanism/main");
         assert_eq!(args.project_root, std::path::PathBuf::from("projection"));
+        assert_eq!(
+            args.cache_root,
+            Some(std::path::PathBuf::from("fresh-managed-cache"))
+        );
         assert_eq!(args.file, std::path::PathBuf::from("main.jar"));
         assert!(!args.update_lock);
     }

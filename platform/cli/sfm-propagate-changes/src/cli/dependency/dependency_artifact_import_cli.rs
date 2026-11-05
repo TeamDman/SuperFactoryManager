@@ -30,6 +30,9 @@ pub struct DependencyArtifactImportArgs {
     /// Existing catalog projection directory containing sfm-toolchain.lock.json.
     #[facet(args::named)]
     pub project_root: PathBuf,
+    /// Guarded native cache root override; defaults to this checkout's sfm-toolchain-data.
+    #[facet(default, args::named)]
+    pub cache_root: Option<PathBuf>,
     /// User-supplied JAR. The exact locked content hash must already match.
     #[facet(args::named)]
     pub file: PathBuf,
@@ -51,7 +54,7 @@ impl DependencyArtifactImportArgs {
         cancellation.bail_if_cancelled()?;
         let selected = crate::jar_build::engine::select_project_source_cache(
             &self.project_root,
-            None,
+            self.cache_root.as_deref(),
             cancellation,
         )?;
         let inventory =
@@ -552,6 +555,7 @@ mod tests {
         let args = DependencyArtifactImportArgs {
             target: "mekanism/main".to_owned(),
             project_root: temp.path().to_path_buf(),
+            cache_root: None,
             expected_sha256: sha256(&fs::read(&supplied_jar).unwrap()),
             file: supplied_jar,
             producer_receipt,
