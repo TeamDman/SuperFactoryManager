@@ -8,6 +8,10 @@ use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
 
+#[cfg(test)]
+#[path = "build_snapshot_source_owner_tests.rs"]
+mod source_owner_tests;
+
 #[cfg(windows)]
 #[path = "build_snapshot_source_capture.rs"]
 mod source_capture;
@@ -577,7 +581,10 @@ impl BuildSnapshotReceipt {
         cancellation_token: &CancellationToken,
     ) -> Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let source = project.join(root);
+        // Admission binds this project to the source cache. The receipt's
+        // cache owns the destination and may be a separate projection root.
+        let source_owner = canonical_directory(project)?;
+        let source = source_owner.join(root);
         match fs::symlink_metadata(&source) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
             result => {
@@ -590,7 +597,7 @@ impl BuildSnapshotReceipt {
         }
         let source = canonical_directory(&source)?;
         ensure!(
-            relative_spelling(&self.cache_dir.join("project"), &source).is_some(),
+            relative_spelling(&source_owner, &source).is_some(),
             "build output escaped project owner"
         );
         let (files, directories) = inventory(&source, false, Some(cancellation_token))?;
@@ -1182,7 +1189,7 @@ fn write_new(path: &Path, raw: &[u8]) -> Result<()> {
 mod tests {
     use super::*;
 
-    fn java(root: &Path) -> ResolvedJava {
+    pub(super) fn java(root: &Path) -> ResolvedJava {
         ResolvedJava {
             executable: root.join("sdk/bin/java"),
             home: Some(root.join("sdk")),
@@ -1194,7 +1201,7 @@ mod tests {
         }
     }
 
-    fn project(root: &Path, name: &str) -> Result<(PathBuf, PathBuf)> {
+    pub(super) fn project(root: &Path, name: &str) -> Result<(PathBuf, PathBuf)> {
         let minecraft = root.join(name);
         let cache = minecraft.join("build/sfm-toolchain/native-project/fixture");
         fs::create_dir_all(cache.join("project/classes/example"))?;
@@ -1277,10 +1284,19 @@ mod tests {
             ("sdk-fixture", "fixture-runtime-contract"),
             &CancellationToken::new(),
         )?;
-        assert_eq!(reused.snapshot_dir, receipt.snapshot_dir);
+        // Reuse is currently a Windows held-source optimization. Other
+        // platforms publish another independently verified append-only copy.
+        if cfg!(windows) {
+            assert_eq!(reused.snapshot_dir, receipt.snapshot_dir);
+        } else {
+            assert_ne!(reused.snapshot_dir, receipt.snapshot_dir);
+        }
+        assert_eq!(reused.files, receipt.files);
+        assert_eq!(reused.directories, receipt.directories);
+        reused.recheck()?;
         assert_eq!(
             fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
-            1
+            if cfg!(windows) { 1 } else { 2 }
         );
         fs::write(
             source_project.join("classes/example/Main.class"),
@@ -1299,7 +1315,7 @@ mod tests {
         assert_ne!(changed.snapshot_dir, receipt.snapshot_dir);
         assert_eq!(
             fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
-            2
+            if cfg!(windows) { 2 } else { 3 }
         );
         fs::write(
             changed
@@ -1318,9 +1334,17 @@ mod tests {
             ("sdk-fixture", "fixture-runtime-contract"),
             &CancellationToken::new(),
         )?;
-        assert_eq!(trusted.snapshot_dir, changed.snapshot_dir);
+        if cfg!(windows) {
+            assert_eq!(trusted.snapshot_dir, changed.snapshot_dir);
+        } else {
+            assert_ne!(trusted.snapshot_dir, changed.snapshot_dir);
+            trusted.recheck()?;
+            trusted.materialize_roots(
+                &snapshot_cache.join("sessions/fresh/mod-root"), &["classes"],
+            )?;
+        }
         let session = snapshot_cache.join("sessions/damaged/mod-root");
-        assert!(trusted.materialize_roots(&session, &["classes"]).is_err());
+        assert!(changed.materialize_roots(&session, &["classes"]).is_err());
         fs::write(
             source_project.join("classes/example/Main.class"),
             b"newer class",
@@ -1339,7 +1363,7 @@ mod tests {
         rebuilt.recheck()?;
         assert_eq!(
             fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
-            3
+            if cfg!(windows) { 3 } else { 5 }
         );
         assert!(
             BuildSnapshotReceipt::publish_from_source_cache_cancellable(
@@ -1549,7 +1573,7 @@ mod tests {
     }
 
     #[test]
-    fn managed_reuse_trusts_old_bytes_but_copy_checks_and_source_edits_invalidate() -> Result<()> {
+    fn managed_reuse_or_fresh_copy_preserves_checks_and_source_edits_invalidate() -> Result<()> {
         let temporary = tempfile::tempdir()?;
         let (minecraft, cache) = project(temporary.path(), "projection-a")?;
         let old = publish(&minecraft, &cache)?;
@@ -1557,9 +1581,15 @@ mod tests {
         fs::write(&changed, b"corrupted old snapshot")?;
         assert!(old.recheck().is_err());
         let trusted = publish(&minecraft, &cache)?;
-        assert_eq!(old.snapshot_dir, trusted.snapshot_dir);
+        if cfg!(windows) {
+            assert_eq!(old.snapshot_dir, trusted.snapshot_dir);
+        } else {
+            assert_ne!(old.snapshot_dir, trusted.snapshot_dir);
+            trusted.recheck()?;
+            trusted.materialize_roots(&cache.join("sessions/fresh/mod-root"), &["classes"])?;
+        }
         assert!(
-            trusted
+            old
                 .materialize_roots(&cache.join("sessions/damaged/mod-root"), &["classes"])
                 .is_err()
         );
