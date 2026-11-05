@@ -101,7 +101,7 @@ fn fixture(
     Ok((fixture, plan))
 }
 
-fn report(version: &str) -> super::preflight_report::PreflightReport {
+pub(super) fn report(version: &str) -> super::preflight_report::PreflightReport {
     let pins: Vec<_> = COMMON_PINS
         .iter()
         .map(|(coordinate, hash)| TestPin {

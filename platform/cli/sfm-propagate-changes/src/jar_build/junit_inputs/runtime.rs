@@ -10,10 +10,13 @@ use super::require_complete;
 use super::sha256;
 use std::path::PathBuf;
 
-fn supported_key(key: &str) -> bool {
-    crate::source_projection::projection_catalog::SUPPORTED_TARGETS
-        .iter()
-        .any(|(target, _)| key == format!("sfm-4.35.0/mc-{target}"))
+fn authority_target(key: &str) -> Option<&str> {
+    let current = key.strip_prefix("sfm-4.35.0/mc-").filter(|version| {
+        crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+            .iter()
+            .any(|(target, _)| version == target)
+    });
+    current.or_else(|| super::historical_forge::target(key))
 }
 
 pub(in crate::jar_build::engine) fn enforce_selected(
@@ -31,8 +34,7 @@ pub(in crate::jar_build::engine) fn enforce_selected(
         crate::jar_build::projection_selection::select_projections(repo_root.as_deref(), selector)?;
     let ids: Vec<_> = keys
         .iter()
-        .filter(|key| supported_key(key))
-        .filter_map(|key| key.strip_prefix("sfm-4.35.0/mc-").map(str::to_owned))
+        .filter_map(|key| authority_target(key).map(str::to_owned))
         .collect();
     if ids.is_empty() {
         return Ok(());
@@ -51,12 +53,16 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
     cancel: &CancellationToken,
 ) -> eyre::Result<Option<PreparedJunitInputs>> {
     let key = plan.target_label();
-    if !plan.identity.is_catalog_owned() || !supported_key(&key) {
+    let Some(version) = authority_target(&key).filter(|_| plan.identity.is_catalog_owned()) else {
         return Ok(None);
+    };
+    let historical_forge = super::historical_forge::target(&key).is_some();
+    if historical_forge {
+        super::historical_forge::verify_owner(plan)?;
     }
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()?;
-    let ids = vec![key.trim_start_matches("sfm-4.35.0/mc-").to_owned()];
+    let ids = vec![version.to_owned()];
     let mut report = preflight::run(
         plan.repository_root(),
         &plan.maven_cache_dir,
@@ -65,6 +71,38 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
     )?;
     require_complete(&report)?;
     let target = report.targets.remove(0);
+    verify_roots(plan, &target)?;
+    let owner = plan
+        .named_project()
+        .expect("catalog project checked")
+        .project()
+        .receipt();
+    let source_snapshot_identity = if historical_forge {
+        super::historical_forge::bind_identity(plan, &target)?
+    } else {
+        identity(owner)?
+    };
+    let mut prepared = PreparedJunitInputs {
+        schema: "sfm:prepared_junit_dependency_inputs@1".to_owned(),
+        identity: String::new(),
+        target,
+        source_snapshot_identity,
+        java_identity: plan.java.cache_identity(),
+        cli_sha256: sha256(&std::fs::read(std::env::current_exe()?)?),
+        test_source_lock_sha256: report.test_source_lock_sha256,
+        test_provenance_sha256: report.test_provenance_sha256,
+        configuration_sha256: report.configuration_sha256,
+        artifacts: report.artifacts,
+        annotation_processing_enabled: false,
+    };
+    prepared.identity = identity(&prepared)?;
+    Ok(Some(prepared))
+}
+
+pub(super) fn verify_roots(
+    plan: &BuildPlan,
+    target: &super::target_report::TargetReport,
+) -> eyre::Result<()> {
     let actual_roots: Vec<_> = plan
         .parsed_dependencies()?
         .iter()
@@ -84,26 +122,7 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
         actual_sorted == expected_sorted,
         "prepared JUnit roots differ from the frozen project roles"
     );
-    let owner = plan
-        .named_project()
-        .expect("catalog project checked")
-        .project()
-        .receipt();
-    let mut prepared = PreparedJunitInputs {
-        schema: "sfm:prepared_junit_dependency_inputs@1".to_owned(),
-        identity: String::new(),
-        target,
-        source_snapshot_identity: identity(owner)?,
-        java_identity: plan.java.cache_identity(),
-        cli_sha256: sha256(&std::fs::read(std::env::current_exe()?)?),
-        test_source_lock_sha256: report.test_source_lock_sha256,
-        test_provenance_sha256: report.test_provenance_sha256,
-        configuration_sha256: report.configuration_sha256,
-        artifacts: report.artifacts,
-        annotation_processing_enabled: false,
-    };
-    prepared.identity = identity(&prepared)?;
-    Ok(Some(prepared))
+    Ok(())
 }
 
 impl PreparedJunitInputs {
