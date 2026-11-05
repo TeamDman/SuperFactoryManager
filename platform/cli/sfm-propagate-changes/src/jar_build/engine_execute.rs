@@ -91,6 +91,14 @@ fn java_tool_launch_cwd<'a>(
     }
 }
 
+fn encoded_java_argfile(arguments: Vec<String>) -> String {
+    arguments
+        .into_iter()
+        .map(escape_argfile_arg)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 impl<'a> ExecutionContext<'a> {
     fn require_all_hit_compilation_binding(&self) -> eyre::Result<()> {
         if self.plan.retained_inputs().is_some() {
@@ -433,11 +441,7 @@ impl<'a> ExecutionContext<'a> {
             .collect::<Vec<_>>();
         java_args.extend(["-cp".to_string(), classpath_arg.clone(), main_class.clone()]);
         java_args.extend(args.iter().cloned());
-        let argfile_contents = java_args
-            .into_iter()
-            .map(escape_argfile_arg)
-            .collect::<Vec<_>>()
-            .join("\n");
+        let argfile_contents = encoded_java_argfile(java_args);
         fs::write(&java_argfile, &argfile_contents)
             .wrap_err_with(|| format!("Failed to write {}", java_argfile.display()))?;
         // Retain the original file for inspection. Windows' Java launcher uses
@@ -973,7 +977,10 @@ fn execute_dependency_deobf(
             owner.recheck(context)?;
         }
         let mut paths = Vec::with_capacity(producers.len());
+        #[cfg(windows)]
         let mut held = Vec::new();
+        #[cfg(not(windows))]
+        let held = Vec::new();
         for (producer, chosen) in producers.iter().zip(&selected) {
             #[cfg(windows)]
             if let Some(chosen) = chosen {
@@ -1144,14 +1151,12 @@ fn execute_dependency_deobf_dependency(
             }
         }
     }
-    {
-        let _span = tracing::debug_span!(
-            "dependency_deobf_verify_remapped_output",
-            output = %remapped.display()
-        )
-        .entered();
-        verify_complete_dependency_jar(remapped)?;
-    }
+    let _span = tracing::debug_span!(
+        "dependency_deobf_verify_remapped_output",
+        output = %remapped.display()
+    )
+    .entered();
+    verify_complete_dependency_jar(remapped)?;
     Ok(())
 }
 
@@ -1475,7 +1480,7 @@ fn rewrite_class_srg_member_constants(
             15 => {
                 copy_constant_pool_payload(bytes, &mut output, &mut cursor, 3)?;
             }
-            _ => eyre::bail!("Unsupported class constant pool tag {tag}"),
+            _ => return Err(eyre::eyre!("Unsupported class constant pool tag {tag}")),
         }
         index += 1;
     }

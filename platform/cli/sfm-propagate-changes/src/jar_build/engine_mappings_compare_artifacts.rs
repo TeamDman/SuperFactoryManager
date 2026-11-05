@@ -1109,9 +1109,9 @@ fn refresh_maintained_lockfile_document(
         crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => {
             lockfile.refresh_resolved_artifacts(resolved)?.to_canonical_json()
         }
-        _ => eyre::bail!(
+        _ => Err(eyre::eyre!(
             "artifact refresh requires schema version 3 or 4; migrate the lockfile first"
-        ),
+        )),
     }
 }
 
@@ -2816,10 +2816,10 @@ fn write_unique_temp_file(path: &Path, bytes: &[u8]) -> eyre::Result<PathBuf> {
             }
         }
     }
-    eyre::bail!(
+    Err(eyre::eyre!(
         "Could not allocate a unique temporary file for {}",
         path.display()
-    )
+    ))
 }
 
 fn replace_artifact_file(temporary_path: &Path, path: &Path) -> eyre::Result<()> {
