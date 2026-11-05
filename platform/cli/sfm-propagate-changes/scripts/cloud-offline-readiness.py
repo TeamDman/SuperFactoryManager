@@ -19,7 +19,10 @@ import cloud_environment as checks
 SCHEMA = 'sfm:cloud-offline-scope@2'
 STAGES = ('check', 'compile', 'jar')
 UNTESTED = ('JUnit', 'GameTests', 'GUI', 'Gradle', 'fresh-Codex-task', 'G-unavailable')
-REVIEW = 'docs/tasks/sfm-core-released-native-adapter-review.json'
+RECIPE_CONFIGS = (
+    ('platform/minecraft/build-configuration/released-native.json', 'sfm:released_native_build_configuration@1'),
+    ('platform/minecraft/build-configuration/released-native-historical-2612.json', 'sfm:released_native_historical_consumer@1'),
+)
 
 
 def project_lock(repo, key):
@@ -33,18 +36,25 @@ def catalog_at(repo):
 
 def source_identity(repo):
     return {name: checks.digest(repo / name) for name in (
-        'platform/cli/sfm-propagate-changes/Cargo.lock', REVIEW)}
+        'platform/cli/sfm-propagate-changes/Cargo.lock', *(path for path, _ in RECIPE_CONFIGS))}
 
 
 def recipe(repo, key):
     if not key.startswith(('sfm-4.34.0/mc-', 'sfm-4.35.0/mc-')):
         return None
     target = key.split('/mc-', 1)[1]
-    rows = [r for r in checks.load(repo / REVIEW)['targets'] if r['target'] == target]
-    checks.require(len(rows) == 1, f'exact historical recipe authority missing: {key}')
-    row = rows[0]
-    checks.require(checks.digest(repo / row['source_lock']['path']) == row['source_lock']['sha256'].lower(),
-                   f'historical source lock changed: {key}')
+    emitted_sha = checks.digest(project_lock(repo, key))
+    matches = []
+    for path, schema in RECIPE_CONFIGS:
+        document = checks.load(repo / path)
+        checks.require(document['schema'] == schema, 'unknown production recipe authority schema')
+        matches.extend(r for r in document['targets'] if r['target'] == target
+                       and r['source_lock']['sha256'].lower() == emitted_sha)
+    checks.require(len(matches) == 1, f'exact historical recipe authority missing or ambiguous: {key}')
+    row = matches[0]
+    source = checks.real_path(repo / row['source_lock']['path'])
+    checks.require(source.resolve().is_relative_to(repo), 'historical authority escapes repository')
+    checks.require(checks.digest(source) == emitted_sha, f'historical source lock changed: {key}')
     return row['recipe_id']
 
 

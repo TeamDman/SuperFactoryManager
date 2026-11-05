@@ -103,8 +103,12 @@ once its complete contract is accepted. Scope schema `sfm:cloud-offline-scope@2`
 binds source commit, catalog, emitted locks, CLI, release build receipt, the
 complete immutable cache inventory hash, cache/SDK/
 trust layout and the ordered `check`, `compile`, `jar` stages. Historical recipes
-are taken from the tracked released-native review authority and their original
-source locks are rehashed; a nearby recipe or changed source lock is refused.
+are selected by exact emitted-lock hash from the tracked production
+`released-native.json` and `released-native-historical-2612.json` configurations.
+Their original source locks are rehashed; a nearby recipe, ambiguous match or
+changed source lock is refused. In particular, retained 4.34/26.1.2 keeps
+`@historical-retained1` while current 4.35/26.1.2 keeps `@1`; the earlier review
+document is not their live acquisition authority.
 Old schema-1 scopes must be regenerated, not relabelled.
 
 JUnit, applicable headless GameTests, GUI, Gradle, actual fresh-task restoration

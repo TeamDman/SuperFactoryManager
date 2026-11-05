@@ -41,7 +41,8 @@ class CloudOfflineReadinessTests(unittest.TestCase):
         self.cargo = self.repo / 'platform/cli/sfm-propagate-changes/Cargo.lock'
         self.cargo.parent.mkdir(parents=True, exist_ok=True)
         self.cargo.write_text('exact cargo lock')
-        write_json(self.repo / GATE.REVIEW, {'targets': []})
+        for path, schema in GATE.RECIPE_CONFIGS:
+            write_json(self.repo / path, {'schema': schema, 'targets': []})
         self.cli = self.repo / 'cli'
         self.cli.write_bytes(b'exact CLI')
         self.native, self.application = self.repo / 'native', self.repo / 'application'
@@ -104,14 +105,47 @@ class CloudOfflineReadinessTests(unittest.TestCase):
         key = 'sfm-4.34.0/mc-1.20.2'
         write_json(self.catalog, {key: {}}); write_json(GATE.project_lock(self.repo, key), {})
         self.layout['target_java'] = {key: 21}
-        original = self.repo / 'historical-lock'; original.write_bytes(b'frozen')
-        write_json(self.repo / GATE.REVIEW, {'targets': [{'target': '1.20.2', 'recipe_id': 'exact@1',
+        original = self.repo / 'historical-lock'; write_json(original, {'schema': 2, 'sentinel': 'frozen'})
+        GATE.project_lock(self.repo, key).write_bytes(original.read_bytes())
+        path, schema = GATE.RECIPE_CONFIGS[0]
+        write_json(self.repo / path, {'schema': schema, 'targets': [{'target': '1.20.2', 'recipe_id': 'exact@1',
                    'source_lock': {'path': 'historical-lock', 'sha256': C.digest(original)}}]})
         scope = self.scope(); self.assertEqual(scope['targets'][0]['released_recipe'], 'exact@1')
         scope['targets'][0]['released_recipe'] = 'nearby@1'
         with self.assertRaisesRegex(ValueError, 'recipe changed'):GATE.validate_scope(self.repo, self.cli, scope)
         original.write_bytes(b'different')
         with self.assertRaisesRegex(ValueError, 'historical source lock'):GATE.recipe(self.repo, key)
+
+    def test_current_and_retained_2612_recipes_follow_distinct_emitted_lock_identities(self):
+        keys = ['sfm-4.35.0/mc-26.1.2', 'sfm-4.34.0/mc-26.1.2']
+        write_json(self.catalog, {key: {} for key in keys})
+        self.layout['target_java'] = {key: 25 for key in keys}
+        self.layout['sdks'][0]['major'] = 25
+        for index, key in enumerate(keys):
+            original = self.repo / f'original-{index}.json'
+            write_json(original, {'schema': 2, 'generation': index})
+            lock = GATE.project_lock(self.repo, key); lock.parent.mkdir(parents=True, exist_ok=True)
+            lock.write_bytes(original.read_bytes())
+            path, schema = GATE.RECIPE_CONFIGS[index]
+            write_json(self.repo / path, {'schema': schema, 'targets': [{'target': '26.1.2',
+                       'recipe_id': ['current@1', 'historical-retained1'][index],
+                       'source_lock': {'path': original.name, 'sha256': C.digest(original)}}]})
+        scope = self.scope()
+        self.assertEqual({r['projection']: r['released_recipe'] for r in scope['targets']},
+                         dict(zip(keys, ['current@1', 'historical-retained1'])))
+        GATE.validate_scope(self.repo, self.cli, scope)
+        scope['targets'][0]['released_recipe'] = 'current@1'
+        with self.assertRaisesRegex(ValueError, 'recipe changed'):GATE.validate_scope(self.repo, self.cli, scope)
+
+    def test_ambiguous_production_recipe_authority_is_rejected(self):
+        key = 'sfm-4.34.0/mc-1.20.2'
+        write_json(GATE.project_lock(self.repo, key), {})
+        for path, schema in GATE.RECIPE_CONFIGS:
+            write_json(self.repo / path, {'schema': schema, 'targets': [{'target': '1.20.2',
+                       'recipe_id': 'ambiguous@1', 'source_lock': {'path': 'unused',
+                       'sha256': C.digest(GATE.project_lock(self.repo, key))}}]})
+        with self.assertRaisesRegex(ValueError, 'ambiguous'):GATE.recipe(self.repo, key)
+
 
     def test_target_pin_must_match_explicit_sdk(self):
         write_json(self.lock, {'jdk_pins': [{'major': 21, 'artifacts': [{'platform': 'linux-x64', 'sha512': 'b' * 128}]}]})
