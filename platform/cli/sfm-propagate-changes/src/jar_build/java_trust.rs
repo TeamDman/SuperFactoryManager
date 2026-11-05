@@ -260,7 +260,8 @@ mod tests {
     fn rejects_unpinned_or_unsafe_path() -> Result<()> {
         let root = tempfile::tempdir()?;
         let path = root.path().join("unsafe\"name");
-        assert!(JavaTrust::capture(&path, &"00".repeat(32)).is_err());
+        let error = JavaTrust::capture(&path, &"00".repeat(32)).unwrap_err();
+        assert!(error.to_string().contains("cannot be safely represented"));
         let path = root.path().join("safe");
         fs::write(&path, b"bytes")?;
         assert!(JavaTrust::capture(&path, &"00".repeat(32)).is_err());
