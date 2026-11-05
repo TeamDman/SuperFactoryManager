@@ -19,7 +19,7 @@ mod development_compile;
 #[cfg(all(test, any(windows, target_os = "linux")))]
 mod development_compile_tests;
 mod execution_receipt;
-mod historical_forge;
+mod historical;
 mod launch_inputs;
 pub(super) use launch_inputs::LaunchInputs;
 mod exclusion_witness;

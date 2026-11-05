@@ -117,7 +117,12 @@ pub(super) fn report(version: &str) -> super::preflight_report::PreflightReport 
     report.targets.push(super::target_report::TargetReport {
         projection_key: format!("sfm-4.35.0/mc-{version}"),
         target_id: version.to_owned(),
-        minecraft_version: version.to_owned(),
+        minecraft_version: crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+            .iter()
+            .find(|(id, _)| *id == version)
+            .unwrap()
+            .1
+            .to_owned(),
         released_recipe_id: "unchanged-reviewed-release-authority".to_owned(),
         raw_source_lock_sha256: "unchanged-authority-lock".to_owned(),
         ordered_test_roots: super::roots::expected_roots(version)

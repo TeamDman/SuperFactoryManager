@@ -16,7 +16,7 @@ fn authority_target(key: &str) -> Option<&str> {
             .iter()
             .any(|(target, _)| version == target)
     });
-    current.or_else(|| super::historical_forge::target(key))
+    current.or_else(|| super::historical::target(key))
 }
 
 pub(in crate::jar_build::engine) fn enforce_selected(
@@ -56,9 +56,9 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
     let Some(version) = authority_target(&key).filter(|_| plan.identity.is_catalog_owned()) else {
         return Ok(None);
     };
-    let historical_forge = super::historical_forge::target(&key).is_some();
-    if historical_forge {
-        super::historical_forge::verify_owner(plan)?;
+    let historical = super::historical::target(&key).is_some();
+    if historical {
+        super::historical::verify_owner(plan)?;
     }
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()?;
@@ -77,8 +77,8 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
         .expect("catalog project checked")
         .project()
         .receipt();
-    let source_snapshot_identity = if historical_forge {
-        super::historical_forge::bind_identity(plan, &target)?
+    let source_snapshot_identity = if historical {
+        super::historical::bind_identity(plan, &target)?
     } else {
         identity(owner)?
     };
