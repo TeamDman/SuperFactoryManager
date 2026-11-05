@@ -617,7 +617,7 @@ fn validate_component(
         .find(|artifact| artifact.id == component.derived_checks.artifact_id)
         .expect("artifact reference validated above");
     if artifact.hash != component.derived_checks.expected_hash
-        || artifact.cache_path != component.derived_checks.cache_path
+        || !portable_paths_equal(&artifact.cache_path, &component.derived_checks.cache_path)
     {
         eyre::bail!(
             "component `{}` derived checks disagree with artifact `{}`",
@@ -988,6 +988,19 @@ fn validate_portable_path(path: &Path, label: &str) -> eyre::Result<()> {
     Ok(())
 }
 
+// Lockfile paths are portable strings, not paths in the host filesystem.
+// Treat either separator as the same byte without resolving components, folding
+// case, or using lossy Unicode conversion that could conflate distinct paths.
+fn portable_paths_equal(left: &Path, right: &Path) -> bool {
+    let (Some(left), Some(right)) = (left.to_str(), right.to_str()) else {
+        return false;
+    };
+    let separators = |byte| if byte == b'\\' { b'/' } else { byte };
+    left.bytes()
+        .map(separators)
+        .eq(right.bytes().map(separators))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1122,6 +1135,68 @@ mod tests {
             .validate()
             .expect_err("mismatched component checks should fail");
         assert!(error.to_string().contains("derived checks disagree"));
+    }
+
+    #[test]
+    fn component_cache_path_identity_is_independent_of_host_separators() {
+        let mut lockfile = fixture();
+        lockfile.dependencies[0].components[0]
+            .derived_checks
+            .cache_path = PathBuf::from(r"$sfm-cache\maven/minecraft-main.jar");
+        lockfile.validate().expect("mixed separators should agree");
+
+        lockfile.dependencies[0].components[0]
+            .derived_checks
+            .expected_hash = hash(9);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("derived checks disagree")
+        );
+    }
+
+    #[test]
+    fn portable_path_identity_does_not_collapse_other_differences() {
+        let path = Path::new("$sfm-cache/maven/group/file.jar");
+        assert!(portable_paths_equal(
+            path,
+            Path::new(r"$sfm-cache\maven/group\file.jar")
+        ));
+        for different in [
+            "$sfm-cache/maven/group/other.jar",
+            "$sfm-cache/maven/Group/file.jar",
+            "$sfm-cache/maven//group/file.jar",
+            "$sfm-cache/maven/other/../group/file.jar",
+        ] {
+            assert!(
+                !portable_paths_equal(path, Path::new(different)),
+                "{different}"
+            );
+        }
+        let mut lockfile = fixture();
+        lockfile.dependencies[0].components[0]
+            .derived_checks
+            .cache_path = PathBuf::from("$sfm-cache/maven/other.jar");
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("derived checks disagree")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn portable_path_identity_rejects_non_utf8() {
+        use std::os::unix::ffi::OsStrExt;
+        let invalid = std::ffi::OsStr::from_bytes(b"$sfm-cache/\xff");
+        assert!(!portable_paths_equal(
+            Path::new(invalid),
+            Path::new(invalid)
+        ));
     }
 
     #[test]
