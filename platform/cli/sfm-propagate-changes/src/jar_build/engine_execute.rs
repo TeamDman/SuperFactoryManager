@@ -6,6 +6,8 @@ mod project_compile_identity;
 mod junit_runner_compile;
 #[path = "junit_fixture.rs"]
 mod junit_fixture;
+#[path = "junit_logging.rs"]
+mod junit_logging;
 
 #[path = "dependency_deobf_producer.rs"]
 mod dependency_deobf_producer;

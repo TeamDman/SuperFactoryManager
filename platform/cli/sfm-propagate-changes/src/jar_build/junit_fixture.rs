@@ -45,7 +45,9 @@ impl Snapshot {
     fn new(owner: String) -> Self {
         Self {
             manifest: Manifest {
-                schema: "sfm:junit_fixture_snapshot@1".to_owned(),
+                // The external logging launch contract must not reuse a failed
+                // v1 fixture containing relative JVM log output.
+                schema: "sfm:junit_fixture_snapshot@2".to_owned(),
                 source_owner_sha256: owner,
                 generated_source_present: false,
                 directories: BTreeSet::new(),
@@ -501,6 +503,7 @@ struct WorkingDirectory {
     schema: String,
     directory: String,
     fixture_snapshot_sha256: Option<String>,
+    logging: Option<super::junit_logging::LoggingIdentity>,
 }
 
 pub(super) fn write_working_directory_record(
@@ -508,14 +511,19 @@ pub(super) fn write_working_directory_record(
     path: &Path,
     directory: &Path,
     fixture: Option<&JunitFixture>,
+    logging: Option<&super::junit_logging::JunitLogging>,
 ) -> Result<String> {
+    if let Some(logging) = logging {
+        logging.recheck()?;
+    }
     let record = WorkingDirectory {
-        schema: "sfm:junit_working_directory@1".to_owned(),
+        schema: "sfm:junit_working_directory@2".to_owned(),
         directory: directory
             .to_str()
             .ok_or_else(|| eyre::eyre!("JUnit working directory is not Unicode"))?
             .to_owned(),
         fixture_snapshot_sha256: fixture.map(|fixture| fixture.identity().to_owned()),
+        logging: logging.map(|logging| logging.identity().clone()),
     };
     let contents = facet_json::to_string(&record)?;
     super::project_compilation_cache::write_record(cache, path, contents.as_bytes())?;

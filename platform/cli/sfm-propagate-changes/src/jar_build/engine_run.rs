@@ -1793,6 +1793,10 @@ fn execute_junit_tests_with_context(
     )?;
 
     let fixture = junit_fixture::JunitFixture::prepare(plan, &context.cancellation_token)?;
+    let logging = fixture
+        .as_ref()
+        .map(|_| junit_logging::JunitLogging::prepare(&plan.cache_dir, &run_state_dir))
+        .transpose()?;
     let working_directory = fixture
         .as_ref()
         .map_or(plan.minecraft_dir.as_path(), junit_fixture::JunitFixture::root);
@@ -1802,6 +1806,7 @@ fn execute_junit_tests_with_context(
         &working_directory_record,
         working_directory,
         fixture.as_ref(),
+        logging.as_ref(),
     )?;
 
     let junit_launch_inputs = prepared_junit
@@ -1824,6 +1829,9 @@ fn execute_junit_tests_with_context(
         working_directory.display()
     );
     tracing::info!("JUnit args: {}", argfile.display());
+    if let Some(logging) = &logging {
+        tracing::info!(log_file = %logging.log_file().display(), "JUnit JVM logging output");
+    }
     tracing::info!(
         runtime_classpath_entries = test_runtime_classpath.len(),
         argfile = %argfile.display(),
@@ -1859,6 +1867,9 @@ fn execute_junit_tests_with_context(
     if let Some(fixture) = &fixture {
         fixture.recheck(plan, &context.cancellation_token)?;
     }
+    if let Some(logging) = &logging {
+        logging.recheck()?;
+    }
     let mut command = Command::new(&plan.java.executable);
     let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, plan.java.major_version)?;
     command
@@ -1874,6 +1885,9 @@ fn execute_junit_tests_with_context(
                 )
             })?;
     super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
+    if let Some(logging) = &logging {
+        logging.recheck()?;
+    }
     if let Some(fixture) = &fixture {
         fixture.recheck(plan, &context.cancellation_token)?;
     }

@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "junit_logging_java_tests.rs"]
+mod logging_java_tests;
+
 fn sample() -> Result<Snapshot> {
     let mut snapshot = Snapshot::new("selected historical source owner".to_owned());
     for (relative, bytes) in [
@@ -109,6 +112,32 @@ fn historical_junit_fixture_rejects_corrupt_missing_extra_and_aliased_outputs_wi
             "Cache damage must not be repaired: {damage}"
         );
     }
+    Ok(())
+}
+
+#[test]
+fn historical_junit_fixture_logging_contract_keeps_failed_v1_entries_unchanged() -> Result<()> {
+    let cache = tempfile::tempdir()?;
+    let cancel = CancellationToken::new();
+    let mut old = sample()?;
+    old.manifest.schema = "sfm:junit_fixture_snapshot@1".to_owned();
+    let failed = publish(cache.path(), &old, &cancel)?;
+    fs::create_dir(failed.root().join("logs"))?;
+    fs::write(
+        failed.root().join("logs/latest.log"),
+        b"retained failed JVM evidence",
+    )?;
+    assert!(publish(cache.path(), &old, &cancel).is_err());
+    let current = sample()?;
+    let fresh = publish(cache.path(), &current, &cancel)?;
+    assert_ne!(fresh.identity(), failed.identity());
+    assert_ne!(fresh.root(), failed.root());
+    verify(fresh.root(), &current.manifest, &fresh.manifest, &cancel)?;
+    assert_eq!(
+        fs::read(failed.root().join("logs/latest.log"))?,
+        b"retained failed JVM evidence"
+    );
+    assert!(!fresh.root().join("logs").exists());
     Ok(())
 }
 
@@ -293,6 +322,7 @@ public class FixturePathProbe {
         if (!Files.readString(project().resolve("src/main/java/Selected.java")).equals("class Selected {}")) throw new AssertionError("wrong source bytes");
     }
 }
+
 "#,
     )?;
     let mut command = std::process::Command::new(java);
