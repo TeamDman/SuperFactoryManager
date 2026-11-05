@@ -4,6 +4,8 @@ This is the repository-owned setup entrypoint for a prepared SFM Codex cloud ima
 
 > In the SFM checkout, read `docs/codex-cloud-environment.md` and follow its declared scope and publication gate. Do not treat an undeclared target as pre-cached.
 
+The canonical fresh-start qualification is a **new task in the published `SuperFactoryManager` Codex Cloud environment**. The networkless container check below is a preparation gate when available; it does not replace evidence from that actual saved environment. Do not create a second development workspace merely to simulate the saved environment.
+
 The image publisher must select its supported projections explicitly. A successful warm build on a desktop, or an old `matrix` pass receipt, is not evidence that a new image contains their dependencies. Never copy desktop `G:` archives into the cloud image or make the image depend on them.
 
 ## Tools and cache preparation
@@ -36,6 +38,8 @@ python3 platform/cli/sfm-propagate-changes/scripts/cloud-offline-readiness.py ve
 Publish only if the command exits zero and the result has `status: passed` for the complete declared target list. A failed, blocked, reused, interrupted, or absent row is not a pass. The gate is intentionally strict; if a target needs a new artifact, perform acquisition or manual admission during **image preparation**, rebuild the candidate image, then rerun the networkless gate. Do not let a post-deployment normal build fetch it. The current gate covers the native Rust projection build path. If the image also promises standalone Gradle wrapper builds, qualify those exact wrapper tasks offline with the image's pinned Gradle distributions and caches as an additional publication gate; do not infer that from the native matrix result.
 
 ## Refresh and recovery
+
+After publication, start a fresh Codex Cloud task selecting the saved `SuperFactoryManager` environment. Record the task's source commit, image digest, CLI, catalog, declared scope, lock and tool identities before running fresh declared `check`, `compile` and `jar` operations. Confirm all declared dependency/tool inputs are present at task start and that normal validation publishes no new managed dependency/tool bytes. Record the network policy or other enforced egress-denial witness separately; zero logged requests alone is an observation, not enforced isolation. A task using an older source/image, missing one declared target or acquiring an artifact is a failed publication qualification. Do not infer this fresh-task outcome from a desktop repeat or the container check alone.
 
 Any changed source commit, projection catalog, CLI binary, target lock, JDK/tool pin or declared target set needs a refreshed scope, cache preparation, networkless gate and a **new image publication**. A changed lock must not be served by an older image. Keep the prior image for its original pins until the new one passes. Retain failure receipts for diagnosis. `matrix` remains the everyday resumable validation command; its default reuse is appropriate after publication, while `matrix --fresh` is used by the offline publication gate to execute the selected stages again.
 
