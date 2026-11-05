@@ -1217,7 +1217,7 @@ mod tests {
     }
 
     fn legacy_row(configuration: &str, notation: &str) -> DependencyLockEntry {
-        let cache_path = format!("$sfm-cache/{notation}.jar");
+        let cache_path = format!("$sfm-cache/{}.jar", notation.replace(':', "/"));
         facet_json::from_str(&format!(
             r#"{{
                 "configuration": "{configuration}",

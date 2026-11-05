@@ -624,7 +624,10 @@ mod tests {
     #[test]
     fn absolute_artifact_cache_path_is_rejected() {
         let mut lockfile = lockfile();
-        lockfile.artifacts[0].cache_path = PathBuf::from("C:/machine-specific/artifact.jar");
+        lockfile.artifacts[0].cache_path = std::env::current_dir()
+            .expect("test working directory must be available")
+            .join("machine-specific")
+            .join("artifact.jar");
 
         let error = lockfile.validate().expect_err("absolute path should fail");
 
