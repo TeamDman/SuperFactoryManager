@@ -14,5 +14,6 @@ pub(crate) struct ExecutionReceipt {
     pub raw_stderr_sha256: String,
     pub runtime_classpath_sha256: String,
     pub argfile_sha256: String,
+    pub working_directory_sha256: String,
     pub scope: String,
 }

@@ -217,7 +217,7 @@ pub(in crate::jar_build::engine) fn write_execution_receipt(
     output_path: &Path,
 ) -> eyre::Result<()> {
     let receipt = ExecutionReceipt {
-        schema: "sfm:junit_dependency_execution@1".to_owned(),
+        schema: "sfm:junit_dependency_execution@2".to_owned(),
         preparation_identity: prepared.identity.clone(),
         projection_key: plan.target_label(),
         cli_sha256: prepared.cli_sha256.clone(),
@@ -227,8 +227,9 @@ pub(in crate::jar_build::engine) fn write_execution_receipt(
         exit_status: output.status.to_string(),
         raw_stdout_sha256: sha256(&output.stdout),
         raw_stderr_sha256: sha256(&output.stderr),
-        runtime_classpath_sha256: launch_inputs.runtime_classpath_sha256.clone(),
-        argfile_sha256: launch_inputs.argfile_sha256.clone(),
+        runtime_classpath_sha256: launch_inputs.runtime_classpath.clone(),
+        argfile_sha256: launch_inputs.argfile.clone(),
+        working_directory_sha256: launch_inputs.working_directory.clone(),
         scope: "generated_projection_headless_junit; packaged_candidate_runtime_not_inferred"
             .to_owned(),
     };

@@ -4,6 +4,8 @@ mod project_compilation_cache;
 mod project_compile_identity;
 #[path = "junit_runner_compile.rs"]
 mod junit_runner_compile;
+#[path = "junit_fixture.rs"]
+mod junit_fixture;
 
 #[path = "dependency_deobf_producer.rs"]
 mod dependency_deobf_producer;

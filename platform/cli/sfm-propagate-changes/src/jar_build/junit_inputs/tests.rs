@@ -472,19 +472,24 @@ fn serialized_launch_inputs_are_bound_before_effect_and_receipt() -> eyre::Resul
     let temp = tempfile::tempdir()?;
     let classpath = temp.path().join("testRuntimeClasspath.txt");
     let argfile = temp.path().join("junit.java.args");
+    let working_directory = temp.path().join("junit-working-directory.json");
     let effects = AtomicUsize::new(0);
-    for changed in [&classpath, &argfile] {
+    for changed in [&classpath, &argfile, &working_directory] {
         std::fs::write(&classpath, b"reviewed/classpath")?;
         std::fs::write(&argfile, b"@reviewed-java-args")?;
-        let admitted = LaunchInputs::capture(temp.path())?;
+        std::fs::write(&working_directory, b"reviewed-fixture-identity-and-path")?;
+        let admitted = LaunchInputs::capture_for_directory(temp.path(), &sha256(b"reviewed-fixture-identity-and-path"))?;
         admitted.recheck(temp.path())?;
         effects.fetch_add(1, Ordering::SeqCst);
         assert_eq!(
-            admitted.runtime_classpath_sha256,
+            admitted.runtime_classpath,
             sha256(b"reviewed/classpath")
         );
-        assert_eq!(admitted.argfile_sha256, sha256(b"@reviewed-java-args"));
+        assert_eq!(admitted.argfile, sha256(b"@reviewed-java-args"));
         std::fs::write(changed, b"changed-after-admission")?;
+        if changed == &working_directory {
+            assert!(LaunchInputs::capture_for_directory(temp.path(), &sha256(b"reviewed-fixture-identity-and-path")).is_err());
+        }
         let previous = effects.load(Ordering::SeqCst);
         let result = admitted
             .recheck(temp.path())
@@ -499,7 +504,7 @@ fn serialized_launch_inputs_are_bound_before_effect_and_receipt() -> eyre::Resul
         );
     }
     std::fs::remove_file(&argfile)?;
-    assert!(LaunchInputs::capture(temp.path()).is_err());
+    assert!(LaunchInputs::capture_for_directory(temp.path(), &sha256(b"reviewed-fixture-identity-and-path")).is_err());
     Ok(())
 }
 

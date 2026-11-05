@@ -1792,9 +1792,26 @@ fn execute_junit_tests_with_context(
         test_options,
     )?;
 
+    let fixture = junit_fixture::JunitFixture::prepare(plan, &context.cancellation_token)?;
+    let working_directory = fixture
+        .as_ref()
+        .map_or(plan.minecraft_dir.as_path(), junit_fixture::JunitFixture::root);
+    let working_directory_record = run_state_dir.join("junit-working-directory.json");
+    let working_directory_identity = junit_fixture::write_working_directory_record(
+        &plan.cache_dir,
+        &working_directory_record,
+        working_directory,
+        fixture.as_ref(),
+    )?;
+
     let junit_launch_inputs = prepared_junit
         .as_ref()
-        .map(|_| junit_inputs::LaunchInputs::capture(&run_state_dir))
+        .map(|_| {
+            junit_inputs::LaunchInputs::capture_for_directory(
+                &run_state_dir,
+                &working_directory_identity,
+            )
+        })
         .transpose()?;
     let mut extra_cache_paths = Vec::new();
     extra_cache_paths.extend(test_compile_dependencies);
@@ -1804,7 +1821,7 @@ fn execute_junit_tests_with_context(
 
     tracing::info!(
         "Launching JUnit tests from {}",
-        plan.minecraft_dir.display()
+        working_directory.display()
     );
     tracing::info!("JUnit args: {}", argfile.display());
     tracing::info!(
@@ -1824,6 +1841,7 @@ fn execute_junit_tests_with_context(
                 runner_classes_dir,
                 test_classes_dir,
                 test_resources_dir,
+                working_directory_record,
             ],
             "dry-run",
         )?;
@@ -1838,11 +1856,14 @@ fn execute_junit_tests_with_context(
     if let Some(launch_inputs) = &junit_launch_inputs {
         launch_inputs.recheck(&run_state_dir)?;
     }
+    if let Some(fixture) = &fixture {
+        fixture.recheck(plan, &context.cancellation_token)?;
+    }
     let mut command = Command::new(&plan.java.executable);
     let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, plan.java.major_version)?;
     command
         .arg(format!("@{}", argfile.display()))
-        .current_dir(&plan.minecraft_dir);
+        .current_dir(working_directory);
     let started = Instant::now();
     let output =
         run_command_capture_output(&context.cancellation_token, &mut command, "junit-test")
@@ -1853,6 +1874,9 @@ fn execute_junit_tests_with_context(
                 )
             })?;
     super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
+    if let Some(fixture) = &fixture {
+        fixture.recheck(plan, &context.cancellation_token)?;
+    }
     let report = process_junit_event_output(
         plan,
         test_options,
@@ -1887,6 +1911,7 @@ fn execute_junit_tests_with_context(
             runner_classes_dir,
             test_classes_dir,
             test_resources_dir,
+            working_directory_record,
         ],
         if output.status.success() && !report.has_failed_tests_or_containers() {
             "complete"
