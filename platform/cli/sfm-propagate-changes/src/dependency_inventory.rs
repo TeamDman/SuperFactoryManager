@@ -139,7 +139,9 @@ impl DependencyInventory {
 
     #[must_use]
     pub fn local_path(&self, portable: &Path) -> PathBuf {
-        if let Ok(relative) = portable.strip_prefix(Path::new("$sfm-cache")) {
+        if let Some(relative) = crate::paths::portable_cache_relative(portable)
+            .expect("invalid portable cache path after lockfile validation")
+        {
             return self.cache_home.join("minecraft-toolchain").join(relative);
         }
         if portable.is_absolute() {
@@ -450,6 +452,62 @@ mod tests {
             inventory.binary_status(component),
             AcquisitionStatus::Acquired
         );
+    }
+
+    #[test]
+    fn windows_spelled_cache_path_resolves_and_checks_bytes_on_every_host() {
+        let directory = tempfile::tempdir().expect("temporary cache");
+        let mut inventory = fixture(CacheHome(directory.path().to_path_buf()));
+        let index = inventory
+            .lockfile
+            .dependencies
+            .iter()
+            .position(|dependency| dependency.id == "cc-tweaked")
+            .expect("CC:Tweaked fixture");
+        let component = &mut inventory.lockfile.dependencies[index].components[0];
+        component.derived_checks.cache_path = PathBuf::from(r"$sfm-cache\maven/example\locked.jar");
+        component.derived_checks.expected_hash =
+            ContentHash::from_bytes(b"expected", ContentHashAlgorithm::Blake3);
+        let path = directory
+            .path()
+            .join("minecraft-toolchain/maven/example/locked.jar");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"expected").unwrap();
+        let component = &inventory.lockfile.dependencies[index].components[0];
+        assert_eq!(
+            inventory.local_path(&component.derived_checks.cache_path),
+            path
+        );
+        assert_eq!(
+            inventory.binary_status(component),
+            AcquisitionStatus::Acquired
+        );
+        std::fs::write(&path, b"wrong").unwrap();
+        assert_eq!(inventory.binary_status(component), AcquisitionStatus::Stale);
+    }
+
+    #[test]
+    fn catalog_source_path_cannot_escape_the_portable_cache_root() {
+        use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
+
+        let mut inventory = fixture(CacheHome(PathBuf::from("unused-cache")));
+        let source = inventory
+            .lockfile
+            .dependencies
+            .iter_mut()
+            .flat_map(|dependency| &mut dependency.components)
+            .flat_map(|component| &mut component.source_providers)
+            .find_map(|provider| match provider {
+                SourceProviderV3::PlatformPipeline(provider)
+                    if provider.derived_checks.catalog_projection.is_some() =>
+                {
+                    Some(provider)
+                }
+                _ => None,
+            })
+            .expect("catalog source fixture");
+        source.derived_checks.tree_cache_path = PathBuf::from(r"$sfm-cache\sources\..\outside");
+        assert!(inventory.lockfile.validate().is_err());
     }
 
     fn fixture(cache_home: CacheHome) -> DependencyInventory {

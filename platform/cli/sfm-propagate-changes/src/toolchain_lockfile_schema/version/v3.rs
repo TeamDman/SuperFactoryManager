@@ -907,22 +907,11 @@ impl SourceProviderV3 {
                             "catalog platform source requires a full SHA-256 source identity"
                         );
                         eyre::ensure!(
-                            provider
-                                .derived_checks
-                                .tree_cache_path
-                                .starts_with("$sfm-cache"),
+                            crate::paths::portable_cache_relative(
+                                &provider.derived_checks.tree_cache_path
+                            )?
+                            .is_some(),
                             "catalog platform source tree must live in the selected shared cache"
-                        );
-                        let relative = provider
-                            .derived_checks
-                            .tree_cache_path
-                            .strip_prefix("$sfm-cache")?;
-                        eyre::ensure!(
-                            relative.components().all(|component| matches!(
-                                component,
-                                std::path::Component::Normal(_)
-                            )),
-                            "catalog platform source tree must not traverse out of the shared project cache"
                         );
                     }
                     _ => eyre::bail!(
@@ -985,6 +974,7 @@ fn validate_portable_path(path: &Path, label: &str) -> eyre::Result<()> {
     if path.is_absolute() {
         eyre::bail!("{label} must be portable, got `{}`", path.display());
     }
+    crate::paths::portable_cache_relative(path)?;
     Ok(())
 }
 

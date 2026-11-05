@@ -17,6 +17,37 @@ pub const CACHE_ROOT_FILE: &str = "cache_root.txt";
 pub const CACHE_ROOT_MARKER: &str = ".sfm-propagate-changes-cache-root";
 pub const CACHE_ROOT_MARKER_CONTENT: &str = "sfm-propagate-changes cache root v1\n";
 
+/// Interpret the lockfile's cache marker and either separator independently of
+/// the host OS. Reject traversal and drive prefixes before building a path.
+pub(crate) fn portable_cache_relative(path: &Path) -> eyre::Result<Option<PathBuf>> {
+    let Some(text) = path.to_str() else {
+        return Ok(None);
+    };
+    let Some(suffix) = text.strip_prefix("$sfm-cache") else {
+        return Ok(None);
+    };
+    if suffix.is_empty() {
+        return Ok(Some(PathBuf::new()));
+    }
+    let Some(rest) = suffix.strip_prefix(['/', '\\']) else {
+        return Ok(None);
+    };
+    let mut relative = PathBuf::new();
+    for part in rest.split(['/', '\\']) {
+        ensure!(
+            !part.is_empty()
+                && part != "."
+                && part != ".."
+                && !part.contains(':')
+                && !part.contains('\0'),
+            "invalid portable cache path `{}`",
+            path.display()
+        );
+        relative.push(part);
+    }
+    Ok(Some(relative))
+}
+
 /// Helper that resolves the application cache directory.
 #[derive(Clone, Debug)]
 pub struct CacheHome(pub PathBuf);
@@ -101,6 +132,33 @@ impl std::ops::Deref for CacheHome {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn portable_cache_relative_accepts_both_separators_and_rejects_escapes() {
+        for path in [
+            "$sfm-cache/maven/example/locked.jar",
+            r"$sfm-cache\maven\example\locked.jar",
+            r"$sfm-cache\maven/example\locked.jar",
+        ] {
+            assert_eq!(
+                portable_cache_relative(Path::new(path)).unwrap(),
+                Some(PathBuf::from("maven").join("example").join("locked.jar"))
+            );
+        }
+        for path in [
+            "$sfm-cache/../outside",
+            r"$sfm-cache\..\outside",
+            r"$sfm-cache\maven/../outside",
+            "$sfm-cache//outside",
+            r"$sfm-cache\C:\outside",
+        ] {
+            assert!(portable_cache_relative(Path::new(path)).is_err(), "{path}");
+        }
+        assert_eq!(
+            portable_cache_relative(Path::new("$sfm-cache-other/file")).unwrap(),
+            None
+        );
+    }
 
     #[test]
     fn environment_overrides_persistent_choice_and_unset_restores_default() {
