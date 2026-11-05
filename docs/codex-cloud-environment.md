@@ -29,7 +29,11 @@ are available. No preparation command overrides either blocker.
 ### Reviewed preparation layout
 
 Keep a machine-specific `layout.json` with the image build materials, outside
-tracked locks. Paths must be absolute, existing and free of linked ancestors.
+tracked locks. Paths must be absolute and free of linked ancestors. SDK and
+application roots must exist; the native root may instead be one absent leaf
+under an existing parent until the CLI initializes it as described below. When
+the application and native roots are identical, that shared leaf may be absent
+during the release build too. A declared publication scope requires all roots.
 The layout records these required inputs (no secrets):
 
 - `schema`: `sfm:cloud-preparation-layout@1`;
@@ -82,6 +86,86 @@ repository's guarded `exec` entrypoint below. Merely putting a raw executable in
 PATH does not activate the trust contract. Do not replace the saved embedded
 installer/start instructions with pointers until this executable setup workflow
 has been qualified in the actual environment.
+
+### Initialize the native root through the CLI
+
+A new native root is a **missing leaf** under an existing normal parent. Do not
+`mkdir` the leaf, fabricate `.sfm-native-cache-root.json`, or adopt an existing
+unmarked directory, even an empty one. Preserve a refused directory and select
+a different new leaf. Prefer an explicit root outside the checkout; the normal
+in-checkout location is `sfm-toolchain-data`. Keep SDK homes outside that root.
+
+The release build can observe an absent native leaf without creating it. It
+requires that leaf to remain absent throughout the build; the ordinary scope
+and offline gate still require existing roots. After the guarded release build,
+use the same verified native/Java trust environment and let the first supported
+native compile create and mark the root. For example, after synchronizing and
+checking this exact historical target:
+
+```sh
+env SFM_PROPAGATE_CHANGES_CACHE=/absolute/application-cache \
+  /absolute/new-release-installation/sfm-propagate-changes.native \
+  --output-format json source project compile --repo-root "$PWD" \
+  --projection sfm-4.34.0/mc-1.19.2 \
+  --released-recipe sfm:released-native-inputs/4.34.0/1.19.2@1 \
+  --cache-root /absolute/missing-native-leaf --java-home /absolute/verified-jbr17
+```
+
+This is a real preparation compile and can acquire already-pinned inputs; it
+is not an ownership-only or networkless operation. The CLI validates the root,
+source owner and SDK, creates the leaf exclusively and owns its marker. If the
+application and native roots are identical, select that same absolute path for
+the per-command environment too. Do not use a persisted global cache-root
+change to redirect another task. Record the terminal result and preserve any
+failure; a marker alone is not evidence of successful compilation.
+
+### Prepare the existing JUnit JAR closure
+
+During authorized image preparation, before declaring the final offline scope:
+
+```sh
+python3 -B platform/cli/sfm-propagate-changes/scripts/cloud-prepare.py junit-cache \
+  --repo-root "$PWD" --layout /absolute/layout.json \
+  --cli /absolute/new-release-installation/sfm-propagate-changes.native \
+  --build-receipt /absolute/new-release-installation/build-receipt.json \
+  --output /absolute/new-junit-preparation-evidence
+```
+
+This Linux-only mode requires the exact clean source, guarded release/build
+receipt, checked TLS environment and initialized native root. It uses the
+CLI's read-only `test preflight` to select the existing 25 test JARs plus the
+`jsr305` production witness. Origins come from the unchanged tracked
+`schema-4.test-dependency-authority.json`, its provision receipt and the exact
+released locks selected by `released-native.json`; no coordinate, version,
+URL, checksum or missing POM is discovered or guessed.
+
+It checks every existing artifact before downloading anything, reuses matching
+bytes from either declared cache, and prepares both
+`<application_cache_root>/minecraft-toolchain/maven` and
+`<native_cache_root>/minecraft-toolchain/maven`. Identical roots are handled
+once. Every staged JAR must pass the guarded CLI's canonical BLAKE3 check and
+any existing full SHA-256/length pin. The CLI hashes a private snapshot of bytes
+read through the held file descriptor, so a shared pathname replacement cannot
+substitute another artifact for verification. New entries use the CLI-compatible
+per-artifact lock and atomic no-replace publication; changed bytes, links,
+foreign markers, ownership changes and conflicting concurrent writers fail
+closed. Only this invocation's private staging inode can be cleaned up.
+
+Downloads retain the session proxy and verified TLS policy, use only the exact
+tracked HTTPS URL and refuse redirects. Limits remain 64 MiB per JAR and
+512 MiB across cache copies plus retained staging. An unavailable origin is a
+blocker; no fallback host, relaxed hash, lock refresh or local artifact search
+is attempted. Evidence records before/after preflights for both roots, every
+origin/hash/size and whether bytes were reused or created. `success.json` is
+written only after both complete closures and source/CLI/trust identities are
+rechecked. Valid partial admissions and failure evidence remain after failure.
+
+This mode never changes `fixtures/maven/metadata-pins.json`, runtime
+`maven-metadata-pins.json`, product locks, the immutable test authority, SDK
+bytes or trust stores. It does not retry the denied 31-POM manifest operation
+or clear the separate Vox/Mekanism blockers. JAR preparation does not run Java
+or qualify JUnit, an offline image or a fresh task. Capture a new declared scope
+after preparation, then execute the required qualification stages normally.
 
 ### Declare the complete target/stage contract
 

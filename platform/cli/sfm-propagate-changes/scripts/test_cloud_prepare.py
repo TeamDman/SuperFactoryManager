@@ -120,6 +120,34 @@ class CloudPrepareTests(unittest.TestCase):
         self.assertFalse((self.output / 'sfm-propagate-changes.native').exists())
         self.assertFalse((self.output / 'build-receipt.json').exists())
 
+    def test_absent_native_root_is_observed_without_adoption_only_during_build(self):
+        native = self.repo / 'absent-native'; app = self.repo / 'application'; app.mkdir()
+        sdk = self.repo / 'sdk-cache'; sdk.mkdir(); home = sdk / 'home'; home.mkdir()
+        layout = {'native_cache_root': str(native), 'application_cache_root': str(app),
+                  'sdks': [{'sdk_cache_root': str(sdk), 'home': str(home)}]}
+        with self.assertRaises(FileNotFoundError):C.snapshots(layout)
+        before = C.snapshots(layout, allow_missing_native=True)
+        self.assertIsNone(before[str(native)]); self.assertFalse(native.exists())
+        native.mkdir()  # Simulate a concurrent creator, never adopted by build.
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            C.same_snapshot(before, C.snapshots(layout, allow_missing_native=True))
+        self.assertFalse((native / '.sfm-native-cache-root.json').exists())
+
+    def test_absent_native_root_cannot_overlap_or_traverse_linked_parents(self):
+        app = self.repo / 'application'; app.mkdir()
+        layout = {'native_cache_root': str(app / 'nested'), 'application_cache_root': str(app), 'sdks': []}
+        with self.assertRaisesRegex(ValueError, 'overlap'):C.snapshots(layout, allow_missing_native=True)
+        linked = self.repo / 'linked'; linked.symlink_to(app, target_is_directory=True)
+        layout['native_cache_root'] = str(linked / 'absent')
+        with self.assertRaisesRegex(ValueError, 'linked'):C.snapshots(layout, allow_missing_native=True)
+
+    def test_junit_cache_mode_requires_its_explicit_build_receipt(self):
+        completed = subprocess.run([sys.executable, '-B', str(SCRIPT), 'junit-cache', '--repo-root', str(self.repo),
+                                    '--layout', '/unused', '--cli', str(self.binary), '--output', str(self.output)],
+                                   capture_output=True, text=True)
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn('junit-cache requires', completed.stderr); self.assertFalse(self.output.exists())
+
 
 
 if __name__ == '__main__':

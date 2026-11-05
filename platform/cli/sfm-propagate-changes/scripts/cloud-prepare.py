@@ -2,8 +2,9 @@
 """Build and guard a new release installation, or initialize an exact declared scope.
 
 Existing tools, verified SDKs and inherited filtered trust are prerequisites.
-This script never installs packages, downloads dependencies, rewrites an SDK,
-changes system trust, replaces an older executable, or publishes an image.
+Only the explicit junit-cache mode acquires the existing pinned JUnit JARs.
+Other modes never download dependencies. No mode rewrites an SDK, changes
+system trust, replaces an older executable, or publishes an image.
 """
 import argparse
 import json
@@ -37,7 +38,7 @@ def release_build(repo, layout, output):
     for sdk in layout['sdks']:
         checks.audit_sdk(repo, sdk)
         checks.audit_java_trust(repo, sdk)
-    before = checks.snapshots(layout)
+    before = checks.snapshots(layout, allow_missing_native=True)
     environment['SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION'] = head
     environment['CARGO_BUILD_JOBS'] = '1'
     environment['CARGO_PROFILE_RELEASE_DEBUG'] = '0'
@@ -62,7 +63,7 @@ def release_build(repo, layout, output):
     checks.require(f'rev {head}' in version, 'release does not report exact full source revision')
     for sdk in layout['sdks']:
         checks.audit_sdk(repo, sdk)
-    checks.same_snapshot(before, checks.snapshots(layout))
+    checks.same_snapshot(before, checks.snapshots(layout, allow_missing_native=True))
     installed = output / 'sfm-propagate-changes.native'
     with binary.open('rb') as source, installed.open('xb') as destination:
         shutil.copyfileobj(source, destination)
@@ -93,12 +94,13 @@ def start(repo, scope_path, cli):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=('build', 'start', 'exec'))
+    parser.add_argument('mode', choices=('build', 'start', 'exec', 'junit-cache'))
     parser.add_argument('--repo-root', type=Path, required=True)
     parser.add_argument('--layout', type=Path)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--scope', type=Path)
     parser.add_argument('--cli', type=Path)
+    parser.add_argument('--build-receipt', type=Path)
     argv = sys.argv[1:]
     split = argv.index('--') if '--' in argv else len(argv)
     command_args = argv[split + 1:] if split < len(argv) else []
@@ -109,6 +111,12 @@ def main():
         if args.mode == 'build':
             checks.require(args.layout and args.output and not args.command, 'build requires --layout and new --output')
             print(json.dumps(release_build(repo, checks.load(args.layout.absolute()), args.output.absolute()), indent=2))
+        elif args.mode == 'junit-cache':
+            checks.require(args.layout and args.cli and args.build_receipt and args.output and not args.command,
+                           'junit-cache requires --layout, --cli, --build-receipt and new --output')
+            preparation = checks.helper(repo, 'cloud_junit_cache.py')
+            print(json.dumps(preparation.prepare(repo, checks.load(args.layout.absolute()),
+                  checks.real_path(args.cli.absolute()), args.build_receipt.absolute(), args.output.absolute()), indent=2))
         else:
             checks.require(args.scope and args.cli, 'start/exec require --scope and guarded --cli')
             cli = checks.real_path(args.cli.absolute())

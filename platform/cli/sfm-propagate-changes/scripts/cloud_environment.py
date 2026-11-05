@@ -28,7 +28,7 @@ def require(ok, message):
 
 def real_path(value, directory=False):
     path = Path(value)
-    require(path.is_absolute(), f'expected absolute path: {path}')
+    require(path.is_absolute() and '..' not in path.parts, f'expected absolute normal path: {path}')
     for part in [path, *path.parents]:
         require(not part.is_symlink(), f'linked path is not allowed: {part}')
     info = path.stat()
@@ -144,14 +144,21 @@ def snapshot_root(root, sdk_homes=()):
     return result
 
 
-def snapshots(layout):
+def snapshots(layout, allow_missing_native=False):
     roots = {layout['native_cache_root'], layout['application_cache_root']}
     roots.update(s['sdk_cache_root'] for s in layout['sdks'])
-    paths = [real_path(p, True) for p in sorted(roots)]
+    paths = [Path(p) for p in sorted(roots)]
+    for path in paths:
+        if allow_missing_native and path == Path(layout['native_cache_root']) and not path.exists():
+            require(not path.is_symlink() and path.is_absolute() and path.parent != path
+                    and '..' not in path.parts, 'invalid absent native root')
+            real_path(path.parent, True)
+        else:
+            real_path(path, True)
     require(not any(a.is_relative_to(b) for a in paths for b in paths if a != b),
             'managed cache roots overlap')
     homes = [real_path(s['home'], True) for s in layout['sdks']]
-    return {str(p): snapshot_root(p, homes) for p in paths}
+    return {str(p): snapshot_root(p, homes) if p.exists() else None for p in paths}
 
 
 def same_snapshot(before, after):
