@@ -849,6 +849,31 @@ fn write_javac_no_ap_argfile(
     classes_dir: &Path,
 ) -> eyre::Result<()> {
     context.bail_if_cancelled()?;
+    let mut args = no_ap_javac_arguments(
+        classpath,
+        classes_dir,
+        context.plan.java_release,
+        context.plan.java.major_version,
+    );
+    for source in sources {
+        context.bail_if_cancelled()?;
+        args.push(source.display().to_string());
+    }
+
+    if let Some(parent) = argfile.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    context.bail_if_cancelled()?;
+    write_compilation_argfiles(context, argfile, classpath, &args)?;
+    Ok(())
+}
+
+fn no_ap_javac_arguments(
+    classpath: &[PathBuf],
+    classes_dir: &Path,
+    release: u32,
+    major: u32,
+) -> Vec<String> {
     let mut args = Vec::new();
     args.extend([
         "-encoding".to_string(),
@@ -864,22 +889,8 @@ fn write_javac_no_ap_argfile(
         "-sourcepath".to_string(),
         String::new(),
     ]);
-    append_javac_release_args(
-        &mut args,
-        context.plan.java_release,
-        context.plan.java.major_version,
-    );
-    for source in sources {
-        context.bail_if_cancelled()?;
-        args.push(source.display().to_string());
-    }
-
-    if let Some(parent) = argfile.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    context.bail_if_cancelled()?;
-    write_compilation_argfiles(context, argfile, classpath, &args)?;
-    Ok(())
+    append_javac_release_args(&mut args, release, major);
+    args
 }
 
 fn append_javac_release_args(args: &mut Vec<String>, java_release: u32, java_major_version: u32) {
@@ -2233,6 +2244,32 @@ fn write_compilation_argfiles(
     classpath: &[PathBuf],
     args: &[String],
 ) -> eyre::Result<()> {
+    let canonical = if context.verify_compilation_outputs {
+        context
+            .held_neoform_compile_jar
+            .map(|held| project_compile_identity::arguments(args, classpath, held))
+            .transpose()?
+    } else {
+        None
+    };
+    write_compilation_arguments(context, argfile, args)?;
+    if let Some(canonical) = canonical {
+        write_compilation_arguments(
+            context,
+            &compilation_argfile_fingerprint_path(context, argfile),
+            &canonical,
+        )?;
+    }
+    Ok(())
+}
+
+// Call through either the product classpath guard above or the held, built-in
+// JunitRunnerCompile contract. This writer retains strict cache ownership.
+fn write_compilation_arguments(
+    context: &ExecutionContext<'_>,
+    argfile: &Path,
+    args: &[String],
+) -> eyre::Result<()> {
     if let Some(inputs) = context.plan.retained_inputs() {
         inputs.recheck()?;
     }
@@ -2254,16 +2291,6 @@ fn write_compilation_argfiles(
     } else {
         fs::write(argfile, actual)
             .wrap_err_with(|| format!("Failed to write {}", argfile.display()))?;
-    }
-    if context.verify_compilation_outputs
-        && let Some(held) = context.held_neoform_compile_jar
-    {
-        let canonical = project_compile_identity::arguments(args, classpath, held)?;
-        project_compilation_cache::write_record(
-            &context.plan.cache_dir,
-            &compilation_argfile_fingerprint_path(context, argfile),
-            render(&canonical).as_bytes(),
-        )?;
     }
     Ok(())
 }

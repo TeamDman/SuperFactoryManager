@@ -1920,6 +1920,25 @@ fn execute_junit_tests_with_context(
     Ok(())
 }
 
+fn prepare_junit_runner_compilation(
+    context: &ExecutionContext<'_>,
+    console: &Path,
+    source: &Path,
+    classes: &Path,
+    prepared_junit: Option<&junit_inputs::PreparedJunitInputs>,
+) -> eyre::Result<junit_runner_compile::JunitRunnerCompile> {
+    if let Some(prepared) = prepared_junit {
+        prepared.recheck(context.plan, &context.cancellation_token)?;
+        eyre::ensure!(
+            prepared.console()? == console,
+            "JUnit runner console differs from its checked selection"
+        );
+    }
+    junit_runner_compile::JunitRunnerCompile::prepare(
+        console, source, classes, context.plan.java_release, context.plan.java.major_version,
+    )
+}
+
 fn compile_junit_event_runner(
     context: &ExecutionContext<'_>,
     console_launcher: &Path,
@@ -1939,13 +1958,14 @@ fn compile_junit_event_runner(
     write_file_if_changed(&source_file, JUNIT_EVENT_RUNNER_SOURCE.as_bytes())?;
 
     let argfile = runner_root.join("javac-junit-runner.args");
-    write_javac_no_ap_argfile(
+    let compilation = prepare_junit_runner_compilation(
         context,
-        &argfile,
-        &[console_launcher.to_path_buf()],
-        std::slice::from_ref(&source_file),
+        console_launcher,
+        &source_file,
         &classes_dir,
+        prepared_junit,
     )?;
+    compilation.write_argfile(context, &argfile)?;
     let fingerprint = input_fingerprint(
         context,
         "javac-junit-runner",
@@ -1972,6 +1992,7 @@ fn compile_junit_event_runner(
     if let Some(prepared) = prepared_junit {
         prepared.recheck(context.plan, &context.cancellation_token)?;
     }
+    compilation.recheck()?;
     let mut command = Command::new(javac_executable(&context.plan.java));
     let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
     command.arg(format!("@{}", argfile.display()));
@@ -1982,6 +2003,7 @@ fn compile_junit_event_runner(
     )
     .wrap_err("Failed to run javac for SFM JUnit event runner")?;
     super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
+    compilation.recheck()?;
     trace_subprocess_bytes(
         context.plan,
         "java-tool",
