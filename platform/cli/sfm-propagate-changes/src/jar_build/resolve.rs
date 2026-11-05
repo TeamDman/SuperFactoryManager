@@ -1296,7 +1296,7 @@ impl Resolver {
                 "missing producer output has no digest-bound recipe receipt"
             );
             eyre::bail!(
-                "missing producer output for {coordinate}: external input closure is not sealed; refusing before output lock or Gradle execution"
+                "missing producer output for {coordinate}: external input closure is not sealed; refusing before output lock or Gradle execution. For an exact source-built JAR with its pinned producer receipt, run `dependency artifact import <dependency>/<component> --project-root <projection> --file <jar> --producer-receipt <receipt.json> --expected-sha256 <full-sha256>`. A published artifact requires its exact official acquisition route instead."
             );
         }
         Ok(())

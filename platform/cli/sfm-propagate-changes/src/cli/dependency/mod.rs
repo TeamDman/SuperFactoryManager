@@ -1,5 +1,6 @@
 mod dependency_add_cli;
 mod dependency_artifact_accept_cli;
+mod dependency_artifact_import_cli;
 mod dependency_artifact_cli;
 mod dependency_cli;
 mod dependency_component_add_cli;
@@ -21,6 +22,7 @@ mod dependency_source_search_cli;
 pub use crate::dependency_sources::DependencySourceProviderSelector;
 pub use dependency_add_cli::DependencyAddArgs;
 pub use dependency_artifact_accept_cli::DependencyArtifactAcceptArgs;
+pub use dependency_artifact_import_cli::DependencyArtifactImportArgs;
 pub use dependency_artifact_cli::DependencyArtifactArgs;
 pub use dependency_artifact_cli::DependencyArtifactCommand;
 pub use dependency_cli::DependencyArgs;

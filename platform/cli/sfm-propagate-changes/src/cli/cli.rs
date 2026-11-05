@@ -1315,9 +1315,46 @@ mod tests {
         else {
             panic!("expected dependency artifact command");
         };
-        let crate::cli::dependency::DependencyArtifactCommand::Accept(args) = artifact.command;
+        let crate::cli::dependency::DependencyArtifactCommand::Accept(args) = artifact.command
+        else {
+            panic!("expected dependency artifact accept");
+        };
         assert_eq!(args.target, "cc-tweaked/main");
         assert_eq!(args.branch.as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn parses_dependency_artifact_import_with_explicit_file_and_receipt() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "artifact",
+            "import",
+            "mekanism/main",
+            "--project-root",
+            "projection",
+            "--file",
+            "main.jar",
+            "--producer-receipt",
+            "receipt.json",
+            "--expected-sha256",
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        ])
+        .into_result()
+        .expect("dependency artifact import should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Artifact(artifact),
+        }) = cli.command
+        else {
+            panic!("expected dependency artifact command");
+        };
+        let crate::cli::dependency::DependencyArtifactCommand::Import(args) = artifact.command
+        else {
+            panic!("expected dependency artifact import");
+        };
+        assert_eq!(args.target, "mekanism/main");
+        assert_eq!(args.project_root, std::path::PathBuf::from("projection"));
+        assert_eq!(args.file, std::path::PathBuf::from("main.jar"));
     }
 
     #[test]

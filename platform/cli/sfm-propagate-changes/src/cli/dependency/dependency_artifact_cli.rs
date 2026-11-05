@@ -1,4 +1,5 @@
 use super::DependencyArtifactAcceptArgs;
+use super::DependencyArtifactImportArgs;
 use crate::cancellation::CancellationToken;
 use crate::paths::CacheHome;
 use facet::Facet;
@@ -21,6 +22,9 @@ impl DependencyArtifactArgs {
     ) -> eyre::Result<()> {
         match self.command {
             DependencyArtifactCommand::Accept(args) => args.invoke(cancellation_token, cache_home),
+            DependencyArtifactCommand::Import(_) => {
+                unreachable!("project import selects its own catalog-owned cache")
+            }
         }
     }
 }
@@ -30,4 +34,6 @@ impl DependencyArtifactArgs {
 pub enum DependencyArtifactCommand {
     /// Accept the current bytes and hash for a locked dependency component.
     Accept(DependencyArtifactAcceptArgs),
+    /// Admit a user-supplied exact source-built JAR and pinned producer receipt.
+    Import(DependencyArtifactImportArgs),
 }

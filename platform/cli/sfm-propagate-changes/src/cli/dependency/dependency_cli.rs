@@ -27,6 +27,9 @@ impl DependencyArgs {
         match self.command {
             DependencyCommand::Source(args) => args.invoke(&cancellation_token),
             DependencyCommand::Migrate(args) => args.invoke(cancellation_token),
+            DependencyCommand::Artifact(DependencyArtifactArgs {
+                command: super::DependencyArtifactCommand::Import(args),
+            }) => args.invoke(&cancellation_token),
             other => {
                 let selected = crate::jar_build::engine::select_branch_source_cache(
                     other.branch(),
@@ -69,6 +72,9 @@ impl DependencyCommand {
             Self::Artifact(args) => match &args.command {
                 super::dependency_artifact_cli::DependencyArtifactCommand::Accept(args) => {
                     &args.branch
+                }
+                super::dependency_artifact_cli::DependencyArtifactCommand::Import(_) => {
+                    unreachable!("project import selects its own catalog-owned cache")
                 }
             },
             Self::Component(args) => match &args.command {
