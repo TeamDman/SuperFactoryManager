@@ -806,7 +806,7 @@ fn java_properties_escape(input: &str) -> String {
 )]
 fn execute_dependency_deobf(
     context: &ExecutionContext<'_>,
-) -> eyre::Result<Vec<forge_preparation_cache::HeldDependencyRemapJar>> {
+) -> eyre::Result<Vec<DependencyRemapHold>> {
     let output = context.plan.cache_dir.join("dependencies");
     {
         let _span = tracing::debug_span!(
@@ -928,7 +928,7 @@ fn execute_dependency_deobf(
                 .par_iter()
                 .map(
                     |producer| -> eyre::Result<
-                        Option<dependency_remap_cache::SelectedDependencyRemapEntry>,
+                        Option<SelectedDependencyRemap>,
                     > {
                         context.bail_if_cancelled()?;
                         #[cfg(windows)]

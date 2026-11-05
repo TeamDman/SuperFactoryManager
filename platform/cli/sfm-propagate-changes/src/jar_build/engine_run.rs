@@ -24,12 +24,20 @@ type ForgeDevHold = Option<forge_preparation_cache::HeldForgeDevJar>;
 type McpHold = Option<forge_preparation_cache::HeldSharedPreparation>;
 #[cfg(windows)]
 type ForgeInputHold = Option<forge_preparation_cache::ForgePreparationInputs>;
+#[cfg(windows)]
+type DependencyRemapHold = forge_preparation_cache::HeldDependencyRemapJar;
+#[cfg(windows)]
+type SelectedDependencyRemap = dependency_remap_cache::SelectedDependencyRemapEntry;
 #[cfg(not(windows))]
 type ForgeDevHold = ();
 #[cfg(not(windows))]
 type McpHold = ();
 #[cfg(not(windows))]
 type ForgeInputHold = ();
+#[cfg(not(windows))]
+type DependencyRemapHold = ();
+#[cfg(not(windows))]
+type SelectedDependencyRemap = ();
 
 /// Invocation-local proof. The MCP owner also holds every selected Minecraft
 /// library file while this context's path cache is reused by run. Release the
@@ -448,7 +456,7 @@ struct RunClasspath {
     userdev_mods: Vec<PathBuf>,
     // A run is a new command after the build. Keep remap readers through
     // session capture; the JVM then reads only private launch-input copies.
-    held_dependency_remaps: Vec<forge_preparation_cache::HeldDependencyRemapJar>,
+    held_dependency_remaps: Vec<DependencyRemapHold>,
 }
 
 #[derive(Debug)]
@@ -981,11 +989,14 @@ fn execute_run_with_context(
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
     let mut captured_inputs = BTreeMap::new();
     let mut copy_budget = (0, 0);
+    #[cfg(windows)]
     let held_remap_paths = launch_classpath
         .held_dependency_remaps
         .iter()
         .map(|held| held.path().to_path_buf())
         .collect::<std::collections::BTreeSet<_>>();
+    #[cfg(not(windows))]
+    let held_remap_paths = std::collections::BTreeSet::<PathBuf>::new();
     let classpath_capture_started = Instant::now();
     for path in launch_classpath
         .legacy
@@ -6802,10 +6813,7 @@ fn resolve_run_deobf_dependencies(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
     kind: RunKind,
-) -> eyre::Result<(
-    Vec<PathBuf>,
-    Vec<forge_preparation_cache::HeldDependencyRemapJar>,
-)> {
+) -> eyre::Result<(Vec<PathBuf>, Vec<DependencyRemapHold>)> {
     let _span = tracing::debug_span!("resolve_run_deobf_dependencies", kind = %kind.command_name())
         .entered();
     let dependency_output = context.plan.cache_dir.join("dependencies");
