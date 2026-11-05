@@ -1,0 +1,208 @@
+{
+  "catalog_sha256": "8884e78a78f1a9dd3e19a1c41836539a5208b3e14183d8bff8bad88f367b28b5",
+  "date_utc": "2026-11-05",
+  "derivation": "Sanitized summary of original task-local evidence; original bytes and hashes remain authoritative. This is not a gate input or an independent signed attestation.",
+  "format": "sanitized-cloud-offline-checkpoint-v1",
+  "isolation": {
+    "actual_loopback_only": true,
+    "immutable_inventory_before_after": "matched",
+    "mechanism": "Docker network none",
+    "network_namespace_distinct_from_outer_environment": true,
+    "post_gate_expected_inputs_comparison": "passed",
+    "pre_gate_full_content_comparison": "passed",
+    "routes_and_mounts_unchanged_before_after": true,
+    "source_cache_archive_credential_and_docker_socket_mounts": false
+  },
+  "limits": "Other 73 projections, JUnit, GameTests, GUI, Gradle, fresh-task restoration and G-unavailable proof are not attested. Vox and Mekanism holds remain; production publication and backup deletion did not occur.",
+  "original_evidence_sha256": {
+    "build_receipt": "ea0cd04d32f920b12ddff656f2ff1bd1d5a1ad681f2f963df1d88c26790f715d",
+    "candidate_content_after": "8c224da0602e479e47dc35610bc943a48e450110deee42c0375dea9810c46aa4",
+    "candidate_content_before": "f12fc2ed7c32ad1b52e38232d9f6109d0c9789b122bcaab5b77a77320b0f6e07",
+    "cli": "35a9883e24499c76efdcd149507b1c46304ada51cb5abd62c709bb0ac89e1be7",
+    "declared_immutable_inventory_payload": "b40df046c370ec3c5e17f3b113e03b0c1e40271844b2ae61b7664dcc0f3d4c47",
+    "gate_result": "d0aea42bf5a47a30dbe16a3f2439b4c91643634607c191a47975aafe3a821f77",
+    "interrupted_trace": "2d3785b56c8d95caf58fc0a9f6e95180fd4c88b28871ec5d647330324cc47570",
+    "offline_jar": "022cbe51d2a9126a2d7d028432d0f2bba4d7c368cefdd4b681c813d7a662cd23",
+    "scope_canonical_payload": "063c37a62cee802fff564643273bff3ce61544021f25e56872831a95d7bd3b52",
+    "scope_file": "16f2fbcc28eba8613e65b1f466b1545b4074f62d8e78e62662dc5194611451c2",
+    "seed_manifest": "5a86a99b050af92a07762cb3177348289c083c9fe79c6bf337f2295cb175809a"
+  },
+  "original_stage_evidence": {
+    "check": {
+      "stage_receipt": {
+        "sha256": "22e056499bcec4c5abafd60a491793f86318380035a51bcfcd5d6f90910ac1df",
+        "size_bytes": 401
+      },
+      "stderr": {
+        "sha256": "9e297ea795d8d52c849145efeb1f8bf782eb9db67baf2b872a50c619fd365b91",
+        "size_bytes": 9828
+      },
+      "stdout": {
+        "sha256": "3b823f25c6cdc5f4d75107dcedbc0e63de884d110d6f0f77e1eba07d7f1ab173",
+        "size_bytes": 796751
+      }
+    },
+    "compile": {
+      "stage_receipt": {
+        "sha256": "f96d48a155268014f70d745c216b9c1bce2d842bdfbd1b8aaa3ea57f7b27502a",
+        "size_bytes": 705
+      },
+      "stderr": {
+        "sha256": "f0130d7dca49da379143f2dddc36fa8ae310ed0e60180844e3970a2142798409",
+        "size_bytes": 944102
+      },
+      "stdout": {
+        "sha256": "e6da466bb1c9a4c34fa0d728994271951b100fa9ae82b162cfb8bd3efd015fc1",
+        "size_bytes": 1133358
+      }
+    },
+    "jar": {
+      "stage_receipt": {
+        "sha256": "682499b301c8def6b3bfa9c29e10013832b9418ffb91f5ddc1efe320d76bd37a",
+        "size_bytes": 948
+      },
+      "stderr": {
+        "sha256": "d49d70426275ccfe22182fe2a0d9e667e5c0efaad3c37bb7d748295d7dcd9dd5",
+        "size_bytes": 981817
+      },
+      "stdout": {
+        "sha256": "30836dbcd1b7c9c53cad8b0659dbbdbf04262be47146aaec7a0fd0ff71c4a93e",
+        "size_bytes": 1133729
+      }
+    }
+  },
+  "prior_attempts": "A traced online preparation was interrupted and retained; candidate preflight failures were corrected and retained before the successful gate. They are not gate passes.",
+  "proof_scope": "isolated offline native stages for exactly one historical projection",
+  "result": "passed",
+  "retention": "Original task-local evidence and candidate state have no verified long-term retention guarantee. This derivative does not contain the raw evidence.",
+  "scope": {
+    "excluded_target_count": 73,
+    "excluded_targets": [
+      "sfm-4.34.0-extended/mc-1.19.2",
+      "sfm-4.34.0-extended/mc-1.19.4",
+      "sfm-4.34.0-extended/mc-1.20",
+      "sfm-4.34.0-extended/mc-1.20.1",
+      "sfm-4.34.0-extended/mc-1.20.2",
+      "sfm-4.34.0-extended/mc-1.20.3",
+      "sfm-4.34.0-extended/mc-1.20.4",
+      "sfm-4.34.0-extended/mc-1.21.0",
+      "sfm-4.34.0-extended/mc-1.21.1",
+      "sfm-4.34.0-extended/mc-26.1.2",
+      "sfm-4.34.0-issue610-portable/mc-1.19.2",
+      "sfm-4.34.0-issue610-portable/mc-1.19.4",
+      "sfm-4.34.0-issue610-portable/mc-1.20",
+      "sfm-4.34.0-issue610-portable/mc-1.20.1",
+      "sfm-4.34.0-issue610-portable/mc-1.20.2",
+      "sfm-4.34.0-issue610-portable/mc-1.20.3",
+      "sfm-4.34.0-issue610-portable/mc-1.20.4",
+      "sfm-4.34.0-issue610-portable/mc-1.21.0",
+      "sfm-4.34.0-issue610-portable/mc-1.21.1",
+      "sfm-4.34.0-issue610-portable/mc-26.1.2",
+      "sfm-4.34.0-issue610-visual/mc-1.21.1",
+      "sfm-4.34.0-issue610/mc-1.21.1",
+      "sfm-4.34.0/mc-1.19.2",
+      "sfm-4.34.0/mc-1.19.4",
+      "sfm-4.34.0/mc-1.20",
+      "sfm-4.34.0/mc-1.20.1",
+      "sfm-4.34.0/mc-1.20.2",
+      "sfm-4.34.0/mc-1.20.3",
+      "sfm-4.34.0/mc-1.20.4",
+      "sfm-4.34.0/mc-1.21.0",
+      "sfm-4.34.0/mc-1.21.1",
+      "sfm-4.34.0/mc-26.1.2",
+      "sfm-4.35.0-extended/mc-1.19.2",
+      "sfm-4.35.0-extended/mc-1.19.4",
+      "sfm-4.35.0-extended/mc-1.20",
+      "sfm-4.35.0-extended/mc-1.20.1",
+      "sfm-4.35.0-extended/mc-1.20.2",
+      "sfm-4.35.0-extended/mc-1.20.3",
+      "sfm-4.35.0-extended/mc-1.20.4",
+      "sfm-4.35.0-extended/mc-1.21.0",
+      "sfm-4.35.0-extended/mc-1.21.1",
+      "sfm-4.35.0-extended/mc-26.1.2",
+      "sfm-4.35.0-issue610-portable/mc-1.19.2",
+      "sfm-4.35.0-issue610-portable/mc-1.19.4",
+      "sfm-4.35.0-issue610-portable/mc-1.20",
+      "sfm-4.35.0-issue610-portable/mc-1.20.1",
+      "sfm-4.35.0-issue610-portable/mc-1.20.2",
+      "sfm-4.35.0-issue610-portable/mc-1.20.3",
+      "sfm-4.35.0-issue610-portable/mc-1.20.4",
+      "sfm-4.35.0-issue610-portable/mc-1.21.0",
+      "sfm-4.35.0-issue610-portable/mc-1.21.1",
+      "sfm-4.35.0-issue610-portable/mc-26.1.2",
+      "sfm-4.35.0-issue610-visual/mc-1.21.1",
+      "sfm-4.35.0-issue610/mc-1.21.1",
+      "sfm-4.35.0/mc-1.19.2",
+      "sfm-4.35.0/mc-1.19.4",
+      "sfm-4.35.0/mc-1.20",
+      "sfm-4.35.0/mc-1.20.1",
+      "sfm-4.35.0/mc-1.20.2",
+      "sfm-4.35.0/mc-1.20.3",
+      "sfm-4.35.0/mc-1.20.4",
+      "sfm-4.35.0/mc-1.21.1",
+      "sfm-4.35.0/mc-26.1.2",
+      "sfm-dev/mc-1.19.2",
+      "sfm-dev/mc-1.19.4",
+      "sfm-dev/mc-1.20",
+      "sfm-dev/mc-1.20.1",
+      "sfm-dev/mc-1.20.2",
+      "sfm-dev/mc-1.20.3",
+      "sfm-dev/mc-1.20.4",
+      "sfm-dev/mc-1.21.0",
+      "sfm-dev/mc-1.21.1",
+      "sfm-dev/mc-26.1.2"
+    ],
+    "not_attested": [
+      "JUnit",
+      "GameTests",
+      "GUI",
+      "Gradle",
+      "fresh-Codex-task",
+      "G-unavailable"
+    ],
+    "registered_target_count": 74,
+    "selected_target_count": 1
+  },
+  "sdk_authority": {
+    "archive_name": "jbrsdk-21.0.11-linux-x64-b1163.116.tar.gz",
+    "archive_sha512": "13d0aab4bcfa9e4f77a696b97d3998f7e82e22f7f1362d8ce97f0d50d69dddd9331a66ada3fe92c04e544795fc247bcbaf586ad0415df4eda5e0e0505753888f",
+    "tracked_authority": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.1/schema-4.json",
+    "tracked_authority_sha256": "01f6a3c96f65dc6a126ba0017e366daadcf8e63a2ccb1a2136e050ee460a945f"
+  },
+  "source_commit": "0cb61737d3ed1cf6516838d52ab20367ec2a36fc",
+  "source_input_sha256": {
+    "platform/cli/sfm-propagate-changes/Cargo.lock": "f74aff0da09e37f24e7f676faa5a57204021fa474df2dddeff6ef8aaa5ce570f",
+    "platform/minecraft/build-configuration/released-native-historical-2612.json": "75f7bbc3b3634383cf6b8c0a387c3e96bacd52a146007eb7ef525dc0b3a24fc0",
+    "platform/minecraft/build-configuration/released-native.json": "9d0520814c0cefb04245e0989201aa5773a48e2ab0879271d699ad7d47946c17"
+  },
+  "stages": [
+    {
+      "exit": 0,
+      "stage": "check",
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "stage": "compile",
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "stage": "jar",
+      "status": "passed"
+    }
+  ],
+  "storage_observation_bytes": {
+    "lowest_recorded_free": 18784337920,
+    "offline_stage_minimum_free": 18821443584,
+    "offline_stage_peak_growth": 1544622080,
+    "required_free_floor": 2684354560
+  },
+  "target": {
+    "java_major": 21,
+    "minecraft_version": "1.21",
+    "projection": "sfm-4.35.0/mc-1.21.0",
+    "projection_lock_sha256": "2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4",
+    "released_recipe": "sfm:released-native-inputs/4.34.0/1.21.0@1"
+  }
+}
