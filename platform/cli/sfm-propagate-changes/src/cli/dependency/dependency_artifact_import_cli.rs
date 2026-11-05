@@ -4,7 +4,15 @@ use crate::cancellation::CancellationToken;
 use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::source_build_receipt;
+use crate::source_projection::catalog_owned_project::collect_catalog_project;
+use crate::source_projection::core_inputs::CORE_ROOT;
+use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
+use crate::toolchain_lockfile_schema::parse_document;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyV3;
+use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use eyre::Context;
 use eyre::ensure;
 use facet::Facet;
@@ -31,6 +39,9 @@ pub struct DependencyArtifactImportArgs {
     /// Full SHA-256 of the supplied JAR, independently stated by the caller.
     #[facet(args::named)]
     pub expected_sha256: String,
+    /// Admit new receipt-backed bytes and update the selected development authored lock.
+    #[facet(default = false, args::named)]
+    pub update_lock: bool,
 }
 
 impl DependencyArtifactImportArgs {
@@ -45,9 +56,18 @@ impl DependencyArtifactImportArgs {
         )?;
         let inventory =
             DependencyInventory::load_project(&self.project_root, selected.home().clone())?;
-        let report = admit_exact_source_build(&inventory, &self, cancellation)?;
+        let report = if self.update_lock {
+            repin_source_build(&inventory, &self, cancellation)?
+        } else {
+            admit_exact_source_build(&inventory, &self, cancellation)?
+        };
+        let outcome = if self.update_lock {
+            "Authored lock updated; run source project sync before building. Keep the supplied JAR and producer receipt for empty-cache recovery."
+        } else {
+            "Lock bytes unchanged; manual input and producer receipt remain prerequisites for rebuilding an empty cache."
+        };
         crate::terminal_output::stdout_line(format!(
-            "Admitted exact locked source-built {}/{} ({}) to {}. Lock bytes unchanged; manual input and producer receipt remain prerequisites for rebuilding an empty cache.",
+            "Admitted source-built {}/{} ({}) to {}. {outcome}",
             report.dependency,
             report.component,
             report.sha256,
@@ -78,18 +98,204 @@ struct ManualAdmissionRecord {
     method: String,
 }
 
+/// Publish a new source-built generation before changing its authored pin.
+/// A crash before the final lock write leaves an unreferenced managed entry;
+/// a crash after the write is repaired by the ordinary source sync.
+fn repin_source_build(
+    inventory: &DependencyInventory,
+    args: &DependencyArtifactImportArgs,
+    cancellation: &CancellationToken,
+) -> eyre::Result<AdmissionReport> {
+    let (catalog, key) =
+        crate::source_projection::core_catalog::CoreCatalog::for_project(&args.project_root)?;
+    let project =
+        collect_catalog_project(&catalog.repo_root, &catalog.repo_root, &key)?.check_current()?;
+    ensure!(
+        project.receipt().environment == ProjectionEnvironment::Dev,
+        "new source-built pins may only update a development projection"
+    );
+    let selected = project.selected_input("sfm-toolchain.lock.json")?;
+    selected.require_exact_copy()?;
+    ensure!(
+        dedicated_development_lock(selected.source_path()),
+        "manual pin update requires a dedicated development authored lock; refusing a source shared with release projections"
+    );
+    ensure!(
+        Path::new(selected.source_path()).starts_with(Path::new(CORE_ROOT)),
+        "selected authored lock lies outside the core source root"
+    );
+    ensure!(
+        selected.source_bytes() == inventory.original_input.as_bytes(),
+        "selected authored and emitted locks differ"
+    );
+    let projected = project
+        .artifacts()
+        .get("sfm-toolchain.lock.json")
+        .expect("selected input has a projected artifact");
+    ensure!(
+        projected.overlay.is_none(),
+        "manual pin update requires the primary checked authored lock"
+    );
+    let authored = project.repo_root().join(selected.source_path());
+    let original_authored = fs::read_to_string(&authored)?;
+    ensure!(
+        original_authored == inventory.original_input,
+        "authored lock changed since selected project validation"
+    );
+
+    let (dependency_id, component_id) = exact_target(&args.target)?;
+    let component = inventory
+        .dependency(dependency_id)?
+        .components
+        .iter()
+        .find(|component| component.id == component_id)
+        .ok_or_else(|| eyre::eyre!("Unknown component {dependency_id}/{component_id}"))?;
+    let artifact = inventory.artifact(component);
+    ensure!(
+        artifact.provenance == ArtifactProvenanceV3::SourceBuild
+            && artifact.source_git.is_some()
+            && artifact.source_build.is_some(),
+        "new manual pins require an existing source-built component and producer recipe"
+    );
+    let expected_sha256 = validated_sha256(&args.expected_sha256)?;
+    let jar = read_regular_bounded(&args.file, 64 * 1024 * 1024)?;
+    ensure!(
+        sha256(&jar) == expected_sha256,
+        "supplied JAR SHA-256 mismatch"
+    );
+    let receipt = read_regular_bounded(&args.producer_receipt, 2 * 1024 * 1024)?;
+    let receipt_pin = sha256(&receipt);
+    let new_hash = ContentHash::from_bytes(&jar, artifact.hash.algorithm);
+    let old_pin = artifact
+        .source_build
+        .as_ref()
+        .and_then(|build| build.environment.get(source_build_receipt::RECEIPT_KEY))
+        .ok_or_else(|| {
+            eyre::eyre!("source-built component has no existing producer receipt pin")
+        })?;
+    ensure!(
+        new_hash != artifact.hash || receipt_pin != *old_pin,
+        "artifact already has this lock identity; omit --update-lock"
+    );
+    let filename = artifact
+        .cache_path
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("locked producer output has no filename"))?
+        .to_string_lossy();
+    let new_path = PathBuf::from(format!(
+        "$sfm-cache/producer-outputs/{receipt_pin}/{filename}"
+    ));
+    let mut updated_document = match parse_document(&original_authored)? {
+        ToolchainLockfileDocument::V4(document) => document,
+        _ => eyre::bail!("development authored lock update requires schema 4"),
+    };
+    update_source_build_entry(
+        &mut updated_document.dependencies,
+        &mut updated_document.artifacts,
+        &component.derived_checks.artifact_id,
+        new_hash,
+        &new_path,
+        &receipt_pin,
+    )?;
+    let updated_source = updated_document.to_canonical_json()?;
+    let mut updated_inventory = DependencyInventory {
+        target: inventory.target.clone(),
+        lockfile_path: inventory.lockfile_path.clone(),
+        cache_home: inventory.cache_home.clone(),
+        original_input: updated_source.clone(),
+        lockfile: inventory.lockfile.clone(),
+    };
+    update_source_build_entry(
+        &mut updated_inventory.lockfile.dependencies,
+        &mut updated_inventory.lockfile.artifacts,
+        &component.derived_checks.artifact_id,
+        new_hash,
+        &new_path,
+        &receipt_pin,
+    )?;
+    let report = admit_exact_source_build(&updated_inventory, args, cancellation)?;
+    cancellation.bail_if_cancelled()?;
+    write_lockfile_atomically(&authored, &original_authored, updated_source.as_bytes())?;
+    Ok(report)
+}
+
+fn update_source_build_entry(
+    dependencies: &mut [DependencyV3],
+    artifacts: &mut [ArtifactV3],
+    artifact_id: &str,
+    hash: ContentHash,
+    path: &Path,
+    receipt_pin: &str,
+) -> eyre::Result<()> {
+    let artifact = artifacts
+        .iter_mut()
+        .find(|artifact| artifact.id == artifact_id)
+        .ok_or_else(|| eyre::eyre!("Unknown source-built artifact {artifact_id}"))?;
+    ensure!(
+        artifact.provenance == ArtifactProvenanceV3::SourceBuild,
+        "manual pin update requires source-built provenance"
+    );
+    artifact.hash = hash;
+    artifact.cache_path = path.to_path_buf();
+    artifact
+        .source_build
+        .as_mut()
+        .ok_or_else(|| eyre::eyre!("source-built artifact has no recipe"))?
+        .environment
+        .insert(
+            source_build_receipt::RECEIPT_KEY.to_owned(),
+            receipt_pin.to_owned(),
+        );
+    let mut matches = 0;
+    for dependency in dependencies {
+        for component in &mut dependency.components {
+            if component.derived_checks.artifact_id == artifact_id {
+                component.derived_checks.expected_hash = hash;
+                component.derived_checks.cache_path = path.to_path_buf();
+                matches += 1;
+            }
+        }
+    }
+    ensure!(
+        matches == 1,
+        "source-built artifact must have one exact component owner"
+    );
+    Ok(())
+}
+
+fn exact_target(target: &str) -> eyre::Result<(&str, &str)> {
+    let (dependency, component) = target.split_once('/').ok_or_else(|| {
+        eyre::eyre!("Specify an exact dependency/component, for example mekanism/main")
+    })?;
+    ensure!(
+        !dependency.is_empty() && !component.is_empty() && !component.contains('/'),
+        "invalid dependency/component identity"
+    );
+    Ok((dependency, component))
+}
+
+fn validated_sha256(value: &str) -> eyre::Result<String> {
+    let normalized = value.to_ascii_lowercase();
+    ensure!(
+        normalized.len() == 64 && normalized.bytes().all(|byte| byte.is_ascii_hexdigit()),
+        "--expected-sha256 must be 64 hex characters"
+    );
+    Ok(normalized)
+}
+
+fn dedicated_development_lock(source_path: &str) -> bool {
+    Path::new(source_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with("schema-4-dev-") && name.ends_with(".json"))
+}
+
 fn admit_exact_source_build(
     inventory: &DependencyInventory,
     args: &DependencyArtifactImportArgs,
     cancellation: &CancellationToken,
 ) -> eyre::Result<AdmissionReport> {
-    let (dependency_id, component_id) = args.target.split_once('/').ok_or_else(|| {
-        eyre::eyre!("Specify an exact dependency/component, for example mekanism/main")
-    })?;
-    ensure!(
-        !dependency_id.is_empty() && !component_id.is_empty() && !component_id.contains('/'),
-        "invalid dependency/component identity"
-    );
+    let (dependency_id, component_id) = exact_target(&args.target)?;
     let dependency = inventory.dependency(dependency_id)?;
     let component = dependency
         .components
@@ -109,11 +315,7 @@ fn admit_exact_source_build(
             && artifact.source_build.is_some(),
         "manual import is limited to receipt-pinned source-built JARs; use dependency add with the exact official Maven or CurseForge coordinate for published artifacts"
     );
-    let expected = args.expected_sha256.to_ascii_lowercase();
-    ensure!(
-        expected.len() == 64 && expected.bytes().all(|byte| byte.is_ascii_hexdigit()),
-        "--expected-sha256 must be 64 hex characters"
-    );
+    let expected = validated_sha256(&args.expected_sha256)?;
     let jar = read_regular_bounded(&args.file, 64 * 1024 * 1024)?;
     let jar_sha256 = sha256(&jar);
     ensure!(jar_sha256 == expected, "supplied JAR SHA-256 mismatch");
@@ -353,6 +555,7 @@ mod tests {
             expected_sha256: sha256(&fs::read(&supplied_jar).unwrap()),
             file: supplied_jar,
             producer_receipt,
+            update_lock: false,
         };
         (temp, inventory, args)
     }
@@ -498,5 +701,159 @@ mod tests {
             .cache_path = escaped;
         assert!(admit_exact_source_build(&inventory, &args, &CancellationToken::new()).is_err());
         assert!(!inventory.cache_home.0.exists());
+    }
+
+    #[test]
+    fn new_receipt_updates_only_one_authored_component_and_keeps_old_bytes_addressable() {
+        let (_temp, inventory, _args) = fixture();
+        let mut document = match parse_document(&inventory.original_input).unwrap() {
+            ToolchainLockfileDocument::V4(document) => document,
+            _ => panic!("expected authored schema 4"),
+        };
+        let old_api = document
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.id == "mekanism")
+            .unwrap()
+            .components
+            .iter()
+            .find(|component| component.id == "api")
+            .unwrap()
+            .derived_checks
+            .clone();
+        let old_main = document
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.id == "mekanism")
+            .unwrap()
+            .components
+            .iter()
+            .find(|component| component.id == "main")
+            .unwrap()
+            .derived_checks
+            .clone();
+        let new_hash =
+            ContentHash::from_bytes(b"new producer output", old_main.expected_hash.algorithm);
+        let new_pin = "a".repeat(64);
+        let new_path = PathBuf::from(format!("$sfm-cache/producer-outputs/{new_pin}/new.jar"));
+        update_source_build_entry(
+            &mut document.dependencies,
+            &mut document.artifacts,
+            &old_main.artifact_id,
+            new_hash,
+            &new_path,
+            &new_pin,
+        )
+        .unwrap();
+        let encoded = document.to_canonical_json().unwrap();
+        let reparsed = match parse_document(&encoded).unwrap() {
+            ToolchainLockfileDocument::V4(document) => document,
+            _ => panic!("expected updated schema 4"),
+        };
+        let mekanism = reparsed
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.id == "mekanism")
+            .unwrap();
+        let api = mekanism
+            .components
+            .iter()
+            .find(|component| component.id == "api")
+            .unwrap();
+        let main = mekanism
+            .components
+            .iter()
+            .find(|component| component.id == "main")
+            .unwrap();
+        assert_eq!(api.derived_checks, old_api);
+        assert_eq!(main.derived_checks.expected_hash, new_hash);
+        assert_eq!(main.derived_checks.cache_path, new_path);
+        let artifact = reparsed
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.id == old_main.artifact_id)
+            .unwrap();
+        assert_eq!(artifact.hash, new_hash);
+        assert_eq!(artifact.cache_path, new_path);
+        assert_eq!(
+            artifact
+                .source_build
+                .as_ref()
+                .unwrap()
+                .environment
+                .get(source_build_receipt::RECEIPT_KEY),
+            Some(&new_pin)
+        );
+        assert_eq!(
+            fs::read(&inventory.lockfile_path).unwrap(),
+            inventory.original_input.as_bytes()
+        );
+    }
+
+    #[test]
+    fn repin_requires_a_dedicated_development_authored_lock() {
+        assert!(dedicated_development_lock(
+            "build/lockfiles/26.1.2/schema-4-dev-ae2-runtime.json"
+        ));
+        assert!(!dedicated_development_lock(
+            "build/lockfiles/26.1.2/schema-4.json"
+        ));
+        assert!(!dedicated_development_lock(
+            "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json"
+        ));
+    }
+
+    #[test]
+    fn new_receipt_publishes_a_second_generation_without_replacing_the_first() {
+        let (_old_temp, mut inventory, old_args) = fixture();
+        let old =
+            admit_exact_source_build(&inventory, &old_args, &CancellationToken::new()).unwrap();
+        let old_bytes = fs::read(&old.destination).unwrap();
+        let (new_temp, new_file, new_entry) =
+            source_build_receipt::tests::rebuilt_resolver_fixture();
+        let new_pin = new_entry
+            .source_build
+            .as_ref()
+            .unwrap()
+            .environment
+            .get(source_build_receipt::RECEIPT_KEY)
+            .unwrap()
+            .clone();
+        let new_path = PathBuf::from(format!("$sfm-cache/producer-outputs/{new_pin}/output.jar"));
+        let artifact_id = inventory
+            .dependency("mekanism")
+            .unwrap()
+            .components
+            .iter()
+            .find(|component| component.id == "main")
+            .unwrap()
+            .derived_checks
+            .artifact_id
+            .clone();
+        update_source_build_entry(
+            &mut inventory.lockfile.dependencies,
+            &mut inventory.lockfile.artifacts,
+            &artifact_id,
+            new_entry.hash,
+            &new_path,
+            &new_pin,
+        )
+        .unwrap();
+        let args = DependencyArtifactImportArgs {
+            file: new_file.clone(),
+            producer_receipt: new_temp
+                .path()
+                .join(format!("producer-receipts/{new_pin}.json")),
+            expected_sha256: sha256(&fs::read(&new_file).unwrap()),
+            update_lock: true,
+            ..old_args
+        };
+        let new = admit_exact_source_build(&inventory, &args, &CancellationToken::new()).unwrap();
+        assert_ne!(old.destination, new.destination);
+        assert_eq!(fs::read(old.destination).unwrap(), old_bytes);
+        assert_eq!(
+            fs::read(new.destination).unwrap(),
+            fs::read(new_file).unwrap()
+        );
     }
 }

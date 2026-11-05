@@ -1355,6 +1355,40 @@ mod tests {
         assert_eq!(args.target, "mekanism/main");
         assert_eq!(args.project_root, std::path::PathBuf::from("projection"));
         assert_eq!(args.file, std::path::PathBuf::from("main.jar"));
+        assert!(!args.update_lock);
+    }
+
+    #[test]
+    fn parses_explicit_source_built_lock_update() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "artifact",
+            "import",
+            "mekanism/main",
+            "--project-root",
+            "projection",
+            "--file",
+            "new.jar",
+            "--producer-receipt",
+            "new-receipt.json",
+            "--expected-sha256",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "--update-lock",
+        ])
+        .into_result()
+        .expect("explicit lock update should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Artifact(artifact),
+        }) = cli.command
+        else {
+            panic!("expected dependency artifact command");
+        };
+        let crate::cli::dependency::DependencyArtifactCommand::Import(args) = artifact.command
+        else {
+            panic!("expected dependency artifact import");
+        };
+        assert!(args.update_lock);
     }
 
     #[test]

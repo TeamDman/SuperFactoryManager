@@ -297,7 +297,31 @@ pub(crate) mod tests {
         std::path::PathBuf,
         crate::jar_build::engine::ArtifactLockEntry,
     ) {
-        let (cache, original, git, mut build, hash, receipt) = fixture();
+        resolver_fixture_with_contents(b"fresh producer output")
+    }
+
+    pub(crate) fn rebuilt_resolver_fixture() -> (
+        tempfile::TempDir,
+        std::path::PathBuf,
+        crate::jar_build::engine::ArtifactLockEntry,
+    ) {
+        resolver_fixture_with_contents(b"rebuilt producer output")
+    }
+
+    fn resolver_fixture_with_contents(
+        contents: &[u8],
+    ) -> (
+        tempfile::TempDir,
+        std::path::PathBuf,
+        crate::jar_build::engine::ArtifactLockEntry,
+    ) {
+        let (cache, original, git, mut build, _, mut receipt) = fixture();
+        fs::write(&original, contents).unwrap();
+        let hash = ContentHash::from_path(&original, ContentHashAlgorithm::Blake3).unwrap();
+        let output = receipt.outputs.get_mut(COORDINATE).unwrap();
+        output.bytes = contents.len() as u64;
+        output.sha256 = sha256(contents);
+        output.content_hash = hash;
         let path = cache.path().join("producer-outputs/test/output.jar");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::rename(original, &path).unwrap();
