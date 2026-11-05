@@ -86,10 +86,10 @@ impl JavaTrust {
             (Some(path), Some(digest)) => {
                 let digest = digest
                     .into_string()
-                    .map_err(|_| eyre::eyre!("Java trust SHA-256 must be Unicode"))?;
+                    .map_err(|_non_unicode| eyre::eyre!("Java trust SHA-256 must be Unicode"))?;
                 Ok(Some(Self::capture(Path::new(&path), &digest)?))
             }
-            _ => eyre::bail!("{store_env} and {digest_env} must be set together"),
+            _ => Err(eyre::eyre!("{store_env} and {digest_env} must be set together")),
         }
     }
 
