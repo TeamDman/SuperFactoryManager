@@ -393,25 +393,32 @@ struct JavaPlan {
     pin_spec_identity: Option<String>,
     #[facet(skip_serializing)]
     execution_identity: Option<String>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    java_trust_sha256: Option<String>,
 }
 
 impl JavaPlan {
     /// Include the authenticated SDK bytes in Java-dependent cache keys. A
     /// different JBRSDK archive can report the same `java -version` string.
     fn cache_identity(&self) -> String {
-        if let Some(identity) = &self.execution_identity {
-            return identity.clone();
-        }
-        match self.pin_sha512.as_deref() {
-            Some(digest) => format!("{}\nlockfile-jbrsdk-sha512={digest}", self.version_output),
-            None if self.selection == "explicit-java-home" => {
-                format!(
-                    "{}\nexplicit-java-home={:?}",
-                    self.version_output, self.home
-                )
+        let identity = if let Some(identity) = &self.execution_identity {
+            identity.clone()
+        } else {
+            match self.pin_sha512.as_deref() {
+                Some(digest) => format!("{}\nlockfile-jbrsdk-sha512={digest}", self.version_output),
+                None if self.selection == "explicit-java-home" => {
+                    format!(
+                        "{}\nexplicit-java-home={:?}",
+                        self.version_output, self.home
+                    )
+                }
+                None => self.version_output.clone(),
             }
-            None => self.version_output.clone(),
-        }
+        };
+        self.java_trust_sha256.as_ref().map_or_else(
+            || identity.clone(),
+            |digest| format!("{identity}\njava-trust-store={digest}"),
+        )
     }
 }
 

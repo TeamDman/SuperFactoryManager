@@ -164,6 +164,7 @@ fn java_cache_identity_changes_with_verified_archive_digest() {
         pin_sha512: Some("a".repeat(128)),
         pin_spec_identity: None,
         execution_identity: None,
+        java_trust_sha256: None,
     };
     let first = java.cache_identity();
     java.home = Some(std::path::PathBuf::from("another-jdk-cache-home"));
@@ -174,6 +175,13 @@ fn java_cache_identity_changes_with_verified_archive_digest() {
     assert_ne!(first, java.cache_identity());
     java.selection = "legacy-discovery".to_owned();
     assert_eq!(java.cache_identity(), java.version_output);
+    let default_trust = java.cache_identity();
+    java.java_trust_sha256 = Some("sha256:a".to_owned());
+    assert_ne!(java.cache_identity(), default_trust);
+    java.execution_identity = Some("held-sdk".to_owned());
+    let first_store = java.cache_identity();
+    java.java_trust_sha256 = Some("sha256:b".to_owned());
+    assert_ne!(java.cache_identity(), first_store);
 }
 use super::ArtifactAuditSeverity;
 use super::ArtifactId;
@@ -3307,6 +3315,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
             pin_sha512: None,
             pin_spec_identity: None,
             execution_identity: None,
+            java_trust_sha256: None,
         },
         java_release: 17,
         refresh: false,
@@ -4243,6 +4252,7 @@ pub(super) fn minimal_plan_for_paths() -> BuildPlan {
             pin_sha512: None,
             pin_spec_identity: None,
             execution_identity: None,
+            java_trust_sha256: None,
         },
         java_release: 17,
         refresh: false,

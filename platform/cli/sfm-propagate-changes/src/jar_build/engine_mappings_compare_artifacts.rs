@@ -2095,7 +2095,22 @@ fn materialize_cargo_source_build(
             .env_remove("JDK_JAVA_OPTIONS")
             .env_remove("CLASSPATH");
     }
-    run_source_build_process(cancellation_token, &mut command, "source-build-cargo")
+    let trust = if source_sdk.is_some() { super::java_trust::JavaTrust::from_environment_for_major(21)? }
+        else { super::java_trust::JavaTrust::from_environment()? };
+    // The current immutable Vox producer requires jdeps stderr to be empty.
+    // JAVA_TOOL_OPTIONS prints there even for a successful tool invocation.
+    // Do not hide that diagnostic or silently run any of its JVMs unfiltered.
+    eyre::ensure!(source_sdk.is_none() || trust.is_none(),
+        "Pinned Vox producer 5628c00d cannot enforce the selected external Java trust policy: its strict jdeps stderr check rejects JAVA_TOOL_OPTIONS. A reviewed producer with explicit per-tool trust arguments is required; no Cargo producer child was launched");
+    if let Some(trust) = &trust {
+        trust.apply_nested(&mut command)?;
+        tracing::info!(trust_store_sha256 = %trust.identity(), "source-build-cargo selected explicit Java trust store");
+    }
+    let result = run_source_build_process(cancellation_token, &mut command, "source-build-cargo");
+    if let Some(trust) = &trust {
+        trust.recheck()?;
+    }
+    result
 }
 
 #[derive(Facet)]
@@ -2199,11 +2214,17 @@ fn materialize_gradle_wrapper_source_build(
     for (key, value) in &source_build.environment {
         command.env(key, value);
     }
-    run_source_build_process(
+    let trust = super::java_trust::JavaTrust::from_environment()?;
+    if let Some(trust) = &trust {
+        trust.apply_nested(&mut command)?;
+    }
+    let result = run_source_build_process(
         cancellation_token,
         &mut command,
         "source-build-gradle-wrapper",
-    )?;
+    );
+    super::java_trust::JavaTrust::recheck_optional(trust.as_ref())?;
+    result?;
     Ok(())
 }
 
@@ -2270,11 +2291,17 @@ fn run_verified_gradle_source_build(
             command.env(key, value);
         }
     }
-    run_source_build_process(
+    let trust = super::java_trust::JavaTrust::from_environment()?;
+    if let Some(trust) = &trust {
+        trust.apply_nested(&mut command)?;
+    }
+    let result = run_source_build_process(
         cancellation_token,
         &mut command,
         "source-build-verified-gradle",
-    )?;
+    );
+    super::java_trust::JavaTrust::recheck_optional(trust.as_ref())?;
+    result?;
     let output = source_build_output::resolve(staged.project_root(), &source_build.output_path)?;
     eyre::ensure!(
         output.is_file(),

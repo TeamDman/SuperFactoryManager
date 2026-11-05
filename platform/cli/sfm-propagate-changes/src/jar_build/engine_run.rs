@@ -1839,6 +1839,7 @@ fn execute_junit_tests_with_context(
         launch_inputs.recheck(&run_state_dir)?;
     }
     let mut command = Command::new(&plan.java.executable);
+    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, plan.java.major_version)?;
     command
         .arg(format!("@{}", argfile.display()))
         .current_dir(&plan.minecraft_dir);
@@ -1851,6 +1852,7 @@ fn execute_junit_tests_with_context(
                     plan.java.executable.display()
                 )
             })?;
+    super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
     let report = process_junit_event_output(
         plan,
         test_options,
@@ -1971,6 +1973,7 @@ fn compile_junit_event_runner(
         prepared.recheck(context.plan, &context.cancellation_token)?;
     }
     let mut command = Command::new(javac_executable(&context.plan.java));
+    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
     command.arg(format!("@{}", argfile.display()));
     let output = run_command_capture_output(
         &context.cancellation_token,
@@ -1978,6 +1981,7 @@ fn compile_junit_event_runner(
         "javac-junit-runner",
     )
     .wrap_err("Failed to run javac for SFM JUnit event runner")?;
+    super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
     trace_subprocess_bytes(
         context.plan,
         "java-tool",

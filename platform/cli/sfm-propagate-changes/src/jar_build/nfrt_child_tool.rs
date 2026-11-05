@@ -226,6 +226,10 @@ pub(crate) fn prepare_child_command(
         }
     }
     let mut command = Command::new(java);
+    prepared.recheck_java_trust()?;
+    if let Some(trust) = prepared.java_trust() {
+        trust.apply_java(&mut command)?;
+    }
     // Validate the original request above before applying our execution budget.
     // Pinned recipes with an explicit heap remain byte-for-byte unchanged.
     command.args(bounded_child_jvm_args(&request.jvm_args)?);

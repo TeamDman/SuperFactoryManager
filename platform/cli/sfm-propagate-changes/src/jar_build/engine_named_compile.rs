@@ -1741,6 +1741,7 @@ mod portable_pinned_sdk_identity_tests {
             pin_sha512: Some("a".repeat(128)),
             pin_spec_identity: Some(spec.to_owned()),
             execution_identity: None,
+            java_trust_sha256: None,
         })
     }
 
@@ -2474,6 +2475,7 @@ mod named_compile_wire_tests {
             pin_sha512: None,
             pin_spec_identity: None,
             execution_identity: None,
+            java_trust_sha256: None,
         };
         let identity = named_sdk_identity(&java)?;
         java.execution_identity = Some(identity.clone());

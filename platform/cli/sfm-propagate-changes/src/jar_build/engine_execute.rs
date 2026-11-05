@@ -450,6 +450,7 @@ impl<'a> ExecutionContext<'a> {
             log_path.display()
         );
         let mut command = Command::new(&self.plan.java.executable);
+        let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, self.plan.java.major_version)?;
         command.arg(java_tool_argfile_argument(launch_argfile.path())?);
         let source_check_started = Instant::now();
         self.plan.recheck_named_inputs()?;
@@ -466,6 +467,7 @@ impl<'a> ExecutionContext<'a> {
                     self.plan.java.executable.display()
                 )
             })?;
+        super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
         let child_execution_ms = child_started.elapsed().as_millis();
         trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stdout", &output.stdout);
         trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stderr", &output.stderr);
@@ -1738,6 +1740,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         };
         context.bail_if_cancelled()?;
         let mut command = Command::new(javac_executable(&context.plan.java));
+        let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
         command.arg(format!("@{}", argfile.display()));
         context.bail_if_cancelled()?;
         let output = {
@@ -1753,6 +1756,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             run_command_capture_output(&context.cancellation_token, &mut command, "javac-main")
                 .wrap_err("Failed to run javac")?
         };
+        super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
         {
             let _span = tracing::debug_span!("project_compile_trace_javac_main_output").entered();
             trace_subprocess_bytes(
@@ -2266,6 +2270,7 @@ fn compile_optional_java_source_set(
     };
     context.bail_if_cancelled()?;
     let mut command = Command::new(javac_executable(&context.plan.java));
+    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
     command.arg(format!("@{}", argfile.display()));
     let source = format!("javac-{source_set}");
     context.bail_if_cancelled()?;
@@ -2290,6 +2295,7 @@ fn compile_optional_java_source_set(
             launch()?
         }
     };
+    super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
     context.bail_if_cancelled()?;
     {
         let _span =

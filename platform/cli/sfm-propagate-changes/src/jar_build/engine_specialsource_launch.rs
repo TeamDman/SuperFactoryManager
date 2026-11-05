@@ -377,6 +377,8 @@ struct SpecialSourceLaunchReceipt {
     source_lock_sha256: String,
     cache_identity: String,
     sdk_identity: String,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    java_trust_sha256: Option<String>,
     java_executable: String,
     tool_coordinate: String,
     tool_content_hash: String,
@@ -607,6 +609,7 @@ impl ExecutionContext<'_> {
         let original_argfile = diagnostic_dir.join("tool-specialsource.java.args");
         fs::write(&original_argfile, &argfile_contents)?;
         let transport = java_tool_argfile_transport(argfile_contents.as_bytes())?;
+        let java_trust = super::java_trust::JavaTrust::from_environment_for_major(self.plan.java.major_version)?;
         let mut receipt = SpecialSourceLaunchReceipt {
             schema: "sfm:java_tool_launch_receipt@1".to_owned(),
             invocation_id: scratch
@@ -623,6 +626,7 @@ impl ExecutionContext<'_> {
             source_lock_sha256: prepared.receipt().source_lock_sha256.clone(),
             cache_identity: cache_identity.to_owned(),
             sdk_identity: self.plan.java.cache_identity(),
+            java_trust_sha256: java_trust.as_ref().map(super::java_trust::JavaTrust::identity),
             java_executable: require_specialsource_normal_absolute_path(
                 &self.plan.java.executable,
             )?
@@ -662,6 +666,7 @@ impl ExecutionContext<'_> {
             project.recheck(false)?;
             self.plan.recheck_named_sdk()?;
             refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
+            super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
             tool_file.recheck()?;
             input_file.recheck()?;
             mapping_file.recheck()?;
@@ -680,6 +685,9 @@ impl ExecutionContext<'_> {
         let started = Instant::now();
         let log_path = diagnostic_dir.join("console.log");
         let mut command = Command::new(&self.plan.java.executable);
+        if let Some(trust) = &java_trust {
+            trust.apply_java(&mut command)?;
+        }
         command
             .arg(java_tool_argfile_argument(transport.path())?)
             .current_dir(&scratch.path);
@@ -693,6 +701,7 @@ impl ExecutionContext<'_> {
                 observer_error = receipt.persist_secondary();
             },
         );
+        super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
         let output = match output {
             Ok(output) => output,
             Err(error) => {
@@ -1398,6 +1407,7 @@ mod reviewed_specialsource_launch_tests {
             source_lock_sha256: SPECIALSOURCE_RELEASE_1192_LOCK.to_owned(),
             cache_identity: "0".repeat(64),
             sdk_identity: "synthetic-no-sdk-executed".to_owned(),
+            java_trust_sha256: None,
             java_executable: directory
                 .join("java-not-executed")
                 .to_str()

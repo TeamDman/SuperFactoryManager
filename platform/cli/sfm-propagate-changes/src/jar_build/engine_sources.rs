@@ -426,6 +426,7 @@ fn run_antlr(
     reset_cache_directory(&context.plan.cache_dir, output_dir)?;
     context.bail_if_cancelled()?;
     let mut command = Command::new(&context.plan.java.executable);
+    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, context.plan.java.major_version)?;
     command
         .arg("-cp")
         .arg(join_classpath(classpath))
@@ -441,6 +442,7 @@ fn run_antlr(
     context.recheck_compiler_image()?;
     let output = run_command_capture_output(&context.cancellation_token, &mut command, "antlr")
         .wrap_err("Failed to run ANTLR")?;
+    super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
     context.bail_if_cancelled()?;
     trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stdout", &output.stdout);
     trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stderr", &output.stderr);

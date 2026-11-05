@@ -1182,6 +1182,7 @@ impl ExecutionContext<'_> {
         let console_log =
             NamedPackageDiagnosticFile::create(&project_root, diagnostic, "console_log")?;
         let transport = java_tool_argfile_transport(contents.as_bytes())?;
+        let java_trust = super::java_trust::JavaTrust::from_environment_for_major(self.plan.java.major_version)?;
         let mut receipt = NamedPackageLaunchReceipt::prepared(
             self,
             &files,
@@ -1193,6 +1194,7 @@ impl ExecutionContext<'_> {
             contents.as_bytes(),
             writer_output,
         )?;
+        receipt.java_trust_sha256 = java_trust.as_ref().map(super::java_trust::JavaTrust::identity);
         receipt.persist()?;
         let preflight = (|| {
             self.bail_if_cancelled()?;
@@ -1233,6 +1235,9 @@ impl ExecutionContext<'_> {
             return Err(error);
         }
         let mut command = Command::new(&self.plan.java.executable);
+        if let Some(trust) = &java_trust {
+            trust.apply_java(&mut command)?;
+        }
         command
             .arg(java_tool_argfile_argument(transport.path())?)
             .current_dir(&scratch.path);
@@ -1247,6 +1252,7 @@ impl ExecutionContext<'_> {
                 observer_error = receipt.persist_secondary();
             },
         );
+        super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
         let output = match output {
             Ok(output) => output,
             Err(error) => {
@@ -1337,6 +1343,8 @@ struct NamedPackageLaunchReceipt {
     recipe_id: String,
     source_lock_sha256: String,
     sdk_identity: String,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    java_trust_sha256: Option<String>,
     cache_identity: String,
     classpath_entries: usize,
     exact_jar_arguments: Vec<String>,
@@ -1402,6 +1410,7 @@ impl NamedPackageLaunchReceipt {
             recipe_id: project.receipt().released_inputs.recipe_id.clone(),
             source_lock_sha256: project.dependencies().receipt().source_lock_sha256.clone(),
             sdk_identity: context.plan.java.cache_identity(),
+            java_trust_sha256: None,
             cache_identity: context.plan.cache_dir.display().to_string(),
             classpath_entries: files
                 .iter()

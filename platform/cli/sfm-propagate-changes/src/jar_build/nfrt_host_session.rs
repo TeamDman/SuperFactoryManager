@@ -154,7 +154,10 @@ impl<'a> NfrtHostSession<'a> {
             tracing::info_span!("nfrt_host_tool", node = %NfrtPreparationPhase::safe_node(&node));
         let _node_span = node_span.enter();
         let command = self.prepare_tool(sdk.executable(), &node, &request.payload)?;
-        let reply = super::nfrt_child_process::execute_child(command, sdk, cancellation)?;
+        self.prepared.recheck_java_trust()?;
+        let reply = super::nfrt_child_process::execute_child(command, sdk, cancellation);
+        self.prepared.recheck_java_trust()?;
+        let reply = reply?;
         NfrtPreparationPhase::run("host_session.source_recheck.after_child", || {
             self.project.recheck_source()
         })?;

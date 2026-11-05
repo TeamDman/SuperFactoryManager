@@ -92,6 +92,7 @@ mod authenticated_library_batch_integration_tests {
                 pin_sha512: None,
                 pin_spec_identity: None,
                 execution_identity: None,
+                java_trust_sha256: None,
             };
             java.execution_identity = Some(named_sdk_identity(&java)?);
             let (inputs, payload) =

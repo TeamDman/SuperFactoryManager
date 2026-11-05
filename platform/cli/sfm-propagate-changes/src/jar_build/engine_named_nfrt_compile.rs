@@ -364,6 +364,7 @@ fn acquire_named_neoform_inputs(
 ) -> eyre::Result<super::nfrt_launch_contract::PreparedNfrtInvocationInput> {
     let project = source.owner();
     let catalog = source.catalog();
+    let trust = super::java_trust::JavaTrust::from_environment_for_major(context.plan.java.major_version)?.map(Arc::new);
     context.plan.recheck_named_inputs()?;
     context.plan.recheck_named_sdk()?;
     let java = &context.plan.java;
@@ -475,7 +476,7 @@ fn acquire_named_neoform_inputs(
         },
     )?;
     context.plan.recheck_named_sdk()?;
-    Ok(acquired)
+    acquired.with_java_trust(trust)
 }
 
 fn verify_named_supplement_bytes(

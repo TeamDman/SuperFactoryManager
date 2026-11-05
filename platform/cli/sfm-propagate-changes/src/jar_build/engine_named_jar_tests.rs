@@ -318,6 +318,7 @@ mod named_forge_jar_tests {
 
     fn unlaunched_receipt() -> NamedPackageLaunchReceipt {
         NamedPackageLaunchReceipt {
+            java_trust_sha256: None,
             schema: "sfm:named_jar_specialsource_launch@1".to_owned(),
             mode: "project_jar_two_mappings_live".to_owned(),
             phase: "prepared".to_owned(),

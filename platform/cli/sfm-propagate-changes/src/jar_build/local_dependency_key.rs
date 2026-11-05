@@ -206,7 +206,7 @@ pub(super) fn fixture_key() -> LocalDependencyKey {
 }
 
 #[cfg(test)]
-fn fixture_receipt() -> NamedNfrtInvocationInput {
+pub(super) fn fixture_receipt() -> NamedNfrtInvocationInput {
     use super::nfrt_launch_contract::NfrtInputSnapshotExport;
     use super::nfrt_launch_contract::NfrtToolSdkTransfer;
     NamedNfrtInvocationInput {
@@ -233,6 +233,7 @@ fn fixture_receipt() -> NamedNfrtInvocationInput {
             supplied_executable_sha256: sha256(b"java"),
             actual_sdk_rechecked: false,
         },
+        java_trust_sha256: None,
         functions: Vec::new(),
         joined_steps_json: vec!["{\"step\":\"dependency-transform\"}".to_owned()],
         ordered_dependency_rows: Vec::new(),
@@ -293,7 +294,7 @@ mod tests {
     #[test]
     fn actual_recipe_pin_order_and_compiler_changes_invalidate_dependency_key() {
         let original = key(fixture_receipt(), None);
-        for field in 0..8 {
+        for field in 0..9 {
             let mut changed = fixture_receipt();
             match field {
                 0 => changed.source_lock_sha256 = sha256(b"different lock"),
@@ -305,6 +306,7 @@ mod tests {
                 6 => changed
                     .required_clean_environment_names
                     .push("CLASSPATH".to_owned()),
+                7 => changed.java_trust_sha256 = Some(sha256(b"different trust store")),
                 _ => changed.target_id = "different reviewed target".to_owned(),
             }
             assert_ne!(key(changed, None), original);

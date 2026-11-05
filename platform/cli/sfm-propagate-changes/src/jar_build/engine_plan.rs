@@ -555,11 +555,14 @@ fn create_plan_for_project(
                 pin_sha512: jdk_resolution.pin_sha512,
                 pin_spec_identity: options.pinned_sdk.as_ref().map(|selected| selected.spec_identity()),
                 execution_identity: None,
+                java_trust_sha256: None,
             }
         };
         (java_release, java)
     };
     let mut java = java;
+    java.java_trust_sha256 = super::java_trust::JavaTrust::from_environment_for_major(java.major_version)?
+        .as_ref().map(super::java_trust::JavaTrust::identity);
     if let Some(project) = target.named_project() {
         target.recheck()?;
         let sdk_identity = named_sdk_identity(&java)?;

@@ -26,6 +26,7 @@ mod derived_toolchain_cache;
 mod diagnostic_launch_gate;
 pub(crate) mod hash;
 mod java_max_heap_mib;
+pub(crate) mod java_trust;
 mod json_branch_name;
 mod json_minecraft_version;
 pub(crate) mod json_path;

@@ -150,6 +150,10 @@ pub(crate) fn with_owned_compiler_inputs<T>(
     let mut javac = sdk.executable().to_owned();
     javac.set_file_name(if cfg!(windows) { "javac.exe" } else { "javac" });
     let mut command = Command::new(javac);
+    prepared.recheck_java_trust()?;
+    if let Some(trust) = prepared.java_trust() {
+        trust.apply_javac(&mut command)?;
+    }
     command
         .args(["-encoding", "UTF-8", "-proc:none", "-cp"])
         .arg(&runtime)
@@ -185,6 +189,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
         )
     })?;
     NfrtPreparationPhase::run("owned_host.sdk_recheck.after_javac", || sdk.recheck())?;
+    prepared.recheck_java_trust()?;
     NfrtPreparationPhase::run("owned_host.source_recheck.after_javac", || {
         project.recheck_source()
     })?;
@@ -198,6 +203,10 @@ pub(crate) fn with_owned_compiler_inputs<T>(
         verified_java_spelling(&runtime)?,
     ])?;
     let mut command = Command::new(sdk.executable());
+    prepared.recheck_java_trust()?;
+    if let Some(trust) = prepared.java_trust() {
+        trust.apply_java(&mut command)?;
+    }
     command
         .args(["-Xmx4g", "-cp"])
         .arg(classpath)
@@ -319,6 +328,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
     });
     host_lifetime.finish(result)?;
     NfrtPreparationPhase::run("owned_host.sdk_recheck.after_host", || sdk.recheck())?;
+    prepared.recheck_java_trust()?;
     cancellation.bail_if_cancelled()?;
     let export_key = if std::env::var_os("SFM_AGENT_DERIVED_EXPORT_ROOT").is_some() {
         NfrtPreparationPhase::run("owned_host.derived_export_key", || {

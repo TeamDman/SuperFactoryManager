@@ -163,6 +163,9 @@ pub struct NamedNfrtInvocationInput {
     pub compiler_release: u16,
     pub minimum_tool_jvm: u16,
     pub tool_sdk: NfrtToolSdkTransfer,
+    /// Identity of an explicitly selected external trust store, when present.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub java_trust_sha256: Option<String>,
     pub functions: Vec<NfrtFunctionExport>,
     pub joined_steps_json: Vec<String>,
     pub ordered_dependency_rows: Vec<ReleasedPreparedDependency>,
@@ -198,9 +201,45 @@ pub struct PreparedNfrtInvocationInput {
     snapshots: Vec<Arc<[u8]>>,
     serialized: String,
     source_pin_origin: &'static str,
+    java_trust: Option<Arc<super::java_trust::JavaTrust>>,
 }
 
 impl PreparedNfrtInvocationInput {
+    pub(crate) fn with_java_trust(
+        mut self,
+        trust: Option<Arc<super::java_trust::JavaTrust>>,
+    ) -> Result<Self> {
+        super::java_trust::JavaTrust::recheck_optional(trust.as_deref())?;
+        self.receipt.java_trust_sha256 =
+            trust.as_deref().map(super::java_trust::JavaTrust::identity);
+        self.serialized = facet_json::to_string(&self.receipt)?;
+        ensure!(
+            self.serialized.len() <= MAX_CONTRACT_BYTES,
+            "NFRT serialized input contract exceeds bounded bytes"
+        );
+        self.java_trust = trust;
+        Ok(self)
+    }
+
+    pub(crate) fn java_trust(&self) -> Option<&super::java_trust::JavaTrust> {
+        self.java_trust.as_deref()
+    }
+
+    pub(crate) fn recheck_java_trust(&self) -> Result<()> {
+        if let Some(trust) = self.java_trust() {
+            ensure!(
+                self.receipt.java_trust_sha256.as_deref() == Some(trust.identity().as_str()),
+                "NFRT trust store differs from the prepared contract"
+            );
+            trust.recheck()?;
+        } else {
+            ensure!(
+                self.receipt.java_trust_sha256.is_none(),
+                "NFRT trust store authority is missing"
+            );
+        }
+        Ok(())
+    }
     /// Derived from the retained request catalog, never from a portable DTO.
     pub(crate) fn source_pin_origin(&self) -> &'static str {
         self.source_pin_origin
@@ -238,6 +277,44 @@ impl PreparedNfrtInvocationInput {
             self.receipt.unresolved_execution_gates.join(", ")
         )
     }
+}
+
+#[cfg(test)]
+#[test]
+fn external_java_trust_is_bound_to_contract_and_rechecked() -> Result<()> {
+    let root = tempfile::tempdir()?;
+    let path = root.path().join("trust");
+    std::fs::write(&path, b"approved store")?;
+    let trust = Arc::new(super::java_trust::JavaTrust::capture(
+        &path,
+        &sha256(b"approved store"),
+    )?);
+    let receipt = super::local_dependency_key::fixture_receipt();
+    let serialized = facet_json::to_string(&receipt)?;
+    let original = sha256(serialized.as_bytes());
+    let prepared = PreparedNfrtInvocationInput {
+        receipt,
+        snapshots: Vec::new(),
+        serialized,
+        source_pin_origin: "synthetic-no-inputs",
+        java_trust: None,
+    };
+    let prepared = prepared.with_java_trust(Some(trust))?;
+    ensure!(
+        prepared.contract_identity() != original,
+        "trust selection did not change contract identity"
+    );
+    ensure!(
+        prepared.receipt().java_trust_sha256.as_deref() == Some(sha256(b"approved store").as_str()),
+        "trust digest missing"
+    );
+    prepared.recheck_java_trust()?;
+    std::fs::write(&path, b"changed store")?;
+    ensure!(
+        prepared.recheck_java_trust().is_err(),
+        "mutated trust store accepted"
+    );
+    Ok(())
 }
 
 impl NfrtExportPlan {
@@ -380,6 +457,7 @@ impl NfrtExportPlan {
             compiler_release: child.compiler_release,
             minimum_tool_jvm: child.minimum_tool_jvm,
             tool_sdk,
+            java_trust_sha256: None,
             functions,
             joined_steps_json: target
                 .joined_steps_in_original_order
@@ -551,6 +629,7 @@ impl NfrtExportPlan {
             compiler_release: child.compiler_release,
             minimum_tool_jvm: child.minimum_tool_jvm,
             tool_sdk,
+            java_trust_sha256: None,
             functions,
             joined_steps_json,
             ordered_dependency_rows: original.dependencies().to_vec(),
@@ -951,6 +1030,7 @@ impl NfrtExportPlan {
             snapshots,
             serialized,
             source_pin_origin: self.original.source_pin_origin(),
+            java_trust: None,
         })
     }
 }
