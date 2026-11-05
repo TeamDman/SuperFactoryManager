@@ -8,6 +8,7 @@ import fnmatch
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
@@ -81,6 +82,30 @@ def draft(repo, cli, patterns, layout, build_receipt):
             'excluded_targets': sorted(set(catalog) - set(keys)), 'not_attested': list(UNTESTED)}
 
 
+def require_no_ipv6_default(lines):
+    """Only the kernel's exact, non-forwarding fib6_null_entry is exempt.
+
+    Linux v6.18 net/ipv6/route.c defines it as RTN_UNREACHABLE, maximum
+    metric, RTF_REJECT | RTF_NONEXTHOP, and an ENETUNREACH discard path.
+    ip6_fib.c exports ten fields and repeats the sentinel for each table.
+    """
+    widths = (32, 2, 32, 2, 32, 8, 8, 8, 8)
+    for line in lines:
+        fields = line.split()
+        if not fields:
+            continue
+        checks.require(len(fields) == 10 and all(re.fullmatch(r'[0-9a-fA-F]{' + str(width) + '}', field)
+                       for field, width in zip(fields, widths)), 'malformed IPv6 route evidence')
+        destination, prefix, source, source_prefix, gateway, metric, _, _, flags = (
+            int(field, 16) for field in fields[:9])
+        checks.require(prefix <= 128 and source_prefix <= 128, 'invalid IPv6 route prefix')
+        if prefix == 0:
+            null_entry = (destination == source == gateway == 0 and source_prefix == 0
+                          and metric == 0xffffffff and flags == (0x00000200 | 0x00200000)
+                          and fields[9] == 'lo')
+            checks.require(null_entry, 'IPv6 default route is present')
+
+
 def require_network_none():
     checks.require(sys.platform == 'linux', 'publication gate requires isolated Linux networking')
     interfaces = {name for _, name in socket.if_nameindex()}
@@ -90,9 +115,7 @@ def require_network_none():
         checks.require(path.exists(), f'cannot verify network isolation: {name} absent')
         lines = path.read_text(encoding='ascii').splitlines()
         if name.endswith('ipv6_route'):
-            # Retain the strict existing default-route refusal, including kernel sentinels.
-            checks.require(not any(line.split() and line.split()[0] == '0' * 32
-                                   and line.split()[1] == '00' for line in lines), 'IPv6 default route is present')
+            require_no_ipv6_default(lines)
         else:
             checks.require(not any(line.split()[1:2] == ['00000000'] for line in lines[1:]),
                            'IPv4 default route is present')

@@ -333,5 +333,71 @@ class SdkAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'escapes'):C.snapshot_root(self.home, [self.home])
 
 
+class NetworkIsolationTests(unittest.TestCase):
+    # Linux /proc/net/ipv6_route records, including its null-entry sentinel.
+    NULL = ('00000000000000000000000000000000 00 '
+            '00000000000000000000000000000000 00 '
+            '00000000000000000000000000000000 '
+            'ffffffff 00000001 00000000 00200200       lo')
+    LOCAL = ('00000000000000000000000000000001 80 '
+             '00000000000000000000000000000000 00 '
+             '00000000000000000000000000000000 '
+             '00000000 00000002 00000000 80200001       lo')
+
+    def check(self, ipv6, ipv4='Iface Destination\n', interfaces=((1, 'lo'),)):
+        with patch.object(GATE.socket, 'if_nameindex', return_value=interfaces), \
+             patch.object(GATE.Path, 'exists', return_value=True), \
+             patch.object(GATE.Path, 'read_text', side_effect=[ipv4, ipv6]):
+            GATE.require_network_none()
+
+    def test_two_kernel_null_sentinels_and_local_loopback_route_are_not_egress(self):
+        self.check('\n'.join((self.NULL, self.LOCAL, self.NULL)) + '\n')
+
+    def test_null_entry_counters_are_not_route_capability(self):
+        self.check(self.NULL.replace('00000001 00000000 00200200',
+                                     '00000007 00000009 00200200'))
+
+    def test_forwarding_defaults_are_rejected_even_with_loopback_only_interface_report(self):
+        for gateway, flags, device in (
+                ('fe800000000000000000000000000001', '00000003', 'eth0'),
+                ('0' * 32, '00000001', 'eth0'),
+                ('0' * 32, '00000001', 'lo'),
+                ('0' * 32, '00200201', 'lo')):
+            fields = self.NULL.split()
+            fields[4], fields[8], fields[9] = gateway, flags, device
+            with self.subTest(gateway=gateway, flags=flags, device=device):
+                with self.assertRaisesRegex(ValueError, 'IPv6'):
+                    self.check(self.NULL + '\n' + ' '.join(fields))
+
+    def test_near_sentinels_never_gain_an_exception(self):
+        for index, value in ((0, '0' * 31 + '1'), (2, '0' * 31 + '1'), (3, '40'),
+                             (4, '0' * 31 + '1'), (5, '00000000'),
+                             (8, '00000200'), (8, '00200000'), (8, '00200202'),
+                             (8, '00200200f'), (9, 'eth0')):
+            fields = self.NULL.split(); fields[index] = value
+            with self.subTest(field=index, value=value):
+                with self.assertRaisesRegex(ValueError, 'IPv6'):
+                    self.check(' '.join(fields))
+
+    def test_malformed_ipv6_route_evidence_fails_closed(self):
+        for row in ('garbage', '0' * 32 + ' 00', self.NULL + ' extra',
+                    self.NULL.replace('00200200', 'not-hex!'),
+                    self.LOCAL.replace(' 80 ', ' ff '), self.NULL.rsplit(' ', 1)[0]):
+            with self.subTest(row=row):
+                with self.assertRaisesRegex(ValueError, 'IPv6'):
+                    self.check(row)
+
+    def test_sentinel_does_not_exempt_other_network_guards(self):
+        with patch.object(GATE.sys, 'platform', 'darwin'):
+            with self.assertRaisesRegex(ValueError, 'Linux'):self.check(self.NULL)
+        with self.assertRaisesRegex(ValueError, 'only loopback'):
+            self.check(self.NULL, interfaces=((1, 'lo'), (2, 'eth0')))
+        with self.assertRaisesRegex(ValueError, 'IPv4'):
+            self.check(self.NULL, ipv4='Iface Destination\nlo 00000000\n')
+        with patch.object(GATE.socket, 'if_nameindex', return_value=[(1, 'lo')]), \
+             patch.object(GATE.Path, 'exists', return_value=False):
+            with self.assertRaisesRegex(ValueError, 'absent'):GATE.require_network_none()
+
+
 if __name__ == '__main__':
     unittest.main()

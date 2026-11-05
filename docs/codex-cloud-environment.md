@@ -213,15 +213,26 @@ Native Java and javac launches verify the selected file identity and digest and 
 
 ## Mandatory offline publication gate
 
-Use a disposable candidate layer with enforced loopback-only networking and no
-IPv4/IPv6 default route, **no host cache/archive mounts**, and only declared image
-contents. Docker `--network none` is supported when its managed local daemon is
+Use a disposable candidate layer with enforced loopback-only networking, no
+IPv4 default route and no IPv6 default beyond the kernel fallback described below,
+**no host cache/archive mounts**, and only declared image contents. Docker
+`--network none` is supported when its managed local daemon is
 available; an actual Codex environment with a supported equivalent isolation
 mechanism still needs the same checks. Do not create another development
 checkout/workspace, substitute restricted Internet for isolation, change
-security settings, or suppress a failed namespace/route predicate. The strict
-IPv6 predicate also rejects a kernel default-route sentinel; if the isolation
-runtime exposes one, report it for reviewed coordination rather than edit routes.
+security settings, or suppress a failed namespace/route predicate. The IPv6
+check parses complete `/proc/net/ipv6_route` records and permits only the exact
+kernel unreachable fallback: destination/source/gateway zero, both prefix lengths
+zero, metric `ffffffff`, flags `00200200` (`RTF_REJECT | RTF_NONEXTHOP`), and device
+`lo`. Its reference/use counters can vary, and main/local tables can emit it more
+than once. Linux defines this fallback as `RTN_UNREACHABLE` with an
+`ENETUNREACH` discard path, not a forwarding default; see the
+[kernel null-entry definitions](https://github.com/torvalds/linux/blob/v6.18/net/ipv6/route.c#L266-L284),
+[table initialization](https://github.com/torvalds/linux/blob/v6.18/net/ipv6/ip6_fib.c#L2342-L2358)
+and [route formatter](https://github.com/torvalds/linux/blob/v6.18/net/ipv6/ip6_fib.c#L2440-L2466).
+Every other IPv6 default, malformed record, absent route table or non-loopback
+interface still fails. Do not edit routes to satisfy the gate; a changed kernel
+format or fallback must be investigated separately.
 
 Prepare the candidate without old matrix pass receipts or prior projection
 `build/libs` directories. **Exclude these when constructing a new candidate;
