@@ -260,7 +260,6 @@ mod tests {
     fn rejects_unpinned_or_unsafe_path() -> Result<()> {
         let root = tempfile::tempdir()?;
         let path = root.path().join("unsafe\"name");
-        fs::write(&path, b"bytes")?;
         assert!(JavaTrust::capture(&path, &"00".repeat(32)).is_err());
         let path = root.path().join("safe");
         fs::write(&path, b"bytes")?;

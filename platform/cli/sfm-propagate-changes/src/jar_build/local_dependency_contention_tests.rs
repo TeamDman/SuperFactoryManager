@@ -57,6 +57,7 @@ fn prepared(owner: &str) -> Result<PreparedNfrtInvocationInput> {
         receipt,
         snapshots: vec![Arc::from(b"version".as_slice())],
         source_pin_origin: "synthetic-store-protocol-fixture",
+        java_trust: None,
     })
 }
 
