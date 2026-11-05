@@ -1,4 +1,4 @@
-//! Checksum-verified, local ZIP cache for exact JBRSDK pins.
+//! Checksum-verified local archive cache for exact JBRSDK pins.
 //! Runtime selection and activation are deliberately separate from acquisition.
 
 use crate::artifact_lock::ArtifactLock;
@@ -197,7 +197,10 @@ impl VerifiedPinnedJbrsdk {
             require_existing_safe_cache_dir(directory)?;
         }
         let sha = self.artifact.sha512.to_ascii_lowercase();
-        let archive_path = self.cache_root.join("archives").join(format!("{sha}.zip"));
+        let archive_path = self
+            .cache_root
+            .join("archives")
+            .join(archive_name(&sha, artifact));
         eyre::ensure!(
             is_real_file(&archive_path)
                 && crate::file_identity::file_identity(&File::open(&archive_path)?)?
@@ -229,9 +232,14 @@ impl VerifiedPinnedJbrsdk {
         }
         #[cfg(not(windows))]
         {
-            let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
             let install_started = std::time::Instant::now();
-            verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
+            if is_linux_tar(artifact) {
+                check_installed_receipt(&self.home, artifact, &receipt(pin, artifact))?;
+                run_tar_helper(&mut self.archive, "verify", &self.home, &sha)?;
+            } else {
+                let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
+                verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
+            }
             tracing::info!(phase = "warm_sdk_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
         }
         Ok(&self.home)
@@ -296,7 +304,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
     offline: bool,
     fetch: impl FnOnce(&str, &mut File) -> eyre::Result<()>,
 ) -> eyre::Result<VerifiedPinnedJbrsdk> {
-    verify_zip_identity(pin, artifact)?;
+    verify_archive_identity(pin, artifact)?;
     eyre::ensure!(
         pin.artifacts.contains(artifact),
         "Verified JBRSDK artifact is not present in its selected lock pin"
@@ -314,7 +322,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         format!("JBRSDK {} {}", pin.version, artifact.platform),
     )?;
 
-    let archive = archive_dir.join(format!("{sha}.zip"));
+    let archive = archive_dir.join(archive_name(&sha, artifact));
     match fs::symlink_metadata(&archive) {
         Ok(metadata) if metadata.file_type().is_file() && !is_reparse_point(&metadata) => (),
         Ok(_) => eyre::bail!(
@@ -324,7 +332,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             if offline {
                 eyre::bail!(
-                    "JBRSDK ZIP {} is not cached and offline mode forbids downloading it",
+                    "JBRSDK archive {} is not cached and offline mode forbids downloading it",
                     artifact.url
                 );
             }
@@ -339,10 +347,10 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
             match temporary.persist_noclobber(&publish_destination(&archive)?) {
                 Ok(_) => (),
                 Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => (),
-                Err(error) => return Err(error.error).wrap_err("Failed to publish JBRSDK ZIP"),
+                Err(error) => return Err(error.error).wrap_err("Failed to publish JBRSDK archive"),
             }
         }
-        Err(error) => return Err(error).wrap_err("Failed to inspect JBRSDK ZIP cache"),
+        Err(error) => return Err(error).wrap_err("Failed to inspect JBRSDK archive cache"),
     }
     // The same file handle is hashed, parsed, and extracted. Reopening after
     // verification would allow replacement of the path between those steps.
@@ -350,6 +358,19 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
     let expected_receipt = receipt(pin, artifact);
     let seal = seal_path(&install_dir, &sha);
     let expected_seal = format!("{SEALED_RECEIPT_SCHEMA}{expected_receipt}");
+    if is_linux_tar(artifact) {
+        return acquire_tar_install(
+            pin,
+            artifact,
+            cache_root,
+            &archive,
+            &installed,
+            &sha,
+            &expected_receipt,
+            &seal,
+            &expected_seal,
+        );
+    }
     if read_seal(&seal, &expected_seal)? {
         // Our only writer publishes a complete, checked install before this
         // seal. A hit trusts that the user has not edited the managed cache.
@@ -416,6 +437,117 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
         #[cfg(windows)]
         held_install,
     })
+}
+
+fn is_linux_tar(artifact: &JdkArtifactV4) -> bool {
+    artifact.platform.starts_with("linux-") && artifact.url.ends_with(".tar.gz")
+}
+
+fn archive_name(sha: &str, artifact: &JdkArtifactV4) -> String {
+    let extension = if is_linux_tar(artifact) {
+        "tar.gz"
+    } else {
+        "zip"
+    };
+    format!("{sha}.{extension}")
+}
+
+fn verify_archive_identity(pin: &JdkPinV4, artifact: &JdkArtifactV4) -> eyre::Result<()> {
+    if is_linux_tar(artifact) {
+        eyre::ensure!(
+            cfg!(target_os = "linux"),
+            "Linux JBRSDK tarballs require a Linux host"
+        );
+        let mut zip_identity = artifact.clone();
+        zip_identity.url = artifact
+            .url
+            .strip_suffix(".tar.gz")
+            .expect("checked suffix")
+            .to_owned()
+            + ".zip";
+        return verify_zip_identity(pin, &zip_identity);
+    }
+    verify_zip_identity(pin, artifact)
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "uses the already-locked cache paths and exact receipt"
+)]
+fn acquire_tar_install(
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+    cache_root: &Path,
+    archive_path: &Path,
+    installed: &Path,
+    sha: &str,
+    expected_receipt: &str,
+    seal: &Path,
+    expected_seal: &str,
+) -> eyre::Result<VerifiedPinnedJbrsdk> {
+    let mut archive = open_held_archive(archive_path)?;
+    verify_archive_sha512(&mut archive, sha)?;
+    let sealed = read_seal(seal, expected_seal)?;
+    match fs::symlink_metadata(installed) {
+        Ok(_) => {
+            check_installed_receipt(installed, artifact, expected_receipt)?;
+            run_tar_helper(&mut archive, "verify", installed, sha)?;
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound && !sealed => {
+            let stage = tempfile::Builder::new()
+                .prefix(".sfm-jbrsdk-install.")
+                .tempdir_in(installed.parent().expect("install directory"))?;
+            let payload = stage.path().join("payload");
+            fs::create_dir(&payload)?;
+            run_tar_helper(&mut archive, "extract", &payload, sha)?;
+            write_receipt(&payload, expected_receipt)?;
+            check_installed_receipt(&payload, artifact, expected_receipt)?;
+            run_tar_helper(&mut archive, "verify", &payload, sha)?;
+            fs::rename(&payload, publish_destination(installed)?)?;
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            eyre::bail!("JBRSDK completion seal exists without its installation");
+        }
+        Err(error) => return Err(error).wrap_err("Failed to inspect cached JBRSDK installation"),
+    }
+    if !sealed {
+        write_seal(seal, expected_seal)?;
+    }
+    let archive_len = archive.metadata()?.len();
+    Ok(VerifiedPinnedJbrsdk {
+        home: installed.to_path_buf(),
+        cache_root: cache_root.to_path_buf(),
+        pin: pin.clone(),
+        artifact: artifact.clone(),
+        archive,
+        archive_len,
+        #[cfg(windows)]
+        held_install: HeldInstalledTree::capture(installed)?,
+    })
+}
+
+fn run_tar_helper(archive: &mut File, operation: &str, home: &Path, sha: &str) -> eyre::Result<()> {
+    eyre::ensure!(
+        cfg!(target_os = "linux"),
+        "Linux JBRSDK tarballs require a Linux host"
+    );
+    archive.rewind()?;
+    let result = std::process::Command::new("python3")
+        .args(["-I", "-S", "-c", include_str!("jdk_tar.py"), operation])
+        .arg(home)
+        .arg(sha)
+        .stdin(std::process::Stdio::from(archive.try_clone()?))
+        .output()
+        .wrap_err("Linux JBRSDK tar handling requires Python 3")?;
+    // Unix permits concurrent modification of held files. Recheck the same
+    // handle after the helper reads it, before accepting its output.
+    verify_archive_sha512(archive, sha)?;
+    eyre::ensure!(
+        result.status.success(),
+        "JBRSDK tar validation failed: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    Ok(())
 }
 
 fn verify_zip_identity(pin: &JdkPinV4, artifact: &JdkArtifactV4) -> eyre::Result<()> {
@@ -528,9 +660,9 @@ fn fetch_zip_url(url: &str, destination: &mut File) -> eyre::Result<()> {
         }
         size = size
             .checked_add(read as u64)
-            .ok_or_else(|| eyre::eyre!("JBRSDK ZIP is too large"))?;
+            .ok_or_else(|| eyre::eyre!("JBRSDK archive is too large"))?;
         if size > MAX_ARCHIVE_BYTES {
-            eyre::bail!("JBRSDK ZIP exceeds the 2 GiB download limit");
+            eyre::bail!("JBRSDK archive exceeds the 2 GiB download limit");
         }
         destination.write_all(&buffer[..read])?;
     }
@@ -540,7 +672,7 @@ fn open_held_archive(path: &Path) -> eyre::Result<File> {
     let metadata = fs::symlink_metadata(path)?;
     if !metadata.file_type().is_file() || is_reparse_point(&metadata)
         || metadata.len() > MAX_ARCHIVE_BYTES {
-        eyre::bail!("JBRSDK ZIP is not a regular bounded file: {}", path.display());
+        eyre::bail!("JBRSDK archive is not a regular bounded file: {}", path.display());
     }
     let mut options = OpenOptions::new();
     options.read(true);
@@ -550,7 +682,7 @@ fn open_held_archive(path: &Path) -> eyre::Result<File> {
         options.share_mode(0x1) // FILE_SHARE_READ
     };
     let file = options.open(path)?;
-    eyre::ensure!(file.metadata()?.len() == metadata.len(), "JBRSDK ZIP changed while opening");
+    eyre::ensure!(file.metadata()?.len() == metadata.len(), "JBRSDK archive changed while opening");
     Ok(file)
 }
 
@@ -565,7 +697,7 @@ fn open_verified_archive(path: &Path, expected: &str) -> eyre::Result<ZipArchive
 fn verify_archive_sha512(file: &mut File, expected: &str) -> eyre::Result<()> {
     let metadata = file.metadata()?;
     if !metadata.file_type().is_file() || metadata.len() > MAX_ARCHIVE_BYTES {
-        eyre::bail!("JBRSDK ZIP is not a regular file within the download limit");
+        eyre::bail!("JBRSDK archive is not a regular file within the download limit");
     }
     file.rewind()?;
     let mut digest = Sha512::new();
@@ -578,7 +710,7 @@ fn verify_archive_sha512(file: &mut File, expected: &str) -> eyre::Result<()> {
         digest.update(&buffer[..read]);
     }
     if format!("{:x}", digest.finalize()) != expected {
-        eyre::bail!("JBRSDK ZIP SHA-512 mismatch");
+        eyre::bail!("JBRSDK archive SHA-512 mismatch");
     }
     Ok(())
 }
@@ -792,16 +924,33 @@ fn check_installed_receipt(home: &Path, artifact: &JdkArtifactV4, expected: &str
 pub(crate) fn audit_pinned_jbrsdk_zip(
     pin: &JdkPinV4, artifact: &JdkArtifactV4, cache_root: &Path,
 ) -> eyre::Result<()> {
-    verify_zip_identity(pin, artifact)?;
+    verify_archive_identity(pin, artifact)?;
     eyre::ensure!(pin.artifacts.contains(artifact), "JBRSDK audit pin mismatch");
     let sha = artifact.sha512.to_ascii_lowercase();
+    for directory in [
+        cache_root.to_path_buf(),
+        cache_root.join("archives"),
+        cache_root.join("installs"),
+        cache_root.join("locks"),
+    ] {
+        require_existing_safe_cache_dir(&directory)?;
+    }
     let _lock = ArtifactLock::acquire(
         cache_root.join("locks").join(format!("{sha}.lock")),
         format!("JBRSDK audit {} {}", pin.version, artifact.platform),
     )?;
-    let archive = cache_root.join("archives").join(format!("{sha}.zip"));
+    let archive = cache_root.join("archives").join(archive_name(&sha, artifact));
+    if is_linux_tar(artifact) {
+        let mut archive = open_held_archive(&archive)?;
+        verify_archive_sha512(&mut archive, &sha)?;
+        let home = cache_root.join("installs").join(install_key(&sha));
+        require_existing_safe_cache_dir(&home)?;
+        check_installed_receipt(&home, artifact, &receipt(pin, artifact))?;
+        return run_tar_helper(&mut archive, "verify", &home, &sha);
+    }
     let mut zip = open_verified_archive(&archive, &sha)?;
     let home = cache_root.join("installs").join(install_key(&sha));
+    require_existing_safe_cache_dir(&home)?;
     verify_installed_home(&home, artifact, &receipt(pin, artifact), &mut zip)
 }
 
@@ -1048,6 +1197,142 @@ mod tests {
                 sha512: format!("{:x}", Sha512::digest(bytes)),
             }],
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn sdk_tar() -> Vec<u8> {
+        let script = r#"import io,sys,tarfile
+b=io.BytesIO()
+with tarfile.open(fileobj=b, mode='w:gz') as t:
+ for name,data,mode in [('sdk/bin/java',b'java',0o755),('sdk/bin/javac',b'javac',0o755),('sdk/lib/modules',b'modules',0o644),('sdk/lib/LICENSE',b'license',0o644)]:
+  i=tarfile.TarInfo(name);i.size=len(data);i.mode=mode;t.addfile(i,io.BytesIO(data))
+ i=tarfile.TarInfo('sdk/legal/LICENSE');i.type=tarfile.SYMTYPE;i.linkname='../lib/LICENSE';t.addfile(i)
+sys.stdout.buffer.write(b.getvalue())"#;
+        let result = std::process::Command::new("python3")
+            .args(["-I", "-S", "-c", script])
+            .output()
+            .expect("Python 3 is required for Linux JBRSDK tar tests");
+        assert!(result.status.success());
+        result.stdout
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_tar_is_verified_installed_rechecked_and_audited() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let bytes = sdk_tar();
+        let mut pin = pin_for(&bytes);
+        pin.artifacts[0].platform = "linux-x64".to_owned();
+        pin.artifacts[0].url = pin.artifacts[0]
+            .url
+            .replace("windows-x64", "linux-x64")
+            .replace(".zip", ".tar.gz");
+        let root = tempfile::tempdir().unwrap();
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        let home = image.home().to_path_buf();
+        assert_eq!(
+            fs::metadata(home.join("bin/java"))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o755
+        );
+        assert_eq!(
+            fs::read_link(home.join("legal/LICENSE")).unwrap(),
+            PathBuf::from("../lib/LICENSE")
+        );
+        image
+            .recheck_for(root.path(), &pin, &pin.artifacts[0])
+            .unwrap();
+        audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).unwrap();
+        let alias_parent = tempfile::tempdir().unwrap();
+        let alias = alias_parent.path().join("linked-cache");
+        std::os::unix::fs::symlink(root.path(), &alias).unwrap();
+        assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], &alias).is_err());
+        drop(image);
+        let mut image = acquire_verified_pinned_jbrsdk_zip_with(
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            true,
+            |_, _| panic!("offline tar reuse must not fetch"),
+        )
+        .unwrap();
+        assert_eq!(image.home(), home);
+        fs::write(home.join("bin/java"), b"tampered").unwrap();
+        assert!(
+            image
+                .recheck_for(root.path(), &pin, &pin.artifacts[0])
+                .is_err()
+        );
+        assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_tar_wrong_download_hash_cannot_publish_an_install() {
+        let bytes = sdk_tar();
+        let mut pin = pin_for(&bytes);
+        pin.artifacts[0].platform = "linux-x64".to_owned();
+        pin.artifacts[0].url = pin.artifacts[0]
+            .url
+            .replace("windows-x64", "linux-x64")
+            .replace(".zip", ".tar.gz");
+        let root = tempfile::tempdir().unwrap();
+        assert!(
+            acquire_pinned_jbrsdk_zip_with(
+                &pin,
+                &pin.artifacts[0],
+                root.path(),
+                false,
+                |_, file| {
+                    file.write_all(b"wrong")?;
+                    Ok(())
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            !root
+                .path()
+                .join("installs")
+                .join(install_key(&pin.artifacts[0].sha512))
+                .exists()
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn malformed_but_hash_matching_tar_cannot_publish_or_seal() {
+        let bytes = b"not a valid gzip archive";
+        let mut pin = pin_for(bytes);
+        pin.artifacts[0].platform = "linux-x64".to_owned();
+        pin.artifacts[0].url = pin.artifacts[0]
+            .url
+            .replace("windows-x64", "linux-x64")
+            .replace(".zip", ".tar.gz");
+        let root = tempfile::tempdir().unwrap();
+        assert!(
+            acquire_pinned_jbrsdk_zip_with(&pin, &pin.artifacts[0], root.path(), false, |_, file| {
+                file.write_all(bytes)?;
+                Ok(())
+            })
+            .is_err()
+        );
+        let installs = root.path().join("installs");
+        assert!(!installs.join(install_key(&pin.artifacts[0].sha512)).exists());
+        assert!(!seal_path(&installs, &pin.artifacts[0].sha512).exists());
     }
 
     #[test]

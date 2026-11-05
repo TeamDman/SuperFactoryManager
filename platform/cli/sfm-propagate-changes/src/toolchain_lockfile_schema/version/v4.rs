@@ -561,10 +561,13 @@ fn validate_jdk_artifact_url(pin: &JdkPinV4, artifact: &JdkArtifactV4) -> eyre::
     let root = "https://cache-redirector.jetbrains.com/intellij-jbr/";
     let name = format!("jbrsdk-{}-{}-{}", pin.version, artifact.platform, pin.build);
     let tar_url = format!("{root}{name}.tar.gz");
-    eyre::ensure!(
-        artifact.url != tar_url,
-        "only ZIP artifacts are supported for JDK pins"
-    );
+    if artifact.url == tar_url {
+        eyre::ensure!(
+            artifact.platform.starts_with("linux-"),
+            "tar.gz JDK pins are supported only for Linux platforms"
+        );
+        return Ok(());
+    }
     if artifact.url != format!("{root}{name}.zip") {
         eyre::bail!(
             "JDK pin for Java {} platform `{}` has a URL that does not match its exact SDK identity",
@@ -800,8 +803,17 @@ mod tests {
                 .validate()
                 .unwrap_err()
                 .to_string()
-                .contains("only ZIP artifacts are supported")
+                .contains("tar.gz JDK pins are supported only for Linux platforms")
         );
+
+        let mut linux = pin.clone();
+        linux.artifacts[0].platform = "linux-x64".to_owned();
+        linux.artifacts[0].url = linux.artifacts[0]
+            .url
+            .replace("windows-x64", "linux-x64")
+            .replace(".zip", ".tar.gz");
+        lockfile.jdk_pins = Some(vec![linux]);
+        assert!(lockfile.validate().is_ok());
 
         let mut invalid = pin.clone();
         invalid.artifacts[0].url = invalid.artifacts[0].url.replace("jbrsdk-", "jbr-");

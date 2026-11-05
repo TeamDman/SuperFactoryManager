@@ -11,6 +11,7 @@ The image publisher must select its supported projections explicitly. A successf
 ## Tools and cache preparation
 
 1. Start from a clean, exact SFM Git commit. Keep the Rust CLI `Cargo.lock`, generated projection locks and [source projection contributor guide](source-projection-contributor-guide.md) together at that commit. Install the Rust toolchain, Python 3, Git, a Linux container runtime and the JDKs required by the selected locks in the image preparation phase. Use the CLI's pinned JDK resolution; do not put a local `JAVA_HOME` path in tracked locks. Build `platform/cli/sfm-propagate-changes` with `cargo build --locked --release`. Network access during preparation is limited to the established sources declared by the locks and toolchain catalogs.
+   Linux JBRSDK acquisition supports the exact pinned `.tar.gz` artifact and requires `python3` for bounded extraction and installed-tree verification. The lock must still contain the Linux artifact's independently verified SHA-512; adding tar support does not supply or infer that pin.
 2. Choose every projection the image promises to support. From the checkout root, create a scope draft with the built CLI:
 
    ```sh
