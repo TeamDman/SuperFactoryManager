@@ -65,6 +65,11 @@
           "platform": "windows-x64",
           "url": "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-windows-x64-b1367.22.zip",
           "sha512": "3b5101101a46778c5b1cc572adef03bffceb338284d4e03d2fe70a72fb52fb2e1ee1d2e1c0b548c86e9092f776d3ca910669326531d1a5f8ab4521ad1b6d868c"
+        },
+        {
+          "platform": "linux-x64",
+          "url": "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-linux-x64-b1367.22.tar.gz",
+          "sha512": "cb2de787894fbc42b59ed6c867f933083ce8c80d11fbd944f02d6144f6607671303a278c684777829b53d977e93b36a95122830b22ad602d0662d0433f8e7cf5"
         }
       ]
     }
