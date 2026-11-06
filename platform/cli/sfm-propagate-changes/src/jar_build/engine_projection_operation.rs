@@ -343,6 +343,10 @@ fn execute_projection_identity_operation(
     execute_prepared_projection_operation(options, key, operation, cancellation, plan)
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep the selected projection operation and held consumer lifetimes visible through their dispatch."
+)]
 fn execute_prepared_projection_operation(
     options: &BuildOptions,
     key: &str,
@@ -447,11 +451,7 @@ fn execute_prepared_projection_operation(
                     stdout_line(sources.display())?;
                 }
                 ProjectionOperation::SourceOutputs(SourceOutputLayout::Filetree) => {
-                    let tree = super::source_output_filetree::materialize(
-                        &SourceOutputCacheRoot::new(plan.cache_dir.clone()),
-                        &SourceJarPath::new(sources.to_path_buf()),
-                    )?;
-                    stdout_line(tree.as_path().display())?;
+                    print_neoform_source_filetree(held, sources)?;
                 }
                 _ => execute_project_build(held, target, Instant::now())?,
             }
@@ -628,4 +628,20 @@ mod invocation_source_policy_tests {
         );
         Ok(())
     }
+}
+
+fn print_neoform_source_filetree(held: &ExecutionContext<'_>, sources: &Path) -> eyre::Result<()> {
+    #[cfg(target_os = "linux")]
+    if let Some(cache) = held.held_linux_dependencies {
+        return stdout_line(
+            cache
+                .materialize_sources(sources, &held.cancellation_token)?
+                .display(),
+        );
+    }
+    let tree = super::source_output_filetree::materialize(
+        &SourceOutputCacheRoot::new(held.plan.cache_dir.clone()),
+        &SourceJarPath::new(sources.to_path_buf()),
+    )?;
+    stdout_line(tree.as_path().display())
 }

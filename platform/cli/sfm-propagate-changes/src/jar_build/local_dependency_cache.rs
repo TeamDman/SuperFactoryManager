@@ -2,14 +2,30 @@
 //! Full input identity plus rehashed output receipts replace marker/existence trust.
 //! Same-user malicious manifest forgery is outside this developer-cache authority.
 
+#[cfg(target_os = "linux")]
+#[path = "local_dependency_linux.rs"]
+pub(super) mod linux;
+#[cfg(target_os = "linux")]
+#[path = "local_dependency_linux_io.rs"]
+pub(super) mod linux_io;
+
+#[cfg(windows)]
 use super::build_snapshot_receipt::ensure_owned_directory;
+#[cfg(windows)]
 use super::local_dependency_consumption::LocalDependencyConsumption;
+#[cfg(windows)]
 use super::local_dependency_key::LocalDependencyKey;
+#[cfg(windows)]
 use super::local_dependency_manifest::LocalDependencyManifest;
+#[cfg(windows)]
 use super::nfrt_launch_contract::PreparedNfrtInvocationInput;
+#[cfg(windows)]
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
+#[cfg(windows)]
 use crate::artifact_lock::ArtifactLock;
+#[cfg(windows)]
 use crate::cancellation::CancellationToken;
+#[cfg(windows)]
 use crate::file_identity::file_identity;
 use crate::source_projection::candidate_lock::is_reparse;
 use crate::source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt;
@@ -20,14 +36,21 @@ use sha2::Sha256;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::fs::{self};
+#[cfg(windows)]
 use std::io::Read;
+#[cfg(windows)]
 use std::io::Seek;
+#[cfg(windows)]
 use std::io::SeekFrom;
+#[cfg(windows)]
 use std::io::Write;
 use std::path::Path;
+#[cfg(windows)]
 use std::path::PathBuf;
 
+#[cfg(windows)]
 const MAX_MANIFEST: u64 = 8 * 1024 * 1024;
+#[cfg(windows)]
 const MAX_OUTPUT: u64 = 512 * 1024 * 1024;
 
 /// Constructed only after the selected entry and both published output hashes
@@ -60,6 +83,7 @@ impl VerifiedLocalDependencyPublication {
     }
 }
 
+#[cfg(windows)]
 pub(super) struct LocalDependencyCache {
     key: LocalDependencyKey,
     directory: PathBuf,
@@ -68,6 +92,7 @@ pub(super) struct LocalDependencyCache {
     ancestry: Vec<File>,
 }
 
+#[cfg(windows)]
 impl LocalDependencyCache {
     pub(super) fn publish_verified(
         &mut self,
@@ -184,7 +209,10 @@ impl LocalDependencyCache {
             historical_production = %manifest.production_contract_sha256,
             current_consumption = %prepared.contract_identity(), receipt = %record.display(),
             "Verified historical dependency reuse; no fresh NFRT execution claimed");
-        phase.finish(Ok(Some((entry.join("classes.jar"), entry.join("sources.jar")))))
+        phase.finish(Ok(Some((
+            entry.join("classes.jar"),
+            entry.join("sources.jar"),
+        ))))
     }
 
     /// Must run inside the successful private fresh-host callback, not on a DTO.
@@ -363,9 +391,59 @@ pub(super) fn environment_allows_reuse() -> bool {
             return false;
         }
     }
+    #[cfg(target_os = "linux")]
+    if !linux_controls_allow_reuse(|name| std::env::var_os(name).is_some()) {
+        return false;
+    }
     true
 }
 
+// Linux loader controls can select native code outside the SDK image. JVM
+// overrides are also unbound for project javac without explicit trust cleanup.
+// Decline reuse without changing fresh execution or the Windows policy.
+#[cfg(target_os = "linux")]
+fn linux_controls_allow_reuse(mut present: impl FnMut(&str) -> bool) -> bool {
+    for name in [
+        "LD_PRELOAD",
+        "LD_LIBRARY_PATH",
+        "LD_AUDIT",
+        "JAVA_TOOL_OPTIONS",
+        "JDK_JAVA_OPTIONS",
+        "JDK_JAVAC_OPTIONS",
+    ] {
+        if present(name) {
+            tracing::info!(
+                environment_name = name,
+                "local_dependency_cache_declined_unbound_linux_launch_control"
+            );
+            return false;
+        }
+    }
+    true
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod linux_environment_tests {
+    #[test]
+    fn unbound_native_and_jvm_controls_decline_reuse_by_presence() {
+        assert!(super::linux_controls_allow_reuse(|_| false));
+        for selected in [
+            "LD_PRELOAD",
+            "LD_LIBRARY_PATH",
+            "LD_AUDIT",
+            "JAVA_TOOL_OPTIONS",
+            "JDK_JAVA_OPTIONS",
+            "JDK_JAVAC_OPTIONS",
+        ] {
+            assert!(
+                !super::linux_controls_allow_reuse(|name| name == selected),
+                "{selected}"
+            );
+        }
+    }
+}
+
+#[cfg(windows)]
 fn open_pointer_for_update(target: &Path) -> Result<(File, bool)> {
     let existed = match fs::symlink_metadata(target) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
@@ -411,6 +489,7 @@ fn open_pointer_for_update(target: &Path) -> Result<(File, bool)> {
     Ok((pointer, existed))
 }
 
+#[cfg(windows)]
 fn valid_entry(name: &str) -> bool {
     name.starts_with("entry-")
         && name.len() > 6
@@ -423,6 +502,7 @@ fn valid_entry(name: &str) -> bool {
 /// Repeated use of the same immutable entry and consumer identity needs one
 /// durable receipt. A changed consumer produces a different content key; no
 /// existing receipt is replaced or pruned.
+#[cfg(windows)]
 fn persist_content_record(directory: &Path, prefix: &str, text: &str) -> Result<PathBuf> {
     let bytes = text.as_bytes();
     ensure!(
@@ -457,6 +537,7 @@ fn persist_content_record(directory: &Path, prefix: &str, text: &str) -> Result<
     Ok(path)
 }
 
+#[cfg(windows)]
 fn persist_bytes(directory: &Path, prefix: &str, suffix: &str, bytes: &[u8]) -> Result<PathBuf> {
     let mut record = tempfile::Builder::new()
         .prefix(prefix)
@@ -469,6 +550,7 @@ fn persist_bytes(directory: &Path, prefix: &str, suffix: &str, bytes: &[u8]) -> 
     Ok(path)
 }
 
+#[cfg(windows)]
 fn read_checked(path: &Path, bound: u64) -> Result<(File, Vec<u8>)> {
     let mut file = open_read(path)?;
     let length = file.metadata()?.len();
@@ -482,6 +564,7 @@ fn read_checked(path: &Path, bound: u64) -> Result<(File, Vec<u8>)> {
     Ok((file, raw))
 }
 
+#[cfg(windows)]
 fn verify_file(
     path: &Path,
     expected: u64,
@@ -505,6 +588,7 @@ fn verify_file(
     Ok(file)
 }
 
+#[cfg(windows)]
 fn copy_verified(
     source: &Path,
     destination: &Path,
@@ -533,6 +617,7 @@ fn copy_verified(
     Ok(())
 }
 
+#[cfg(windows)]
 fn stream(
     file: &mut File,
     expected: u64,
@@ -560,6 +645,7 @@ fn stream(
     Ok(format!("sha256:{:x}", hash.finalize()))
 }
 
+#[cfg(windows)]
 fn write_new(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut output = OpenOptions::new().write(true).create_new(true).open(path)?;
     output.write_all(bytes)?;

@@ -8048,6 +8048,10 @@ struct ExecutionContext<'a> {
     // Require locally recorded input/output integrity before javac reuse.
     verify_compilation_outputs: bool,
     compiler_image_identity: Option<String>,
+    #[cfg(target_os = "linux")]
+    held_linux_prepared: Option<&'a super::nfrt_launch_contract::PreparedNfrtInvocationInput>,
+    #[cfg(target_os = "linux")]
+    held_linux_dependencies: Option<&'a super::local_dependency_cache::linux::LocalDependencyCache>,
     #[cfg(any(windows, target_os = "linux"))]
     compiler_image: Option<&'a super::local_dependency_image::LocalDependencyImage>,
 }

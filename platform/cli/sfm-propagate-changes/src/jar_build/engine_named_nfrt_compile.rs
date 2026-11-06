@@ -1,3 +1,13 @@
+#[cfg(windows)]
+use super::local_dependency_cache::LocalDependencyCache as NamedDependencyCache;
+#[cfg(target_os = "linux")]
+use super::local_dependency_cache::linux::LocalDependencyCache as NamedDependencyCache;
+// Platform-owned storage stays separate without migrating an existing cache.
+#[cfg(windows)]
+const NAMED_DEPENDENCY_CACHE_DIRECTORY: &str = "local-dependencies-v1";
+#[cfg(target_os = "linux")]
+const NAMED_DEPENDENCY_CACHE_DIRECTORY: &str = "local-dependencies-linux-v1";
+
 // Included in the engine namespace. Exact NeoForm compile admission and
 // acquisition; no inherited launcher outputs or arbitrary byte-batch inputs.
 
@@ -572,7 +582,7 @@ fn with_named_neoform_context<T>(
     // inherited restoration or turns historical output into fresh execution.
     let mut cache = None;
     let mut execution_image = None;
-    if cfg!(windows) {
+    if cfg!(windows) || (cfg!(target_os = "linux") && context.plan.derived_cache_root.is_some()) {
         match super::local_dependency_image::LocalDependencyImage::capture(
             &sdk,
             &context.cancellation_token,
@@ -580,6 +590,9 @@ fn with_named_neoform_context<T>(
             Ok(image) => execution_image = Some(image),
             Err(error) => {
                 context.bail_if_cancelled()?;
+                #[cfg(target_os = "linux")]
+                return Err(error.wrap_err("Linux explicit-root SDK image could not be bound"));
+                #[cfg(windows)]
                 tracing::warn!(%error, "Selected SDK image unavailable; using fresh owned execution without local dependency reuse");
             }
         }
@@ -601,13 +614,13 @@ fn with_named_neoform_context<T>(
                 &super::local_dependency_cache::implementation_identity(),
                 selected_at.as_ref().map(crate::source_projection::catalog_owned_project::CatalogOwnedInput::output_bytes),
             )?;
-            let cache = super::local_dependency_cache::LocalDependencyCache::begin(
+            let cache = NamedDependencyCache::begin(
                 &context
                     .plan
                     .derived_cache_root
                     .as_ref()
                     .unwrap_or(&context.plan.common_cache_dir)
-                    .join("local-dependencies-v1"),
+                    .join(NAMED_DEPENDENCY_CACHE_DIRECTORY),
                 key,
                 &context.cancellation_token,
             )?;
@@ -617,6 +630,10 @@ fn with_named_neoform_context<T>(
             Ok(prepared_cache) => cache = Some(prepared_cache),
             Err(error) => {
                 context.bail_if_cancelled()?;
+                #[cfg(target_os = "linux")]
+                return Err(error
+                    .wrap_err("Linux explicit-root cache ownership/producer lease unavailable"));
+                #[cfg(windows)]
                 tracing::warn!(%error, "Local dependency cache unavailable; preserving it and using fresh owned execution");
             }
         }
@@ -640,7 +657,11 @@ fn with_named_neoform_context<T>(
             .as_ref()
             .map(|image| image.identity().to_owned());
         consumer.compiler_image = execution_image.as_ref();
+        #[cfg(target_os = "linux")]
+        bind_linux_dependency_consumer(&mut consumer, Some(cache), &prepared);
         let result = consume(&consumer, &sources);
+        #[cfg(target_os = "linux")]
+        cache.recheck(&context.cancellation_token)?;
         project.recheck_source()?;
         sdk.recheck()?;
         if let Some(image) = &execution_image {
@@ -681,12 +702,32 @@ fn with_named_neoform_context<T>(
                     ),
                     Err(error) => {
                         context.bail_if_cancelled()?;
+                        #[cfg(target_os = "linux")]
+                        return Err(error.wrap_err(
+                            "Linux dependency publication failed; fresh evidence retained",
+                        ));
+                        #[cfg(windows)]
                         tracing::warn!(%error, "Local dependency publication failed; retained evidence and using the successful fresh inputs");
                     }
                 }
                 cache.release_producer();
             }
             context.bail_if_cancelled()?;
+            #[cfg(target_os = "linux")]
+            let durable = if publication.is_some() {
+                cache
+                    .as_ref()
+                    .map(|cache| cache.paths(&context.cancellation_token))
+                    .transpose()?
+            } else {
+                None
+            };
+            #[cfg(target_os = "linux")]
+            let (classes, sources) = durable
+                .as_ref()
+                .map_or((classes, sources), |(classes, sources)| {
+                    (classes.as_path(), sources.as_path())
+                });
             let normal = dunce::simplified(classes);
             eyre::ensure!(
                 fs::canonicalize(normal)? == fs::canonicalize(classes)?,
@@ -700,7 +741,14 @@ fn with_named_neoform_context<T>(
                 .as_ref()
                 .map(|image| image.identity().to_owned());
             consumer.compiler_image = execution_image.as_ref();
-            let value = consume(&consumer, sources)?;
+            #[cfg(target_os = "linux")]
+            bind_linux_dependency_consumer(&mut consumer, cache.as_ref(), &prepared);
+            let result = consume(&consumer, sources);
+            #[cfg(target_os = "linux")]
+            if let Some(cache) = &cache {
+                cache.recheck(&context.cancellation_token)?;
+            }
+            let value = result?;
             if let Some(image) = &execution_image {
                 image.recheck(&context.cancellation_token)?;
             }
@@ -974,5 +1022,18 @@ mod named_neoform_compile_tests {
         assert!(catalog_release_implementation_title("1.21").is_err());
         assert!(catalog_release_implementation_title("unknown").is_err());
         Ok(())
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn bind_linux_dependency_consumer<'a>(
+    consumer: &mut ExecutionContext<'a>,
+    cache: Option<&'a super::local_dependency_cache::linux::LocalDependencyCache>,
+    prepared: &'a super::nfrt_launch_contract::PreparedNfrtInvocationInput,
+) {
+    consumer.held_linux_dependencies = cache;
+    consumer.held_linux_prepared = Some(prepared);
+    if let Some(cache) = cache {
+        consumer.compiler_image_identity = Some(cache.compiler_identity());
     }
 }

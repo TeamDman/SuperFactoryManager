@@ -10,9 +10,9 @@ use std::path::Component;
 use std::path::Path;
 use zip::ZipArchive;
 
-const MAX_ENTRIES: usize = 250_000;
-const MAX_ENTRY_BYTES: u64 = 512 * 1024 * 1024;
-const MAX_TOTAL_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+pub(crate) const MAX_ENTRIES: usize = 250_000;
+pub(crate) const MAX_ENTRY_BYTES: u64 = 512 * 1024 * 1024;
+pub(crate) const MAX_TOTAL_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 
 /// Stable source payload identity: entry names, lengths and decompressed bytes,
 /// independent of ZIP timestamps, ordering and compression. The full archive
@@ -311,7 +311,7 @@ fn extract_zip_to_tree(input: &Path, output: &Path) -> eyre::Result<()> {
     Ok(())
 }
 
-fn safe_entry_path(name: &str) -> eyre::Result<&Path> {
+pub(crate) fn safe_entry_path(name: &str) -> eyre::Result<&Path> {
     let has_drive_prefix = name.as_bytes().get(1) == Some(&b':');
     if name.is_empty() || name.contains('\\') || name.starts_with('/') || has_drive_prefix {
         eyre::bail!("entry path is empty, absolute, or uses backslashes");
@@ -325,7 +325,7 @@ fn safe_entry_path(name: &str) -> eyre::Result<&Path> {
     Ok(path)
 }
 
-fn reject_special_entry(name: &str, unix_mode: Option<u32>) -> eyre::Result<()> {
+pub(crate) fn reject_special_entry(name: &str, unix_mode: Option<u32>) -> eyre::Result<()> {
     let Some(mode) = unix_mode else {
         return Ok(());
     };

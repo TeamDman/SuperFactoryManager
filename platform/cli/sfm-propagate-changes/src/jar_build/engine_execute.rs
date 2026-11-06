@@ -154,6 +154,10 @@ impl<'a> ExecutionContext<'a> {
             immutable_neoform_profile: false,
             verify_compilation_outputs: false,
             compiler_image_identity: None,
+            #[cfg(target_os = "linux")]
+            held_linux_prepared: None,
+            #[cfg(target_os = "linux")]
+            held_linux_dependencies: None,
             #[cfg(any(windows, target_os = "linux"))]
             compiler_image: None,
         })
@@ -249,6 +253,14 @@ impl<'a> ExecutionContext<'a> {
     }
 
     fn recheck_compiler_image(&self) -> eyre::Result<()> {
+        #[cfg(target_os = "linux")]
+        if let Some(prepared) = self.held_linux_prepared {
+            prepared.recheck_java_trust()?;
+        }
+        #[cfg(target_os = "linux")]
+        if let Some(cache) = self.held_linux_dependencies {
+            cache.recheck(&self.cancellation_token)?;
+        }
         #[cfg(any(windows, target_os = "linux"))]
         if let Some(image) = self.compiler_image {
             image.recheck(&self.cancellation_token)?;

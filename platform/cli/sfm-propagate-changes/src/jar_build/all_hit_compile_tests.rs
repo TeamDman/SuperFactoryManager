@@ -94,6 +94,10 @@ pub(super) fn context(plan: &BuildPlan) -> ExecutionContext<'_> {
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,
         verify_compilation_outputs: false,
+        #[cfg(target_os = "linux")]
+        held_linux_prepared: None,
+        #[cfg(target_os = "linux")]
+        held_linux_dependencies: None,
         compiler_image_identity: None,
         #[cfg(any(windows, target_os = "linux"))]
         compiler_image: None,

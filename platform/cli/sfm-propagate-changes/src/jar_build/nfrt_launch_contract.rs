@@ -2050,3 +2050,7 @@ pub(super) mod tests {
 #[cfg(all(test, windows))]
 #[path = "local_dependency_contention_tests.rs"]
 mod local_dependency_contention_tests;
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "local_dependency_linux_tests.rs"]
+mod local_dependency_linux_tests;

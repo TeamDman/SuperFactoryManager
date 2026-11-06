@@ -5035,6 +5035,10 @@ fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionCont
         immutable_neoform_profile: false,
         verify_compilation_outputs: false,
         compiler_image_identity: None,
+        #[cfg(target_os = "linux")]
+        held_linux_prepared: None,
+        #[cfg(target_os = "linux")]
+        held_linux_dependencies: None,
         #[cfg(any(windows, target_os = "linux"))]
         compiler_image: None,
     }
@@ -6263,5 +6267,180 @@ fn held_forge_sdk_image_reuses_hold_and_rechecks_membership() -> eyre::Result<()
         format!("{error:#}").contains("SDK image gained a selected entry"),
         "{error:#}"
     );
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn linux_core_sdk_edit_prevents_project_output_recording() -> eyre::Result<()> {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    for core in ["bin/java", "bin/javac", "lib/modules", "release"] {
+        for attack in ["contents", "replacement", "mode"] {
+            let temp = tempfile::tempdir()?;
+            let home = temp.path().join("sdk");
+            for directory in ["bin", "conf", "lib"] {
+                fs::create_dir_all(home.join(directory))?;
+            }
+            for name in ["bin/java", "bin/javac", "lib/modules", "release"] {
+                fs::write(home.join(name), b"original SDK bytes")?;
+                fs::set_permissions(home.join(name), fs::Permissions::from_mode(0o600))?;
+            }
+            let image = super::super::local_dependency_image::LocalDependencyImage::capture_home(
+                &home,
+                "synthetic-core-identity",
+                &CancellationToken::new(),
+            )?;
+            let mut plan = minimal_plan_for_paths();
+            plan.cache_dir = temp.path().join("project-cache");
+            let classes = plan.cache_dir.join("project/classes");
+            fs::create_dir_all(&classes)?;
+            fs::write(classes.join("Example.class"), b"synthetic compiler output")?;
+            let state = plan.cache_dir.join("project/main.inputs.sha1");
+            let mut context = super::all_hit_compile_tests::context(&plan);
+            context.compiler_image_identity = Some(image.identity().to_owned());
+            context.compiler_image = Some(&image);
+            super::write_project_java_cache(
+                &context,
+                &state,
+                "before-edit",
+                &[("classes", &classes)],
+            )?;
+            let retained = (
+                fs::read(&state)?,
+                fs::read(state.with_extension("outputs.json"))?,
+            );
+            let path = home.join(core);
+            match attack {
+                "contents" => fs::write(&path, b"modified SDK bytes")?,
+                "replacement" => {
+                    fs::rename(&path, temp.path().join("retained-original"))?;
+                    fs::write(&path, b"original SDK bytes")?;
+                    fs::set_permissions(&path, fs::Permissions::from_mode(0o600))?;
+                }
+                _ => fs::set_permissions(&path, fs::Permissions::from_mode(0o400))?,
+            }
+            assert!(
+                super::write_project_java_cache(
+                    &context,
+                    &state,
+                    "after-edit",
+                    &[("classes", &classes)]
+                )
+                .is_err(),
+                "{core}: {attack}"
+            );
+            let new_state = state.with_file_name("new.inputs.sha1");
+            assert!(
+                super::write_project_java_cache(
+                    &context,
+                    &new_state,
+                    "after-edit",
+                    &[("classes", &classes)]
+                )
+                .is_err(),
+                "{core}: {attack}"
+            );
+            assert!(!new_state.exists());
+            assert!(!new_state.with_extension("outputs.json").exists());
+            assert_eq!(fs::read(&state)?, retained.0);
+            assert_eq!(fs::read(state.with_extension("outputs.json"))?, retained.1);
+        }
+    }
+    Ok(())
+}
+
+// Exercises actual local javac and the production Linux image/fingerprint/output
+// admission functions. This is not an NFRT or pinned-Minecraft qualification.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore = "requires SFM_LINUX_CACHE_TEST_JAVA_HOME selecting an already installed local SDK; never acquires one"]
+fn linux_existing_javac_warm_output_admission() -> eyre::Result<()> {
+    let home = PathBuf::from(
+        std::env::var_os("SFM_LINUX_CACHE_TEST_JAVA_HOME")
+            .ok_or_else(|| eyre::eyre!("local SDK not supplied"))?,
+    );
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("project");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    let source = plan.minecraft_dir.join("SFM.java");
+    let classes = plan.cache_dir.join("project/classes");
+    let resources = plan.cache_dir.join("project/resources");
+    let refmap = resources.join("sfm.refmap.json");
+    let state = plan.cache_dir.join("project/main.inputs.sha1");
+    fs::create_dir_all(&classes)?;
+    fs::create_dir_all(&resources)?;
+    fs::write(
+        &source,
+        b"package ca.teamdman.sfm; public class SFM { public static final int VALUE = 1; }",
+    )?;
+    fs::write(&refmap, b"{}")?;
+    let mut core = Vec::new();
+    for name in ["bin/java", "bin/javac", "release", "lib/modules"] {
+        core.extend_from_slice(
+            super::ContentHash::from_path(&home.join(name), super::ContentHashAlgorithm::Blake3)?
+                .to_string()
+                .as_bytes(),
+        );
+    }
+    let cancel = CancellationToken::new();
+    let image = super::super::local_dependency_image::LocalDependencyImage::capture_home(
+        &home,
+        &crate::source_projection::provenance::sha256(&core),
+        &cancel,
+    )?;
+    let mut context = ExecutionContext::new(&plan, cancel)?;
+    context.verify_compilation_outputs = true;
+    context.compiler_image_identity = Some(image.identity().to_owned());
+    context.compiler_image = Some(&image);
+    let mut child = std::process::Command::new(home.join("bin/javac"))
+        .arg("-proc:none")
+        .arg("-d")
+        .arg(&classes)
+        .arg(&source)
+        .spawn()?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        if let Some(status) = child.try_wait()? {
+            eyre::ensure!(status.success(), "local javac failed");
+            break;
+        }
+        if std::time::Instant::now() > deadline {
+            child.kill()?;
+            child.wait()?;
+            eyre::bail!("bounded local javac test timed out");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let fingerprint =
+        super::input_fingerprint(&context, "javac-main", std::slice::from_ref(&source), &[])?;
+    super::write_project_java_cache(
+        &context,
+        &state,
+        &fingerprint,
+        &[("classes", &classes), ("resources", &resources)],
+    )?;
+    let output = super::required_main_class_output(&classes);
+    let before = (fs::metadata(&output)?.modified()?, fs::read(&output)?);
+    assert!(super::main_compilation_cache_matches(
+        &context,
+        &state,
+        &fingerprint,
+        &classes,
+        &refmap
+    )?);
+    assert_eq!(fs::metadata(&output)?.modified()?, before.0);
+    assert_eq!(fs::read(&output)?, before.1);
+    fs::write(
+        &source,
+        b"package ca.teamdman.sfm; public class SFM { public static final int VALUE = 2; }",
+    )?;
+    let changed =
+        super::input_fingerprint(&context, "javac-main", std::slice::from_ref(&source), &[])?;
+    assert_ne!(fingerprint, changed);
+    assert!(!super::main_compilation_cache_matches(
+        &context, &state, &changed, &classes, &refmap
+    )?);
     Ok(())
 }

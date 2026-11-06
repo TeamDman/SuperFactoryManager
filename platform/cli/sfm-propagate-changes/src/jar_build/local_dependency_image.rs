@@ -1,24 +1,41 @@
 //! Additional selected-SDK execution inputs held for dependency-cache reuse.
 //! Binds bin/lib/conf, not a claim about arbitrary outside-SDK native loading.
 
+#[cfg(windows)]
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
+#[cfg(windows)]
 use crate::cancellation::CancellationToken;
+#[cfg(windows)]
 use crate::source_projection::nfrt_tool_sdk::NfrtToolSdk;
+#[cfg(windows)]
 use eyre::Result;
+#[cfg(windows)]
 use eyre::ensure;
+#[cfg(windows)]
 use sha2::Digest;
+#[cfg(windows)]
 use sha2::Sha256;
+#[cfg(windows)]
 use std::collections::BTreeMap;
+#[cfg(windows)]
 use std::fs;
+#[cfg(windows)]
 use std::fs::File;
+#[cfg(windows)]
 use std::io::Read;
+#[cfg(windows)]
 use std::path::Path;
+#[cfg(windows)]
 use std::path::PathBuf;
 
+#[cfg(windows)]
 const MAX_ENTRIES: u64 = 16_384;
+#[cfg(windows)]
 const MAX_FILE_BYTES: u64 = 1024 * 1024 * 1024;
+#[cfg(windows)]
 const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
+#[cfg(windows)]
 #[derive(Debug)]
 pub(super) struct LocalDependencyImage {
     identity: String,
@@ -30,6 +47,7 @@ pub(super) struct LocalDependencyImage {
     directories: BTreeMap<PathBuf, File>,
 }
 
+#[cfg(windows)]
 impl LocalDependencyImage {
     pub(super) fn capture(sdk: &NfrtToolSdk, cancel: &CancellationToken) -> Result<Self> {
         let home = sdk
@@ -571,3 +589,9 @@ mod tests {
         Ok(())
     }
 }
+
+#[cfg(target_os = "linux")]
+#[path = "local_dependency_linux_image.rs"]
+mod linux_image;
+#[cfg(target_os = "linux")]
+pub(super) use linux_image::LocalDependencyImage;
