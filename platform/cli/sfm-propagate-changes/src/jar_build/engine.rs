@@ -2516,6 +2516,7 @@ include!("engine_named_compile.rs");
 include!("engine_development_project.rs");
 include!("engine_named_nfrt_compile.rs");
 include!("engine_named_jar.rs");
+include!("engine_named_sources.rs");
 include!("engine_catalog_release_packaging.rs");
 include!("engine_named_sdk_launch.rs");
 include!("engine_plan.rs");

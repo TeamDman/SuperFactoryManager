@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
-fn prepared(owner: &str) -> PreparedNfrtInvocationInput {
+pub(in crate::jar_build) fn prepared(owner: &str) -> PreparedNfrtInvocationInput {
     let mut receipt = crate::jar_build::local_dependency_key::fixture_receipt();
     receipt.invocation_id = format!("model-invocation-{owner}");
     receipt.projection_key = format!("model-projection-{owner}");
@@ -31,7 +31,7 @@ fn prepared(owner: &str) -> PreparedNfrtInvocationInput {
     }
 }
 
-fn key(input: &PreparedNfrtInvocationInput) -> LocalDependencyKey {
+pub(in crate::jar_build) fn key(input: &PreparedNfrtInvocationInput) -> LocalDependencyKey {
     LocalDependencyKey::from_prepared(
         input,
         &sha256(b"sdk"),
@@ -52,10 +52,27 @@ fn zip(path: &Path, entries: &[(&str, &[u8])]) -> eyre::Result<Vec<u8>> {
     Ok(fs::read(path)?)
 }
 
-fn produce(
+pub(in crate::jar_build) fn produce(
     cache: &mut LocalDependencyCache,
     input: &PreparedNfrtInvocationInput,
     directory: &Path,
+) -> eyre::Result<()> {
+    produce_with_source_entries(
+        cache,
+        input,
+        directory,
+        &[(
+            "net/minecraft/Example.java",
+            b"package net.minecraft; class Example {}",
+        )],
+    )
+}
+
+pub(in crate::jar_build) fn produce_with_source_entries(
+    cache: &mut LocalDependencyCache,
+    input: &PreparedNfrtInvocationInput,
+    directory: &Path,
+    entries: &[(&str, &[u8])],
 ) -> eyre::Result<()> {
     let classes = directory.join("model-classes.jar");
     let sources = directory.join("model-sources.jar");
@@ -63,13 +80,7 @@ fn produce(
         &classes,
         &[("net/minecraft/Example.class", b"model class bytes")],
     )?;
-    let source_bytes = zip(
-        &sources,
-        &[(
-            "net/minecraft/Example.java",
-            b"package net.minecraft; class Example {}",
-        )],
-    )?;
+    let source_bytes = zip(&sources, entries)?;
     let manifest = fixture_manifest(&key(input), &class_bytes, &source_bytes);
     let mut receipts: Vec<NfrtProducerOutputReceipt> =
         facet_json::from_str(&manifest.production_receipts_json)?;

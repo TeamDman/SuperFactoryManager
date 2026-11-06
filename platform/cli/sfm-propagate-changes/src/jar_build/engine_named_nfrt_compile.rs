@@ -518,7 +518,7 @@ fn execute_named_neoform_compile(
     target: BuildTarget,
     started: Instant,
 ) -> eyre::Result<()> {
-    with_named_neoform_context(context, |consumer, _sources| {
+    with_named_neoform_context(context, |consumer, _sources, _origin| {
         execute_project_build(consumer, target, started)
     })
 }
@@ -530,7 +530,7 @@ fn execute_named_neoform_compile(
 )]
 fn with_named_neoform_context<T>(
     context: &ExecutionContext<'_>,
-    consume: impl FnOnce(&ExecutionContext<'_>, &Path) -> eyre::Result<T>,
+    consume: impl FnOnce(&ExecutionContext<'_>, &Path, NamedSourceOrigin) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
     let source = NeoformCompileSource::from_plan(context.plan)?;
     let project = source.owner();
@@ -573,7 +573,11 @@ fn with_named_neoform_context<T>(
         let mut consumer = ExecutionContext::new(context.plan, context.cancellation_token.clone())?;
         consumer.held_neoform_compile_jar = Some(&profile.classes);
         consumer.immutable_neoform_profile = true;
-        let result = consume(&consumer, &profile.sources);
+        let result = consume(
+            &consumer,
+            &profile.sources,
+            NamedSourceOrigin::ImmutableProfile,
+        );
         project.recheck_source()?;
         sdk.recheck()?;
         return result;
@@ -659,7 +663,7 @@ fn with_named_neoform_context<T>(
         consumer.compiler_image = execution_image.as_ref();
         #[cfg(target_os = "linux")]
         bind_linux_dependency_consumer(&mut consumer, Some(cache), &prepared);
-        let result = consume(&consumer, &sources);
+        let result = consume(&consumer, &sources, NamedSourceOrigin::HistoricalLocalCache);
         #[cfg(target_os = "linux")]
         cache.recheck(&context.cancellation_token)?;
         project.recheck_source()?;
@@ -743,7 +747,7 @@ fn with_named_neoform_context<T>(
             consumer.compiler_image = execution_image.as_ref();
             #[cfg(target_os = "linux")]
             bind_linux_dependency_consumer(&mut consumer, cache.as_ref(), &prepared);
-            let result = consume(&consumer, sources);
+            let result = consume(&consumer, sources, NamedSourceOrigin::FreshOwnedExecution);
             #[cfg(target_os = "linux")]
             if let Some(cache) = &cache {
                 cache.recheck(&context.cancellation_token)?;
@@ -764,7 +768,7 @@ fn with_named_neoform_context<T>(
 #[cfg(not(any(windows, target_os = "linux")))]
 fn with_named_neoform_context<T>(
     _: &ExecutionContext<'_>,
-    _: impl FnOnce(&ExecutionContext<'_>, &Path) -> eyre::Result<T>,
+    _: impl FnOnce(&ExecutionContext<'_>, &Path, NamedSourceOrigin) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
     eyre::bail!("named NeoForm launch requires the Windows held-input adapter")
 }

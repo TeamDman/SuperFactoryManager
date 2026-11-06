@@ -43,6 +43,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[path = "core_project_sources.rs"]
+mod released_sources;
+pub use released_sources::CoreProjectSourcesArgs;
+
 #[derive(Debug, Facet)]
 pub struct CoreProjectArgs {
     #[facet(args::subcommand)]
@@ -64,6 +68,8 @@ pub enum CoreProjectCommand {
     Build(CoreProjectGradleArgs),
     /// Native compile of an exact released recipe or declared development profile.
     Compile(CoreProjectCompileArgs),
+    /// Return verified Linux released `NeoForm` sources as an archive or persistent filetree.
+    Sources(CoreProjectSourcesArgs),
     /// Package an exact release recipe or declared development profile; no app launch.
     Jar(CoreProjectCompileArgs),
     /// Run a selected project without changing another projection or its saves.
@@ -287,6 +293,7 @@ impl CoreProjectArgs {
             CoreProjectCommand::Compile(args) | CoreProjectCommand::Jar(args) => {
                 Some(&mut args.project)
             }
+            CoreProjectCommand::Sources(args) => Some(&mut args.project),
         };
         if let Some(selected) = selected {
             selected.resolve_root(invocation_dir)?;
@@ -311,6 +318,9 @@ impl CoreProjectArgs {
             }
             CoreProjectCommand::Compile(args) => {
                 return invoke_native_compile(&args, cancellation, invocation_dir);
+            }
+            CoreProjectCommand::Sources(args) => {
+                return released_sources::invoke(&args, cancellation, invocation_dir);
             }
             CoreProjectCommand::Jar(args) => {
                 return invoke_native_jar(&args, cancellation, invocation_dir);

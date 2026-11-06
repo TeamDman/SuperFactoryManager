@@ -442,7 +442,7 @@ fn execute_prepared_projection_operation(
     };
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let context = ExecutionContext::new(&plan, cancellation.clone())?;
-        with_named_neoform_context(&context, |held, sources| {
+        with_named_neoform_context(&context, |held, sources, _origin| {
             match operation {
                 ProjectionOperation::CatalogPlatformSources(tree, hash) => {
                     publish_checked_catalog_source_archive(sources, tree, hash)?;
@@ -631,17 +631,20 @@ mod invocation_source_policy_tests {
 }
 
 fn print_neoform_source_filetree(held: &ExecutionContext<'_>, sources: &Path) -> eyre::Result<()> {
+    stdout_line(neoform_source_filetree_path(held, sources)?.display())
+}
+
+fn neoform_source_filetree_path(
+    held: &ExecutionContext<'_>,
+    sources: &Path,
+) -> eyre::Result<PathBuf> {
     #[cfg(target_os = "linux")]
     if let Some(cache) = held.held_linux_dependencies {
-        return stdout_line(
-            cache
-                .materialize_sources(sources, &held.cancellation_token)?
-                .display(),
-        );
+        return cache.materialize_sources(sources, &held.cancellation_token);
     }
     let tree = super::source_output_filetree::materialize(
         &SourceOutputCacheRoot::new(held.plan.cache_dir.clone()),
         &SourceJarPath::new(sources.to_path_buf()),
     )?;
-    stdout_line(tree.as_path().display())
+    Ok(tree.into_path_buf())
 }

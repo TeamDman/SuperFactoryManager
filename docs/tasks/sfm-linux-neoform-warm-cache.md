@@ -67,6 +67,54 @@ written and no existing tree is replaced. Source-catalog readers continue to
 consume the verified source archive. Invocation `.bin` snapshots remain distinct
 from these archive and filetree interfaces.
 
+### Public released source view
+
+On Linux, `source project sources` admits one exact released NeoForm recipe
+through the current source-owner, frozen lock/recipe, SDK, trust and managed-root
+checks. It is a source-only operation: it does not run SFM javac, package a mod,
+launch Minecraft or register a source provider. Unsupported loaders, development
+projections and other operating systems are refused before acquisition. Existing
+Windows and immutable-profile source operations retain their separate behavior.
+
+After selecting the newly built CLI explicitly, use the same native root and
+verified SDK as the compile. For example:
+
+```sh
+"$CLI" --output-format json source project sources --repo-root "$REPO" \
+  --projection sfm-4.34.0/mc-1.20.2 \
+  --released-recipe sfm:released-native-inputs/4.34.0/1.20.2@1 \
+  --cache-root "$CACHE" --java-home "$JBR21" --layout jar
+
+"$CLI" --output-format json source project sources --repo-root "$REPO" \
+  --projection sfm-4.34.0/mc-1.20.2 \
+  --released-recipe sfm:released-native-inputs/4.34.0/1.20.2@1 \
+  --cache-root "$CACHE" --java-home "$JBR21" --layout filetree
+```
+
+The `sfm:released_native_sources@1` report returns `sources_archive` and `output`,
+full archive and source-payload SHA-256 identities, the checked preparation
+receipt and the actual dependency origin. A warm view reports
+`historical_local_cache`; a necessary new NFRT producer reports
+`fresh_owned_execution`. Filetree extraction itself is never a new NFRT producer
+receipt. `output` is a persistent archive or grep-able directory, not an
+invocation descriptor or a projection-local source copy. Use the returned path;
+do not construct it from a projection name. Repeated views revalidate the same
+archive/tree and retain its path. Projections with the same complete dependency
+key can share that tree while keeping their project compilation caches separate.
+
+A missing prepared dependency may acquire already-pinned inputs and run the
+admitted NFRT producer, so this command is not an existing-only or read-only
+operation. Perform normal preparation/capacity checks first. A warm hit still
+authenticates inputs and the SDK; errors never authorize an alternate archive,
+repair, replacement or pruning. No arbitrary source archive or extraction
+destination is accepted. The existing Linux limits and trusted-local integrity
+boundary above apply.
+
+`dependency source acquire` remains a different interface. It requires its exact
+locked platform provider, projection and source identity. A historical schema-2
+source view does not add those declarations, mark an undeclared provider as
+acquired, or automatically add the returned tree to catalog search.
+
 ## Validation and manual handoff
 
 From the existing CLI checkout, compile the library test executable and run it
