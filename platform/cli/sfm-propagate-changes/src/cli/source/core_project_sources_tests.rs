@@ -71,7 +71,7 @@ fn public_sources_rejects_wrong_recipe_unsupported_loader_and_dev_before_effects
         ),
         (
             "sfm-4.34.0/mc-1.19.2",
-            "sfm:released-native-inputs/4.34.0/1.19.2@1",
+            "sfm:released-native-inputs/4.34.0/1.19.2@2",
         ),
         (
             "sfm-dev/mc-1.20.2",
@@ -115,4 +115,30 @@ fn public_sources_valid_recipe_reaches_sdk_guard_without_compiling() -> Result<(
     assert!(!format!("{error:#}").contains("requires an exact reviewed NeoForm"));
     assert!(!temp.path().join("native").exists());
     Ok(())
+}
+
+#[test]
+fn public_sources_parser_admits_explicit_original_forge_source_requests() {
+    for target in ["1.19.2", "1.19.4", "1.20", "1.20.1"] {
+        let projection = format!("sfm-4.34.0/mc-{target}");
+        let recipe = format!("sfm:released-native-inputs/4.34.0/{target}@1");
+        let command = figue::from_slice::<CoreProjectArgs>(&[
+            "sources",
+            "--projection",
+            &projection,
+            "--released-recipe",
+            &recipe,
+            "--layout",
+            "filetree",
+        ])
+        .into_result()
+        .unwrap()
+        .get_silent();
+        let CoreProjectCommand::Sources(args) = command.command else {
+            panic!("source command")
+        };
+        assert_eq!(args.released_recipe, recipe);
+        assert_eq!(args.project.projection, projection);
+        assert_eq!(args.layout, SourceOutputLayout::Filetree);
+    }
 }

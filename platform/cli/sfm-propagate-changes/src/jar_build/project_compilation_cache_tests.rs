@@ -1,6 +1,105 @@
 use super::*;
 use std::cell::Cell;
 
+#[test]
+fn explicit_ap_output_requires_new_inventory_and_preserves_empty_mapping() -> Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = fixture.path();
+    write_output(root)?;
+    let state = root.join("main.inputs.sha1");
+    let classes = root.join("classes");
+    let roots = [("classes", classes.as_path())];
+    let mapping = root.join("compileJava-mappings.tsrg");
+    fs::write(&mapping, b"")?;
+    let files = [("mixin_ap_mapping", mapping.as_path())];
+    record(root, &state, "inputs", &roots, || Ok(()))?;
+    assert!(!matches_with_files(
+        root,
+        &state,
+        "inputs",
+        &roots,
+        &files,
+        || Ok(())
+    )?);
+    record_with_files(root, &state, "inputs", &roots, &files, || Ok(()))?;
+    assert!(matches_with_files(
+        root,
+        &state,
+        "inputs",
+        &roots,
+        &files,
+        || Ok(())
+    )?);
+    fs::write(&mapping, b"changed mappings")?;
+    assert!(!matches_with_files(
+        root,
+        &state,
+        "inputs",
+        &roots,
+        &files,
+        || Ok(())
+    )?);
+    fs::rename(&mapping, root.join("retained-mappings"))?;
+    assert!(!matches_with_files(
+        root,
+        &state,
+        "inputs",
+        &roots,
+        &files,
+        || Ok(())
+    )?);
+    fs::create_dir(&mapping)?;
+    assert!(record_with_files(root, &state, "inputs", &roots, &files, || Ok(())).is_err());
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn explicit_ap_output_rejects_links_and_failed_input_seal_leaves_no_valid_state() -> Result<()> {
+    use std::os::unix::fs::symlink;
+    for link in ["symlink", "hardlink", "seal"] {
+        let fixture = tempfile::tempdir()?;
+        let root = fixture.path();
+        write_output(root)?;
+        let state = root.join("main.inputs.sha1");
+        let classes = root.join("classes");
+        let roots = [("classes", classes.as_path())];
+        let mapping = root.join("compileJava-mappings.tsrg");
+        fs::write(&mapping, b"")?;
+        let files = [("mixin_ap_mapping", mapping.as_path())];
+        record_with_files(root, &state, "inputs", &roots, &files, || Ok(()))?;
+        if link == "symlink" {
+            fs::rename(&mapping, root.join("retained"))?;
+            symlink(root.join("retained"), &mapping)?;
+        } else if link == "hardlink" {
+            fs::hard_link(&mapping, root.join("alias"))?;
+        } else {
+            let seals = Cell::new(0);
+            assert!(
+                record_admitted(
+                    root,
+                    &state,
+                    "inputs",
+                    &roots,
+                    &files,
+                    || Ok(()),
+                    || {
+                        seals.set(seals.get() + 1);
+                        ensure!(seals.get() < 2, "SDK changed before state publication");
+                        Ok(())
+                    }
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            !matches_with_files(root, &state, "inputs", &roots, &files, || Ok(()))?,
+            "{link}"
+        );
+    }
+    Ok(())
+}
+
 fn write_output(root: &Path) -> Result<()> {
     fs::create_dir_all(root.join("classes/package"))?;
     fs::create_dir_all(root.join("resources"))?;

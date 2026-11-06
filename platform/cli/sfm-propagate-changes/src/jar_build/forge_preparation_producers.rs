@@ -10,14 +10,14 @@
 fn execute_mcp_config_joined_uncached(
     context: &ExecutionContext<'_>,
     reuse_project_outputs: bool,
+    owned_output_root: Option<&Path>,
 ) -> eyre::Result<()> {
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
         .wrap_err("Failed to create HTTP client")?;
-    let mcp_root = context
-        .plan
-        .cache_dir
+    let mcp_root = owned_output_root
+        .unwrap_or(&context.plan.cache_dir)
         .join("mcp")
         .join(context.plan.minecraft_version.as_str())
         .join("joined");
@@ -230,14 +230,14 @@ fn execute_forge_userdev_uncached(
     context: &ExecutionContext<'_>,
     reuse_project_outputs: bool,
     project_at_override: Option<&Path>,
+    owned_output_root: Option<&Path>,
 ) -> eyre::Result<()> {
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
         .wrap_err("Failed to create HTTP client")?;
-    let forge_root = context
-        .plan
-        .cache_dir
+    let forge_root = owned_output_root
+        .unwrap_or(&context.plan.cache_dir)
         .join("forge")
         .join(context.plan.minecraft_version.as_str());
     fs::create_dir_all(&forge_root)?;

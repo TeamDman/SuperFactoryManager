@@ -88,8 +88,10 @@ pub(super) fn context(plan: &BuildPlan) -> ExecutionContext<'_> {
         held_forge_dev_jar_path: Mutex::new(None),
         #[cfg(windows)]
         held_shared_preparation: Mutex::new(Vec::new()),
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "linux"))]
         forge_sdk_image: Mutex::new(None),
+        #[cfg(target_os = "linux")]
+        linux_forge: Mutex::new(super::linux_forge_cache::State::default()),
         selected_dependency_remaps: Mutex::new(None),
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,

@@ -138,7 +138,7 @@ impl<'a> ExecutionContext<'a> {
         .map(|path| canonicalize_lenient(&path))
         .collect::<eyre::Result<Vec<_>>>()?;
 
-        Ok(Self {
+        let context = Self {
             plan,
             forbidden_input_roots,
             cancellation_token,
@@ -147,8 +147,10 @@ impl<'a> ExecutionContext<'a> {
             held_forge_dev_jar_path: Mutex::new(None),
             #[cfg(windows)]
             held_shared_preparation: Mutex::new(Vec::new()),
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "linux"))]
             forge_sdk_image: Mutex::new(None),
+            #[cfg(target_os = "linux")]
+            linux_forge: Mutex::new(linux_forge_cache::State::default()),
             selected_dependency_remaps: Mutex::new(None),
             held_neoform_compile_jar: None,
             immutable_neoform_profile: false,
@@ -160,10 +162,32 @@ impl<'a> ExecutionContext<'a> {
             held_linux_dependencies: None,
             #[cfg(any(windows, target_os = "linux"))]
             compiler_image: None,
-        })
+        };
+        #[cfg(target_os = "linux")]
+        let mut context = context;
+        #[cfg(target_os = "linux")]
+        if linux_forge_cache::eligible(plan) {
+            eyre::ensure!(
+                super::local_dependency_cache::environment_allows_reuse(),
+                "Linux Forge cache declines inherited JVM controls"
+            );
+            let image = context.held_forge_sdk_image()?;
+            context.verify_compilation_outputs = true;
+            context.compiler_image_identity = Some(format!(
+                "sfm:linux_forge_javac@1:{}:{}",
+                image.identity(),
+                super::java_trust::JavaTrust::from_environment_for_major(plan.java.major_version)?
+                    .as_ref()
+                    .map_or_else(
+                        || "jdk-default".to_owned(),
+                        super::java_trust::JavaTrust::identity
+                    )
+            ));
+        }
+        Ok(context)
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux"))]
     fn held_forge_sdk_image(
         &self,
     ) -> eyre::Result<Arc<super::local_dependency_image::LocalDependencyImage>> {
@@ -179,13 +203,22 @@ impl<'a> ExecutionContext<'a> {
             .execution_identity
             .as_deref()
             .ok_or_else(|| eyre::eyre!("Selected Forge SDK has no execution identity"))?;
+        #[cfg(target_os = "linux")]
+        let _ = identity; // Invocation path identity remains checked by the plan.
+        #[cfg(target_os = "linux")]
+        let portable_identity = format!(
+            "sfm:linux_forge_sdk@1\nmajor={}\nversion={}\narchive={:?}\n",
+            self.plan.java.major_version, self.plan.java.version_output, self.plan.java.pin_sha512
+        );
+        #[cfg(target_os = "linux")]
+        let identity = portable_identity.as_str();
         let mut slot = self
             .forge_sdk_image
             .lock()
-            .map_err(|_| eyre::eyre!("Held Forge SDK image slot poisoned"))?;
+            .map_err(|_poisoned| eyre::eyre!("Held Forge SDK image slot poisoned"))?;
         if let Some(image) = slot.as_ref() {
-            // Held handles reject writes/deletes to captured files. Membership
-            // still needs a fresh check because a new child can be created.
+            // Windows holds exclude writes/deletes. Linux rechecks contents,
+            // identities and membership; it does not promise write exclusion.
             image.recheck(&self.cancellation_token)?;
             return Ok(Arc::clone(image));
         }
@@ -205,6 +238,16 @@ impl<'a> ExecutionContext<'a> {
     }
 
     fn preparation_read_path(&self, kind: &str, name: &str, local: PathBuf) -> PathBuf {
+        #[cfg(target_os = "linux")]
+        if let Some(path) = self
+            .linux_forge
+            .lock()
+            .expect("Linux Forge state poisoned")
+            .path(kind, name)
+            .expect("invalid held Linux Forge role")
+        {
+            return path;
+        }
         #[cfg(windows)]
         if let Some(path) = self
             .held_shared_preparation
@@ -253,6 +296,19 @@ impl<'a> ExecutionContext<'a> {
     }
 
     fn recheck_compiler_image(&self) -> eyre::Result<()> {
+        #[cfg(target_os = "linux")]
+        if linux_forge_cache::eligible(self.plan) {
+            eyre::ensure!(
+                super::local_dependency_cache::environment_allows_reuse(),
+                "Linux Forge Java environment changed"
+            );
+            self.held_forge_sdk_image()?
+                .recheck(&self.cancellation_token)?;
+            self.linux_forge
+                .lock()
+                .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+                .recheck(self)?;
+        }
         #[cfg(target_os = "linux")]
         if let Some(prepared) = self.held_linux_prepared {
             prepared.recheck_java_trust()?;
@@ -542,6 +598,10 @@ impl<'a> ExecutionContext<'a> {
     }
 }
 
+#[cfg(target_os = "linux")]
+#[path = "linux_forge_cache.rs"]
+mod linux_forge_cache;
+
 #[cfg(windows)]
 #[path = "forge_preparation_cache.rs"]
 mod forge_preparation_cache;
@@ -558,18 +618,23 @@ pub(crate) fn audit_managed_remaps(
 fn execute_mcp_config_joined(
     context: &ExecutionContext<'_>,
 ) -> eyre::Result<(McpHold, ForgeInputHold)> {
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(context.plan) {
+        linux_forge_cache::prepare(context, "mcp", false)?;
+        return Ok(((), ()));
+    }
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
         let (_, held_mcp, owner) = forge_preparation_cache::execute(
             context,
             "mcp",
             false,
-            || execute_mcp_config_joined_uncached(context, true),
-            |_| execute_mcp_config_joined_uncached(context, false),
+            || execute_mcp_config_joined_uncached(context, true, None),
+            |_| execute_mcp_config_joined_uncached(context, false, None),
         )?;
         return Ok((held_mcp, owner));
     }
-    execute_mcp_config_joined_uncached(context, true)?;
+    execute_mcp_config_joined_uncached(context, true, None)?;
     Ok((McpHold::default(), ForgeInputHold::default()))
 }
 
@@ -578,19 +643,24 @@ fn execute_forge_userdev(
     context: &ExecutionContext<'_>,
     target: BuildTarget,
 ) -> eyre::Result<(ForgeDevHold, McpHold, ForgeInputHold)> {
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(context.plan) {
+        linux_forge_cache::prepare(context, "forge", false)?;
+        return Ok(((), (), ()));
+    }
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
         return forge_preparation_cache::execute(
             context,
             "forge",
             target == BuildTarget::SourceOutputs,
-            || execute_forge_userdev_uncached(context, true, None),
-            |at| execute_forge_userdev_uncached(context, false, at),
+            || execute_forge_userdev_uncached(context, true, None, None),
+            |at| execute_forge_userdev_uncached(context, false, at, None),
         );
     }
     #[cfg(not(windows))]
     let _ = target;
-    execute_forge_userdev_uncached(context, true, None)?;
+    execute_forge_userdev_uncached(context, true, None, None)?;
     Ok((
         ForgeDevHold::default(),
         McpHold::default(),
@@ -750,6 +820,16 @@ fn required_minecraft_mapping_url<'a>(
 }
 
 fn loader_dev_compile_jar(context: &ExecutionContext<'_>) -> PathBuf {
+    #[cfg(target_os = "linux")]
+    if let Some(path) = context
+        .linux_forge
+        .lock()
+        .expect("Linux Forge state poisoned")
+        .path("forge", "dev_compile.jar")
+        .expect("invalid held Forge role")
+    {
+        return path;
+    }
     #[cfg(windows)]
     if let Some(held) = context
         .held_forge_dev_jar_path
@@ -831,6 +911,11 @@ fn java_properties_escape(input: &str) -> String {
 fn execute_dependency_deobf(
     context: &ExecutionContext<'_>,
 ) -> eyre::Result<Vec<DependencyRemapHold>> {
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(context.plan) {
+        linux_forge_cache::dependencies(context, false)?;
+        return Ok(Vec::new());
+    }
     let output = context.plan.cache_dir.join("dependencies");
     {
         let _span = tracing::debug_span!(
@@ -1852,12 +1937,33 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             0
         };
         if !main_cache_hit || patches > 0 {
-            write_project_java_cache(
-                context,
-                &main_state_path,
-                &main_fingerprint,
-                &[("classes", &classes_dir), ("resources", &resources_dir)],
-            )?;
+            let ap_mapping = project_root.join("compileJava-mappings.tsrg");
+            let explicit = main_explicit_output_files(context, &ap_mapping);
+            if explicit.is_empty() {
+                write_project_java_cache(
+                    context,
+                    &main_state_path,
+                    &main_fingerprint,
+                    &[("classes", &classes_dir), ("resources", &resources_dir)],
+                )?;
+            } else if project_java_cache_reuse_allowed(context) {
+                context.recheck_compiler_image()?;
+                project_compilation_cache::record_admitted(
+                    &context.plan.cache_dir,
+                    &main_state_path,
+                    &main_fingerprint,
+                    &[("classes", &classes_dir), ("resources", &resources_dir)],
+                    &explicit,
+                    || context.bail_if_cancelled(),
+                    || context.recheck_compiler_image(),
+                )?;
+            } else {
+                project_compilation_cache::invalidate(
+                    &context.plan.cache_dir,
+                    &main_state_path,
+                    || context.bail_if_cancelled(),
+                )?;
+            }
         }
     }
     {
@@ -1971,6 +2077,21 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
 }
 
 fn project_java_cache_reuse_allowed(context: &ExecutionContext<'_>) -> bool {
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(context.plan)
+        && (!context
+            .linux_forge
+            .lock()
+            .expect("Linux Forge state poisoned")
+            .ready_for_compiler()
+            || context
+                .selected_dependency_remaps
+                .lock()
+                .expect("selected remaps poisoned")
+                .is_none())
+    {
+        return false;
+    }
     #[cfg(any(windows, target_os = "linux"))]
     {
         context.compiler_image_identity.is_some()
@@ -1991,12 +2112,14 @@ fn write_project_java_cache(
 ) -> eyre::Result<()> {
     context.recheck_compiler_image()?;
     if project_java_cache_reuse_allowed(context) {
-        project_compilation_cache::record(
+        project_compilation_cache::record_admitted(
             &context.plan.cache_dir,
             state,
             fingerprint,
             outputs,
+            &[],
             || context.bail_if_cancelled(),
+            || context.recheck_compiler_image(),
         )
     } else {
         // Do not leave an older valid marker authorizing outputs overwritten
@@ -2016,7 +2139,7 @@ fn verified_java_cache_matches(
     context.bail_if_cancelled()?;
     context.plan.recheck_named_sdk()?;
     context.recheck_compiler_image()?;
-    Ok(!context.plan.refresh
+    let matches = !context.plan.refresh
         && project_java_cache_reuse_allowed(context)
         && project_compilation_cache::matches(
             &context.plan.cache_dir,
@@ -2024,7 +2147,9 @@ fn verified_java_cache_matches(
             fingerprint,
             outputs,
             || context.bail_if_cancelled(),
-        )?)
+        )?;
+    context.recheck_compiler_image()?;
+    Ok(matches)
 }
 
 fn requires_forge_dependency_deobf(dependency: &DependencyPlan) -> bool {
@@ -2040,6 +2165,18 @@ fn required_main_class_output(classes_dir: &Path) -> PathBuf {
         .join("SFM.class")
 }
 
+fn main_explicit_output_files<'a>(
+    context: &ExecutionContext<'_>,
+    ap_mapping: &'a Path,
+) -> Vec<(&'static str, &'a Path)> {
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(context.plan) {
+        return vec![("mixin_ap_mapping", ap_mapping)];
+    }
+    let _ = (context, ap_mapping);
+    Vec::new()
+}
+
 fn main_compilation_cache_matches(
     context: &ExecutionContext<'_>,
     state_path: &Path,
@@ -2052,12 +2189,12 @@ fn main_compilation_cache_matches(
         context.bail_if_cancelled()?;
         context.plan.recheck_named_sdk()?;
         context.recheck_compiler_image()?;
-        return Ok(!context.plan.refresh
+        let matches = !context.plan.refresh
             && project_java_cache_reuse_allowed(context)
             && required_main_class.is_file()
             && (context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
                 || main_refmap.is_file())
-            && project_compilation_cache::matches(
+            && project_compilation_cache::matches_with_files(
                 &context.plan.cache_dir,
                 state_path,
                 expected_state,
@@ -2065,8 +2202,17 @@ fn main_compilation_cache_matches(
                     ("classes", classes_dir),
                     ("resources", main_refmap.parent().expect("refmap parent")),
                 ],
+                &main_explicit_output_files(
+                    context,
+                    &context
+                        .plan
+                        .cache_dir
+                        .join("project/compileJava-mappings.tsrg"),
+                ),
                 || context.bail_if_cancelled(),
-            )?);
+            )?;
+        context.recheck_compiler_image()?;
+        return Ok(matches);
     }
     Ok(!context.immutable_neoform_profile
         && cache_state_matches_outputs(
@@ -2494,13 +2640,9 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     let staged_resources_dir = project_root.join("staged-resources");
     let ProjectPackageInputPaths {
         development_jar,
-        reobf_mapping: _local_reobf_mapping,
+        reobf_mapping,
         mixin_reobf_mapping,
-    } = project_package_input_paths(
-        &context.plan.cache_dir,
-        context.plan.minecraft_version.as_str(),
-    );
-    let reobf_mapping = context.forge_mapping_path("official_to_srg.tsrg");
+    } = context.selected_package_input_paths()?;
     tracing::info!(
         development_jar = %development_jar.display(),
         staged_resources_dir = %staged_resources_dir.display(),

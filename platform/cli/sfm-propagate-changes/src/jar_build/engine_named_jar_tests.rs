@@ -501,12 +501,20 @@ mod named_forge_jar_tests {
         }
         let producer = include_str!("engine_execute.rs");
         let admission = include_str!("engine_named_jar.rs");
-        assert!(producer.contains("} = project_package_input_paths("));
+        assert!(producer.contains("} = context.selected_package_input_paths()?"));
         // Ignore formatting in this source check, never in live argument admission.
         let compact_admission = admission.split_whitespace().collect::<String>();
         assert_eq!(
             compact_admission
                 .matches("=project_package_input_paths(")
+                .count(),
+            1
+        );
+        // Admission, launch guard and persisted receipt all resolve the same
+        // selected role, while the original lexical constructor remains central.
+        assert_eq!(
+            compact_admission
+                .matches(".selected_package_input_paths()?")
                 .count(),
             4
         );

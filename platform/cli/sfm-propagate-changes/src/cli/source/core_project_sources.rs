@@ -20,7 +20,7 @@ use std::path::PathBuf;
 pub struct CoreProjectSourcesArgs {
     #[facet(flatten)]
     pub project: CoreProjectSelectionArgs,
-    /// Exact reviewed released `NeoForm` recipe; never a development profile.
+    /// Exact reviewed released `NeoForm` or MCP/Forge recipe; never a development profile.
     #[facet(args::named)]
     pub released_recipe: String,
     /// Explicit SDK home; otherwise use the selected lock pin.

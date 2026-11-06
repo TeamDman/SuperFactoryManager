@@ -33,12 +33,37 @@ fn manifest_path(state: &Path) -> PathBuf {
     state.with_extension("outputs.json")
 }
 
+#[cfg(any(test, windows))]
 pub(super) fn record(
     cache: &Path,
     state: &Path,
     fingerprint: &str,
     roots: &[(&str, &Path)],
     check: impl Fn() -> Result<()>,
+) -> Result<()> {
+    record_with_files(cache, state, fingerprint, roots, &[], check)
+}
+
+#[cfg(any(test, windows))]
+pub(super) fn record_with_files(
+    cache: &Path,
+    state: &Path,
+    fingerprint: &str,
+    roots: &[(&str, &Path)],
+    files: &[(&str, &Path)],
+    check: impl Fn() -> Result<()>,
+) -> Result<()> {
+    record_admitted(cache, state, fingerprint, roots, files, &check, &check)
+}
+
+pub(super) fn record_admitted(
+    cache: &Path,
+    state: &Path,
+    fingerprint: &str,
+    roots: &[(&str, &Path)],
+    files: &[(&str, &Path)],
+    check: impl Fn() -> Result<()>,
+    admit: impl Fn() -> Result<()>,
 ) -> Result<()> {
     check()?;
     checked_location(
@@ -48,9 +73,9 @@ pub(super) fn record(
             .ok_or_else(|| eyre::eyre!("Missing state parent"))?,
     )?;
     let manifest = CompilationOutputManifest {
-        schema: "sfm:local_compilation_outputs@1".to_owned(),
+        schema: schema(files).to_owned(),
         input_fingerprint: fingerprint.to_owned(),
-        outputs: inventory(cache, roots, &check)?,
+        outputs: inventory(cache, roots, files, &check)?,
     };
     let text = facet_json::to_string(&manifest)?;
     ensure!(
@@ -59,7 +84,10 @@ pub(super) fn record(
     );
     let path = manifest_path(state);
     check()?;
+    admit()?;
+    write_record(cache, state, b"sfm:compilation_inventory_incomplete@1")?;
     write_record(cache, &path, text.as_bytes())?;
+    admit()?;
     write_record(cache, state, fingerprint.as_bytes())?;
     Ok(())
 }
@@ -107,8 +135,27 @@ pub(super) fn matches(
     roots: &[(&str, &Path)],
     check: impl Fn() -> Result<()>,
 ) -> Result<bool> {
+    matches_with_files(cache, state, fingerprint, roots, &[], check)
+}
+
+fn schema(files: &[(&str, &Path)]) -> &'static str {
+    if files.is_empty() {
+        "sfm:local_compilation_outputs@1"
+    } else {
+        "sfm:local_compilation_outputs@2"
+    }
+}
+
+pub(super) fn matches_with_files(
+    cache: &Path,
+    state: &Path,
+    fingerprint: &str,
+    roots: &[(&str, &Path)],
+    files: &[(&str, &Path)],
+    check: impl Fn() -> Result<()>,
+) -> Result<bool> {
     check()?;
-    let result = checked_matches(cache, state, fingerprint, roots, &check);
+    let result = checked_matches(cache, state, fingerprint, roots, files, &check);
     // Cancellation remains an error; damaged old output inventories are misses.
     check()?;
     match result {
@@ -125,6 +172,7 @@ fn checked_matches(
     state: &Path,
     fingerprint: &str,
     roots: &[(&str, &Path)],
+    files: &[(&str, &Path)],
     check: &impl Fn() -> Result<()>,
 ) -> Result<bool> {
     let state_file = open_read(state)?;
@@ -153,13 +201,13 @@ fn checked_matches(
         "Compilation inventory changed during read"
     );
     let manifest: CompilationOutputManifest = facet_json::from_slice(&bytes)?;
-    if manifest.schema != "sfm:local_compilation_outputs@1"
+    if manifest.schema != schema(files)
         || manifest.input_fingerprint != fingerprint
         || manifest.outputs.len() > MAX_FILES
     {
         return Ok(false);
     }
-    let actual = inventory(cache, roots, check)?;
+    let actual = inventory(cache, roots, files, check)?;
     Ok(actual == manifest.outputs)
 }
 
@@ -245,6 +293,7 @@ fn single_link(_file: &fs::File) -> Result<()> {
 fn inventory(
     cache: &Path,
     roots: &[(&str, &Path)],
+    files: &[(&str, &Path)],
     check: &impl Fn() -> Result<()>,
 ) -> Result<Vec<CompilationOutputEntry>> {
     let started = std::time::Instant::now();
@@ -258,6 +307,26 @@ fn inventory(
         checked_location(cache, root)?;
         collect(root, root, name, &mut paths, &mut visited, check)?;
     }
+    for (label, path) in files {
+        ensure!(
+            !label.is_empty()
+                && label
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'_'),
+            "unsafe explicit output label"
+        );
+        checked_location(cache, path)?;
+        ensure!(
+            regular(&fs::symlink_metadata(path)?),
+            "explicit compilation output must be a regular file"
+        );
+        ensure!(
+            paths
+                .insert(format!("{label}/__file__"), path.to_path_buf())
+                .is_none(),
+            "duplicate explicit compilation output"
+        );
+    }
     let mut buffer = vec![0_u8; 64 * 1024];
     let mut entries = Vec::with_capacity(paths.len());
     let mut total = 0_u64;
@@ -265,6 +334,7 @@ fn inventory(
         check()?;
         let mut file = open_read(&path)?;
         let metadata = file.metadata()?;
+        let identity = crate::file_identity::file_identity(&file)?;
         ensure!(
             regular(&metadata) && metadata.len() <= MAX_FILE_BYTES,
             "Unsafe or oversized compilation output"
@@ -293,6 +363,12 @@ fn inventory(
         ensure!(
             bytes == metadata.len() && file.metadata()?.len() == bytes,
             "Compilation output changed during inventory"
+        );
+        let reopened = open_read(&path)?;
+        ensure!(
+            crate::file_identity::file_identity(&reopened)? == identity
+                && reopened.metadata()?.len() == bytes,
+            "compilation output pathname changed during inventory"
         );
         total += bytes;
         ensure!(

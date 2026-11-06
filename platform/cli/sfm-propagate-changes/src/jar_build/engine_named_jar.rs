@@ -763,6 +763,44 @@ fn require_named_package_work_tree(cache_dir: &Path, relative: &str) -> eyre::Re
 }
 
 impl ExecutionContext<'_> {
+    fn named_package_input_lock(
+        &self,
+        path: &Path,
+    ) -> eyre::Result<Option<GuardedArtifactReadLock>> {
+        #[cfg(target_os = "linux")]
+        if self
+            .linux_forge
+            .lock()
+            .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+            .holds(path)?
+        {
+            self.recheck_compiler_image()?;
+            return Ok(None);
+        }
+        Ok(Some(acquire_artifact_path_read_lock_cancellable(
+            path,
+            &self.cancellation_token,
+        )?))
+    }
+    fn selected_package_input_paths(&self) -> eyre::Result<ProjectPackageInputPaths> {
+        let mut paths =
+            project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        // Preserve Windows development's held shared mapping selection as well
+        // as the original project-local fallback on other routes.
+        paths.reobf_mapping = self.forge_mapping_path("official_to_srg.tsrg");
+        #[cfg(target_os = "linux")]
+        if linux_forge_cache::eligible(self.plan) {
+            self.recheck_compiler_image()?;
+            let mapping = self
+                .linux_forge
+                .lock()
+                .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+                .path("forge", "official_to_srg.tsrg")?
+                .ok_or_else(|| eyre::eyre!("named package lost held mapping"))?;
+            paths.reobf_mapping = mapping;
+        }
+        Ok(paths)
+    }
     fn require_named_package_paths(&self) -> eyre::Result<()> {
         let Some(project) = self.plan.named_project() else {
             return Ok(());
@@ -792,16 +830,21 @@ impl ExecutionContext<'_> {
         ] {
             require_named_package_work_tree(&self.plan.cache_dir, relative)?;
         }
-        let paths =
-            project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        let paths = self.selected_package_input_paths()?;
         require_named_jar_output_path(&self.plan.minecraft_dir, &expected)?;
-        for path in [
-            &paths.development_jar,
-            &paths.mixin_reobf_mapping,
-            &paths.reobf_mapping,
-        ] {
+        for path in [&paths.development_jar, &paths.mixin_reobf_mapping] {
             require_named_jar_output_path(&self.plan.cache_dir, path)?;
         }
+        #[cfg(target_os = "linux")]
+        if linux_forge_cache::eligible(self.plan) {
+            eyre::ensure!(
+                paths.reobf_mapping == self.forge_mapping_path("official_to_srg.tsrg"),
+                "named package mapping differs from held output role"
+            );
+            self.recheck_compiler_image()?;
+            return Ok(());
+        }
+        require_named_jar_output_path(&self.plan.cache_dir, &paths.reobf_mapping)?;
         Ok(())
     }
 
@@ -836,8 +879,7 @@ impl ExecutionContext<'_> {
             "named Jar classpath exceeds bound"
         );
         let pins = self.named_package_classpath_pins(&resolver)?;
-        let paths =
-            project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        let paths = self.selected_package_input_paths()?;
         let official = paths.reobf_mapping;
         let mixin = paths.mixin_reobf_mapping;
         let tool = self.artifact(ArtifactId::from("tool-specialsource"))?;
@@ -876,12 +918,9 @@ impl ExecutionContext<'_> {
         let mut held_bytes = 0_u64;
         for (role, path, expected) in requests {
             self.assert_allowed_input(path)?;
-            admission
-                .held_locks
-                .push(acquire_artifact_path_read_lock_cancellable(
-                    path,
-                    &self.cancellation_token,
-                )?);
+            if let Some(lock) = self.named_package_input_lock(path)? {
+                admission.held_locks.push(lock);
+            }
             let held = NamedPackageHeldFile::read(role, path, &expected)?;
             held_bytes = held_bytes
                 .checked_add(held.bytes())
@@ -928,11 +967,15 @@ impl ExecutionContext<'_> {
     ) -> eyre::Result<BTreeMap<PathBuf, ContentHash>> {
         let mut pins = BTreeMap::new();
         let root = self.plan.cache_dir.join("dependencies");
-        require_named_jar_cache_tree(&root)?;
-        let mapping = self.plan.cache_dir.join(format!(
-            "forge/{}/mappings/srg_to_official.tsrg",
-            self.plan.minecraft_version
-        ));
+        #[cfg(target_os = "linux")]
+        let shared = linux_forge_cache::eligible(self.plan);
+        #[cfg(not(target_os = "linux"))]
+        let shared = false;
+        if !shared {
+            require_named_jar_cache_tree(&root)?;
+        }
+        self.recheck_compiler_image()?;
+        let mapping = self.forge_mapping_path("srg_to_official.tsrg");
         let mapping_hash = capture_named_package_hash(&mapping)?;
         let mut allowed = BTreeSet::new();
         for dependency in self
@@ -1051,8 +1094,7 @@ impl ExecutionContext<'_> {
         fresh: Option<&fresh_jar_output::FreshJarOutput>,
     ) -> eyre::Result<()> {
         let writer_output = project_package_writer_output(self.plan, fresh)?;
-        let paths =
-            project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        let paths = self.selected_package_input_paths()?;
         if fresh.is_some() {
             require_named_jar_invocation(
                 args,
@@ -1130,10 +1172,9 @@ impl ExecutionContext<'_> {
         for (role, path, expected) in requests {
             require_named_jar_path(path)?;
             self.assert_allowed_input(path)?;
-            read_locks.push(acquire_artifact_path_read_lock_cancellable(
-                path,
-                &self.cancellation_token,
-            )?);
+            if let Some(lock) = self.named_package_input_lock(path)? {
+                read_locks.push(lock);
+            }
             let held = NamedPackageHeldFile::read(role, path, &expected)?;
             held_bytes = held_bytes
                 .checked_add(held.bytes())
@@ -1396,10 +1437,7 @@ impl NamedPackageLaunchReceipt {
             .plan
             .named_project()
             .ok_or_else(|| eyre::eyre!("missing named Jar owner"))?;
-        let paths = project_package_input_paths(
-            &context.plan.cache_dir,
-            context.plan.minecraft_version.as_str(),
-        );
+        let paths = context.selected_package_input_paths()?;
         Ok(Self {
             schema: "sfm:named_jar_specialsource_launch@1".to_owned(),
             mode: "project_jar_two_mappings_live".to_owned(),

@@ -3,7 +3,7 @@
 //! The common SDK/tool/mapping owner stays on the caller thread. This owner
 //! captures only this dependency's actual bytes and retains its existing leases.
 
-#[cfg(test)]
+#[cfg(all(test, windows))]
 #[path = "dependency_remap_artifact_inputs_tests.rs"]
 mod tests;
 

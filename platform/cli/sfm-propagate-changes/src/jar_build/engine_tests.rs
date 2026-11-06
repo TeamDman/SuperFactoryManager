@@ -5028,8 +5028,10 @@ fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionCont
         held_forge_dev_jar_path: std::sync::Mutex::new(None),
         #[cfg(windows)]
         held_shared_preparation: std::sync::Mutex::new(Vec::new()),
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "linux"))]
         forge_sdk_image: std::sync::Mutex::new(None),
+        #[cfg(target_os = "linux")]
+        linux_forge: std::sync::Mutex::new(super::linux_forge_cache::State::default()),
         selected_dependency_remaps: std::sync::Mutex::new(None),
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,

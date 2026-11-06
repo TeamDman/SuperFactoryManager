@@ -569,6 +569,16 @@ fn create_plan_for_project(
         java.execution_identity = Some(sdk_identity.clone());
         if let Some(root) = &options.derived_cache_root {
             let key = stable_overridden_project_namespace(target, &sdk_identity)?;
+            #[cfg(target_os = "linux")]
+            let key = if matches!(target, BuildProjectIdentity::Catalog { .. })
+                && named_forge_compile_recipe_for_project(project).is_ok()
+            {
+                crate::source_projection::provenance::sha256(
+                    format!("sfm:linux_forge_project@1\n{key}\n").as_bytes(),
+                )
+            } else {
+                key
+            };
             cache_dir = root.prepare_directory(
                 &format!("projects/{}", key.trim_start_matches("sha256:")),
                 cancellation_token,

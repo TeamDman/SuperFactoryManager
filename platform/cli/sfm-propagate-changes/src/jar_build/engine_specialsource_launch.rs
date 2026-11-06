@@ -452,11 +452,61 @@ impl SpecialSourceLaunchReceipt {
     }
 }
 
+/// A private fresh remap destination anchored to its retained new-generation
+/// attempt. It cannot select arbitrary extraction or packaging paths.
+#[cfg(target_os = "linux")]
+struct OwnedDependencyRemapOutput<'a> {
+    directory: &'a crate::jar_build::local_dependency_cache::linux_io::Directory,
+}
+#[cfg(not(target_os = "linux"))]
+struct OwnedDependencyRemapOutput<'a> {
+    _unavailable: std::convert::Infallible,
+    _lifetime: std::marker::PhantomData<&'a ()>,
+}
+impl OwnedDependencyRemapOutput<'_> {
+    fn require(
+        &self,
+        context: &ExecutionContext<'_>,
+        output: &Path,
+        diagnostic: &Path,
+        mapping: &Path,
+    ) -> eyre::Result<()> {
+        #[cfg(target_os = "linux")]
+        {
+            eyre::ensure!(
+                linux_forge_cache::eligible(context.plan),
+                "owned remap requires reviewed Linux Forge authority"
+            );
+            self.directory.recheck()?;
+            self.directory.require_owner()?;
+            eyre::ensure!(
+                output == self.directory.path.join("specialsource.jar")
+                    && diagnostic == self.directory.path.join("diagnostics")
+                    && mapping == context.forge_mapping_path("srg_to_official.tsrg"),
+                "owned remap output/mapping role differs"
+            );
+            context.recheck_compiler_image()?;
+            Ok(())
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (context, output, diagnostic, mapping);
+            match self._unavailable {}
+        }
+    }
+    fn root(&self) -> &Path {
+        #[cfg(target_os = "linux")]
+        {
+            &self.directory.path
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            match self._unavailable {}
+        }
+    }
+}
+
 impl ExecutionContext<'_> {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "The exact recipe guard and launch receipt are kept in one reviewable caller."
-    )]
     fn run_dependency_specialsource(
         &self,
         input: &ArtifactPlan,
@@ -466,6 +516,41 @@ impl ExecutionContext<'_> {
         coordinate: &MavenCoordinate,
         diagnostic_dir: &Path,
     ) -> eyre::Result<()> {
+        self.run_dependency_specialsource_selected(
+            input,
+            output,
+            mapping,
+            mapping_hash,
+            coordinate,
+            diagnostic_dir,
+            None,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        clippy::too_many_lines,
+        reason = "Keep the original exact recipe/launch receipt and the typed owned destination in one admission lifecycle."
+    )]
+    fn run_dependency_specialsource_selected(
+        &self,
+        input: &ArtifactPlan,
+        output: &Path,
+        mapping: &Path,
+        mapping_hash: ContentHash,
+        coordinate: &MavenCoordinate,
+        diagnostic_dir: &Path,
+        owned: Option<&OwnedDependencyRemapOutput<'_>>,
+    ) -> eyre::Result<()> {
+        if let Some(owned) = owned {
+            owned.require(self, output, diagnostic_dir, mapping)?;
+            match fs::symlink_metadata(output) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                _ => {
+                    eyre::bail!("owned remap output already exists or cannot be checked");
+                }
+            }
+        }
         let Some(project) = self.plan.named_project().filter(|project| {
             reviewed_specialsource_project_recipe(project.project().receipt()).is_some()
         }) else {
@@ -544,7 +629,11 @@ impl ExecutionContext<'_> {
                 && input.provenance.hash.to_string() == input_request.original_content_hash(),
             "reviewed SpecialSource input differs from its original prepared artifact"
         );
-        let original_output_root = self.plan.cache_dir.join("dependencies");
+        let original_output_root = if let Some(owned) = owned {
+            owned.root().to_path_buf()
+        } else {
+            self.plan.cache_dir.join("dependencies")
+        };
         let expected_output = specialsource_dependency_output_path(
             &original_output_root,
             &input.provenance.hash,
@@ -555,10 +644,16 @@ impl ExecutionContext<'_> {
             .join("remap-work")
             .join(safe_path_segment(&coordinate.file_name()));
         let expected_mapping = recipe.mapping_path(&self.plan.cache_dir);
-        eyre::ensure!(
+        let correct_paths = if let Some(owned) = owned {
+            owned.require(self, output, diagnostic_dir, mapping)?;
+            true
+        } else {
             output == expected_output
                 && diagnostic_dir == expected_diagnostic
-                && mapping == expected_mapping,
+                && mapping == expected_mapping
+        };
+        eyre::ensure!(
+            correct_paths,
             "reviewed SpecialSource output/mapping/diagnostic paths differ from the original context-owned recipe"
         );
         self.assert_allowed_input(&tool.cache_path)?;
@@ -665,6 +760,9 @@ impl ExecutionContext<'_> {
             self.bail_if_cancelled()?;
             project.recheck(false)?;
             self.plan.recheck_named_sdk()?;
+            if let Some(owned) = owned {
+                owned.require(self, output, diagnostic_dir, mapping)?;
+            }
             refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
             super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
             tool_file.recheck()?;
@@ -702,6 +800,14 @@ impl ExecutionContext<'_> {
             },
         );
         super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
+        if let Some(owned) = owned {
+            owned.require(
+                self,
+                Path::new(&receipt.output_jar),
+                diagnostic_dir,
+                mapping,
+            )?;
+        }
         let output = match output {
             Ok(output) => output,
             Err(error) => {

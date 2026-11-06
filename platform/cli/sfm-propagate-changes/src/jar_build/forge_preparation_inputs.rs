@@ -5,18 +5,25 @@
 
 #[path = "forge_preparation_capture.rs"]
 mod capture;
+#[cfg(windows)]
 #[path = "held_forge_preparation_input.rs"]
+mod held_input;
+#[cfg(target_os = "linux")]
+#[path = "linux_forge_input.rs"]
 mod held_input;
 #[path = "forge_preparation_input_request.rs"]
 mod input_request;
 #[path = "dependency_remap_artifact_inputs.rs"]
 mod remap_artifact;
-#[cfg(test)]
+#[cfg(all(test, windows))]
 #[path = "dependency_remap_common_inputs_tests.rs"]
 mod remap_tests;
 
 pub(in crate::jar_build::engine) use remap_artifact::DependencyRemapArtifactInputs;
-#[cfg(test)]
+#[cfg(all(test, target_os = "linux"))]
+#[path = "linux_forge_inputs_tests.rs"]
+mod linux_tests;
+#[cfg(all(test, windows))]
 #[path = "forge_preparation_inputs_tests.rs"]
 mod tests;
 
@@ -41,7 +48,10 @@ use super::super::verify_named_sdk_identity;
 use crate::jar_build::local_dependency_image::LocalDependencyImage;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::core_input_leases::DirectoryLeases;
+#[cfg(windows)]
 use crate::source_projection::core_input_leases::MAX_DIRECTORY_LEASES;
+#[cfg(target_os = "linux")]
+const MAX_DIRECTORY_LEASES: usize = 16_384;
 use crate::source_projection::provenance::sha256;
 use capture::ForgePreparationCapture;
 use eyre::Result;
@@ -69,6 +79,10 @@ pub(in crate::jar_build::engine) struct ForgePreparationInputs {
     directories: DirectoryLeases,
     // Mutually exclusive bounded role bytes: Forge AT or the remap mapping.
     at: Option<Vec<u8>>,
+    #[cfg(target_os = "linux")]
+    trust: Option<crate::jar_build::java_trust::JavaTrust>,
+    #[cfg(target_os = "linux")]
+    trust_identity: String,
 }
 
 impl ForgePreparationInputs {
@@ -93,9 +107,8 @@ impl ForgePreparationInputs {
             return Ok(None);
         }
         if kind == "forge" {
-            let BuildProjectIdentity::Development { project, .. } = &context.plan.identity else {
-                eyre::bail!("Forge preparation lost its checked development owner");
-            };
+            let (project, _) = selected_project(context)
+                .ok_or_else(|| eyre::eyre!("Forge preparation lost its checked owner"))?;
             if !owner.capture_at(context, project, &mut hash)? {
                 return Ok(None);
             }
@@ -107,14 +120,10 @@ impl ForgePreparationInputs {
         context: &ExecutionContext<'_>,
         kind: &str,
     ) -> Result<Option<(Self, Sha256)>> {
-        let BuildProjectIdentity::Development { project, target } = &context.plan.identity else {
+        let Some((project, lock_sha256)) = selected_project(context) else {
             return Ok(None);
         };
-        if context.plan.minecraft_version.as_str() != "1.19.2"
-            || context.plan.loader_toolchain.kind != LoaderToolchainKind::ForgeGradleForge
-            || target.receipt.loader != "forge"
-            || !clean_environment()
-        {
+        if !supported(context) || !clean_environment() {
             return Ok(None);
         }
         let Some(sdk_identity) = &context.plan.java.execution_identity else {
@@ -126,6 +135,15 @@ impl ForgePreparationInputs {
             .require_strict("ordinary Forge preparation authority")?;
         context.plan.recheck_named_inputs()?;
         verify_named_sdk_identity(&context.plan.java)?;
+        #[cfg(target_os = "linux")]
+        let trust = crate::jar_build::java_trust::JavaTrust::from_environment_for_major(
+            context.plan.java.major_version,
+        )?;
+        #[cfg(target_os = "linux")]
+        let trust_identity = trust.as_ref().map_or_else(
+            || "jdk-default".to_owned(),
+            crate::jar_build::java_trust::JavaTrust::identity,
+        );
         let mut owner = Self {
             fingerprint: String::new(),
             kind: kind.to_owned(),
@@ -134,6 +152,10 @@ impl ForgePreparationInputs {
             files: Vec::new(),
             directories: DirectoryLeases::default(),
             at: None,
+            #[cfg(target_os = "linux")]
+            trust,
+            #[cfg(target_os = "linux")]
+            trust_identity,
         };
         if !owner.capture_sdk(context)? {
             return Ok(None);
@@ -156,7 +178,7 @@ impl ForgePreparationInputs {
                 .get("mapping_version")
                 .map(String::as_str),
         );
-        if !owner.capture_lock(context, project, &target.receipt.lockfile_sha256)? {
+        if !owner.capture_lock(context, project, lock_sha256)? {
             return Ok(None);
         }
         Ok(Some((owner, hash)))
@@ -166,11 +188,14 @@ impl ForgePreparationInputs {
         context: &ExecutionContext<'_>,
         mapping_path: &Path,
     ) -> Result<Option<Self>> {
-        let BuildProjectIdentity::Development { project, .. } = &context.plan.identity else {
+        let Some((project, _)) = selected_project(context) else {
             return Ok(None);
         };
+        #[cfg(target_os = "linux")]
+        let _ = project;
         // Strict owners can install a read pool and steal a second producer
         // while a key lock is held. Keep their original route and all checks.
+        #[cfg(windows)]
         if !project.uses_invocation_source_checks() {
             tracing::info!(
                 reason = "independent_source_checks",
@@ -221,6 +246,10 @@ impl ForgePreparationInputs {
 
     fn finish(mut self, context: &ExecutionContext<'_>, hash: Sha256) -> Result<Self> {
         self.recheck(context)?;
+        #[cfg(target_os = "linux")]
+        let mut hash = hash;
+        #[cfg(target_os = "linux")]
+        append(&mut hash, self.trust_identity.as_bytes());
         self.fingerprint = finish_fingerprint(
             hash,
             &self.kind,
@@ -238,6 +267,7 @@ impl ForgePreparationInputs {
         &self.fingerprint
     }
 
+    #[cfg(windows)]
     pub(super) fn at_bytes(&self) -> Option<&[u8]> {
         if self.kind == "forge" {
             self.at.as_deref()
@@ -260,6 +290,21 @@ impl ForgePreparationInputs {
         &self,
         context: &ExecutionContext<'_>,
     ) -> Result<()> {
+        #[cfg(target_os = "linux")]
+        {
+            crate::jar_build::java_trust::JavaTrust::recheck_optional(self.trust.as_ref())?;
+            ensure!(
+                crate::jar_build::java_trust::JavaTrust::from_environment_for_major(
+                    context.plan.java.major_version
+                )?
+                .as_ref()
+                .map_or_else(
+                    || "jdk-default".to_owned(),
+                    crate::jar_build::java_trust::JavaTrust::identity
+                ) == self.trust_identity,
+                "selected producer Java trust changed"
+            );
+        };
         recheck_captured_inputs(
             context,
             &self.sdk_identity,
@@ -270,6 +315,7 @@ impl ForgePreparationInputs {
 
     /// Share only Sync evidence, while the original directory-lease owner stays
     /// on the calling thread through the whole parallel remap node.
+    #[cfg(windows)]
     pub(in crate::jar_build::engine) fn remap_recheck(
         &self,
     ) -> impl Fn(&ExecutionContext<'_>) -> Result<()> + Sync + '_ {
@@ -285,7 +331,14 @@ impl ForgePreparationInputs {
         };
         for (role, path) in [
             ("sdk:java", context.plan.java.executable.clone()),
-            ("sdk:javac", home.join("bin/javac.exe")),
+            (
+                "sdk:javac",
+                home.join(if cfg!(windows) {
+                    "bin/javac.exe"
+                } else {
+                    "bin/javac"
+                }),
+            ),
             ("sdk:release", home.join("release")),
             ("sdk:modules", home.join("lib/modules")),
         ] {
@@ -670,12 +723,15 @@ fn finish_fingerprint(
     files: &[HeldForgePreparationInput],
 ) -> String {
     append(&mut hash, kind.as_bytes());
+    #[cfg(windows)]
     append(&mut hash, sdk_identity.as_bytes());
+    #[cfg(target_os = "linux")]
+    let _ = sdk_identity; // The separately rechecked invocation identity contains SDK paths.
     append(&mut hash, sdk_image_identity.as_bytes());
     let mut files = files.iter().collect::<Vec<_>>();
     files.sort_by(|left, right| left.role.cmp(&right.role));
     for input in files {
-        if input.role.starts_with("selected-lock:") {
+        if cfg!(windows) && input.role.starts_with("selected-lock:") {
             // Full-lock admission remains mandatory, but an unrelated record
             // must not split a reusable Forge/MCP transformation key.
             continue;
@@ -696,6 +752,11 @@ fn validate_selected_lock(current: &[u8], selected: &[u8], expected: &str) -> Re
 }
 
 fn clean_environment() -> bool {
+    if cfg!(target_os = "linux")
+        && !crate::jar_build::local_dependency_cache::environment_allows_reuse()
+    {
+        return false;
+    }
     environment_is_clean(|name| {
         let value = std::env::var_os(name);
         if value.is_some() {
@@ -747,6 +808,10 @@ fn artifact_request(
     Ok(request)
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep the ordered exact producer source regions and recipe configuration together for key review."
+)]
 fn recipe_basis(
     hash: &mut Sha256,
     kind: &str,
@@ -757,6 +822,16 @@ fn recipe_basis(
     mapping_version: Option<&str>,
 ) {
     append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@5");
+    #[cfg(target_os = "linux")]
+    {
+        append(hash, b"sfm:linux_forge_preparation@1");
+        append(hash, include_bytes!("linux_forge_cache.rs"));
+        append(hash, include_bytes!("linux_forge_store.rs"));
+        append(hash, include_bytes!("linux_forge_input.rs"));
+        append(hash, include_bytes!("local_dependency_linux_image.rs"));
+        append(hash, include_bytes!("local_dependency_linux_io.rs"));
+        append(hash, include_bytes!("java_trust.rs"));
+    };
     append(hash, kind.as_bytes());
     append(hash, std::env::consts::OS.as_bytes());
     append(hash, std::env::consts::ARCH.as_bytes());
@@ -929,4 +1004,33 @@ fn append_remap_recipe(hash: &mut Sha256) {
 fn append(hash: &mut Sha256, bytes: &[u8]) {
     hash.update((bytes.len() as u64).to_le_bytes());
     hash.update(bytes);
+}
+
+fn selected_project<'a>(
+    context: &'a ExecutionContext<'_>,
+) -> Option<(&'a CatalogOwnedProject, &'a str)> {
+    match &context.plan.identity {
+        BuildProjectIdentity::Development { project, target } => {
+            Some((project, &target.receipt.lockfile_sha256))
+        }
+        #[cfg(target_os = "linux")]
+        BuildProjectIdentity::Catalog { frozen } => Some((
+            frozen.project(),
+            &frozen.dependencies().receipt().source_lock_sha256,
+        )),
+        _ => None,
+    }
+}
+fn supported(context: &ExecutionContext<'_>) -> bool {
+    #[cfg(target_os = "linux")]
+    if let Some(project) = context.plan.named_project() {
+        return super::super::named_forge_compile_recipe_for_project(project).is_ok();
+    }
+    context.plan.minecraft_version.as_str() == "1.19.2"
+        && context.plan.loader_toolchain.kind == LoaderToolchainKind::ForgeGradleForge
+        && context
+            .plan
+            .identity
+            .development_target()
+            .is_some_and(|t| t.receipt.loader == "forge")
 }

@@ -2,6 +2,35 @@
 use super::*;
 use crate::source_projection::frozen_recipe_project::FrozenRecipeProject;
 
+#[test]
+fn released_forge_source_admission_preserves_four_original_recipes_and_live_owners()
+-> eyre::Result<()> {
+    for target in ["1.19.2", "1.19.4", "1.20", "1.20.1"] {
+        let (fixture, slot, recipe, _) = super::named_forge_compile_cohort_tests::fixture(target)?;
+        preflight_named_source_output_recipe(target, target, &recipe)?;
+        assert!(preflight_named_source_output_recipe(target, "wrong-target", &recipe).is_err());
+        assert!(
+            preflight_named_source_output_recipe(target, target, &format!("{recipe}-changed"))
+                .is_err()
+        );
+        let released =
+            super::named_forge_compile_cohort_tests::prepared(&fixture, slot, "release", &recipe)?;
+        validate_named_source_output_project(&released)?;
+        let dev =
+            super::named_forge_compile_cohort_tests::prepared(&fixture, slot, "dev", &recipe)?;
+        assert!(validate_named_source_output_project(&dev).is_err());
+        fs::write(
+            released
+                .project()
+                .project_root()
+                .join("sfm-toolchain.lock.json"),
+            b"changed lock",
+        )?;
+        assert!(validate_named_source_output_project(&released).is_err());
+    }
+    Ok(())
+}
+
 fn plan(project: FrozenRecipeProject, root: &Path) -> BuildPlan {
     let mut plan = super::tests::minimal_plan_for_paths();
     plan.minecraft_dir = project.project().project_root().to_path_buf();

@@ -74,6 +74,8 @@ impl ForgeBuildHolds {
         &mut self,
         context: &ExecutionContext<'_>,
     ) -> eyre::Result<()> {
+        #[cfg(target_os = "linux")]
+        context.recheck_compiler_image()?;
         #[cfg(windows)]
         {
             if let Some(owner) = &self.mcp_inputs {
@@ -843,6 +845,9 @@ fn execute_run_with_context(
         return Ok(());
     }
 
+    #[cfg(target_os = "linux")]
+    linux_forge_cache::reopen_for_consumer(context)?;
+
     #[cfg(windows)]
     let held_preparation_started = Instant::now();
     #[cfg(windows)]
@@ -995,8 +1000,15 @@ fn execute_run_with_context(
         .iter()
         .map(|held| held.path().to_path_buf())
         .collect::<std::collections::BTreeSet<_>>();
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    let held_remap_paths = context
+        .linux_forge
+        .lock()
+        .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+        .remap_paths()?;
+    #[cfg(not(any(windows, target_os = "linux")))]
     let held_remap_paths = std::collections::BTreeSet::<PathBuf>::new();
+    context.recheck_compiler_image()?;
     let classpath_capture_started = Instant::now();
     for path in launch_classpath
         .legacy
@@ -1075,6 +1087,7 @@ fn execute_run_with_context(
         "forge.logging.console.level".to_string(),
         "info".to_string(),
     );
+    context.recheck_compiler_image()?;
     properties.insert("mixin.env.remapRefMap".to_string(), "true".to_string());
     if plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
         let refmap = ensure_run_refmap_remapping_file(context)?;
@@ -1635,6 +1648,18 @@ fn execute_junit_tests_with_context(
     test_options: &RunTestOptions,
 ) -> eyre::Result<()> {
     let plan = context.plan;
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(plan) {
+        linux_forge_cache::reopen_for_consumer(context)?;
+        if context
+            .selected_dependency_remaps
+            .lock()
+            .map_err(|_poisoned| eyre::eyre!("selected remaps poisoned"))?
+            .is_none()
+        {
+            linux_forge_cache::dependencies(context, true)?;
+        }
+    }
     if !matches!(test_options.action, RunTestAction::Compile) {
         plan.require_strict("JUnit execution outside the compile-only cache attempt")?;
     }
@@ -1875,6 +1900,7 @@ fn execute_junit_tests_with_context(
     command
         .arg(format!("@{}", argfile.display()))
         .current_dir(working_directory);
+    context.recheck_compiler_image()?;
     let started = Instant::now();
     let output =
         run_command_capture_output(&context.cancellation_token, &mut command, "junit-test")
@@ -1885,6 +1911,7 @@ fn execute_junit_tests_with_context(
                 )
             })?;
     super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
+    context.recheck_compiler_image()?;
     if let Some(logging) = &logging {
         logging.recheck()?;
     }
@@ -3694,6 +3721,10 @@ fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
         timeout_seconds = timeout.map_or(0, |timeout| timeout.as_secs()),
     )
 )]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep owned launch, cancellation and final shared-input admission in one lifecycle."
+)]
 fn run_launch_command(
     context: &ExecutionContext<'_>,
     session: &RuntimeSession,
@@ -3733,6 +3764,7 @@ fn run_launch_command(
         }
         return Err(error);
     }
+    context.recheck_compiler_image()?;
     let spawn_attempt_utc = chrono::Utc::now();
     // Preserve the source argfile; keep any short Windows copy until JVM exit.
     let (mut child, _launch_argfile_copy) =
@@ -6710,6 +6742,8 @@ fn ensure_run_neoforge_dev_jars(
 fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
     let _span = tracing::debug_span!("ensure_run_forge_dev_jar").entered();
     let forge_version = required_property(&context.plan.properties, "neo_version")?;
+    #[cfg(target_os = "linux")]
+    linux_forge_cache::reopen_for_consumer(context)?;
     #[cfg(windows)]
     let held = forge_preparation_cache::hold_dev_jar_for_run(context)?;
     #[cfg(windows)]
@@ -6747,8 +6781,10 @@ fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<Path
         )
         .entered();
         write_run_forge_dev_jar(&input, &forge_universal.cache_path, &output)?;
+        context.recheck_compiler_image()?;
         record_run_jar(&output, &input_state)?;
     }
+    context.recheck_compiler_image()?;
     Ok(output)
 }
 
@@ -6808,6 +6844,7 @@ fn ensure_runtime_mcp_csv_mappings(context: &ExecutionContext<'_>) -> eyre::Resu
     )
     .entered();
     write_runtime_mcp_csv_mappings(&input, &output)?;
+    context.recheck_compiler_image()?;
     Ok(output)
 }
 
@@ -6827,6 +6864,7 @@ fn ensure_run_refmap_remapping_file(context: &ExecutionContext<'_>) -> eyre::Res
         .join("project")
         .join("run-refmap-remap.srg");
     write_srg_to_named_mapping_file(&input, &output)?;
+    context.recheck_compiler_image()?;
     Ok(output)
 }
 
@@ -6874,6 +6912,10 @@ fn is_api_classifier(coordinate: &MavenCoordinate) -> bool {
     coordinate.classifier.as_deref() == Some("api")
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep original configuration order and platform-specific held remap admission together."
+)]
 fn resolve_run_deobf_dependencies(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
@@ -6954,6 +6996,16 @@ fn resolve_run_deobf_dependencies(
         .entered();
         context.assert_allowed_input(&artifact.cache_path)?;
         let artifact_hash = resolved_artifact_hash(&artifact)?;
+        #[cfg(target_os = "linux")]
+        if linux_forge_cache::eligible(context.plan) {
+            output.push(linux_forge_cache::remap(
+                context,
+                &artifact,
+                &coordinate,
+                true,
+            )?);
+            continue;
+        }
         let remapped = remapped_dependency_output_path(
             &dependency_output,
             &artifact_hash,
@@ -8036,8 +8088,10 @@ struct ExecutionContext<'a> {
     held_shared_preparation: Mutex<Vec<(String, String, PathBuf)>>,
     // One held, exact SDK image per execution context. Every Forge input
     // authority shares its file handles and independently rechecks membership.
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "linux"))]
     forge_sdk_image: Mutex<Option<Arc<super::local_dependency_image::LocalDependencyImage>>>,
+    #[cfg(target_os = "linux")]
+    linux_forge: Mutex<linux_forge_cache::State>,
     // Exact deobfuscated classpath selected for this build. Its shared leaves
     // are held by execute_project_build through compile and package.
     selected_dependency_remaps: Mutex<Option<Vec<PathBuf>>>,

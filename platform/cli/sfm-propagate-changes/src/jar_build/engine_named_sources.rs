@@ -37,8 +37,11 @@ pub(crate) fn preflight_named_source_output_recipe(
         "released durable source views currently require Linux"
     );
     eyre::ensure!(
-        preflight_named_neoform_recipe(target, minecraft, recipe)?,
-        "released source outputs require an exact reviewed NeoForm recipe"
+        preflight_named_neoform_recipe(target, minecraft, recipe)?
+            || (target == minecraft
+                && ["1.19.2", "1.19.4", "1.20", "1.20.1"].contains(&target)
+                && recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1")),
+        "released source outputs require an exact reviewed NeoForm or MCP/Forge recipe"
     );
     Ok(())
 }
@@ -59,7 +62,7 @@ pub(crate) fn validate_named_source_output_project(
             == crate::source_projection::projection_catalog::ProjectionEnvironment::Release,
         "released source view requires a released owner"
     );
-    validate_named_neoform_compile(project)?;
+    validate_first_named_compile(project)?;
     project.recheck(false)
 }
 
@@ -106,6 +109,28 @@ pub(crate) fn invoke_named_source_outputs(
     // No mutable SFM output is consumed or written. Only the anchored
     // dependency producer and source-tree publication leases are needed.
     let context = ExecutionContext::new(&plan, cancellation.clone())?;
+    #[cfg(target_os = "linux")]
+    let report = if linux_forge_cache::eligible(&plan) {
+        linux_forge_cache::prepare(&context, "mcp", false)?;
+        linux_forge_cache::prepare(&context, "forge", false)?;
+        let (sources, origin) = {
+            let held = context
+                .linux_forge
+                .lock()
+                .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?;
+            (
+                held.path("forge", "deobfuscated_sources.jar")?
+                    .ok_or_else(|| eyre::eyre!("Forge source output not held"))?,
+                held.source_origin()?,
+            )
+        };
+        named_source_output_report(&context, &sources, layout, origin)?
+    } else {
+        with_named_neoform_context(&context, |held, sources, origin| {
+            named_source_output_report(held, sources, layout, origin)
+        })?
+    };
+    #[cfg(not(target_os = "linux"))]
     let report = with_named_neoform_context(&context, |held, sources, origin| {
         named_source_output_report(held, sources, layout, origin)
     })?;
@@ -130,11 +155,26 @@ fn named_source_output_report(
     context.recheck_compiler_image()?;
     #[cfg(target_os = "linux")]
     {
-        let cache = context.held_linux_dependencies.ok_or_else(|| {
-            eyre::eyre!("released source view requires a held durable Linux dependency entry")
-        })?;
+        let selected = if linux_forge_cache::eligible(context.plan) {
+            context
+                .linux_forge
+                .lock()
+                .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+                .path("forge", "deobfuscated_sources.jar")?
+                .ok_or_else(|| eyre::eyre!("source view lost held Forge archive"))?
+        } else {
+            context
+                .held_linux_dependencies
+                .ok_or_else(|| {
+                    eyre::eyre!(
+                        "released source view requires a held durable Linux dependency entry"
+                    )
+                })?
+                .paths(&context.cancellation_token)?
+                .1
+        };
         eyre::ensure!(
-            cache.paths(&context.cancellation_token)?.1 == sources,
+            selected == sources,
             "source view differs from held dependency archive"
         );
     };
@@ -142,7 +182,20 @@ fn named_source_output_report(
     let source_payload_sha256 = crate::source_archive::archive_payload_sha256(sources)?;
     let output = match layout {
         SourceOutputLayout::Jar => sources.to_path_buf(),
-        SourceOutputLayout::Filetree => neoform_source_filetree_path(context, sources)?,
+        SourceOutputLayout::Filetree => {
+            #[cfg(target_os = "linux")]
+            if linux_forge_cache::eligible(context.plan) {
+                context
+                    .linux_forge
+                    .lock()
+                    .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+                    .source_tree(&context.cancellation_token)?
+            } else {
+                neoform_source_filetree_path(context, sources)?
+            }
+            #[cfg(not(target_os = "linux"))]
+            neoform_source_filetree_path(context, sources)?
+        }
     };
     context.recheck_compiler_image()?;
     validate_named_source_output_project(project)?;
