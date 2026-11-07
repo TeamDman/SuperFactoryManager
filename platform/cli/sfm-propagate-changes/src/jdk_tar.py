@@ -12,12 +12,16 @@ from pathlib import Path
 import stat
 import sys
 import tarfile
+import time
 
 MAX_ARCHIVE = 2 * 1024**3
 MAX_CONTENT = 8 * 1024**3
 MAX_ENTRIES = 100_000
 MAX_STREAM = MAX_CONTENT + 1024**3
 RECEIPT = ".sfm-jbrsdk-receipt"
+WRITE_CHUNK = 64 * 1024
+MAX_EXTRACTION_RATE = 1024**3
+HELPER_RUNTIME_SECONDS = 3600
 
 
 def fail(message):
@@ -154,10 +158,10 @@ def archive_entries(archive):
     return entries
 
 
-def iter_bytes(source, expected):
+def iter_bytes(source, expected, chunk_size=1024 * 1024):
     remaining = expected
     while remaining:
-        data = source.read(min(1024 * 1024, remaining))
+        data = source.read(min(chunk_size, remaining))
         if not data:
             fail("truncated SDK archive entry")
         remaining -= len(data)
@@ -181,7 +185,29 @@ def verify_archive_tail(stream, offset):
             fail("SDK archive contains trailing nonzero content")
 
 
-def create(archive, entries, home):
+class WritePacer:
+    """Wait before each bounded write; stalls never create catch-up credit."""
+
+    def __init__(self, rate, clock=time.monotonic, sleep=time.sleep):
+        if not isinstance(rate, int) or not 1 <= rate <= MAX_EXTRACTION_RATE:
+            fail("SDK extraction rate is outside 1..1073741824 bytes per second")
+        self.rate, self.clock, self.sleep = rate, clock, sleep
+
+    def before_write(self, size):
+        if not 0 < size <= WRITE_CHUNK:
+            fail("SDK paced write exceeds its chunk bound")
+        deadline = self.clock() + size / self.rate
+        while True:
+            remaining = deadline - self.clock()
+            if remaining <= 0:
+                return
+            self.sleep(remaining)
+
+
+def create(archive, entries, home, pacer=None):
+    if pacer and sum(member.size for kind, member in entries.values()
+                     if kind == "file") / pacer.rate > HELPER_RUNTIME_SECONDS:
+        fail("SDK paced payload alone exceeds the one-hour helper runtime limit")
     for path, (kind, _) in sorted(entries.items(), key=lambda item: len(item[0])):
         if kind == "directory":
             home.joinpath(*path).mkdir(exist_ok=True)
@@ -192,8 +218,12 @@ def create(archive, entries, home):
             if source is None:
                 fail("SDK archive file has no content")
             with source, output.open("xb") as out:
-                for data in iter_bytes(source, member.size):
+                for data in iter_bytes(source, member.size, WRITE_CHUNK if pacer else 1024 * 1024):
+                    if pacer:
+                        pacer.before_write(len(data))
                     out.write(data)
+                    if pacer:
+                        out.flush()
                 out.flush()
                 os.fsync(out.fileno())
             os.chmod(output, member.mode & 0o777)
@@ -261,7 +291,14 @@ def audit(archive, entries, home):
 
 
 def main():
-    mode, target, expected = sys.argv[1:]
+    if len(sys.argv) not in (4, 5):
+        fail("SDK helper needs mode, target, SHA-512 and optional extraction rate")
+    mode, target, expected = sys.argv[1:4]
+    pacer = None
+    if len(sys.argv) == 5:
+        if mode != "extract" or not sys.argv[4].isascii() or not sys.argv[4].isdecimal():
+            fail("SDK rate requires extraction and a decimal byte rate")
+        pacer = WritePacer(int(sys.argv[4]))
     if sys.platform.startswith("linux"):
         import resource
         soft, hard = resource.getrlimit(resource.RLIMIT_AS)
@@ -293,7 +330,7 @@ def main():
             if mode == "extract":
                 if any(home.iterdir()):
                     fail("SDK extraction target is not empty")
-                create(archive, entries, home)
+                create(archive, entries, home, pacer)
             elif mode != "verify":
                 fail("unknown SDK archive operation")
             audit(archive, entries, home)

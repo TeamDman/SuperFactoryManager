@@ -1,8 +1,8 @@
-use super::{JdkAddArgs, JdkListArgs, JdkRemoveArgs, JdkShowArgs};
+use super::{JdkAddArgs, JdkInstallArgs, JdkListArgs, JdkRemoveArgs, JdkShowArgs};
 use facet::Facet;
 use figue as args;
 
-/// Arguments for JDK discovery and machine-local preferences.
+/// Arguments for managed SDK installation, discovery and machine-local preferences.
 #[derive(Facet, Debug)]
 pub struct JdkArgs {
     /// JDK subcommand.
@@ -11,6 +11,22 @@ pub struct JdkArgs {
 }
 
 impl JdkArgs {
+    pub(crate) fn invoke_in(
+        self,
+        cancel: &crate::cancellation::CancellationToken,
+        invocation_dir: &std::path::Path,
+    ) -> eyre::Result<crate::cli::output::CliOutput> {
+        match self.command {
+            JdkCommand::Install(args) => Ok(crate::cli::output::CliOutput::facet(
+                args.install(cancel, invocation_dir)?,
+            )),
+            command => {
+                command.invoke()?;
+                Ok(crate::cli::output::CliOutput::none())
+            }
+        }
+    }
+
     /// # Errors
     /// Returns an error if the selected JDK command fails.
     pub fn invoke(self) -> eyre::Result<()> {
@@ -18,10 +34,12 @@ impl JdkArgs {
     }
 }
 
-/// JDK discovery and machine-local preference commands.
+/// Managed Linux SDK installation, discovery and machine-local preferences.
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum JdkCommand {
+    /// Install and fully verify one pinned SDK without project/dependency work.
+    Install(JdkInstallArgs),
     /// Register a real JDK home by logical ID; this is not a lockfile pin.
     Add(JdkAddArgs),
     /// List registered preferences and discovered JDKs.
@@ -37,6 +55,13 @@ impl JdkCommand {
     /// This function returns an error if JDK inspection or storage fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
+            Self::Install(args) => {
+                let report = args.install(
+                    &crate::cancellation::CancellationToken::new(),
+                    &std::env::current_dir()?,
+                )?;
+                crate::terminal_output::stdout_line(facet_json::to_string_pretty(&report)?)
+            }
             Self::Add(args) => args.invoke(),
             Self::List(args) => args.invoke(),
             Self::Remove(args) => args.invoke(),

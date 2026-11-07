@@ -178,7 +178,7 @@ impl Command {
             Command::Cache(args) => legacy_output(args.invoke()),
             Command::Curseforge(args) => legacy_output(args.invoke()),
             Command::Dependency(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Jdk(args) => legacy_output(args.invoke()),
+            Command::Jdk(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Loader(args) => legacy_output(args.invoke()),
             Command::Modrinth(args) => legacy_output(args.invoke()),
             Command::Jar(args) => legacy_output(args.invoke(cancellation_token)),

@@ -44,18 +44,79 @@ def archive_bytes(extra=()):
     return data.getvalue()
 
 
-def run_helper(archive, mode, home, digest=None):
+def run_helper(archive, mode, home, digest=None, rate=None):
     with tempfile.TemporaryFile() as source:
         source.write(archive)
         source.seek(0)
+        args = [sys.executable, "-I", "-S", str(HELPER), mode, str(home),
+                digest or hashlib.sha512(archive).hexdigest()]
+        if rate is not None:
+            args.append(str(rate))
         return subprocess.run(
-            [sys.executable, "-I", "-S", str(HELPER), mode, str(home),
-             digest or hashlib.sha512(archive).hexdigest()],
+            args,
             stdin=source, capture_output=True, text=True, check=False,
         )
 
 
 class JdkTarTests(unittest.TestCase):
+    def test_pacer_waits_before_every_chunk_and_never_catches_up_after_stalls(self):
+        now, waits = [0.0], []
+        def sleep(seconds):
+            waits.append(seconds)
+            now[0] += seconds
+        pacer = jdk_tar.WritePacer(2 * 1024**2, lambda: now[0], sleep)
+        for _ in range(32):
+            pacer.before_write(64 * 1024)
+        self.assertAlmostEqual(sum(waits), 1.0)
+        now[0] += 30.0
+        pacer.before_write(64 * 1024)
+        self.assertAlmostEqual(waits[-1], 1 / 32)
+        with self.assertRaises(ValueError):
+            pacer.before_write(jdk_tar.WRITE_CHUNK + 1)
+
+    def test_pacer_handles_short_sleeps_without_early_write(self):
+        now = [0.0]
+        def sleep(seconds):
+            now[0] += max(seconds / 2, 0.00001)
+        pacer = jdk_tar.WritePacer(65536, lambda: now[0], sleep)
+        pacer.before_write(65536)
+        self.assertGreaterEqual(now[0], 1.0)
+
+    def test_impossible_pacing_budget_fails_before_creating_directories(self):
+        member = tarfile.TarInfo("sdk/lib/large")
+        member.size = 3601
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "one-hour"):
+                jdk_tar.create(None, {("lib", "large"): ("file", member)}, Path(tmp),
+                               jdk_tar.WritePacer(1))
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
+    def test_paced_extract_has_identical_content_links_modes_and_full_validation(self):
+        data = archive_bytes([("jdk/lib/large", b"z" * (2 * 65536 + 7), 0o640, None)])
+        with tempfile.TemporaryDirectory() as left, tempfile.TemporaryDirectory() as right:
+            self.assertEqual(run_helper(data, "extract", left).returncode, 0)
+            self.assertEqual(run_helper(data, "extract", right, rate=2097152).returncode, 0)
+            self.assertEqual(run_helper(data, "verify", right).returncode, 0)
+            for path in Path(left).rglob("*"):
+                other = Path(right) / path.relative_to(left)
+                self.assertEqual(path.lstat().st_mode, other.lstat().st_mode)
+                if path.is_symlink():
+                    self.assertEqual(path.readlink(), other.readlink())
+                elif path.is_file():
+                    self.assertEqual(path.read_bytes(), other.read_bytes())
+            (Path(right) / "lib/large").write_bytes(b"q" * (2 * 65536 + 7))
+            self.assertNotEqual(run_helper(data, "verify", right).returncode, 0)
+
+    def test_invalid_pacing_and_paced_unsafe_archive_do_not_extract(self):
+        for rate in [0, -1, "nan", "1.0", 1024**3 + 1]:
+            with self.subTest(rate=rate), tempfile.TemporaryDirectory() as tmp:
+                self.assertNotEqual(run_helper(archive_bytes(), "extract", tmp, rate=rate).returncode, 0)
+                self.assertEqual(list(Path(tmp).iterdir()), [])
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = archive_bytes([("jdk/../escape", b"bad", 0o644, None)])
+            self.assertNotEqual(run_helper(bad, "extract", tmp, rate=2097152).returncode, 0)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
     def test_extract_and_audit_preserve_modes_and_links(self):
         data = archive_bytes()
         with tempfile.TemporaryDirectory() as tmp:

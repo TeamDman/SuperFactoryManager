@@ -2,6 +2,7 @@
 //! Runtime selection and activation are deliberately separate from acquisition.
 
 use crate::artifact_lock::ArtifactLock;
+use crate::jdk_install_control::InstallControl;
 use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
 use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use eyre::Context;
@@ -31,6 +32,10 @@ const SEALED_RECEIPT_SCHEMA: &str = "sfm-jbrsdk-sealed-v2\n";
 // character path limit in a normal checkout. The full SHA-512 still verifies
 // the archive and receipt; this 256-bit prefix only names the install slot.
 const INSTALL_KEY_HEX_CHARS: usize = 64;
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "jdk_install_lifecycle_tests.rs"]
+mod install_tests;
 
 fn install_key(sha512: &str) -> String {
     format!(
@@ -177,13 +182,23 @@ impl VerifiedPinnedJbrsdk {
 
     /// Recheck the selected root, exact pin and complete installed tree before
     /// handing this image to a future native cache owner or JVM child.
-    #[allow(dead_code)] // The native owner integration is a separate guarded slice.
     pub(crate) fn recheck_for(
         &mut self,
         cache_root: &Path,
         pin: &JdkPinV4,
         artifact: &JdkArtifactV4,
     ) -> eyre::Result<&Path> {
+        self.recheck_for_controlled(cache_root, pin, artifact, InstallControl::default())
+    }
+
+    pub(crate) fn recheck_for_controlled(
+        &mut self,
+        cache_root: &Path,
+        pin: &JdkPinV4,
+        artifact: &JdkArtifactV4,
+        control: InstallControl<'_>,
+    ) -> eyre::Result<&Path> {
+        control.checkpoint()?;
         eyre::ensure!(
             cache_root == self.cache_root && pin == &self.pin && artifact == &self.artifact,
             "Verified JBRSDK root or lock pin changed"
@@ -231,17 +246,22 @@ impl VerifiedPinnedJbrsdk {
             tracing::info!(phase = "warm_sdk_installed_held_identity", elapsed_ms = held_started.elapsed().as_millis(), "warm_run_stage");
         }
         #[cfg(not(windows))]
-        {
-            let install_started = std::time::Instant::now();
-            if is_linux_tar(artifact) {
-                check_installed_receipt(&self.home, artifact, &receipt(pin, artifact))?;
-                run_tar_helper(&mut self.archive, "verify", &self.home, &sha)?;
-            } else {
-                let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
-                verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
-            }
-            tracing::info!(phase = "warm_sdk_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
+        let install_started = std::time::Instant::now();
+        #[cfg(not(windows))]
+        if is_linux_tar(artifact) {
+            check_installed_receipt(&self.home, artifact, &receipt(pin, artifact))?;
+            run_tar_helper_controlled(&mut self.archive, "verify", &self.home, &sha, control)?;
+        } else {
+            let mut zip = ZipArchive::new(self.archive.try_clone()?)?;
+            verify_installed_home(&self.home, artifact, &receipt(pin, artifact), &mut zip)?;
         }
+        #[cfg(not(windows))]
+        tracing::info!(
+            phase = "warm_sdk_installed_compare",
+            elapsed_ms = install_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
+        control.checkpoint()?;
         Ok(&self.home)
     }
 }
@@ -283,6 +303,17 @@ pub(crate) fn acquire_verified_pinned_jbrsdk_zip(
     acquire_verified_pinned_jbrsdk_zip_with(pin, artifact, cache_root, offline, fetch_zip_url)
 }
 
+/// Same managed installer, with optional operational pacing/cancellation.
+pub(crate) fn install_verified_pinned_jbrsdk(
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+    cache_root: &Path,
+    offline: bool,
+    control: InstallControl<'_>,
+) -> eyre::Result<VerifiedPinnedJbrsdk> {
+    acquire_with_control(pin, artifact, cache_root, offline, control, fetch_zip_url)
+}
+
 fn acquire_pinned_jbrsdk_zip_with(
     pin: &JdkPinV4,
     artifact: &JdkArtifactV4,
@@ -304,6 +335,29 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
     offline: bool,
     fetch: impl FnOnce(&str, &mut File) -> eyre::Result<()>,
 ) -> eyre::Result<VerifiedPinnedJbrsdk> {
+    acquire_with_control(
+        pin,
+        artifact,
+        cache_root,
+        offline,
+        InstallControl::default(),
+        fetch,
+    )
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep exact archive acquisition, private install verification and completion-seal publication in one transaction."
+)]
+fn acquire_with_control(
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+    cache_root: &Path,
+    offline: bool,
+    control: InstallControl<'_>,
+    fetch: impl FnOnce(&str, &mut File) -> eyre::Result<()>,
+) -> eyre::Result<VerifiedPinnedJbrsdk> {
+    control.validate(is_linux_tar(artifact))?;
     verify_archive_identity(pin, artifact)?;
     eyre::ensure!(
         pin.artifacts.contains(artifact),
@@ -317,10 +371,14 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
     ensure_safe_cache_dir(&archive_dir)?;
     ensure_safe_cache_dir(&install_dir)?;
     ensure_safe_cache_dir(&lock_dir)?;
-    let _lock = ArtifactLock::acquire(
-        lock_dir.join(format!("{sha}.lock")),
-        format!("JBRSDK {} {}", pin.version, artifact.platform),
-    )?;
+    let lock_path = lock_dir.join(format!("{sha}.lock"));
+    let label = format!("JBRSDK {} {}", pin.version, artifact.platform);
+    let _lock = if let Some(cancel) = control.cancellation {
+        ArtifactLock::acquire_with_cancellation(lock_path, label, cancel.clone())?
+    } else {
+        ArtifactLock::acquire(lock_path, label)?
+    };
+    control.checkpoint()?;
 
     let archive = archive_dir.join(archive_name(&sha, artifact));
     match fs::symlink_metadata(&archive) {
@@ -341,6 +399,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
                 .suffix(".tmp")
                 .tempfile_in(&archive_dir)?;
             fetch(&artifact.url, temporary.as_file_mut())?;
+            control.checkpoint()?;
             temporary.as_file_mut().flush()?;
             temporary.as_file_mut().sync_all()?;
             verify_archive_sha512(temporary.as_file_mut(), &sha)?;
@@ -369,6 +428,7 @@ fn acquire_verified_pinned_jbrsdk_zip_with(
             &expected_receipt,
             &seal,
             &expected_seal,
+            control,
         );
     }
     if read_seal(&seal, &expected_seal)? {
@@ -484,14 +544,16 @@ fn acquire_tar_install(
     expected_receipt: &str,
     seal: &Path,
     expected_seal: &str,
+    control: InstallControl<'_>,
 ) -> eyre::Result<VerifiedPinnedJbrsdk> {
+    control.checkpoint()?;
     let mut archive = open_held_archive(archive_path)?;
     verify_archive_sha512(&mut archive, sha)?;
     let sealed = read_seal(seal, expected_seal)?;
     match fs::symlink_metadata(installed) {
         Ok(_) => {
             check_installed_receipt(installed, artifact, expected_receipt)?;
-            run_tar_helper(&mut archive, "verify", installed, sha)?;
+            run_tar_helper_controlled(&mut archive, "verify", installed, sha, control)?;
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound && !sealed => {
             let stage = tempfile::Builder::new()
@@ -499,10 +561,12 @@ fn acquire_tar_install(
                 .tempdir_in(installed.parent().expect("install directory"))?;
             let payload = stage.path().join("payload");
             fs::create_dir(&payload)?;
-            run_tar_helper(&mut archive, "extract", &payload, sha)?;
+            run_tar_helper_controlled(&mut archive, "extract", &payload, sha, control)?;
+            control.checkpoint()?;
             write_receipt(&payload, expected_receipt)?;
             check_installed_receipt(&payload, artifact, expected_receipt)?;
-            run_tar_helper(&mut archive, "verify", &payload, sha)?;
+            run_tar_helper_controlled(&mut archive, "verify", &payload, sha, control)?;
+            control.checkpoint()?;
             fs::rename(&payload, publish_destination(installed)?)?;
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
@@ -511,6 +575,7 @@ fn acquire_tar_install(
         Err(error) => return Err(error).wrap_err("Failed to inspect cached JBRSDK installation"),
     }
     if !sealed {
+        control.checkpoint()?;
         write_seal(seal, expected_seal)?;
     }
     let archive_len = archive.metadata()?.len();
@@ -527,25 +592,40 @@ fn acquire_tar_install(
 }
 
 fn run_tar_helper(archive: &mut File, operation: &str, home: &Path, sha: &str) -> eyre::Result<()> {
+    run_tar_helper_controlled(archive, operation, home, sha, InstallControl::default())
+}
+
+fn run_tar_helper_controlled(
+    archive: &mut File,
+    operation: &str,
+    home: &Path,
+    sha: &str,
+    control: InstallControl<'_>,
+) -> eyre::Result<()> {
     eyre::ensure!(
         cfg!(target_os = "linux"),
         "Linux JBRSDK tarballs require a Linux host"
     );
     archive.rewind()?;
-    let result = std::process::Command::new("python3")
+    let mut command = std::process::Command::new("python3");
+    command
         .args(["-I", "-S", "-c", include_str!("jdk_tar.py"), operation])
         .arg(home)
         .arg(sha)
-        .stdin(std::process::Stdio::from(archive.try_clone()?))
-        .output()
-        .wrap_err("Linux JBRSDK tar handling requires Python 3")?;
+        .stdin(std::process::Stdio::from(archive.try_clone()?));
+    if operation == "extract"
+        && let Some(rate) = control.extraction_bytes_per_second
+    {
+        command.arg(rate.to_string());
+    }
+    let (status, diagnostic) = control.run(&mut command)?;
     // Unix permits concurrent modification of held files. Recheck the same
     // handle after the helper reads it, before accepting its output.
     verify_archive_sha512(archive, sha)?;
     eyre::ensure!(
-        result.status.success(),
+        status.success(),
         "JBRSDK tar validation failed: {}",
-        String::from_utf8_lossy(&result.stderr)
+        diagnostic
     );
     Ok(())
 }
@@ -1184,7 +1264,7 @@ mod tests {
         ])
     }
 
-    fn pin_for(bytes: &[u8]) -> JdkPinV4 {
+    pub(super) fn pin_for(bytes: &[u8]) -> JdkPinV4 {
         JdkPinV4 {
             major: 17,
             vendor: "JetBrains".to_owned(),
@@ -1200,7 +1280,7 @@ mod tests {
     }
 
     #[cfg(target_os = "linux")]
-    fn sdk_tar() -> Vec<u8> {
+    pub(super) fn sdk_tar() -> Vec<u8> {
         let script = r#"import io,sys,tarfile
 b=io.BytesIO()
 with tarfile.open(fileobj=b, mode='w:gz') as t:
