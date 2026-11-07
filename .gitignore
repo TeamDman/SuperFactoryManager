@@ -98,3 +98,6 @@ __pycache__
 # Local extended release regression/control projects.
 /platform/minecraft/projections/sfm-4.34.0-extended/
 /platform/minecraft/projections/sfm-4.35.0-extended/
+
+# Local review drafts and verified cleanup snapshots; never release inputs.
+/.local-review/
