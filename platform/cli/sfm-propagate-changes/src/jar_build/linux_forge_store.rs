@@ -132,21 +132,7 @@ impl Store {
     }
 
     pub(super) fn recheck(&self, cancel: &CancellationToken) -> Result<()> {
-        cancel.bail_if_cancelled()?;
-        self.directory.recheck()?;
-        self.directory.require_owner()?;
-        self.kind_directory.require_owner()?;
-        if let Some(lease) = &self.lease {
-            lease.recheck()?;
-        }
-        for held in &self.held {
-            held.directory.require_owner()?;
-            held.recheck(cancel)?;
-            crate::jar_build::local_dependency_cache::linux_io::readonly_owned(&held.file)?;
-        }
-        if let Some(entry) = &self.entry {
-            self.require_membership(entry)?;
-        }
+        self.recheck_selected(cancel, None)?;
         if let Some(tree) = self
             .source_tree
             .lock()
@@ -163,6 +149,42 @@ impl Store {
                 cancel,
                 || Ok(()),
             )?;
+        }
+        Ok(())
+    }
+
+    // A remap consumes one mapping role. Retain its original production/head
+    // and namespace authority without hashing unrelated Forge exports again.
+    pub(super) fn recheck_role(&self, role: &str, cancel: &CancellationToken) -> Result<()> {
+        ensure!(
+            self.entry.is_some() && self.roles.iter().any(|r| r == role),
+            "production role is not selected"
+        );
+        self.recheck_selected(cancel, Some(role))
+    }
+
+    fn recheck_selected(&self, cancel: &CancellationToken, role: Option<&str>) -> Result<()> {
+        cancel.bail_if_cancelled()?;
+        self.directory.recheck()?;
+        self.directory.require_owner()?;
+        self.kind_directory.require_owner()?;
+        if let Some(lease) = &self.lease {
+            lease.recheck()?;
+        }
+        for held in &self.held {
+            let payload = self.entry.as_ref().is_some_and(|entry| {
+                held.directory.path == entry.path && self.roles.iter().any(|r| r == &held.name)
+            });
+            held.directory.require_owner()?;
+            if payload && role.is_some_and(|selected| selected != held.name) {
+                held.check_namespace()?;
+            } else {
+                held.recheck(cancel)?;
+            }
+            crate::jar_build::local_dependency_cache::linux_io::readonly_owned(&held.file)?;
+        }
+        if let Some(entry) = &self.entry {
+            self.require_membership(entry)?;
         }
         Ok(())
     }

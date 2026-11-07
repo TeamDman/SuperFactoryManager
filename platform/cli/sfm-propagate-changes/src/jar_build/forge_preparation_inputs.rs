@@ -86,6 +86,54 @@ pub(in crate::jar_build::engine) struct ForgePreparationInputs {
 }
 
 impl ForgePreparationInputs {
+    #[cfg(all(test, target_os = "linux"))]
+    pub(in crate::jar_build::engine) fn performance_fixture(
+        context: &ExecutionContext<'_>,
+        kind: &str,
+        extra: &Path,
+    ) -> Result<Self> {
+        let trust = crate::jar_build::java_trust::JavaTrust::from_environment_for_major(
+            context.plan.java.major_version,
+        )?;
+        let trust_identity = trust.as_ref().map_or_else(
+            || "jdk-default".to_owned(),
+            crate::jar_build::java_trust::JavaTrust::identity,
+        );
+        let mut owner = Self {
+            fingerprint: format!("sha256:{}", "a".repeat(64)),
+            kind: kind.to_owned(),
+            sdk_identity: context.plan.java.execution_identity.clone().unwrap(),
+            sdk_image: None,
+            files: Vec::new(),
+            directories: DirectoryLeases::default(),
+            at: Some(b"fixture mapping".to_vec()),
+            trust,
+            trust_identity,
+        };
+        ensure!(
+            owner.capture_sdk(context)?,
+            "benchmark SDK authority unavailable"
+        );
+        let (project, expected) = selected_project(context).unwrap();
+        ensure!(
+            owner.capture_lock(context, project, expected)?,
+            "benchmark lock authority unavailable"
+        );
+        ensure!(
+            owner
+                .capture_one(
+                    context,
+                    &ForgePreparationInputRequest::new(
+                        "benchmark:tool-or-mapping",
+                        extra.to_path_buf()
+                    )
+                )?
+                .is_some(),
+            "benchmark role unavailable"
+        );
+        owner.recheck(context)?;
+        Ok(owner)
+    }
     pub(super) fn prepare(context: &ExecutionContext<'_>, kind: &str) -> Result<Option<Self>> {
         ensure!(
             matches!(kind, "mcp" | "forge"),
@@ -291,26 +339,63 @@ impl ForgePreparationInputs {
         context: &ExecutionContext<'_>,
     ) -> Result<()> {
         #[cfg(target_os = "linux")]
-        {
-            crate::jar_build::java_trust::JavaTrust::recheck_optional(self.trust.as_ref())?;
-            ensure!(
-                crate::jar_build::java_trust::JavaTrust::from_environment_for_major(
-                    context.plan.java.major_version
-                )?
-                .as_ref()
-                .map_or_else(
-                    || "jdk-default".to_owned(),
-                    crate::jar_build::java_trust::JavaTrust::identity
-                ) == self.trust_identity,
-                "selected producer Java trust changed"
-            );
-        };
+        self.recheck_selection(context)?;
         recheck_captured_inputs(
             context,
             &self.sdk_identity,
             self.sdk_image.as_deref(),
             &self.files,
         )
+    }
+
+    // The caller brackets the whole consumer closure with one source-owner and
+    // full SDK image check. Each owner's actual input handles/bytes and selected
+    // trust remain checked; this never memoizes a successful content check.
+    #[cfg(target_os = "linux")]
+    pub(in crate::jar_build::engine) fn recheck_payload(
+        &self,
+        context: &ExecutionContext<'_>,
+    ) -> Result<()> {
+        self.recheck_selection(context)?;
+        for file in &self.files {
+            context.bail_if_cancelled()?;
+            file.recheck()?;
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    fn recheck_selection(&self, context: &ExecutionContext<'_>) -> Result<()> {
+        context.bail_if_cancelled()?;
+        ensure!(
+            clean_environment(),
+            "Inherited Java environment changed during preparation"
+        );
+        ensure!(
+            context.plan.java.execution_identity.as_deref() == Some(self.sdk_identity.as_str()),
+            "Selected SDK execution identity changed"
+        );
+        let held_image = self
+            .sdk_image
+            .as_ref()
+            .ok_or_else(|| eyre::eyre!("Missing held SDK image"))?;
+        ensure!(
+            Arc::ptr_eq(held_image, &context.held_forge_sdk_image()?),
+            "Selected SDK image owner changed"
+        );
+        crate::jar_build::java_trust::JavaTrust::recheck_optional(self.trust.as_ref())?;
+        ensure!(
+            crate::jar_build::java_trust::JavaTrust::from_environment_for_major(
+                context.plan.java.major_version
+            )?
+            .as_ref()
+            .map_or_else(
+                || "jdk-default".to_owned(),
+                crate::jar_build::java_trust::JavaTrust::identity
+            ) == self.trust_identity,
+            "selected producer Java trust changed"
+        );
+        Ok(())
     }
 
     /// Share only Sync evidence, while the original directory-lease owner stays

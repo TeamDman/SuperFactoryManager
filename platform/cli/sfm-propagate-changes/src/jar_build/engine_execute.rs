@@ -217,8 +217,9 @@ impl<'a> ExecutionContext<'a> {
             .lock()
             .map_err(|_poisoned| eyre::eyre!("Held Forge SDK image slot poisoned"))?;
         if let Some(image) = slot.as_ref() {
-            // Windows holds exclude writes/deletes. Linux rechecks contents,
-            // identities and membership; it does not promise write exclusion.
+            // Obtaining a retained Linux owner is not a content admission.
+            // Linux callers recheck it at producer/consumer effect boundaries.
+            #[cfg(windows)]
             image.recheck(&self.cancellation_token)?;
             return Ok(Arc::clone(image));
         }
@@ -302,8 +303,6 @@ impl<'a> ExecutionContext<'a> {
                 super::local_dependency_cache::environment_allows_reuse(),
                 "Linux Forge Java environment changed"
             );
-            self.held_forge_sdk_image()?
-                .recheck(&self.cancellation_token)?;
             self.linux_forge
                 .lock()
                 .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?

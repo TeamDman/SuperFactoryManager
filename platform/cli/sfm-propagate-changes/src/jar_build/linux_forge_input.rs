@@ -94,6 +94,8 @@ fn read_hashes(
     request: &ForgePreparationInputRequest,
     cancellation: &CancellationToken,
 ) -> Result<ForgePreparationInputHashes> {
+    #[cfg(test)]
+    crate::jar_build::verification_metrics::capture(bytes);
     let mut reader = file;
     let mut sha256 = Sha256::new();
     let mut sha1 = request

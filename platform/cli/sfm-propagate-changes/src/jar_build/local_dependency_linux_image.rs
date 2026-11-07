@@ -61,6 +61,8 @@ impl LocalDependencyImage {
     }
 
     pub(crate) fn recheck(&self, cancel: &CancellationToken) -> Result<()> {
+        #[cfg(test)]
+        crate::jar_build::verification_metrics::sdk();
         // Rescan membership and every file's complete content. A Linux file
         // descriptor does not provide FILE_SHARE_READ's Windows exclusions.
         let current = Self::scan(&self.home, &self.sdk_identity, cancel)?;

@@ -1,5 +1,7 @@
 mod artifact_audit_command;
 mod junit_summary;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) mod verification_metrics;
 pub(crate) use engine::junit_summary_from_log;
 pub use junit_summary::JunitSummary;
 mod artifact_audit_issue;

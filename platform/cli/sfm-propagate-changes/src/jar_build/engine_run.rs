@@ -6985,6 +6985,15 @@ fn resolve_run_deobf_dependencies(
         .entered();
         resolver.resolve_artifacts(artifacts)?
     };
+    #[cfg(target_os = "linux")]
+    if linux_forge_cache::eligible(context.plan) {
+        let rows = selected
+            .iter()
+            .zip(&resolved_artifacts)
+            .map(|((_, coordinate, _), artifact)| (artifact, coordinate))
+            .collect::<Vec<_>>();
+        return Ok((linux_forge_cache::remaps(context, &rows, true)?, Vec::new()));
+    }
     let mut output = Vec::new();
     let mut held_remaps = Vec::new();
     for ((_, coordinate, _), artifact) in selected.into_iter().zip(resolved_artifacts) {
@@ -6996,16 +7005,6 @@ fn resolve_run_deobf_dependencies(
         .entered();
         context.assert_allowed_input(&artifact.cache_path)?;
         let artifact_hash = resolved_artifact_hash(&artifact)?;
-        #[cfg(target_os = "linux")]
-        if linux_forge_cache::eligible(context.plan) {
-            output.push(linux_forge_cache::remap(
-                context,
-                &artifact,
-                &coordinate,
-                true,
-            )?);
-            continue;
-        }
         let remapped = remapped_dependency_output_path(
             &dependency_output,
             &artifact_hash,

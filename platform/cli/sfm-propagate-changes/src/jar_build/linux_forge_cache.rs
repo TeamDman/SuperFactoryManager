@@ -2,11 +2,17 @@
 //! deliberately outside this namespace and cannot become authenticated hits.
 #[path = "forge_preparation_inputs.rs"]
 mod inputs;
+#[cfg(test)]
+#[path = "linux_forge_performance_tests.rs"]
+mod performance_tests;
 #[path = "linux_forge_store.rs"]
 mod store;
 #[cfg(test)]
 #[path = "linux_forge_engine_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "linux_forge_verification_tests.rs"]
+mod verification_tests;
 use super::{
     ArtifactId, ArtifactPlan, ArtifactPurpose, BuildPlan, BuildProjectIdentity, ContentHash,
     ContentHashAlgorithm, DependencyDeobfProducer, ExecutionContext, MavenCoordinate,
@@ -20,6 +26,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read as _;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use inputs::{DependencyRemapArtifactInputs, ForgePreparationInputs};
 use store::Store;
@@ -37,13 +44,15 @@ const REMAP_ROLES: &[&str] = &["specialsource.jar", "remapped.jar"];
 #[derive(Default)]
 pub(super) struct State {
     preparations: Vec<(String, Store, ForgePreparationInputs)>,
-    remaps: Vec<(Store, DependencyRemapArtifactInputs, ForgePreparationInputs)>,
+    remap_common: Option<Arc<ForgePreparationInputs>>,
+    remaps: Vec<(Store, DependencyRemapArtifactInputs)>,
 }
 impl std::fmt::Debug for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LinuxForgeState")
             .field("preparations", &self.preparations.len())
             .field("remaps", &self.remaps.len())
+            .field("remap_common", &self.remap_common.is_some())
             .finish()
     }
 }
@@ -56,7 +65,7 @@ impl State {
                 }
             }
         }
-        for (store, _, _) in &self.remaps {
+        for (store, _) in &self.remaps {
             for role in REMAP_ROLES {
                 if store.path(role)? == path {
                     return Ok(true);
@@ -68,7 +77,7 @@ impl State {
     pub(super) fn remap_paths(&self) -> eyre::Result<BTreeSet<PathBuf>> {
         self.remaps
             .iter()
-            .map(|(store, _, _)| store.path("remapped.jar"))
+            .map(|(store, _)| store.path("remapped.jar"))
             .collect()
     }
     pub(super) fn source_origin(&self) -> eyre::Result<NamedSourceOrigin> {
@@ -97,16 +106,25 @@ impl State {
             .all(|kind| self.preparations.iter().any(|(k, _, _)| k == kind))
     }
     pub(super) fn recheck(&self, context: &ExecutionContext<'_>) -> eyre::Result<()> {
+        context.bail_if_cancelled()?;
+        context.plan.recheck_named_inputs()?;
         for (_, cache, inputs) in &self.preparations {
-            inputs.recheck(context)?;
+            inputs.recheck_payload(context)?;
             cache.recheck(&context.cancellation_token)?;
         }
-        for (cache, artifact, common) in &self.remaps {
-            common.recheck(context)?;
+        if let Some(common) = &self.remap_common {
+            common.recheck_payload(context)?;
+        }
+        for (cache, artifact) in &self.remaps {
             artifact.recheck(context)?;
             cache.recheck(&context.cancellation_token)?;
         }
-        Ok(())
+        context
+            .held_forge_sdk_image()?
+            .recheck(&context.cancellation_token)?;
+        context.bail_if_cancelled()?;
+        context.plan.recheck_named_inputs()?;
+        context.bail_if_cancelled()
     }
     pub(super) fn path(&self, kind: &str, role: &str) -> eyre::Result<Option<PathBuf>> {
         self.preparations
@@ -203,15 +221,14 @@ pub(super) fn prepare(
     Ok(())
 }
 
-pub(super) fn remap(
+fn remap(
     context: &ExecutionContext<'_>,
+    common: &ForgePreparationInputs,
     artifact: &ArtifactPlan,
     coordinate: &MavenCoordinate,
     existing_only: bool,
 ) -> eyre::Result<PathBuf> {
     let mapping = context.forge_mapping_path("srg_to_official.tsrg");
-    let common = ForgePreparationInputs::prepare_remap(context, &mapping)?
-        .ok_or_else(|| eyre::eyre!("Linux remap common authority unavailable"))?;
     let input = DependencyRemapArtifactInputs::capture(
         context,
         artifact,
@@ -260,12 +277,13 @@ pub(super) fn remap(
             },
             || {
                 common.recheck(context)?;
-                input.recheck(context)?;
-                context.recheck_compiler_image()
+                input.recheck(context)
             },
         )?;
     }
-    common.recheck(context)?;
+    // Common source/SDK/tool/mapping authority brackets the entire lookup
+    // batch. Fresh producer effects additionally check it around each child
+    // and publication; earlier remap outputs are not inputs to this producer.
     input.recheck(context)?;
     cache.recheck(&context.cancellation_token)?;
     let path = cache.path("remapped.jar")?;
@@ -282,8 +300,86 @@ pub(super) fn remap(
         .lock()
         .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
         .remaps
-        .push((cache, input, common));
+        .push((cache, input));
     Ok(path)
+}
+
+/// Paths are returned only after the complete current source/SDK/input/output
+/// closure has been rechecked. No cached success survives across effect calls.
+pub(super) fn remaps(
+    context: &ExecutionContext<'_>,
+    rows: &[(&ArtifactPlan, &MavenCoordinate)],
+    existing_only: bool,
+) -> eyre::Result<Vec<PathBuf>> {
+    context.recheck_compiler_image()?;
+    if rows.is_empty() {
+        return Ok(Vec::new());
+    }
+    let common = remap_common(context)?;
+    let paths = rows
+        .iter()
+        .map(|(artifact, coordinate)| remap(context, &common, artifact, coordinate, existing_only))
+        .collect::<eyre::Result<Vec<_>>>()?;
+    context.recheck_compiler_image()?;
+    Ok(paths)
+}
+
+fn remap_common(context: &ExecutionContext<'_>) -> eyre::Result<Arc<ForgePreparationInputs>> {
+    if let Some(common) = context
+        .linux_forge
+        .lock()
+        .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+        .remap_common
+        .as_ref()
+    {
+        return Ok(Arc::clone(common));
+    }
+    let mapping = context.forge_mapping_path("srg_to_official.tsrg");
+    let common = Arc::new(
+        ForgePreparationInputs::prepare_remap(context, &mapping)?
+            .ok_or_else(|| eyre::eyre!("Linux remap common authority unavailable"))?,
+    );
+    bind_remap_common(context, common)
+}
+
+fn bind_remap_common(
+    context: &ExecutionContext<'_>,
+    common: Arc<ForgePreparationInputs>,
+) -> eyre::Result<Arc<ForgePreparationInputs>> {
+    context
+        .linux_forge
+        .lock()
+        .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+        .remap_common = Some(Arc::clone(&common));
+    // Capturing a derived mapping must not bless bytes changed since the
+    // initial Forge store check. Seal both retained owners before any remap
+    // attempt or child can be created, then hold them through all effects.
+    context.recheck_compiler_image()?;
+    Ok(common)
+}
+
+/// A fresh remap consumes this common authority, not all previously produced
+/// remaps. Keep source, full SDK/trust, exact mapping/tool and lock checks here.
+pub(super) fn recheck_remap_inputs(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
+    let state = context
+        .linux_forge
+        .lock()
+        .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?;
+    state
+        .preparations
+        .iter()
+        .find(|(kind, _, _)| kind == "forge")
+        .ok_or_else(|| eyre::eyre!("Linux remap mapping production not held"))?
+        .1
+        .recheck_role("srg_to_official.tsrg", &context.cancellation_token)?;
+    let common = state
+        .remap_common
+        .as_ref()
+        .map(Arc::clone)
+        .ok_or_else(|| eyre::eyre!("Linux remap common authority not held"))?;
+    drop(state);
+    common.recheck(context)
 }
 
 pub(super) fn dependencies(
@@ -314,10 +410,11 @@ pub(super) fn dependencies(
         )?);
     }
     let producers = DependencyDeobfProducer::select(rows)?;
-    let paths = producers
+    let rows = producers
         .iter()
-        .map(|p| remap(context, &p.artifact, &p.coordinate, existing_only))
-        .collect::<eyre::Result<Vec<_>>>()?;
+        .map(|p| (&p.artifact, &p.coordinate))
+        .collect::<Vec<_>>();
+    let paths = remaps(context, &rows, existing_only)?;
     *context
         .selected_dependency_remaps
         .lock()

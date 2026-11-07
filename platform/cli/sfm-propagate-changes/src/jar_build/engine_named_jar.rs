@@ -774,7 +774,9 @@ impl ExecutionContext<'_> {
             .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
             .holds(path)?
         {
-            self.recheck_compiler_image()?;
+            // The caller brackets the whole captured classpath with the full
+            // held closure check. This exact-role lookup supplies no new byte
+            // authority and must not rehash every prior remap for every input.
             return Ok(None);
         }
         Ok(Some(acquire_artifact_path_read_lock_cancellable(

@@ -28,6 +28,20 @@ pub(in crate::jar_build::engine) struct DependencyRemapArtifactInputs {
 }
 
 impl DependencyRemapArtifactInputs {
+    #[cfg(all(test, target_os = "linux"))]
+    pub(in crate::jar_build::engine) fn performance_fixture(
+        path: &std::path::Path,
+        shared_key: &str,
+        cancel: &CancellationToken,
+    ) -> Result<Self> {
+        Self::capture_selected(
+            &ForgePreparationInputRequest::new("benchmark:artifact", path.to_path_buf()),
+            "benchmark:artifact:1",
+            shared_key,
+            cancel,
+        )?
+        .ok_or_else(|| eyre::eyre!("benchmark artifact unavailable"))
+    }
     pub(in crate::jar_build::engine) fn capture(
         context: &ExecutionContext<'_>,
         artifact: &ArtifactPlan,

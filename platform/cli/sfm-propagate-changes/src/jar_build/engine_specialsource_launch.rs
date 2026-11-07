@@ -485,7 +485,7 @@ impl OwnedDependencyRemapOutput<'_> {
                     && mapping == context.forge_mapping_path("srg_to_official.tsrg"),
                 "owned remap output/mapping role differs"
             );
-            context.recheck_compiler_image()?;
+            linux_forge_cache::recheck_remap_inputs(context)?;
             Ok(())
         }
         #[cfg(not(target_os = "linux"))]

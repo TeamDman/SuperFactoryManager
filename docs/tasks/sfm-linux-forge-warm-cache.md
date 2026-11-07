@@ -134,3 +134,53 @@ hashes/mtime, zero producer children and no extra attempt/payload copy. Then pro
 4.35 shares dependencies while compiling its own project, and verify the public
 tree's persistent Java contents against the retained archive. Fixture-only tests
 must not be reported as those real-game results.
+
+## Verification cost and effect boundaries
+
+The first real `8f5e98d50` 4.34/1.19.2 run reached only 27 of 38 distinct
+mod-remap productions before its 30-minute supervisor bound. It had retained
+raw inputs and SDK, made no network request, and had not started project javac,
+another Minecraft row or a warm repeat. This is incomplete qualification.
+Repeated common-authority checks grew with every retained remap; separate
+transformations do not justify repeating all previous transformations' input
+checks around each new child.
+
+The performance repair retains one invocation-local remap common owner. Its
+capture is sealed against the original held Forge production before any remap
+attempt begins. Scoped effect checks retain that production's owner, head,
+manifest, namespace and selected mapping role; they skip unrelated Forge export
+contents. Each fresh remap still checks its exact original artifact and the current common
+source/lock/tool/mapping/SDK/trust/environment authority around execution and
+publication. Earlier remap outputs are not inputs of that independent producer.
+The batch returns paths only after checking the complete selected closure.
+Consumer checks hash every selected input and output, revalidate all retained
+file/namespace identities, and check the shared full SDK once, with frozen source
+checks bracketing that work. Packaging captures and checks the complete classpath
+as a batch rather than rehashing the whole closure for each exact-role lock
+lookup. No successful content check is memoized across effects, and no check is
+replaced with mtime-only evidence. Publication, cancellation and corruption
+failure behavior remain unchanged.
+
+These source changes conservatively alter MCP/Forge/remap implementation keys.
+Existing `8f` productions and partial attempts remain intact and cannot be
+relabeled as productions of the repaired implementation. A following real run
+must record whether its actual new keys were absent. NFRT's producer identity is
+unchanged.
+
+The ignored `representative_forge_authority_benchmark` test requires an existing
+complete SDK and an explicit result path. It exercises actual frozen source,
+raw-lock, full SDK, selected trust and retained-file checks at 27 and 38 remaps,
+with counters for source scans, SDK rechecks and bytes hashed. Its artifact/tool
+and producer-output payloads are synthetic; no Java transformation, Minecraft
+compile, TLS request or real producer admission is performed. Its times measure
+mechanical validation, not end-to-end Minecraft performance. Preserve the exact
+benchmark binary/source and environment identities when comparing samples.
+
+For bounded comparative measurements, `SFM_FORGE_BENCH_REFERENCE=8f` selects a
+test-only mechanical reference to the original growing-prefix gate layout. It
+uses the same full-byte primitives and payloads, explicitly restoring the two
+old outer SDK checks and per-remap common owners. This is a reviewed reference,
+not execution of the old release. Use the same optimized test executable for
+reference and repaired samples, and retain its source and hash. The benchmark
+now writes each completed sample to a companion `*.samples.jsonl` before its
+terminal JSON, so an interrupted experiment retains completed measurements.

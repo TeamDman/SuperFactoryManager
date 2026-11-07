@@ -333,7 +333,7 @@ impl HeldFile {
         self.check_namespace()
     }
 
-    fn check_namespace(&self) -> Result<()> {
+    pub(crate) fn check_namespace(&self) -> Result<()> {
         let current = self.directory.read(&self.name)?;
         regular_single(&self.file)?;
         ensure!(
@@ -358,6 +358,8 @@ impl HeldFile {
 }
 
 pub(crate) fn hash(file: &File, expected: u64, cancel: &CancellationToken) -> Result<String> {
+    #[cfg(test)]
+    crate::jar_build::verification_metrics::hash(expected);
     let before = file.metadata()?;
     ensure!(
         before.is_file() && before.len() == expected,
