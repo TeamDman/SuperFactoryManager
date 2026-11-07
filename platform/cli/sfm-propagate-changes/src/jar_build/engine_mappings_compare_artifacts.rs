@@ -1989,6 +1989,12 @@ fn materialize_source_build(
     checkout_dir: &Path,
     repository_dir: &Path,
 ) -> eyre::Result<()> {
+    super::vox_producer_contract::require_dispatch(
+        &coordinate.to_string(),
+        &source_build.environment,
+        source_build.build_system == SourceBuildSystem::CargoCommand,
+    )
+    .map_err(|error| eyre::eyre!(error))?;
     match source_build.build_system {
         SourceBuildSystem::GradleWrapper => materialize_gradle_wrapper_source_build(
             cancellation_token,
@@ -2011,6 +2017,47 @@ fn materialize_source_build(
     }
 }
 
+#[cfg(test)]
+#[test]
+fn protected_vox_gradle_dispatch_refuses_before_checkout_or_sdk_effects() -> eyre::Result<()> {
+    let root = tempfile::tempdir()?;
+    let coordinate = MavenCoordinate::parse(super::vox_producer_contract::COORDINATE)?;
+    let cancellation = CancellationToken::new();
+    for declared in [false, true] {
+        let mut environment = BTreeMap::new();
+        if declared {
+            environment.insert(
+                super::vox_producer_contract::LEGACY_KEY.to_owned(),
+                super::vox_producer_contract::WINDOWS_RUNTIME.to_owned(),
+            );
+        }
+        let source = SourceBuildProvenance {
+            build_system: SourceBuildSystem::GradleWrapper,
+            tasks: vec!["must-not-run".to_owned()],
+            environment,
+            output_path: PathBuf::from("java/target/teamy-vox-java-0.10.0-rc.7.jar"),
+        };
+        let error = materialize_source_build(
+            &cancellation,
+            super::vox_producer_contract::REMOTE,
+            super::vox_producer_contract::COMMIT,
+            &coordinate,
+            &root.path().join("cache"),
+            &source,
+            &root.path().join("checkout"),
+            &root.path().join("repository"),
+        )
+        .expect_err("a protected Vox recipe cannot dispatch to Gradle");
+        assert!(
+            error
+                .to_string()
+                .contains("exact Cargo build system before dispatch")
+        );
+        assert!(root.path().read_dir()?.next().is_none());
+    }
+    Ok(())
+}
+
 fn materialize_cargo_source_build(
     cancellation_token: &CancellationToken,
     remote_url: &str,
@@ -2025,6 +2072,25 @@ fn materialize_cargo_source_build(
     if source_build.tasks.is_empty() {
         eyre::bail!("Source build for {remote_url}@{commit} has no Cargo command");
     }
+    // Protect the coordinate itself: a missing environment key must never
+    // downgrade this producer to the generic Cargo/trust route.
+    let prepared_sdk = super::cargo_source_jdk::preflight(
+        &coordinate.to_string(),
+        remote_url,
+        commit,
+        source_build,
+    )?;
+    let trust = if prepared_sdk.is_some() {
+        super::java_trust::JavaTrust::from_environment_for_major(21)?
+    } else {
+        super::java_trust::JavaTrust::from_environment()?
+    };
+    if let Some(prepared) = &prepared_sdk {
+        // The pinned Vox xtask has no explicit per-tool trust mechanism.
+        // Refuse before this function materializes a checkout or acquires/probes
+        // an SDK. Do not send ignored variables or a stderr-producing JTO.
+        prepared.require_trust_support(trust.is_some())?;
+    }
     prepare_source_build_checkout(
         cancellation_token,
         remote_url,
@@ -2033,130 +2099,51 @@ fn materialize_cargo_source_build(
         repository_dir,
     )?;
     cancellation_token.bail_if_cancelled()?;
+    let mut source_sdk = prepared_sdk
+        .map(|prepared| prepared.acquire(cache_dir, cancellation_token))
+        .transpose()?;
     tracing::info!(
-        remote = remote_url,
-        commit,
-        checkout = %checkout_dir.display(),
-        tasks = ?source_build.tasks,
-        output = %source_build.output_path.display(),
+        remote = remote_url, commit, checkout = %checkout_dir.display(),
+        tasks = ?source_build.tasks, output = %source_build.output_path.display(),
         "running Cargo source build"
     );
-    // The reviewed Vox producer requires JBR 21 even when the SFM project
-    // compiles with JBR 17. Never inherit a machine's unrelated JAVA_HOME.
-    let source_sdk = if let Some(spec) = checked_cargo_source_jdk_pin(
-        &coordinate.to_string(),
-        source_build.environment.get("VOX_JAVA_BUILD_JDK").map(String::as_str),
-    )? {
-        let platform = crate::jdk::host_jbrsdk_platform().unwrap_or("unsupported-host");
-        let crate::jdk::JdkSource::Pinned { pin, artifact } = crate::jdk::select_jdk_source(
-            None,
-            Some(std::slice::from_ref(&spec.pin)),
-            21,
-            platform,
-        )? else {
-            eyre::bail!("Vox source-build JDK has no exact pin");
-        };
-        let root = cache_dir
-            .parent()
-            .ok_or_else(|| eyre::eyre!("Source-build Maven cache has no parent"))?
-            .join("jbrsdk");
-        let image = crate::jdk_artifact_cache::acquire_verified_pinned_jbrsdk_zip(
-            pin, artifact, &root, false,
-        )?;
-        crate::jdk::resolve_pinned_java_from_verified_home(image.home(), pin, artifact)?;
-        let release = fs::read_to_string(image.home().join("release"))?;
-        let actual = format!(
-            "{}|{}",
-            jdk_release_property(&release, "IMPLEMENTOR")?,
-            jdk_release_property(&release, "JAVA_RUNTIME_VERSION")?
-        );
-        eyre::ensure!(actual == spec.expected_release, "Vox source-build JDK release mismatch");
-        Some(image)
-    } else {
-        None
-    };
     let mut command = Command::new("cargo");
     let cargo_target_dir = cargo_source_build_target_dir(checkout_dir);
     command
         .current_dir(checkout_dir)
         .args(&source_build.tasks)
-        // Managed source-build checkouts can live below a long Windows cache path.
-        // Keep Cargo's generated target tree in a compact temp path so rustc does
-        // not hit MAX_PATH before the source-build output is packaged.
         .env("CARGO_TARGET_DIR", &cargo_target_dir);
     tracing::debug!(target_dir = %cargo_target_dir.display(), "using compact Cargo target directory");
     for (key, value) in &source_build.environment {
+        // The full declaration stays in source_build/provenance. Its platform
+        // keys are not inputs understood by this exact producer source.
+        if source_sdk.is_some()
+            && matches!(
+                key.as_str(),
+                super::vox_producer_contract::WINDOWS_KEY | super::vox_producer_contract::LINUX_KEY
+            )
+        {
+            continue;
+        }
         command.env(key, value);
     }
-    if let Some(image) = &source_sdk {
-        command
-            .env("JAVA_HOME", image.home())
-            .env_remove("JAVA_TOOL_OPTIONS")
-            .env_remove("JDK_JAVA_OPTIONS")
-            .env_remove("CLASSPATH");
+    if let Some(sdk) = &mut source_sdk {
+        sdk.configure(&mut command, cancellation_token)?;
     }
-    let trust = if source_sdk.is_some() { super::java_trust::JavaTrust::from_environment_for_major(21)? }
-        else { super::java_trust::JavaTrust::from_environment()? };
-    // The current immutable Vox producer requires jdeps stderr to be empty.
-    // JAVA_TOOL_OPTIONS prints there even for a successful tool invocation.
-    // Do not hide that diagnostic or silently run any of its JVMs unfiltered.
-    eyre::ensure!(source_sdk.is_none() || trust.is_none(),
-        "Pinned Vox producer 5628c00d cannot enforce the selected external Java trust policy: its strict jdeps stderr check rejects JAVA_TOOL_OPTIONS. A reviewed producer with explicit per-tool trust arguments is required; no Cargo producer child was launched");
     if let Some(trust) = &trust {
+        // Only generic non-Vox producers can reach this existing nested route.
         trust.apply_nested(&mut command)?;
         tracing::info!(trust_store_sha256 = %trust.identity(), "source-build-cargo selected explicit Java trust store");
     }
+    cancellation_token.bail_if_cancelled()?;
     let result = run_source_build_process(cancellation_token, &mut command, "source-build-cargo");
     if let Some(trust) = &trust {
         trust.recheck()?;
     }
+    if let Some(sdk) = &mut source_sdk {
+        sdk.recheck(cancellation_token)?;
+    }
     result
-}
-
-#[derive(Facet)]
-struct CargoSourceBuildJdkPin {
-    schema: String,
-    coordinate: String,
-    expected_release: String,
-    pin: crate::toolchain_lockfile_schema::version::v4::JdkPinV4,
-}
-
-fn checked_cargo_source_jdk_pin(
-    coordinate: &str,
-    expected: Option<&str>,
-) -> eyre::Result<Option<CargoSourceBuildJdkPin>> {
-    let Some(expected) = expected else { return Ok(None) };
-    let spec: CargoSourceBuildJdkPin = facet_json::from_str(include_str!("vox_source_build_jdk.json"))?;
-    eyre::ensure!(
-        spec.schema == "sfm:source_build_jdk_pin@1"
-            && spec.coordinate == coordinate
-            && spec.expected_release == expected
-            && spec.pin.major == 21,
-        "Cargo source build has no matching checked JDK pin"
-    );
-    Ok(Some(spec))
-}
-
-fn jdk_release_property<'a>(release: &'a str, name: &str) -> eyre::Result<&'a str> {
-    let prefix = format!("{name}=\"");
-    release
-        .lines()
-        .find_map(|line| line.strip_prefix(&prefix)?.strip_suffix('"'))
-        .ok_or_else(|| eyre::eyre!("Pinned JDK release lacks {name}"))
-}
-
-#[cfg(test)]
-#[test]
-fn vox_cargo_source_build_jdk_pin_requires_exact_recipe_identity() {
-    let expected = "JetBrains s.r.o.|21.0.11+1-b1163.116";
-    let spec = checked_cargo_source_jdk_pin(
-        "org.facet:teamy-vox-java:0.10.0-rc.7", Some(expected),
-    ).unwrap().unwrap();
-    assert_eq!(spec.pin.major, 21);
-    assert_eq!(spec.pin.artifacts[0].sha512, "457c15d931bb5055ae97574fc7d899aa70917c266d4b40a1c50d949ff1d2b431eb95ad078b2038bd94561fbd57889803f867dd9c295868fbb0c3c870f1f4d1d3");
-    assert!(checked_cargo_source_jdk_pin("org.facet:other:1", Some(expected)).is_err());
-    assert!(checked_cargo_source_jdk_pin("org.facet:teamy-vox-java:0.10.0-rc.7", Some("different JDK")).is_err());
-    assert!(checked_cargo_source_jdk_pin("org.facet:teamy-vox-java:0.10.0-rc.7", None).unwrap().is_none());
 }
 
 fn cargo_source_build_target_dir(checkout_dir: &Path) -> PathBuf {

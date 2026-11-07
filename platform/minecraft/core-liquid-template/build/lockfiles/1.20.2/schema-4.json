@@ -1768,7 +1768,9 @@
           "package-java"
         ],
         "environment": {
-          "VOX_JAVA_BUILD_JDK": "JetBrains s.r.o.|21.0.11+1-b1163.116"
+          "VOX_JAVA_BUILD_JDK": "JetBrains s.r.o.|21.0.11+1-b1163.116",
+          "VOX_JAVA_BUILD_JDK_WINDOWS_X64": "JetBrains s.r.o.|21.0.11+1-b1163.116",
+          "VOX_JAVA_BUILD_JDK_LINUX_X64": "JetBrains s.r.o.|21.0.11+10-b1163.116"
         },
         "output_path": "java\\target\\teamy-vox-java-0.10.0-rc.7.jar"
       },

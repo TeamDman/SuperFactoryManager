@@ -1,7 +1,13 @@
 {
-  "schema": "sfm:source_build_jdk_pin@1",
+  "schema": "sfm:source_build_jdk_pin@2",
   "coordinate": "org.facet:teamy-vox-java:0.10.0-rc.7",
   "expected_release": "JetBrains s.r.o.|21.0.11+1-b1163.116",
+  "platform_releases": {
+    "windows-x64": "JetBrains s.r.o.|21.0.11+1-b1163.116",
+    "linux-x64": "JetBrains s.r.o.|21.0.11+10-b1163.116"
+  },
+  "source_remote": "https://github.com/TeamDman/vox",
+  "source_commit": "5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
   "pin": {
     "major": 21,
     "vendor": "JetBrains",

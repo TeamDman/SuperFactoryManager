@@ -55,9 +55,10 @@ impl FrozenFileDependencyContract {
             ])
             && build.output_path.to_string_lossy().replace('\\', "/")
                 == "java/target/teamy-vox-java-0.10.0-rc.7.jar"
-            && build.environment.len() == 1
-            && build.environment.get("VOX_JAVA_BUILD_JDK").map(String::as_str)
-                == Some("JetBrains s.r.o.|21.0.11+1-b1163.116")
+            // Either reviewed declaration may describe these identical bytes.
+            // This host-independent artifact contract is not proof that Linux
+            // executed the producer (including on a canonical cache hit).
+            && super::vox_producer_contract::declared_variant(&build.environment).is_ok()
         {
             return Some(Self {
                 jar_bytes: 614_530,
@@ -179,6 +180,30 @@ mod tests {
             "VOX_JAVA_BUILD_JDK".to_owned(),
             "JetBrains s.r.o.|21.0.11+1-b1163.116".to_owned(),
         );
+        assert!(FrozenFileDependencyContract::for_artifact(&standalone).is_some());
+        let mut platform_declared = standalone.clone();
+        {
+            let environment = &mut platform_declared.source_build.as_mut().unwrap().environment;
+            environment.insert(
+                super::super::vox_producer_contract::WINDOWS_KEY.to_owned(),
+                super::super::vox_producer_contract::WINDOWS_RUNTIME.to_owned(),
+            );
+            environment.insert(
+                super::super::vox_producer_contract::LINUX_KEY.to_owned(),
+                super::super::vox_producer_contract::LINUX_RUNTIME.to_owned(),
+            );
+        }
+        assert!(FrozenFileDependencyContract::for_artifact(&platform_declared).is_some());
+        platform_declared
+            .source_build
+            .as_mut()
+            .unwrap()
+            .environment
+            .insert(
+                super::super::vox_producer_contract::LINUX_KEY.to_owned(),
+                super::super::vox_producer_contract::WINDOWS_RUNTIME.to_owned(),
+            );
+        assert!(FrozenFileDependencyContract::for_artifact(&platform_declared).is_none());
         let contract = FrozenFileDependencyContract::for_artifact(&standalone)
             .expect("independently reproduced standalone runtime");
         assert!(contract.verify_bytes(b"different bytes").is_err());
