@@ -98,16 +98,7 @@ fn version() -> String {
 }
 
 fn reject_stage_log_file_before_logging(cli: &Cli) -> eyre::Result<()> {
-    if cli.global_args.log_file.is_some()
-        && matches!(
-            &cli.command,
-            cli::Command::Source(cli::source::SourceArgs {
-                command: cli::source::SourceCommand::Legacy(cli::source::LegacySourceArgs {
-                    command: cli::source::LegacySourceCommand::FrozenPresetStage(_),
-                }),
-            })
-        )
-    {
+    if cli.global_args.log_file.is_some() && cli.defers_file_logging() {
         eyre::bail!("source frozen-preset-stage rejects global --log-file before logging starts");
     }
     Ok(())
@@ -170,9 +161,14 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
 
     // Invoke whatever command was requested and render typed output once.
     let requested_output_format = cli.global_args.output_format;
-    let output = cli.invoke(cancellation_token)?;
+    let output = cli.invoke(cancellation_token).inspect_err(|_| {
+        tracing::error!("Command failed; detailed error is written to stderr");
+    })?;
     let exit_code = output.exit_code();
-    output.emit(requested_output_format)?;
+    output.emit(requested_output_format).inspect_err(|_| {
+        tracing::error!("Command output failed; detailed error is written to stderr");
+    })?;
+    tracing::debug!(?exit_code, "Command completed");
     Ok(std::process::ExitCode::from(exit_code))
 }
 
@@ -210,5 +206,7 @@ mod tests {
         let error = reject_stage_log_file_before_logging(&cli).unwrap_err();
         assert!(error.to_string().contains("rejects global --log-file"));
         assert!(reject_stage_log_file_before_logging(&stage_cli(None)).is_ok());
+        let logging = stage_cli(None).logging_config().unwrap();
+        assert!(logging.json_log_path.is_none() && logging.json_log_directory.is_none());
     }
 }

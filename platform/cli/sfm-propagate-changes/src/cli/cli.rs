@@ -31,7 +31,25 @@ impl Cli {
     ///
     /// This function will return an error if the log filter string is invalid.
     pub fn logging_config(&self) -> eyre::Result<LoggingConfig> {
-        self.global_args.logging_config()
+        if self.defers_file_logging() {
+            self.global_args.logging_config_with_default_file(false)
+        } else {
+            self.global_args.logging_config()
+        }
+    }
+
+    // Candidate-only staging must validate its checkout before any file write.
+    pub(crate) fn defers_file_logging(&self) -> bool {
+        matches!(
+            &self.command,
+            Command::Source(crate::cli::source::SourceArgs {
+                command: crate::cli::source::SourceCommand::Legacy(
+                    crate::cli::source::LegacySourceArgs {
+                        command: crate::cli::source::LegacySourceCommand::FrozenPresetStage(_),
+                    }
+                ),
+            })
+        )
     }
 
     /// # Errors

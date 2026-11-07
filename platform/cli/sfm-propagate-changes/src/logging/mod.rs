@@ -1,6 +1,8 @@
 mod captured_fields;
 mod logging_config;
 mod logging_init;
+mod persistent_log;
+mod persistent_log_writer;
 mod stop_after_layer;
 mod terminal_event_layer;
 mod terminal_hyperlink;

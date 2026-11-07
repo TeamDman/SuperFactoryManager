@@ -2,8 +2,6 @@ use crate::cancellation::CancellationToken;
 use crate::logging::logging_config::LoggingConfig;
 use crate::logging::stop_after_layer::StopAfterLayer;
 use crate::logging::terminal_event_layer::TerminalEventLayer;
-use std::fs::File;
-use std::fs::OpenOptions;
 use tracing::info;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::EnvFilter;
@@ -15,12 +13,22 @@ use tracing_subscriber::util::SubscriberInitExt;
 #[cfg(feature = "tracy")]
 const SFM_ENABLE_TRACY_LAYER_ENV: &str = "SFM_ENABLE_TRACY_LAYER";
 
-fn build_env_filter(config: &LoggingConfig) -> EnvFilter {
-    let builder = EnvFilter::builder().with_default_directive(config.default_directive.clone());
-    if config.read_env_filter {
+fn build_env_filter(config: &LoggingConfig, json: bool) -> EnvFilter {
+    let directive = if json {
+        &config.json_default_directive
+    } else {
+        &config.default_directive
+    };
+    let read_env = if json {
+        config.json_read_env_filter
+    } else {
+        config.read_env_filter
+    };
+    let builder = EnvFilter::builder().with_default_directive(directive.clone());
+    if read_env {
         builder.from_env_lossy()
     } else {
-        EnvFilter::default().add_directive(config.default_directive.clone())
+        EnvFilter::default().add_directive(directive.clone())
     }
 }
 
@@ -47,59 +55,46 @@ fn tracy_layer_requested() -> bool {
 ///
 /// This function will return an error if creating the log file or directories fails.
 ///
-/// # Panics
-///
-/// This function may panic if locking or cloning the log file handle fails.
 pub fn init_logging(
     config: &LoggingConfig,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
-    let subscriber = Registry::default();
-
-    {
-        // this is what we used to have, for reference.
-        let old_stderr_layer = tracing_subscriber::fmt::layer()
-            .with_file(cfg!(debug_assertions))
-            .with_target(true)
-            .with_line_number(cfg!(debug_assertions))
-            .with_writer(std::io::stderr)
-            .pretty()
-            .without_time()
-            .with_filter(build_env_filter(config));
-        if false {
-            subscriber.with(old_stderr_layer);
-            panic!()
-        }
+    let (subscriber, json_log_path, tracy_requested) =
+        configured_subscriber(config, cancellation_token)?;
+    subscriber
+        .try_init()
+        .map_err(|error| eyre::eyre!("failed to initialize tracing subscriber: {error}"))?;
+    if let Some(json_log_path) = json_log_path {
+        info!(?json_log_path, "JSON log output initialized");
     }
+    if tracy_requested {
+        info!("Tracy profiling layer enabled");
+    }
+    Ok(())
+}
 
-    let terminal_layer = TerminalEventLayer.with_filter(build_env_filter(config));
+pub(super) fn configured_subscriber(
+    config: &LoggingConfig,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<(
+    impl tracing::Subscriber + Send + Sync,
+    Option<std::path::PathBuf>,
+    bool,
+)> {
+    let subscriber = Registry::default();
+    let terminal_layer = TerminalEventLayer.with_filter(build_env_filter(config, false));
     let subscriber = subscriber.with(ErrorLayer::default()).with(terminal_layer);
     let subscriber = subscriber.with(
         config
             .stop_after
             .as_ref()
-            .map(|stop_after| StopAfterLayer::new(stop_after, cancellation_token.clone())),
+            .map(|zone| StopAfterLayer::new(zone, cancellation_token.clone())),
     );
-
-    let json_layer = if let Some(json_log_path) = config.json_log_path.as_ref() {
-        // Create parent directories if they don't exist
-        if let Some(parent) = json_log_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        File::create(json_log_path)?;
-        let json_writer = {
-            let json_log_path = json_log_path.clone();
-            BoxMakeWriter::new(move || {
-                OpenOptions::new()
-                    .append(true)
-                    .create(true)
-                    .open(&json_log_path)
-                    .expect("failed to open json log file for appending")
-            })
-        };
-
-        let json_layer = tracing_subscriber::fmt::layer()
+    let prepared = super::persistent_log::prepare(config, cancellation_token)?;
+    let path = prepared.as_ref().map(|log| log.path.clone());
+    let json_layer = prepared.map(|log| {
+        let writer = BoxMakeWriter::new(super::persistent_log_writer::LogWriter::new(log.file));
+        tracing_subscriber::fmt::layer()
             .json()
             .with_current_span(true)
             .with_span_list(true)
@@ -107,39 +102,15 @@ pub fn init_logging(
             .with_target(false)
             .with_line_number(true)
             .event_format(crate::startup_argv::StartupJsonFormatter::new(false))
-            .with_writer(json_writer)
-            .with_filter(build_env_filter(config));
-
-        Some(json_layer)
-    } else {
-        None
-    };
+            .with_writer(writer)
+            .with_filter(build_env_filter(config, true))
+    });
     let subscriber = subscriber.with(json_layer);
-
     #[cfg(feature = "tracy")]
-    let tracy_layer_requested = tracy_layer_requested();
+    let tracy_requested = tracy_layer_requested();
+    #[cfg(not(feature = "tracy"))]
+    let tracy_requested = false;
     #[cfg(feature = "tracy")]
-    let subscriber =
-        subscriber.with(tracy_layer_requested.then(tracing_tracy::TracyLayer::default));
-
-    if let Err(error) = subscriber.try_init() {
-        eprintln!(
-            "Failed to initialize tracing subscriber - are you running `cargo test`? If so, multiple test entrypoints may be running from the same process. https://github.com/tokio-rs/console/issues/505 : {error}"
-        );
-        return Ok(());
-    }
-
-    if let Some(json_log_path) = config.json_log_path.as_ref() {
-        info!(?json_log_path, "JSON log output initialized");
-    }
-
-    #[cfg(feature = "tracy")]
-    if tracy_layer_requested {
-        info!(
-            env_var = SFM_ENABLE_TRACY_LAYER_ENV,
-            "Tracy profiling layer enabled"
-        );
-    }
-
-    Ok(())
+    let subscriber = subscriber.with(tracy_requested.then(tracing_tracy::TracyLayer::default));
+    Ok((subscriber, path, tracy_requested))
 }
