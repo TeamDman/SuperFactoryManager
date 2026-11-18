@@ -1,28 +1,22 @@
 <#
 .SYNOPSIS
-Create a pure, exact-once library-test shard plan from Cargo's current test list.
+Create an exact-once library-test plan from the current compiled test list.
 
 .DESCRIPTION
-This file defines functions only. It does not invoke Cargo, create fixtures,
-change environment variables, or start processes. The runner owns test listing
-and execution. Only source_projection is split, by its actual immediate child
-module; all other configured library filters retain their existing semantics.
+Defines pure planning functions only. Module ownership uses ordinal root prefixes,
+not libtest substring filters. Execution uses the exact listed names, split into
+bounded argument lists when a focused module contains many tests.
 #>
 
 function New-BoundedModuleJob {
     [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string]$Root,
-        [Parameter(Mandatory)][string]$Fixture
-    )
+    param([Parameter(Mandatory)][string]$Root)
 
-    $skips = if ($Root -ceq 'cli') { @($Fixture) } else { @('cli::' + $Root + '::') }
     [pscustomobject]@{
         Name = "unit:$Root"
         Kind = 'module'
-        Filter = $Root + '::'
-        Exact = $false
-        Skips = @($skips)
+        Prefix = $Root + '::'
+        ExactTest = $null
         TestNames = @()
     }
 }
@@ -38,32 +32,10 @@ function New-BoundedExactJob {
     [pscustomobject]@{
         Name = $Name
         Kind = $Kind
-        Filter = $Test
-        Exact = $true
-        Skips = @()
+        Prefix = $null
+        ExactTest = $Test
         TestNames = @()
     }
-}
-
-function Get-BoundedConfiguredLibraryJobs {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string[]]$ModuleRoots,
-        [Parameter(Mandatory)][string]$Fixture,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$StandaloneTests
-    )
-
-    # Focused non-source_projection runs preserve the old no-listing path.
-    # The source_projection alias must use the discovered, verified plan instead.
-    foreach ($root in $ModuleRoots) {
-        if ($root -cne 'source_projection') {
-            New-BoundedModuleJob -Root $root -Fixture $Fixture
-        }
-    }
-    foreach ($test in $StandaloneTests) {
-        New-BoundedExactJob -Name "unit:$test" -Kind 'standalone' -Test $test
-    }
-    New-BoundedExactJob -Name 'fixture' -Kind 'fixture' -Test $Fixture
 }
 
 function New-BoundedLibraryPlan {
@@ -76,18 +48,28 @@ function New-BoundedLibraryPlan {
     )
 
     if ($TestNames.Count -eq 0) { throw 'The library test listing is empty.' }
+    $comparison = [System.StringComparison]::Ordinal
     $roots = [System.Collections.Generic.HashSet[string]]::new(
         [System.StringComparer]::Ordinal
     )
     foreach ($root in $ModuleRoots) {
-        if ([string]::IsNullOrEmpty($root) -or -not $roots.Add($root)) {
-            throw 'The configured library module list contains an empty or duplicate root.'
+        if ([string]::IsNullOrEmpty($root) -or $root.Contains('::', $comparison) -or
+            -not $roots.Add($root)) {
+            throw 'The configured library modules need unique, nonempty top-level roots.'
         }
     }
     if (-not $roots.Contains('source_projection')) {
         throw 'The configured library modules must contain source_projection exactly once.'
     }
 
+    $reserved = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal
+    )
+    foreach ($test in @($StandaloneTests) + @($Fixture)) {
+        if ([string]::IsNullOrEmpty($test) -or -not $reserved.Add($test)) {
+            throw 'Duplicate or overlapping standalone/fixture ownership.'
+        }
+    }
     $coverage = [System.Collections.Generic.Dictionary[string, int]]::new(
         [System.StringComparer]::Ordinal
     )
@@ -95,7 +77,6 @@ function New-BoundedLibraryPlan {
         [System.StringComparer]::Ordinal
     )
     $prefix = 'source_projection::'
-    $comparison = [System.StringComparison]::Ordinal
     $sourceProjectionCount = 0
     foreach ($name in $TestNames) {
         if ([string]::IsNullOrEmpty($name) -or $coverage.ContainsKey($name)) {
@@ -126,17 +107,15 @@ function New-BoundedLibraryPlan {
     $jobs = [System.Collections.Generic.List[object]]::new()
     foreach ($root in $ModuleRoots) {
         if ($root -cne 'source_projection') {
-            $jobs.Add((New-BoundedModuleJob -Root $root -Fixture $Fixture))
+            $jobs.Add((New-BoundedModuleJob -Root $root))
             continue
         }
         foreach ($child in $children) {
             $jobs.Add([pscustomobject]@{
                 Name = "unit:source_projection:$child"
                 Kind = 'module'
-                Filter = $prefix + $child + '::'
-                Exact = $false
-                # Preserve the previous root shard's cli namespace exclusion.
-                Skips = @('cli::source_projection::')
+                Prefix = $prefix + $child + '::'
+                ExactTest = $null
                 TestNames = @()
             })
         }
@@ -149,26 +128,12 @@ function New-BoundedLibraryPlan {
     foreach ($job in $jobs) {
         $matched = [System.Collections.Generic.List[string]]::new()
         foreach ($name in $TestNames) {
-            # Keep the hot coverage loop in-process without a PowerShell
-            # function invocation for every job/name pair. These are libtest's
-            # actual ordinal exact/substring/skip matching rules.
-            $included = if ($job.Exact) {
-                [string]::Equals($name, $job.Filter, $comparison)
+            $included = if ($job.Kind -ceq 'module') {
+                $name.StartsWith($job.Prefix, $comparison) -and -not $reserved.Contains($name)
             } else {
-                $name.Contains($job.Filter, $comparison)
+                [string]::Equals($name, $job.ExactTest, $comparison)
             }
             if (-not $included) { continue }
-            foreach ($skip in $job.Skips) {
-                if ($name.Contains($skip, $comparison)) {
-                    $included = $false
-                    break
-                }
-            }
-            if (-not $included) { continue }
-            if ($job.Name.StartsWith('unit:source_projection:', $comparison) -and
-                -not $name.StartsWith($job.Filter, $comparison)) {
-                throw "Source-projection substring collision in '$($job.Name)': '$name'."
-            }
             $matched.Add($name)
             $coverage[$name]++
         }
@@ -205,7 +170,6 @@ function Select-BoundedLibraryJobs {
         $exactSelection = if ($sourceChild) {
             [string]::Equals($Shard, $job.Name, [System.StringComparison]::Ordinal)
         } else {
-            # Preserve the old case-insensitive names for existing selectors.
             $Shard -eq $job.Name
         }
         if ($Shard -eq 'all' -or $exactSelection -or
@@ -215,17 +179,45 @@ function Select-BoundedLibraryJobs {
     }
 }
 
-function New-BoundedCargoLibraryArguments {
+function New-BoundedLibraryExecutionJobs {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][string[]]$CommonCargoArguments,
         [Parameter(Mandatory)]$Job,
-        [ValidateRange(1, 256)][int]$TestThreads = 1
+        [Parameter(Mandatory)][string]$Executable,
+        [Parameter(Mandatory)][string]$WorkingDirectory,
+        [ValidateRange(1, 256)][int]$TestThreads = 1,
+        [ValidateRange(256, 24000)][int]$FilterCharacterBudget = 16000
     )
 
-    $arguments = @($CommonCargoArguments) + @('--lib', $Job.Filter, '--')
-    if ($Job.Exact) { $arguments += '--exact' }
-    $arguments += "--test-threads=$TestThreads"
-    foreach ($skip in $Job.Skips) { $arguments += @('--skip', $skip) }
-    $arguments
+    # Windows limits a process command line to 32767 UTF-16 code units. Leave
+    # room for the executable and options; charge quotes/separators per name.
+    $chunks = [System.Collections.Generic.List[object]]::new()
+    $names = [System.Collections.Generic.List[string]]::new()
+    $characters = 0
+    foreach ($name in $Job.TestNames) {
+        $required = $name.Length + 3
+        if ($required -gt $FilterCharacterBudget) {
+            throw "Exact test name exceeds the process argument budget: '$name'."
+        }
+        if ($names.Count -gt 0 -and $characters + $required -gt $FilterCharacterBudget) {
+            $chunks.Add([pscustomobject]@{ TestNames = @($names.ToArray()) })
+            $names.Clear()
+            $characters = 0
+        }
+        $names.Add($name)
+        $characters += $required
+    }
+    if ($names.Count -gt 0) {
+        $chunks.Add([pscustomobject]@{ TestNames = @($names.ToArray()) })
+    }
+    for ($index = 0; $index -lt $chunks.Count; $index++) {
+        $name = if ($chunks.Count -eq 1) { $Job.Name } else { "$($Job.Name):batch-$($index + 1)" }
+        [pscustomobject]@{
+            Name = $name
+            Executable = $Executable
+            WorkingDirectory = $WorkingDirectory
+            Arguments = @('--exact', "--test-threads=$TestThreads") + @($chunks[$index].TestNames)
+            ParallelSafe = $true
+        }
+    }
 }

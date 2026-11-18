@@ -2,6 +2,7 @@ use super::SymbolQueryWorkspaceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::java_analysis::JavaSymbolGlob;
+use crate::java_analysis::SymbolListOutput;
 use facet::Facet;
 use figue::{self as args};
 use std::path::Path;
@@ -60,7 +61,7 @@ impl SymbolListArgs {
         };
         Ok(CliOutput::facet_with_csv_and_status(
             report,
-            |report| Ok(report.to_csv()),
+            SymbolListOutput::to_csv,
             exit_code,
         ))
     }
@@ -198,12 +199,14 @@ mod tests {
         )
         .unwrap();
         let cache_root = temporary.path().join("sfm-toolchain-data");
-        drop(crate::jar_build::engine::select_project_source_cache(
-            &project_root,
-            None,
-            &CancellationToken::new(),
-        )
-        .unwrap());
+        drop(
+            crate::jar_build::engine::select_project_source_cache(
+                &project_root,
+                None,
+                &CancellationToken::new(),
+            )
+            .unwrap(),
+        );
         let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
         std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
         let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
@@ -277,12 +280,14 @@ mod tests {
             .path()
             .join("platform/minecraft/projections/1.19.2");
         let cache_root = temporary.path().join("sfm-toolchain-data");
-        drop(crate::jar_build::engine::select_project_source_cache(
-            &project_root,
-            None,
-            &CancellationToken::new(),
-        )
-        .unwrap());
+        drop(
+            crate::jar_build::engine::select_project_source_cache(
+                &project_root,
+                None,
+                &CancellationToken::new(),
+            )
+            .unwrap(),
+        );
         let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
         std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
         let mut archive = ZipWriter::new(Cursor::new(Vec::new()));

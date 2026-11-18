@@ -9,7 +9,7 @@
 
 Check out [the examples folder](./examples) for sample scripts.
 
-There are also [in-game examples](platform/minecraft/src/main/resources/assets/sfm/template_programs).
+There are also [in-game examples](platform/minecraft/projections/sfm-4.35.0/mc-1.19.2/src/main/resources/assets/sfm/template_programs).
 
 If you like this mod, consider [donating](https://github.com/sponsors/TeamDman) 💝
 

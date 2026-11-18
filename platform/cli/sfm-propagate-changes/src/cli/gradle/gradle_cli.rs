@@ -4,7 +4,7 @@ use super::GradleLogTldrArgs;
 use super::GradleRunArgs;
 use crate::branch_targets::discover_worktree_targets;
 use crate::cli::git::status::assert_worktrees_clean_or_autocommit_generated;
-use crate::paths::CACHE_DIR;
+use crate::paths::CacheHome;
 use crate::terminal_output::stderr_text;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
@@ -445,7 +445,10 @@ fn create_gradle_run_log_dir(tasks: &[String]) -> eyre::Result<PathBuf> {
         format!("gradle_{timestamp}_{task_segment}")
     };
 
-    let run_dir = CACHE_DIR.0.join("gradle-runs").join(run_dir_name);
+    let run_dir = CacheHome::current()?
+        .0
+        .join("gradle-runs")
+        .join(run_dir_name);
     fs::create_dir_all(&run_dir).wrap_err_with(|| {
         format!(
             "Failed to create gradle run log directory: {}",
@@ -455,12 +458,12 @@ fn create_gradle_run_log_dir(tasks: &[String]) -> eyre::Result<PathBuf> {
     Ok(run_dir)
 }
 
-fn gradle_runs_dir() -> PathBuf {
-    CACHE_DIR.0.join("gradle-runs")
+fn gradle_runs_dir() -> eyre::Result<PathBuf> {
+    Ok(CacheHome::current()?.0.join("gradle-runs"))
 }
 
 fn latest_gradle_run_dir() -> eyre::Result<PathBuf> {
-    let runs_dir = gradle_runs_dir();
+    let runs_dir = gradle_runs_dir()?;
 
     if !runs_dir.exists() {
         bail!("No gradle run logs exist yet: {}", runs_dir.display());

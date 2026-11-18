@@ -1,4 +1,4 @@
-use crate::paths::CACHE_DIR;
+use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 
@@ -9,8 +9,8 @@ pub struct CachePathArgs;
 impl CachePathArgs {
     /// # Errors
     ///
-    /// Returns an error if stdout cannot be written.
+    /// Returns an error if cache selection or writing stdout fails.
     pub fn invoke(self) -> eyre::Result<()> {
-        stdout_line(CACHE_DIR.0.display())
+        stdout_line(CacheHome::current()?.0.display())
     }
 }

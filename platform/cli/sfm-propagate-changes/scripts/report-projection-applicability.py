@@ -60,7 +60,7 @@ SOURCE_BASIS = {
     "portable_fe_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610PortableControlsGameTest.java",
     "infrastructure_guard_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/water_tank/WaterTankPlusSplitGameTest.java",
     "infrastructure_negative_witnesses": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestInfrastructureWitnesses.java",
-    "dev26_ae2_inscribers": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscribersGameTest.java; platform/minecraft/gradle/source-excludes/26.1.2/gametest-java.txt",
+    "dev26_ae2_inscribers": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscribersGameTest.java; platform/minecraft/core-liquid-template/project-inputs.json (selected gametest source exclusions)",
     "progress_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java",
     "client_visual": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualControlsGameTest.java",
 }

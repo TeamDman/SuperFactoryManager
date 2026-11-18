@@ -252,17 +252,18 @@ impl UsageAtPositionResult {
         self
     }
 
-    #[must_use]
-    pub fn to_csv(&self) -> String {
+    /// # Errors
+    /// Returns a serialization error if a result row cannot be encoded.
+    pub fn to_csv(&self) -> eyre::Result<String> {
         let mut output = UsageAtPositionCsvRow::header();
         let report = UsageAtPositionCsvRow::report(self);
-        append_csv_row(&mut output, &report);
+        append_csv_row(&mut output, &report)?;
         for definition in &self.definitions {
             let mut row = report.clone();
             "definition".clone_into(&mut row.record_kind);
             row.set_symbol(&definition.symbol, definition.confidence);
             row.set_span(&definition.identifier_span);
-            append_csv_row(&mut output, &row);
+            append_csv_row(&mut output, &row)?;
         }
         for usage in &self.usages {
             let mut row = report.clone();
@@ -270,23 +271,23 @@ impl UsageAtPositionResult {
             row.set_symbol(&usage.target, usage.confidence);
             usage_kind_name(usage.kind).clone_into(&mut row.usage_kind);
             row.set_span(&usage.span);
-            append_csv_row(&mut output, &row);
+            append_csv_row(&mut output, &row)?;
         }
         for skipped in &self.skipped_categories {
             let mut row = report.clone();
             "skipped-category".clone_into(&mut row.record_kind);
             skipped_category_name(skipped.category).clone_into(&mut row.skipped_category);
             row.message.clone_from(&skipped.reason);
-            append_csv_row(&mut output, &row);
+            append_csv_row(&mut output, &row)?;
         }
         for diagnostic in &self.diagnostics {
             let mut row = report.clone();
             "diagnostic".clone_into(&mut row.record_kind);
             row.diagnostic_code.clone_from(&diagnostic.code);
             row.message.clone_from(&diagnostic.message);
-            append_csv_row(&mut output, &row);
+            append_csv_row(&mut output, &row)?;
         }
-        output
+        Ok(output)
     }
 
     pub(crate) fn refresh_index_fingerprint(&mut self) {
@@ -649,11 +650,9 @@ impl UsageAtPositionCsvRow {
     }
 }
 
-fn append_csv_row(output: &mut String, row: &UsageAtPositionCsvRow) {
-    output.push_str(
-        &facet_csv::to_string(row)
-            .expect("the flat usage-at-position CSV row must remain serializable"),
-    );
+fn append_csv_row(output: &mut String, row: &UsageAtPositionCsvRow) -> eyre::Result<()> {
+    output.push_str(&facet_csv::to_string(row)?);
+    Ok(())
 }
 
 const fn outcome_name(outcome: UsageAtPositionOutcome) -> &'static str {
@@ -799,7 +798,12 @@ mod tests {
         let result = UsageAtPositionResult::from_definition(definition);
         assert_eq!(result.outcome, UsageAtPositionOutcome::InvalidRequest);
         assert!(!result.skipped_categories.is_empty());
-        assert!(result.to_csv().contains("skipped-category"));
+        assert!(
+            result
+                .to_csv()
+                .expect("usage CSV")
+                .contains("skipped-category")
+        );
         assert!(result.diagnostics.iter().any(|diagnostic| {
             diagnostic.severity == super::super::DiagnosticSeverity::Error
                 && diagnostic.message == "fixture failure"

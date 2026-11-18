@@ -3,6 +3,7 @@ use crate::cli::output::CliOutput;
 use crate::java_analysis::JavaSourceWorkspace;
 use crate::java_analysis::JavaSymbolGlob;
 use crate::java_analysis::JavaSymbolIndex;
+use crate::java_analysis::SymbolListOutput;
 use crate::java_analysis::scan_generated_dependency_type;
 use facet::Facet;
 use figue::{self as args};
@@ -106,7 +107,7 @@ impl SymbolProjectListArgs {
         };
         Ok(CliOutput::facet_with_csv_and_status(
             report,
-            |report| Ok(report.to_csv()),
+            SymbolListOutput::to_csv,
             exit_code,
         ))
     }

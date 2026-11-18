@@ -7,7 +7,9 @@ use crate::java_analysis::DefinitionDocumentInput;
 use crate::java_analysis::DefinitionTextPositionInput;
 use crate::java_analysis::DefinitionWorkspaceIdentityInput;
 use crate::java_analysis::JavaSymbolSelector;
+use crate::java_analysis::SymbolUsageListOutput;
 use crate::java_analysis::UsageAtPositionRequest;
+use crate::java_analysis::UsageAtPositionResult;
 use crate::java_analysis::blake3_content_hash;
 use crate::java_analysis::definition_workspace_fingerprint;
 use facet::Facet;
@@ -91,7 +93,7 @@ impl SymbolListUsagesArgs {
                 };
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
-                    |report| Ok(report.to_csv()),
+                    SymbolUsageListOutput::to_csv,
                     exit_code,
                 ))
             }
@@ -165,7 +167,7 @@ impl SymbolListUsagesArgs {
                 let exit_code = report.status();
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
-                    |report| Ok(report.to_csv()),
+                    UsageAtPositionResult::to_csv,
                     exit_code,
                 ))
             }

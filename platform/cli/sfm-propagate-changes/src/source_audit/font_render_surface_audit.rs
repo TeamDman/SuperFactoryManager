@@ -93,12 +93,6 @@ impl AuditRules {
         })
     }
 
-    fn suspicious_member(&self, member: &str) -> bool {
-        self.deny_calls
-            .iter()
-            .any(|rule| wildcard_matches(member, &rule.member))
-    }
-
     fn denied_rule(
         &self,
         owner: &str,
@@ -605,9 +599,6 @@ impl JavaAuditVisitor<'_> {
         let Some(member) = node_text(member_node, self.source) else {
             return;
         };
-        if !self.rules.suspicious_member(member) {
-            return;
-        }
         let descriptor = self.invocation_descriptor(node);
         let object = node.child_by_field_name("object");
         let receiver = match object {
@@ -642,9 +633,6 @@ impl JavaAuditVisitor<'_> {
     }
 
     fn audit_object_creation(&mut self, node: Node<'_>) {
-        if !self.rules.suspicious_member("<init>") {
-            return;
-        }
         let Some(type_node) = node.child_by_field_name("type") else {
             return;
         };
@@ -672,6 +660,14 @@ impl JavaAuditVisitor<'_> {
         receiver_expression: &str,
         call_expression: &str,
     ) {
+        let Some(suspicious_rule) = self
+            .rules
+            .deny_calls
+            .iter()
+            .find(|rule| wildcard_matches(member, &rule.member))
+        else {
+            return;
+        };
         let caller = self.callers.last().cloned().unwrap_or_else(|| Caller {
             owner: self
                 .classes
@@ -712,12 +708,6 @@ impl JavaAuditVisitor<'_> {
                 },
             ));
         } else {
-            let rule = self
-                .rules
-                .deny_calls
-                .iter()
-                .find(|rule| wildcard_matches(member, &rule.member))
-                .expect("suspicious member must originate from a deny rule");
             self.report.push_problem(SourceProblem::audit_rule(
                 self.branch,
                 self.repo_path,
@@ -725,7 +715,7 @@ impl JavaAuditVisitor<'_> {
                 line,
                 column,
                 AuditRuleDiagnostic::UnresolvedCall {
-                    rule: format_rule(rule),
+                    rule: format_rule(suspicious_rule),
                     call_site,
                 },
             ));
@@ -1327,9 +1317,21 @@ mod tests {
     #[test]
     fn parses_declarative_call_and_caller_rules() {
         let rules = AuditRules::parse(RULES).expect("rules should parse");
-        assert!(rules.suspicious_member("draw"));
-        assert!(rules.suspicious_member("drawString"));
-        assert!(!rules.suspicious_member("unrelated"));
+        assert!(
+            rules
+                .denied_rule("net.minecraft.client.gui.Font", "draw", None)
+                .is_some()
+        );
+        assert!(
+            rules
+                .denied_rule("net.minecraft.client.gui.GuiGraphics", "drawString", None)
+                .is_some()
+        );
+        assert!(rules.deny_calls.iter().all(|rule| {
+            rules
+                .denied_rule(&rule.owner, "unrelated", Some(&rule.descriptor))
+                .is_none()
+        }));
         AuditRules::parse("DENY public Foo x y").unwrap_err();
     }
 

@@ -65,7 +65,8 @@ impl DependencySourceAcquireArgs {
             let inventory = DependencyInventory::load_project(&project_root, cache_home.clone())?;
             (BranchSelector(inventory.target.branch.0.clone()), inventory)
         } else {
-            let branch = selected_branch.expect("one selection checked");
+            let branch = selected_branch
+                .ok_or_else(|| eyre::eyre!("Source acquisition requires a selected branch"))?;
             let inventory = load_inventory(branch.clone(), cache_home)?;
             (branch, inventory)
         };
@@ -81,7 +82,7 @@ impl DependencySourceAcquireArgs {
             cancellation_token,
         )?;
         for target in &targets {
-            for root in target.searchable_roots(&inventory) {
+            for root in target.searchable_roots(&inventory)? {
                 stdout_line(format!(
                     "{} {}: {}",
                     target.identity(),

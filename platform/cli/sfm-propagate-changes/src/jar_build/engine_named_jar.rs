@@ -789,7 +789,7 @@ impl ExecutionContext<'_> {
             project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
         // Preserve Windows development's held shared mapping selection as well
         // as the original project-local fallback on other routes.
-        paths.reobf_mapping = self.forge_mapping_path("official_to_srg.tsrg");
+        paths.reobf_mapping = self.forge_mapping_path("official_to_srg.tsrg")?;
         #[cfg(target_os = "linux")]
         if linux_forge_cache::eligible(self.plan) {
             self.recheck_compiler_image()?;
@@ -840,7 +840,7 @@ impl ExecutionContext<'_> {
         #[cfg(target_os = "linux")]
         if linux_forge_cache::eligible(self.plan) {
             eyre::ensure!(
-                paths.reobf_mapping == self.forge_mapping_path("official_to_srg.tsrg"),
+                paths.reobf_mapping == self.forge_mapping_path("official_to_srg.tsrg")?,
                 "named package mapping differs from held output role"
             );
             self.recheck_compiler_image()?;
@@ -977,7 +977,7 @@ impl ExecutionContext<'_> {
             require_named_jar_cache_tree(&root)?;
         }
         self.recheck_compiler_image()?;
-        let mapping = self.forge_mapping_path("srg_to_official.tsrg");
+        let mapping = self.forge_mapping_path("srg_to_official.tsrg")?;
         let mapping_hash = capture_named_package_hash(&mapping)?;
         let mut allowed = BTreeSet::new();
         for dependency in self
@@ -1015,7 +1015,7 @@ impl ExecutionContext<'_> {
         let selected = self
             .selected_dependency_remaps
             .lock()
-            .expect("selected remap paths poisoned");
+            .map_err(|_poisoned| eyre::eyre!("Selected remap paths poisoned"))?;
         let collected = if let Some(paths) = selected.as_ref() {
             allowed.extend(paths.iter().cloned());
             paths.clone()
@@ -1026,7 +1026,7 @@ impl ExecutionContext<'_> {
             require_named_generated_jar(&allowed, &path)?;
             insert_named_jar_pin(&mut pins, path.clone(), capture_named_package_hash(&path)?)?;
         }
-        let loader = loader_dev_compile_jar(self);
+        let loader = loader_dev_compile_jar(self)?;
         insert_named_jar_pin(
             &mut pins,
             loader.clone(),
@@ -1225,7 +1225,8 @@ impl ExecutionContext<'_> {
         let console_log =
             NamedPackageDiagnosticFile::create(&project_root, diagnostic, "console_log")?;
         let transport = java_tool_argfile_transport(contents.as_bytes())?;
-        let java_trust = super::java_trust::JavaTrust::from_environment_for_major(self.plan.java.major_version)?;
+        let java_trust =
+            super::java_trust::JavaTrust::from_environment_for_major(self.plan.java.major_version)?;
         let mut receipt = NamedPackageLaunchReceipt::prepared(
             self,
             &files,
@@ -1237,7 +1238,9 @@ impl ExecutionContext<'_> {
             contents.as_bytes(),
             writer_output,
         )?;
-        receipt.java_trust_sha256 = java_trust.as_ref().map(super::java_trust::JavaTrust::identity);
+        receipt.java_trust_sha256 = java_trust
+            .as_ref()
+            .map(super::java_trust::JavaTrust::identity);
         receipt.persist()?;
         let preflight = (|| {
             self.bail_if_cancelled()?;

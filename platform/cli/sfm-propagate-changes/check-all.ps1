@@ -8,6 +8,14 @@ param(
 # the memory-profiled product. Use install.ps1 or a fresh default-feature build
 # for normal work; only a successful final build below restores that product.
 
+Write-Host -ForegroundColor Yellow "Checking bounded test-plan ownership..."
+try {
+    & (Join-Path $PSScriptRoot 'scripts/test-bounded-plan.ps1')
+} catch {
+    Write-Error $_
+    exit 1
+}
+
 Write-Host -ForegroundColor Yellow "Checking direct dependency policy..."
 $metadataJson = cargo metadata --no-deps --format-version 1
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

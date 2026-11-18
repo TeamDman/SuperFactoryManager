@@ -1,0 +1,5 @@
+# Production code propagates failures; test assertions may panic.
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+allow-expect-in-consts = false
+allow-unwrap-in-consts = false

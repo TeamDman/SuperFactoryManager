@@ -1063,7 +1063,10 @@ fn input_state(
     stage: Stage,
 ) -> eyre::Result<BTreeMap<String, String>> {
     let mut fingerprints = BTreeMap::new();
-    fingerprints.insert("java_trust".to_owned(), crate::jar_build::java_trust::JavaTrust::environment_identity()?);
+    fingerprints.insert(
+        "java_trust".to_owned(),
+        crate::jar_build::java_trust::JavaTrust::environment_identity()?,
+    );
     let core = "platform/minecraft/core-liquid-template";
     let project_relative = project
         .strip_prefix(&ctx.root)?
@@ -1119,7 +1122,12 @@ fn input_state(
         let mut hashes = Vec::new();
         for jar in jars {
             hashes.push((
-                jar.file_name().unwrap().to_string_lossy().to_string(),
+                jar.file_name()
+                    .ok_or_else(|| {
+                        eyre::eyre!("generated JAR has no file name: {}", jar.display())
+                    })?
+                    .to_string_lossy()
+                    .to_string(),
                 hash_file(&jar)?,
             ));
         }

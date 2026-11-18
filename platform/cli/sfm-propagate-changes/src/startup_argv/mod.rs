@@ -11,6 +11,9 @@ mod tests;
 use startup_arguments::StartupArguments;
 pub(crate) use startup_json_formatter::StartupJsonFormatter;
 use std::ffi::OsString;
+use std::ops::ControlFlow;
+use std::process::ExitCode;
+use std::process::Termination;
 
 pub(crate) const TARGET: &str = "teamy::startup";
 
@@ -41,14 +44,14 @@ pub(crate) fn log<T: facet::Facet<'static>>(arguments: &[String]) -> eyre::Resul
 // builtin displays (help/version/completions) may use its ordinary presentation.
 pub(crate) fn finish_parse(
     outcome: figue::DriverOutcome<crate::cli::Cli>,
-) -> eyre::Result<crate::cli::Cli> {
+) -> eyre::Result<ControlFlow<ExitCode, crate::cli::Cli>> {
     match without_help_suggestions(outcome).into_result() {
-        Ok(output) => Ok(output.value),
+        Ok(output) => Ok(ControlFlow::Continue(output.value)),
         Err(error) => {
             if !error.is_success() {
                 eyre::bail!("invalid command line; use --help");
             }
-            Ok(figue::DriverOutcome::<crate::cli::Cli>::err(error).unwrap())
+            Ok(ControlFlow::Break(error.report()))
         }
     }
 }

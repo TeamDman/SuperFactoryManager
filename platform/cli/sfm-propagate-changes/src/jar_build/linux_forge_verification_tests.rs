@@ -78,7 +78,7 @@ fn exercise(
         .unwrap()
         .preparations
         .push(("forge".to_owned(), store, owner));
-    let mapping = context.forge_mapping_path("srg_to_official.tsrg");
+    let mapping = context.forge_mapping_path("srg_to_official.tsrg")?;
     let common = Arc::new(ForgePreparationInputs::performance_fixture(
         &context, "remap", &mapping,
     )?);

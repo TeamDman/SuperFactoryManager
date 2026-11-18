@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "vscjava.vscode-java-pack",
-        "vscjava.vscode-gradle",
         "vscjava.vscode-java-debug",
         "vscjava.vscode-java-test",
         "redhat.java",

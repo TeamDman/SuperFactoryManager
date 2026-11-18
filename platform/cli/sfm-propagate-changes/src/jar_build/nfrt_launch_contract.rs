@@ -414,14 +414,14 @@ impl NfrtExportPlan {
         let loader = userdev
             .coordinate
             .strip_suffix(":userdev")
-            .expect("selected userdev suffix");
+            .ok_or_else(|| eyre::eyre!("Selected userdev parent has no userdev suffix"))?;
         let archives = [format!("{loader}:sources"), format!("{loader}:universal")];
         let version_request = dependencies.version_json_request()?;
         let version_json_url = dependencies
             .artifact_pin(&version_request)?
             .url
             .clone()
-            .expect("selected version URL");
+            .ok_or_else(|| eyre::eyre!("Selected Minecraft version pin has no URL"))?;
         let original = NfrtRequestCatalog::Development(Arc::clone(dependencies));
         let mut originals = Vec::new();
         let mut seen = BTreeSet::new();
@@ -805,7 +805,9 @@ impl NfrtExportPlan {
             "oversized original userdev parent"
         );
         self.original.verify_artifact_bytes(request, raw, false)?;
-        let coordinate = request.resolved_coordinate().expect("selected coordinate");
+        let coordinate = request
+            .resolved_coordinate()
+            .ok_or_else(|| eyre::eyre!("Selected userdev parent has no resolved coordinate"))?;
         self.supplement
             .verify_parent_bytes(coordinate, raw, false)?;
         let bytes = bounded_source_config(raw)?;
@@ -833,7 +835,7 @@ impl NfrtExportPlan {
         self.supplement.verify_parent_bytes(
             recipe_request
                 .resolved_coordinate()
-                .expect("selected recipe coordinate"),
+                .ok_or_else(|| eyre::eyre!("Selected NeoForm recipe has no resolved coordinate"))?,
             recipe_raw,
             false,
         )?;

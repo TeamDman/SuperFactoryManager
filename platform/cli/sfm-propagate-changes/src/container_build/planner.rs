@@ -347,10 +347,9 @@ pub(crate) fn execute(
             return Ok(report);
         }
     }
-    let contract_parent = report
-        .toolchain_lock_sha256
-        .clone()
-        .expect("contract was validated");
+    let contract_parent = report.toolchain_lock_sha256.clone().ok_or_else(|| {
+        eyre::eyre!("Validated container contract has no toolchain lock identity")
+    })?;
     put_bytes(
         stage.path(),
         "tools/sfm-propagate-changes",

@@ -116,9 +116,9 @@ impl CoreFeatureDefinitions {
         while let Some(id) = ready.pop_first() {
             visited += 1;
             for dependant in dependants.get(id).into_iter().flatten() {
-                let count = counts
-                    .get_mut(dependant)
-                    .expect("validated prerequisite graph contains every feature");
+                let count = counts.get_mut(dependant).ok_or_else(|| {
+                    eyre::eyre!("validated prerequisite graph is missing feature {dependant}")
+                })?;
                 *count -= 1;
                 if *count == 0 {
                     ready.insert(*dependant);

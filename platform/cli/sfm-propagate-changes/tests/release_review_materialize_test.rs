@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 #![expect(dead_code)]
 
 #[path = "../src/release_review_capture.rs"]

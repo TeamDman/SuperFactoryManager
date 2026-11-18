@@ -1119,10 +1119,10 @@ fn inventory(root: &Path) -> eyre::Result<BTreeMap<String, Vec<String>>> {
                     relative.display()
                 )
             })?;
-        if components.len() < 2 {
+        let [_, directories @ .., file_name] = components.as_slice() else {
             continue;
-        }
-        let Some(stem) = Path::new(components.last().expect("length checked"))
+        };
+        let Some(stem) = Path::new(file_name)
             .file_stem()
             .and_then(|value| value.to_str())
         else {
@@ -1131,7 +1131,7 @@ fn inventory(root: &Path) -> eyre::Result<BTreeMap<String, Vec<String>>> {
         if matches!(stem, "module-info" | "package-info") {
             continue;
         }
-        let mut qualified = components[1..components.len() - 1].to_vec();
+        let mut qualified = directories.to_vec();
         qualified.push(stem.to_owned());
         inventory
             .entry(qualified.join("."))

@@ -577,10 +577,13 @@ fn handle_hello<W: Write>(
         session.start_draining(false, Some("incompatible syntax-server hello"));
         return Ok(());
     }
-    session.negotiated_max_frame_bytes = session
-        .limits
-        .max_frame_bytes
-        .min(client_maximum.expect("validated client frame maximum"));
+    session.negotiated_max_frame_bytes =
+        session
+            .limits
+            .max_frame_bytes
+            .min(client_maximum.ok_or_else(|| {
+                eyre::eyre!("validated syntax-server hello has no client frame maximum")
+            })?);
     session.phase = SyntaxServerPhase::Open;
     send_frame(
         writer,
@@ -631,10 +634,9 @@ fn start_highlight<W: Write>(
         .iter()
         .position(|cancelled| cancelled.key == key)
     {
-        let cancelled = session
-            .pre_cancelled
-            .remove(index)
-            .expect("pre-cancel index must remain valid");
+        let cancelled = session.pre_cancelled.remove(index).ok_or_else(|| {
+            eyre::eyre!("pre-cancelled syntax request disappeared before removal")
+        })?;
         let result = cancelled_result(&request, &cancelled.reason);
         send_highlight_result(writer, session, key, result)?;
         return Ok(());
@@ -683,10 +685,9 @@ fn start_highlight<W: Write>(
     match engine_tx.try_send(command) {
         Ok(()) => Ok(()),
         Err(mpsc::TrySendError::Full(_)) => {
-            let pending = session
-                .pending
-                .remove(&key.request_id)
-                .expect("just-inserted syntax request");
+            let pending = session.pending.remove(&key.request_id).ok_or_else(|| {
+                eyre::eyre!("syntax request disappeared before engine dispatch failed")
+            })?;
             let result = failed_result(
                 &pending.request,
                 "syntax.server-busy",
@@ -695,10 +696,9 @@ fn start_highlight<W: Write>(
             send_highlight_result(writer, session, key, result)
         }
         Err(mpsc::TrySendError::Disconnected(_)) => {
-            let pending = session
-                .pending
-                .remove(&key.request_id)
-                .expect("just-inserted syntax request");
+            let pending = session.pending.remove(&key.request_id).ok_or_else(|| {
+                eyre::eyre!("syntax request disappeared before engine dispatch failed")
+            })?;
             let result = failed_result(
                 &pending.request,
                 "syntax.engine-unavailable",

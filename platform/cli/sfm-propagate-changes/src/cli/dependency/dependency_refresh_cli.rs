@@ -92,14 +92,19 @@ fn refresh_dependencies(
                 None => fetch_curseforge_fallback(candidate, cancellation_token, fetcher)?,
             };
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
-        let local_path = inventory.local_path(&candidate.cache_path);
+        let local_path = inventory.local_path(&candidate.cache_path)?;
         write_cache_file_atomically(&local_path, &bytes)?;
         let artifact = inventory
             .lockfile
             .artifacts
             .iter_mut()
             .find(|artifact| artifact.id == candidate.artifact_id)
-            .expect("refresh candidates come from artifact inventory");
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "Refresh candidate references missing artifact `{}`",
+                    candidate.artifact_id
+                )
+            })?;
         let old_hash = artifact.hash;
         artifact.hash = hash;
         artifact.weak = None;
@@ -136,7 +141,7 @@ fn refresh_candidates(
     let selected = selected_components(inventory, target)?;
     let mut candidates = BTreeMap::new();
     for component in selected {
-        let artifact = inventory.artifact(component);
+        let artifact = inventory.artifact(component)?;
         if !matches!(
             artifact.provenance,
             ArtifactProvenanceV3::RemoteMaven | ArtifactProvenanceV3::RemoteHttp

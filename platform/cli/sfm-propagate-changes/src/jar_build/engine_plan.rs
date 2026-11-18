@@ -2,8 +2,8 @@ fn resolve_build_targets(options: &BuildOptions) -> eyre::Result<Vec<WorktreeTar
     select_required_worktree_targets(options.worktree_query()?)
 }
 
-fn common_toolchain_cache_dir() -> PathBuf {
-    CACHE_DIR.0.join("minecraft-toolchain")
+fn common_toolchain_cache_dir() -> eyre::Result<PathBuf> {
+    Ok(CacheHome::current()?.0.join("minecraft-toolchain"))
 }
 
 // A selected native root owns both immutable downloads and derived outputs.
@@ -14,7 +14,7 @@ fn selected_common_toolchain_cache_dir(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<PathBuf> {
     let Some(root) = root else {
-        return Ok(common_toolchain_cache_dir());
+        return common_toolchain_cache_dir();
     };
     for relative in [
         "minecraft-toolchain/maven",
@@ -31,9 +31,11 @@ fn selected_common_toolchain_cache_dir(
 #[cfg(all(test, windows))]
 mod selected_common_cache_tests {
     use super::*;
-    use std::net::{Ipv4Addr, TcpListener};
+    use std::net::Ipv4Addr;
+    use std::net::TcpListener;
     use std::thread;
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
+    use std::time::Instant;
 
     #[test]
     fn explicit_native_root_guards_downloads_and_outputs_under_one_owner() -> eyre::Result<()> {
@@ -130,7 +132,10 @@ mod selected_common_cache_tests {
             bytes
         );
         let blocked_parent = common.join("minecraft/assets/indexes");
-        fs::write(&blocked_parent, b"unexpected file in place of index directory")?;
+        fs::write(
+            &blocked_parent,
+            b"unexpected file in place of index directory",
+        )?;
         let blocked_index = blocked_parent.join("fixture.json");
         assert!(
             acquire_named_frozen_download(
@@ -156,7 +161,7 @@ mod selected_common_cache_tests {
         );
         assert_eq!(
             selected_common_toolchain_cache_dir(None, &cancellation)?,
-            common_toolchain_cache_dir()
+            common_toolchain_cache_dir()?
         );
         Ok(())
     }
@@ -542,8 +547,7 @@ fn create_plan_for_project(
                 );
                 jdk_resolution.selection = "lockfile-pin".to_owned();
                 jdk_resolution.pin_url = Some(selected.artifact.url.clone());
-                jdk_resolution.pin_sha512 =
-                    Some(selected.artifact.sha512.to_ascii_lowercase());
+                jdk_resolution.pin_sha512 = Some(selected.artifact.sha512.to_ascii_lowercase());
             }
             JavaPlan {
                 executable: jdk_resolution.executable,
@@ -553,7 +557,10 @@ fn create_plan_for_project(
                 selection: jdk_resolution.selection,
                 pin_url: jdk_resolution.pin_url,
                 pin_sha512: jdk_resolution.pin_sha512,
-                pin_spec_identity: options.pinned_sdk.as_ref().map(|selected| selected.spec_identity()),
+                pin_spec_identity: options
+                    .pinned_sdk
+                    .as_ref()
+                    .map(|selected| selected.spec_identity()),
                 execution_identity: None,
                 java_trust_sha256: None,
             }
@@ -561,8 +568,10 @@ fn create_plan_for_project(
         (java_release, java)
     };
     let mut java = java;
-    java.java_trust_sha256 = super::java_trust::JavaTrust::from_environment_for_major(java.major_version)?
-        .as_ref().map(super::java_trust::JavaTrust::identity);
+    java.java_trust_sha256 =
+        super::java_trust::JavaTrust::from_environment_for_major(java.major_version)?
+            .as_ref()
+            .map(super::java_trust::JavaTrust::identity);
     if let Some(project) = target.named_project() {
         target.recheck()?;
         let sdk_identity = named_sdk_identity(&java)?;

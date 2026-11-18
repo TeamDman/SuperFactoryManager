@@ -834,7 +834,7 @@ impl Resolver {
             let repository = SourceCacheLayout::git(&remote_url, commit).repository;
             let repository_relative = repository
                 .strip_prefix(Path::new("$sfm-cache"))
-                .expect("source cache layout is rooted at $sfm-cache");
+                .wrap_err("Source cache layout is not rooted at $sfm-cache")?;
             return Ok((
                 if matches!(build_system, SourceBuildSystem::CargoCommand) {
                     compact_checkout()
@@ -853,7 +853,7 @@ impl Resolver {
         let repository = SourceCacheLayout::git(&remote_url, commit).repository;
         let repository_relative = repository
             .strip_prefix(Path::new("$sfm-cache"))
-            .expect("source cache layout is rooted at $sfm-cache");
+            .wrap_err("Source cache layout is not rooted at $sfm-cache")?;
         Ok((
             if matches!(build_system, SourceBuildSystem::CargoCommand) {
                 compact_checkout()
@@ -999,7 +999,7 @@ impl Resolver {
         let url = locked
             .url
             .as_deref()
-            .expect("locked remote artifact has a URL");
+            .ok_or_else(|| eyre::eyre!("Locked remote artifact has no URL: {coordinate}"))?;
         self.with_prepared_url_guard(coordinate, url, || {
             attempted.push(url.to_string());
             match download_to_path_overwrite_locked(
@@ -1257,9 +1257,9 @@ impl Resolver {
             !self.refresh,
             "producer-pinned input cannot be refreshed implicitly; create and approve a new producer receipt separately"
         );
-        let expected_path = self
-            .producer_cache_path(coordinate)?
-            .expect("producer row checked above");
+        let expected_path = self.producer_cache_path(coordinate)?.ok_or_else(|| {
+            eyre::eyre!("Locked producer has no isolated output path: {coordinate}")
+        })?;
         eyre::ensure!(
             artifact == expected_path,
             "producer output path differs from the locked isolated cache path"

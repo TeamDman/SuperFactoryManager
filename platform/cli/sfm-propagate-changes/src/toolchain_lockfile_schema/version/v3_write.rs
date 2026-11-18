@@ -135,7 +135,13 @@ impl ArtifactLockfileV3 {
                     .artifacts
                     .iter()
                     .find(|artifact| artifact.id == component.derived_checks.artifact_id)
-                    .expect("v3 validation guarantees component artifact references");
+                    .ok_or_else(|| {
+                        eyre::eyre!(
+                            "component {} references missing artifact {}",
+                            component.id,
+                            component.derived_checks.artifact_id
+                        )
+                    })?;
                 component
                     .derived_checks
                     .resolved_coordinate

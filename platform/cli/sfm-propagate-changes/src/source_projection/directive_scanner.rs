@@ -85,9 +85,9 @@ pub(crate) fn scan(source: &str) -> eyre::Result<ScannedSource<'_>> {
         if trimmed.starts_with("\\{%") {
             ensure_case_branch(&blocks, line_number, "literal text")?;
             projected = true;
-            let escape_at = line
-                .find("\\{%")
-                .expect("trimmed escaped directive is in line");
+            let escape_at = line.find("\\{%").ok_or_else(|| {
+                eyre::eyre!("line {line_number}: escaped directive marker is missing")
+            })?;
             raw.push_str(&line[..escape_at]);
             raw.push_str(&line[escape_at + 1..]);
             continue;
@@ -103,7 +103,7 @@ pub(crate) fn scan(source: &str) -> eyre::Result<ScannedSource<'_>> {
 
         let directive = parse_directive(trimmed, line_number)?;
         projected = true;
-        flush_chunk(&mut template.skeleton, &mut template.chunks, &mut raw);
+        flush_chunk(&mut template.skeleton, &mut template.chunks, &mut raw)?;
         push_directive(&mut template, &mut blocks, directive, line_number)?;
     }
 
@@ -118,7 +118,7 @@ pub(crate) fn scan(source: &str) -> eyre::Result<ScannedSource<'_>> {
     if !projected {
         return Ok(ScannedSource::Identity(source));
     }
-    flush_chunk(&mut template.skeleton, &mut template.chunks, &mut raw);
+    flush_chunk(&mut template.skeleton, &mut template.chunks, &mut raw)?;
     Ok(ScannedSource::Template(template))
 }
 
@@ -133,8 +133,7 @@ fn push_directive(
             ensure_case_branch(blocks, line, "reference")?;
             let index = template.references.len();
             template.references.push(reference);
-            write!(template.skeleton, "{{{{ __sfm_reference_{index} }}}}")
-                .expect("writing to String cannot fail");
+            write!(template.skeleton, "{{{{ __sfm_reference_{index} }}}}")?;
         }
         Directive::If(condition) => {
             ensure_case_branch(blocks, line, "if")?;
@@ -144,15 +143,13 @@ fn push_directive(
                 has_else: false,
                 kind: BlockKind::If,
             });
-            write!(template.skeleton, "{{% if {condition} %}}")
-                .expect("writing to a String cannot fail");
+            write!(template.skeleton, "{{% if {condition} %}}")?;
         }
         Directive::Elsif(condition) => {
             let block = matching_block(blocks, "elsif", "if", line)?;
             ensure_before_else(block, "elsif", line)?;
             record_condition(template, condition, line);
-            write!(template.skeleton, "{{% elsif {condition} %}}")
-                .expect("writing to a String cannot fail");
+            write!(template.skeleton, "{{% elsif {condition} %}}")?;
         }
         Directive::Case(selector) => {
             ensure_case_branch(blocks, line, "case")?;
@@ -165,15 +162,13 @@ fn push_directive(
                 has_else: false,
                 kind: BlockKind::Case { has_when: false },
             });
-            write!(template.skeleton, "{{% case {selector} %}}")
-                .expect("writing to a String cannot fail");
+            write!(template.skeleton, "{{% case {selector} %}}")?;
         }
         Directive::When(values) => {
             let block = matching_block(blocks, "when", "case", line)?;
             ensure_before_else(block, "when", line)?;
             block.kind = BlockKind::Case { has_when: true };
-            write!(template.skeleton, "{{% when {} %}}", values.join(", "))
-                .expect("writing to a String cannot fail");
+            write!(template.skeleton, "{{% when {} %}}", values.join(", "))?;
         }
         Directive::Else => {
             ensure_case_branch(blocks, line, "else")?;
@@ -250,10 +245,15 @@ fn ensure_case_branch(blocks: &[ControlBlock], line: usize, text: &str) -> eyre:
     Ok(())
 }
 
-fn flush_chunk(skeleton: &mut String, chunks: &mut Vec<String>, raw: &mut String) {
+fn flush_chunk(
+    skeleton: &mut String,
+    chunks: &mut Vec<String>,
+    raw: &mut String,
+) -> eyre::Result<()> {
     let index = chunks.len();
-    write!(skeleton, "{{{{ __sfm_chunk_{index} }}}}").expect("writing to a String cannot fail");
+    write!(skeleton, "{{{{ __sfm_chunk_{index} }}}}")?;
     chunks.push(std::mem::take(raw));
+    Ok(())
 }
 
 fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>> {
@@ -274,7 +274,7 @@ fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>
             validate_condition_alternatives(conditions, line_number)?;
             let condition = body
                 .strip_prefix("if")
-                .expect("matched if directive")
+                .ok_or_else(|| eyre::eyre!("line {line_number}: if directive prefix is missing"))?
                 .trim();
             Ok(Directive::If(condition))
         }
@@ -282,7 +282,9 @@ fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>
             validate_condition_alternatives(conditions, line_number)?;
             let condition = body
                 .strip_prefix("elsif")
-                .expect("matched elsif directive")
+                .ok_or_else(|| {
+                    eyre::eyre!("line {line_number}: elsif directive prefix is missing")
+                })?
                 .trim();
             Ok(Directive::Elsif(condition))
         }
@@ -301,7 +303,7 @@ fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>
         ["endcase"] => Ok(Directive::Endcase),
         ["when", ..] => Ok(Directive::When(parse_when_values(
             body.strip_prefix("when")
-                .expect("matched when directive")
+                .ok_or_else(|| eyre::eyre!("line {line_number}: when directive prefix is missing"))?
                 .trim(),
             line_number,
         )?)),

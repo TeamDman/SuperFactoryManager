@@ -295,7 +295,7 @@ pub(super) fn render(
         .diffs
         .iter()
         .find(|d| d.id == article.program_diff_id)
-        .expect("validated source")
+        .ok_or_else(|| eyre::eyre!("article source missing: {}", article.program_diff_id))?
         .after;
     let mut versions = String::new();
     for jar in &doc.jars {
@@ -448,6 +448,15 @@ fn primary_pair(
         .iter()
         .filter(|figure| figure.image_id.starts_with(&format!("issue610-{phase}-")))
     {
+        let metadata = doc
+            .images
+            .iter()
+            .find(|image| image.id == f.image_id)
+            .ok_or_else(|| eyre::eyre!("article image metadata missing: {}", f.image_id))?;
+        let image = images
+            .iter()
+            .find(|image| image.id == f.image_id)
+            .ok_or_else(|| eyre::eyre!("rendered article image missing: {}", f.image_id))?;
         pair.push_str(&fragment(
             include_str!("templates/article_figure.liquid"),
             &[
@@ -457,24 +466,8 @@ fn primary_pair(
                 ("value", &escape(&f.value)),
                 ("description", &escape(&f.description)),
                 ("tooltip", &escape(&f.tooltip)),
-                (
-                    "alt",
-                    &escape(
-                        &doc.images
-                            .iter()
-                            .find(|i| i.id == f.image_id)
-                            .expect("validated image")
-                            .alt,
-                    ),
-                ),
-                (
-                    "data",
-                    &images
-                        .iter()
-                        .find(|i| i.id == f.image_id)
-                        .expect("validated image")
-                        .data,
-                ),
+                ("alt", &escape(&metadata.alt)),
+                ("data", &image.data),
             ],
         )?);
     }

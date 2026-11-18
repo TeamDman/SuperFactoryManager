@@ -234,6 +234,7 @@ mod tests {
         let provider = add_git_provider(&mut inventory);
         let root = inventory
             .local_path(&provider.derived_checks.tree_cache_path)
+            .expect("checked fixture inventory")
             .join("src/main/java");
         materialize_verified_git_provider(&mut inventory);
         let before = directory_entries(cache.path());
@@ -477,7 +478,9 @@ mod tests {
         let SourceProviderV3::Git(provider) = &component.source_providers[0] else {
             panic!("expected Git fixture provider");
         };
-        let repository_path = inventory.local_path(&provider.derived_checks.repository_cache_path);
+        let repository_path = inventory
+            .local_path(&provider.derived_checks.repository_cache_path)
+            .expect("checked fixture inventory");
         std::fs::create_dir_all(repository_path.parent().expect("repository parent"))
             .expect("repository parent");
         let repository = gix::init_bare(&repository_path).expect("bare source repository");

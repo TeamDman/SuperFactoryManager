@@ -1,6 +1,7 @@
 use super::*;
 use crate::jar_build::nfrt_launch_contract::NfrtInputSnapshotExport;
 
+#[cfg(test)]
 fn actual_development_runtime() -> NfrtInputSnapshotExport {
     facet_json::from_str(include_str!(
         "../../tests/fixtures/neoform/development-runtime-snapshot.json"

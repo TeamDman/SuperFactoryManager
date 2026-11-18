@@ -1,6 +1,7 @@
 use super::*;
 use std::fs;
-use std::os::unix::fs::{PermissionsExt as _, symlink};
+use std::os::unix::fs::PermissionsExt as _;
+use std::os::unix::fs::symlink;
 
 fn captured(path: &Path, role: &str) -> Result<HeldForgePreparationInput> {
     Ok(HeldForgePreparationInput::capture(
@@ -26,7 +27,8 @@ fn fingerprint(
         release,
         Some("official"),
         Some("1.19.2"),
-    );
+    )
+    .expect("fixture recipe source regions");
     append(&mut hash, trust.as_bytes());
     finish_fingerprint(
         hash,

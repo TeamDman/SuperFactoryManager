@@ -1,9 +1,15 @@
 //! Operational SDK extraction controls; never part of an SDK/cache identity.
 use crate::cancellation::CancellationToken;
 use eyre::Context as _;
-use std::io::{Read as _, Seek as _};
-use std::process::{Child, Command, ExitStatus, Stdio};
-use std::time::{Duration, Instant};
+use std::io::Read as _;
+use std::io::Seek as _;
+use std::process::Child;
+use std::process::Command;
+use std::process::ExitStatus;
+use std::process::Stdio;
+use std::thread::sleep;
+use std::time::Duration;
+use std::time::Instant;
 
 pub(crate) const MAX_EXTRACTION_RATE: u64 = 1024 * 1024 * 1024;
 
@@ -54,13 +60,13 @@ impl InstallControl<'_> {
         let status = loop {
             self.checkpoint()?;
             eyre::ensure!(
-                started.elapsed() < Duration::from_secs(3600),
+                started.elapsed() < Duration::from_hours(1),
                 "SDK tar helper exceeded one hour"
             );
             if let Some(status) = child.0.try_wait()? {
                 break status;
             }
-            std::thread::sleep(Duration::from_millis(50));
+            sleep(Duration::from_millis(50));
         };
         self.checkpoint()?;
         error.rewind()?;

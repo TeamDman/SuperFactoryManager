@@ -127,15 +127,17 @@ fn semantic_platform_version(
             _ => None,
         })
         .collect::<BTreeSet<_>>();
-    if versions.len() != 1 {
-        eyre::bail!(
-            "platform dependency `{}` must declare exactly one distinct {} toolchain version; found {}",
-            dependency.id,
-            toolchain_kind_label(expected_kind),
-            versions.len()
-        );
+    let count = versions.len();
+    let mut versions = versions.into_iter();
+    if let (Some(version), None) = (versions.next(), versions.next()) {
+        return Ok(version);
     }
-    Ok(versions.into_iter().next().expect("one checked version"))
+    eyre::bail!(
+        "platform dependency `{}` must declare exactly one distinct {} toolchain version; found {}",
+        dependency.id,
+        toolchain_kind_label(expected_kind),
+        count
+    );
 }
 
 fn active_rust_toolchain_features(inventory: &DependencyInventory) -> eyre::Result<Vec<String>> {
@@ -319,7 +321,7 @@ fn project_component(
     inventory: &DependencyInventory,
     component: &DependencyComponentV3,
 ) -> eyre::Result<DependencyComponentProjection> {
-    let artifact = inventory.artifact(component);
+    let artifact = inventory.artifact(component)?;
     Ok(DependencyComponentProjection {
         id: component.id.clone(),
         scopes: component

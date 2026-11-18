@@ -436,13 +436,12 @@ impl ArtifactLockfileV3 {
             for component in &dependency.components {
                 validate_component(component, &repository_ids, &artifact_ids, &self.artifacts)?;
             }
-            for artifact in self.artifacts.iter().filter(|artifact| {
-                artifact
-                    .owner
-                    .as_ref()
-                    .is_some_and(|owner| owner.dependency_id == dependency.id)
-            }) {
-                let owner = artifact.owner.as_ref().expect("owner checked above");
+            for owner in self
+                .artifacts
+                .iter()
+                .filter_map(|artifact| artifact.owner.as_ref())
+                .filter(|owner| owner.dependency_id == dependency.id)
+            {
                 require_reference(&component_ids, &owner.component_id, "component")?;
             }
         }
@@ -474,7 +473,13 @@ fn validate_unique_nested_bundle_paths(dependencies: &[DependencyV3]) -> eyre::R
                 .derived_checks
                 .resolved_coordinate
                 .as_deref()
-                .expect("bundle validation requires a resolved coordinate");
+                .ok_or_else(|| {
+                    eyre::eyre!(
+                        "bundle component {}/{} has no resolved coordinate",
+                        dependency.id,
+                        component.id
+                    )
+                })?;
             let path = nested_jar_path(coordinate)?;
             if !nested_paths.insert(path.clone()) {
                 eyre::bail!(
@@ -570,41 +575,12 @@ fn validate_component(
         _ => {}
     }
 
-    match &component.declaration.acquisition {
-        ComponentAcquisitionV3::Maven(acquisition) => {
-            require_nonempty(&acquisition.requested_coordinate, "Maven coordinate")?;
-            require_reference(repository_ids, &acquisition.repository_id, "repository")?;
-        }
-        ComponentAcquisitionV3::CurseForge(acquisition) => {
-            require_nonempty(&acquisition.slug, "CurseForge slug")?;
-            require_reference(repository_ids, &acquisition.repository_id, "repository")?;
-        }
-        ComponentAcquisitionV3::Http(acquisition) => {
-            require_nonempty(&acquisition.url, "HTTP URL")?;
-        }
-        ComponentAcquisitionV3::Toolchain(acquisition) => {
-            require_nonempty(&acquisition.requested_version, "toolchain version")?;
-        }
-        ComponentAcquisitionV3::SourceBuild(acquisition) => {
-            require_reference(artifact_ids, &acquisition.artifact_id, "artifact")?;
-            let artifact = artifacts
-                .iter()
-                .find(|artifact| artifact.id == acquisition.artifact_id)
-                .expect("artifact reference validated above");
-            if artifact.provenance != ArtifactProvenanceV3::SourceBuild {
-                eyre::bail!(
-                    "source-build acquisition `{}` must reference a source-build artifact",
-                    acquisition.artifact_id
-                );
-            }
-            if artifact.coordinate.is_none() {
-                eyre::bail!(
-                    "source-build acquisition `{}` requires an artifact coordinate",
-                    acquisition.artifact_id
-                );
-            }
-        }
-    }
+    validate_component_acquisition(
+        &component.declaration.acquisition,
+        repository_ids,
+        artifact_ids,
+        artifacts,
+    )?;
 
     require_reference(
         artifact_ids,
@@ -615,7 +591,13 @@ fn validate_component(
     let artifact = artifacts
         .iter()
         .find(|artifact| artifact.id == component.derived_checks.artifact_id)
-        .expect("artifact reference validated above");
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "component {} references missing artifact {}",
+                component.id,
+                component.derived_checks.artifact_id
+            )
+        })?;
     if artifact.hash != component.derived_checks.expected_hash
         || !portable_paths_equal(&artifact.cache_path, &component.derived_checks.cache_path)
     {
@@ -639,6 +621,55 @@ fn validate_component(
     }
     for provider in &component.source_providers {
         provider.validate(repository_ids, artifact_ids)?;
+    }
+    Ok(())
+}
+
+fn validate_component_acquisition(
+    acquisition: &ComponentAcquisitionV3,
+    repository_ids: &BTreeSet<&str>,
+    artifact_ids: &BTreeSet<&str>,
+    artifacts: &[ArtifactV3],
+) -> eyre::Result<()> {
+    match acquisition {
+        ComponentAcquisitionV3::Maven(acquisition) => {
+            require_nonempty(&acquisition.requested_coordinate, "Maven coordinate")?;
+            require_reference(repository_ids, &acquisition.repository_id, "repository")?;
+        }
+        ComponentAcquisitionV3::CurseForge(acquisition) => {
+            require_nonempty(&acquisition.slug, "CurseForge slug")?;
+            require_reference(repository_ids, &acquisition.repository_id, "repository")?;
+        }
+        ComponentAcquisitionV3::Http(acquisition) => {
+            require_nonempty(&acquisition.url, "HTTP URL")?;
+        }
+        ComponentAcquisitionV3::Toolchain(acquisition) => {
+            require_nonempty(&acquisition.requested_version, "toolchain version")?;
+        }
+        ComponentAcquisitionV3::SourceBuild(acquisition) => {
+            require_reference(artifact_ids, &acquisition.artifact_id, "artifact")?;
+            let artifact = artifacts
+                .iter()
+                .find(|artifact| artifact.id == acquisition.artifact_id)
+                .ok_or_else(|| {
+                    eyre::eyre!(
+                        "source-build acquisition references missing artifact {}",
+                        acquisition.artifact_id
+                    )
+                })?;
+            if artifact.provenance != ArtifactProvenanceV3::SourceBuild {
+                eyre::bail!(
+                    "source-build acquisition `{}` must reference a source-build artifact",
+                    acquisition.artifact_id
+                );
+            }
+            if artifact.coordinate.is_none() {
+                eyre::bail!(
+                    "source-build acquisition `{}` requires an artifact coordinate",
+                    acquisition.artifact_id
+                );
+            }
+        }
     }
     Ok(())
 }
@@ -933,7 +964,7 @@ fn validate_platform_dependency(
         .dependencies
         .iter()
         .find(|dependency| dependency.id == dependency_id)
-        .expect("platform reference validated above");
+        .ok_or_else(|| eyre::eyre!("platform references missing dependency {dependency_id}"))?;
     if dependency.kind != expected_kind || dependency.role != DependencyRoleV3::Platform {
         eyre::bail!(
             "platform dependency `{dependency_id}` must have kind {expected_kind:?} and role platform"

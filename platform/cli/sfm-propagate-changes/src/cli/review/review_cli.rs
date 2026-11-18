@@ -1,4 +1,5 @@
 use crate::cli::output::CliOutput;
+use crate::release_review_capture::WorkingTreeCaptureV1;
 use crate::release_review_git;
 use crate::release_review_java_diff::produce_java_structured_diff;
 use crate::release_review_materialize;
@@ -154,7 +155,7 @@ impl ReviewSessionArgs {
                         invocation_dir,
                         &path,
                         &bindings,
-                    ),
+                    )?,
                 }))
             }
             ReviewSessionCommand::Resolve(args) => {
@@ -487,7 +488,7 @@ impl ReviewSessionCreateArgs {
         let output = resolve_output_path(invocation_dir, &repository_root, &self.file)?;
         let review_evidence_path = output
             .strip_prefix(&repository_root)
-            .expect("output authorization checked by resolve_output_path")
+            .wrap_err("release-review output is outside its authorized repository")?
             .to_string_lossy()
             .replace('\\', "/");
 
@@ -502,7 +503,7 @@ impl ReviewSessionCreateArgs {
         let candidate = self
             .candidate
             .as_deref()
-            .expect("exclusive source validated");
+            .ok_or_else(|| eyre::eyre!("candidate commit is required for a Git review"))?;
 
         let domain = release_review_git::produce_git_review_domain(
             &repository_root,
@@ -989,7 +990,7 @@ impl ReviewSessionStatusArgs {
                 invocation_dir,
                 &review_path,
                 &bindings,
-            ),
+            )?,
         }))
     }
 
@@ -1001,7 +1002,7 @@ impl ReviewSessionStatusArgs {
             invocation_dir,
             &review_path,
             &document.repository_bindings,
-        );
+        )?;
         let repository_diverged = repository_relationships.iter().any(|relationship| {
             if relationship.candidate_id.is_some() {
                 return relationship.capture_scope_matches != Some(true);
@@ -1081,21 +1082,25 @@ fn inspect_repository_relationships(
     invocation_dir: &Path,
     review_path: &Path,
     bindings: &[release_review_v1::RepositoryBindingV1],
-) -> Vec<ReviewSessionRepositoryRelationshipOutput> {
+) -> eyre::Result<Vec<ReviewSessionRepositoryRelationshipOutput>> {
     let mut repository_relationships = bindings
         .iter()
         .map(|binding| {
             let repository_root =
                 resolve_bound_repository_root(invocation_dir, review_path, binding);
-            if binding.working_tree_capture.is_some() {
-                return inspect_capture_relationship(binding, &repository_root);
+            if let Some(saved) = &binding.working_tree_capture {
+                return Ok(inspect_capture_relationship(
+                    binding,
+                    saved,
+                    &repository_root,
+                ));
             }
             let relationship = release_review_git::classify_ambient_repository_relationship(
                 &repository_root,
                 binding
                     .candidate_commit
                     .as_deref()
-                    .expect("Git binding validated"),
+                    .ok_or_else(|| eyre::eyre!("Git review binding has no candidate commit"))?,
                 &binding.review_evidence_paths,
             );
             let working_tree = release_review_git::inspect_working_tree(
@@ -1103,14 +1108,8 @@ fn inspect_repository_relationships(
                 &binding.review_evidence_paths,
             );
             let mut output = repository_relationship_output(binding, relationship);
-            output.working_tree = Some(working_tree_output(working_tree));
-            if output.ambient_head
-                != output
-                    .working_tree
-                    .as_ref()
-                    .and_then(|tree| tree.head.clone())
-            {
-                let tree = output.working_tree.as_mut().expect("populated above");
+            let mut tree = working_tree_output(working_tree);
+            if output.ambient_head != tree.head {
                 tree.source_dirty = None;
                 tree.diagnostics
                     .push(ReviewSessionRepositoryDiagnosticOutput {
@@ -1120,16 +1119,17 @@ fn inspect_repository_relationships(
                                 .to_owned(),
                     });
             }
-            output
+            output.working_tree = Some(tree);
+            Ok(output)
         })
-        .collect::<Vec<_>>();
+        .collect::<eyre::Result<Vec<_>>>()?;
     repository_relationships.sort_by(|left, right| {
         left.lane_id
             .cmp(&right.lane_id)
             .then_with(|| left.repository_id.cmp(&right.repository_id))
             .then_with(|| left.repository_root.cmp(&right.repository_root))
     });
-    repository_relationships
+    Ok(repository_relationships)
 }
 
 impl From<release_review_git::AmbientRepositoryRelationshipKind>
@@ -1208,12 +1208,9 @@ fn repository_relationship_output(
 
 fn inspect_capture_relationship(
     binding: &release_review_v1::RepositoryBindingV1,
+    saved: &WorkingTreeCaptureV1,
     root: &Path,
 ) -> ReviewSessionRepositoryRelationshipOutput {
-    let saved = binding
-        .working_tree_capture
-        .as_ref()
-        .expect("capture binding dispatched");
     let relationship = release_review_git::classify_ambient_repository_relationship(
         root,
         &saved.observed_head_commit,
@@ -1568,7 +1565,9 @@ fn write_new_atomically(path: &Path, bytes: &[u8]) -> eyre::Result<()> {
             path.display()
         ));
     }
-    let parent = path.parent().expect("validated output path has a parent");
+    let parent = path
+        .parent()
+        .ok_or_else(|| eyre::eyre!("release-review output has no parent: {}", path.display()))?;
     let mut temporary = tempfile::Builder::new()
         .prefix(".sfm-release-review-")
         .tempfile_in(parent)
@@ -1823,7 +1822,8 @@ mod tests {
         let copied = nested.join("renamed.sfm-review.json");
         std::fs::copy(&path, &copied).unwrap();
         let relationships =
-            inspect_repository_relationships(&nested, &copied, &review.repository_bindings);
+            inspect_repository_relationships(&nested, &copied, &review.repository_bindings)
+                .expect("repository relationships");
         assert_eq!(
             relationships[0].capture_scope_matches,
             Some(true),
@@ -1844,7 +1844,8 @@ mod tests {
         )
         .unwrap();
         let changed =
-            inspect_repository_relationships(&nested, &copied, &review.repository_bindings);
+            inspect_repository_relationships(&nested, &copied, &review.repository_bindings)
+                .expect("repository relationships");
         assert_eq!(changed[0].capture_scope_matches, Some(false));
         assert!(
             changed[0]

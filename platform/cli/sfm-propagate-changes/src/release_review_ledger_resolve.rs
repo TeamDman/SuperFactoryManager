@@ -328,10 +328,10 @@ fn hydrate_history(
                 .filter(|target| target.repository_id == reference.repository_id)
                 .filter_map(|target| roots.get(&target.id))
                 .collect();
-            if candidates.len() != 1 {
+            let mut candidates = candidates.into_iter();
+            let (Some(root), None) = (candidates.next(), candidates.next()) else {
                 return Err(eyre!("unknown or ambiguous historical Git repository"));
-            }
-            let root = candidates.into_iter().next().expect("one root checked");
+            };
             match read_historical_git(&budget, root, storage_path, reference) {
                 Ok(bytes) => {
                     if session::sha256(&bytes) != evidence.sha256 {

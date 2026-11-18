@@ -549,18 +549,21 @@ fn factor_sources<'a>(
     distinct_sources: usize,
     report: &mut RegionReviewReport,
 ) -> Result<Vec<SourcePiece<'a>>> {
-    let sources: Vec<&str> = variants
-        .iter()
-        .map(|variant| {
-            std::str::from_utf8(variant.source.as_deref().expect("present source"))
+    let sources: Vec<&str> =
+        variants
+            .iter()
+            .map(|variant| {
+                std::str::from_utf8(variant.source.as_deref().ok_or_else(|| {
+                    eyre::eyre!("source witness {} has no source bytes", variant.id)
+                })?)
                 .wrap_err_with(|| format!("source witness '{}' is not UTF-8", variant.id))
-        })
-        .collect::<Result<_>>()?;
+            })
+            .collect::<Result<_>>()?;
     let lines: Vec<Vec<&str>> = sources
         .iter()
         .map(|source| source.split_inclusive('\n').collect())
         .collect();
-    let base = choose_reference(&sources);
+    let base = choose_reference(&sources)?;
     let maps: Vec<_> = lines
         .iter()
         .map(|other| shared_line_map(&lines[base], other))
@@ -578,8 +581,11 @@ fn factor_sources<'a>(
     for anchor in anchors {
         let ends: Vec<_> = maps
             .iter()
-            .map(|map| map[anchor].expect("verified common anchor"))
-            .collect();
+            .map(|map| {
+                map[anchor]
+                    .ok_or_else(|| eyre::eyre!("shared source anchor {anchor} has no mapped line"))
+            })
+            .collect::<Result<_>>()?;
         if cursors.iter().zip(&ends).any(|(start, end)| start != end) {
             collect_region(
                 &mut pieces,
@@ -626,7 +632,7 @@ fn push_common(pieces: &mut Vec<SourcePiece<'_>>, text: &str) {
     }
 }
 
-fn choose_reference(sources: &[&str]) -> usize {
+fn choose_reference(sources: &[&str]) -> Result<usize> {
     let mut counts = BTreeMap::<&str, usize>::new();
     for source in sources {
         *counts.entry(source).or_default() += 1;
@@ -636,12 +642,12 @@ fn choose_reference(sources: &[&str]) -> usize {
         .max_by(|(left, left_count), (right, right_count)| {
             left_count.cmp(right_count).then_with(|| right.cmp(left))
         })
-        .expect("at least one present source")
+        .ok_or_else(|| eyre::eyre!("cannot choose a reference without present source witnesses"))?
         .0;
     sources
         .iter()
         .position(|source| source == chosen)
-        .expect("counted reference source")
+        .ok_or_else(|| eyre::eyre!("chosen reference source is missing from its witnesses"))
 }
 
 fn shared_line_map(before: &[&str], after: &[&str]) -> Vec<Option<usize>> {
@@ -907,7 +913,9 @@ fn build_rule<T: Clone + Eq>(
     examples: &[Example<'_, T>],
     owners: &BTreeSet<String>,
 ) -> Result<SelectionRule<T>> {
-    let first = examples.first().expect("a region has source witnesses");
+    let first = examples
+        .first()
+        .ok_or_else(|| eyre::eyre!("cannot build a region rule without source witnesses"))?;
     if examples.iter().all(|example| example.value == first.value) {
         return Ok(SelectionRule::Value(first.value.clone()));
     }
@@ -931,7 +939,10 @@ fn build_rule<T: Clone + Eq>(
         }
     }
     if cases.len() == 1 {
-        Ok(*cases.pop().expect("one version rule").rule)
+        Ok(*cases
+            .pop()
+            .ok_or_else(|| eyre::eyre!("single version rule disappeared before selection"))?
+            .rule)
     } else {
         Ok(SelectionRule::MinecraftVersion { cases })
     }
@@ -941,7 +952,9 @@ fn build_feature_rule<T: Clone + Eq>(
     examples: &[Example<'_, T>],
     owners: &BTreeSet<String>,
 ) -> Result<SelectionRule<T>> {
-    let first = examples.first().expect("a feature branch has witnesses");
+    let first = examples
+        .first()
+        .ok_or_else(|| eyre::eyre!("cannot build a feature rule without source witnesses"))?;
     if examples.iter().all(|example| example.value == first.value) {
         return Ok(SelectionRule::Value(first.value.clone()));
     }
@@ -1040,8 +1053,7 @@ fn emit_text_rule(rule: &SelectionRule<String>, output: &mut String) -> Result<(
             enabled,
             disabled,
         } => {
-            writeln!(output, "{{% if features.{feature} %}}")
-                .expect("writing to a String cannot fail");
+            writeln!(output, "{{% if features.{feature} %}}")?;
             emit_text_rule(enabled, output)?;
             output.push_str("{% else %}\n");
             emit_text_rule(disabled, output)?;
@@ -1056,8 +1068,7 @@ fn emit_text_rule(rule: &SelectionRule<String>, output: &mut String) -> Result<(
                     .map(|version| format!("'{version}'"))
                     .collect::<Vec<_>>()
                     .join(", ");
-                writeln!(output, "{{% when {alternatives} %}}")
-                    .expect("writing to a String cannot fail");
+                writeln!(output, "{{% when {alternatives} %}}")?;
                 emit_text_rule(&case.rule, output)?;
             }
             output.push_str("{% endcase %}\n");
@@ -1108,10 +1119,9 @@ fn verify_reconstruction(result: &ConsolidatedSource, variants: &[&SourceVariant
             targets: BTreeMap::new(),
         };
         let rendered = render_java_source(
-            result
-                .template
-                .as_deref()
-                .expect("present source has a template"),
+            result.template.as_deref().ok_or_else(|| {
+                eyre::eyre!("source witness {} has no consolidated template", variant.id)
+            })?,
             &context,
         )?;
         ensure!(

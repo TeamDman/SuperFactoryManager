@@ -482,7 +482,7 @@ impl OwnedDependencyRemapOutput<'_> {
             eyre::ensure!(
                 output == self.directory.path.join("specialsource.jar")
                     && diagnostic == self.directory.path.join("diagnostics")
-                    && mapping == context.forge_mapping_path("srg_to_official.tsrg"),
+                    && mapping == context.forge_mapping_path("srg_to_official.tsrg")?,
                 "owned remap output/mapping role differs"
             );
             linux_forge_cache::recheck_remap_inputs(context)?;
@@ -704,7 +704,8 @@ impl ExecutionContext<'_> {
         let original_argfile = diagnostic_dir.join("tool-specialsource.java.args");
         fs::write(&original_argfile, &argfile_contents)?;
         let transport = java_tool_argfile_transport(argfile_contents.as_bytes())?;
-        let java_trust = super::java_trust::JavaTrust::from_environment_for_major(self.plan.java.major_version)?;
+        let java_trust =
+            super::java_trust::JavaTrust::from_environment_for_major(self.plan.java.major_version)?;
         let mut receipt = SpecialSourceLaunchReceipt {
             schema: "sfm:java_tool_launch_receipt@1".to_owned(),
             invocation_id: scratch
@@ -721,7 +722,9 @@ impl ExecutionContext<'_> {
             source_lock_sha256: prepared.receipt().source_lock_sha256.clone(),
             cache_identity: cache_identity.to_owned(),
             sdk_identity: self.plan.java.cache_identity(),
-            java_trust_sha256: java_trust.as_ref().map(super::java_trust::JavaTrust::identity),
+            java_trust_sha256: java_trust
+                .as_ref()
+                .map(super::java_trust::JavaTrust::identity),
             java_executable: require_specialsource_normal_absolute_path(
                 &self.plan.java.executable,
             )?

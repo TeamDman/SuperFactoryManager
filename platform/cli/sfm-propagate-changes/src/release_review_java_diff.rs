@@ -36,6 +36,10 @@ use sha2::Digest as _;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::error::Error;
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
 use tree_sitter_patched_arborium::Node;
 
 pub const JAVA_STRUCTURED_DIFF_ALGORITHM_V1: &str =
@@ -106,6 +110,14 @@ struct StructuredBuildLimit {
     message: String,
 }
 
+impl Display for StructuredBuildLimit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl Error for StructuredBuildLimit {}
+
 struct StructuredSurfaceBuilder<'a> {
     request: &'a ReviewSurfaceRequestV1,
     text: String,
@@ -147,20 +159,23 @@ impl<'a> StructuredSurfaceBuilder<'a> {
         declaration: &JavaDeclaration,
         mapping_kind: ReviewSurfaceMappingKindV1,
         additional_source: Option<ReviewSurfaceSourceRangeV1>,
-    ) -> Result<(Utf8RangeV1, Vec<ReviewSurfaceSourceRangeV1>), StructuredBuildLimit> {
+    ) -> eyre::Result<(Utf8RangeV1, Vec<ReviewSurfaceSourceRangeV1>)> {
         self.push_unmapped(prefix)?;
         let source = self
             .request
             .file_pair
             .source(side)
-            .expect("declaration side is present");
-        let exact_text = &source.text[declaration.range.start_byte..declaration.range.end_byte];
+            .ok_or_else(|| eyre::eyre!("Java declaration source side is absent: {side:?}"))?;
+        let exact_text = source
+            .text
+            .get(declaration.range.start_byte..declaration.range.end_byte)
+            .ok_or_else(|| eyre::eyre!("Java declaration range is outside its UTF-8 source"))?;
         let surface_range = self.push_unmapped(exact_text)?;
         let mut source_ranges = vec![source_range(
             &self.request.file_pair,
             side,
             declaration.range.clone(),
-        )];
+        )?];
         if let Some(additional_source) = additional_source {
             source_ranges.push(additional_source);
         }
@@ -173,7 +188,8 @@ impl<'a> StructuredSurfaceBuilder<'a> {
                         "Java structured diff requires more than {} exact source mappings",
                         self.request.maximum_mappings
                     ),
-                });
+                }
+                .into());
             }
             self.mappings.push(ReviewSurfaceMappingV1 {
                 surface_range: surface_range.clone(),
@@ -189,8 +205,11 @@ impl<'a> StructuredSurfaceBuilder<'a> {
 
     // Partition the last copied declaration without changing its displayed bytes.
     // Neutral spans still carry exact source mappings for syntax and comments.
-    fn refine_last_source(&mut self, changed: &[Utf8RangeV1]) -> Result<(), StructuredBuildLimit> {
-        let original = self.mappings.pop().expect("nonempty declaration mapping");
+    fn refine_last_source(&mut self, changed: &[Utf8RangeV1]) -> eyre::Result<()> {
+        let original = self
+            .mappings
+            .pop()
+            .ok_or_else(|| eyre::eyre!("Java declaration has no exact source mapping to refine"))?;
         let length = original.surface_range.end_byte - original.surface_range.start_byte;
         let mut cursor = 0;
         for range in changed.iter().chain(std::iter::once(&Utf8RangeV1 {
@@ -212,7 +231,8 @@ impl<'a> StructuredSurfaceBuilder<'a> {
                     return Err(StructuredBuildLimit {
                         message: "Java changed-span refinement exceeds exact mapping bound"
                             .to_owned(),
-                    });
+                    }
+                    .into());
                 }
                 let mut mapping = original.clone();
                 mapping.kind = kind;
@@ -322,17 +342,22 @@ pub fn produce_java_structured_diff(
                 source_range: None,
             },
         ),
-        Err(error) => text_fallback(
-            request,
-            limits,
-            ReviewSurfaceDiagnosticV1 {
-                code: "review.java-diff.structured-limit".to_owned(),
-                severity: ReviewSurfaceDiagnosticSeverityV1::Warning,
-                message: format!("{}; emitted complete text diff fallback", error.message),
-                side: None,
-                source_range: None,
-            },
-        ),
+        Err(error) => {
+            let Some(limit) = error.downcast_ref::<StructuredBuildLimit>() else {
+                return Err(error);
+            };
+            text_fallback(
+                request,
+                limits,
+                ReviewSurfaceDiagnosticV1 {
+                    code: "review.java-diff.structured-limit".to_owned(),
+                    severity: ReviewSurfaceDiagnosticSeverityV1::Warning,
+                    message: format!("{}; emitted complete text diff fallback", limit.message),
+                    side: None,
+                    source_range: None,
+                },
+            )
+        }
     }
 }
 
@@ -790,7 +815,7 @@ fn build_structured_surface(
     before: &[JavaDeclaration],
     after: &[JavaDeclaration],
     pairs: &[DeclarationPair],
-) -> Result<Option<ReviewSurfaceV1>, StructuredBuildLimit> {
+) -> eyre::Result<Option<ReviewSurfaceV1>> {
     let mut classified = pairs
         .iter()
         .map(|pair| (pair, classify_pair(pair, before, after, pairs)))
@@ -829,15 +854,13 @@ fn build_structured_surface(
 
         let same_exact_bytes = before_declaration
             .zip(after_declaration)
-            .is_some_and(|(before, after)| before.exact_hash == after.exact_hash);
-        if same_exact_bytes {
-            let before_declaration = before_declaration.expect("paired before");
-            let after_declaration = after_declaration.expect("paired after");
+            .filter(|(before, after)| before.exact_hash == after.exact_hash);
+        if let Some((before_declaration, after_declaration)) = same_exact_bytes {
             let after_source = source_range(
                 &request.file_pair,
                 SnapshotSideV1::After,
                 after_declaration.range.clone(),
-            );
+            )?;
             let (_, sources) = builder.push_source(
                 " ",
                 SnapshotSideV1::Before,
@@ -849,17 +872,26 @@ fn build_structured_surface(
         } else {
             let refinement = before_declaration
                 .zip(after_declaration)
-                .map(|(before, after)| {
-                    changed_spans(
-                        &request
-                            .file_pair
-                            .before
-                            .as_ref()
-                            .expect("before source")
-                            .text[before.range.start_byte..before.range.end_byte],
-                        &request.file_pair.after.as_ref().expect("after source").text
-                            [after.range.start_byte..after.range.end_byte],
-                    )
+                .map(|(before, after)| -> eyre::Result<_> {
+                    let before_source = request.file_pair.before.as_ref().ok_or_else(|| {
+                        eyre::eyre!("paired Java declaration has no before source")
+                    })?;
+                    let after_source = request.file_pair.after.as_ref().ok_or_else(|| {
+                        eyre::eyre!("paired Java declaration has no after source")
+                    })?;
+                    let before_text = before_source
+                        .text
+                        .get(before.range.start_byte..before.range.end_byte)
+                        .ok_or_else(|| {
+                            eyre::eyre!("before Java declaration range is outside its UTF-8 source")
+                        })?;
+                    let after_text = after_source
+                        .text
+                        .get(after.range.start_byte..after.range.end_byte)
+                        .ok_or_else(|| {
+                            eyre::eyre!("after Java declaration range is outside its UTF-8 source")
+                        })?;
+                    Ok(changed_spans(before_text, after_text)?)
                 })
                 .transpose()?;
             if let Some(before_declaration) = before_declaration {
@@ -916,20 +948,24 @@ fn build_structured_surface(
             source_ranges: region_sources,
         })?;
 
-        let before_ranges = before_declaration.map_or_else(Vec::new, |declaration| {
+        let before_ranges = if let Some(declaration) = before_declaration {
             vec![source_range(
                 &request.file_pair,
                 SnapshotSideV1::Before,
                 declaration.range.clone(),
-            )]
-        });
-        let after_ranges = after_declaration.map_or_else(Vec::new, |declaration| {
+            )?]
+        } else {
+            Vec::new()
+        };
+        let after_ranges = if let Some(declaration) = after_declaration {
             vec![source_range(
                 &request.file_pair,
                 SnapshotSideV1::After,
                 declaration.range.clone(),
-            )]
-        });
+            )?]
+        } else {
+            Vec::new()
+        };
         report.correspondences.push(ReviewCorrespondenceV1 {
             id: stable_review_surface_id(
                 "java-correspondence",
@@ -1301,6 +1337,13 @@ mod tests {
             ReviewSurfaceKindV1::JavaStructuredDiff,
             limits,
         )
+    }
+
+    #[test]
+    fn changed_span_refinement_rejects_a_missing_source_mapping() {
+        let request = request("class A {}", "class A {}");
+        let mut builder = StructuredSurfaceBuilder::new(&request);
+        assert!(builder.refine_last_source(&[]).is_err());
     }
 
     #[test]

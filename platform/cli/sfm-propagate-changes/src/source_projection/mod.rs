@@ -6,6 +6,7 @@
 
 pub mod candidate_lock;
 pub mod catalog_owned_project;
+pub mod catalog_release;
 pub mod context;
 pub mod core_catalog;
 pub mod core_features;
@@ -199,7 +200,12 @@ impl SourceRenderCache {
             self.0
                 .insert(source.to_owned(), PreparedSource::parse(source)?);
         }
-        self.0.get(source).expect("just inserted").render(context)
+        self.0
+            .get(source)
+            .ok_or_else(|| {
+                eyre::eyre!("parsed source template was not retained in the render cache")
+            })?
+            .render(context)
     }
 }
 

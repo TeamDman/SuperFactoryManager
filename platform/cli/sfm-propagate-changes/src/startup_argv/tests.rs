@@ -1,4 +1,5 @@
 use super::StartupJsonFormatter;
+use super::finish_parse;
 use super::log;
 use super::startup_arguments::StartupArguments;
 use super::startup_fixture::StartupFixture;
@@ -157,4 +158,24 @@ fn windows_non_unicode_arguments_fail_without_exposing_code_units() {
     let invalid = std::ffi::OsString::from_wide(&[0x0053, 0x0045, 0xd800, 0x0043]);
     let error = unicode_arguments([invalid]).unwrap_err();
     assert_eq!(error.to_string(), "command arguments must be valid Unicode");
+}
+
+#[test]
+fn builtin_parse_returns_success_to_the_entry_point() {
+    let outcome = figue::DriverOutcome::err(figue::DriverError::Version {
+        text: "fixture version".to_owned(),
+    });
+    assert!(matches!(
+        finish_parse(outcome).unwrap(),
+        std::ops::ControlFlow::Break(code) if code == std::process::ExitCode::SUCCESS
+    ));
+}
+
+#[test]
+fn failed_parse_returns_a_redacted_error_to_the_entry_point() {
+    let outcome = figue::from_slice::<crate::cli::Cli>(&["--unknown-startup-option=SECRET"]);
+    assert_eq!(
+        finish_parse(outcome).unwrap_err().to_string(),
+        "invalid command line; use --help"
+    );
 }

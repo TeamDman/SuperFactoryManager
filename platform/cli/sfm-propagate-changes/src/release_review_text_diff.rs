@@ -22,6 +22,10 @@ use crate::release_review_surface_v1::source_range;
 use crate::release_review_surface_v1::stable_review_surface_id;
 use crate::release_review_v1::SnapshotSideV1;
 use crate::release_review_v1::Utf8RangeV1;
+use std::error::Error;
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 pub const TEXT_DIFF_ALGORITHM_V1: &str = "gix-histogram+sfm-source-map/1";
 
@@ -61,6 +65,14 @@ impl SourceLine {
 struct SurfaceLimitError {
     message: String,
 }
+
+impl Display for SurfaceLimitError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl Error for SurfaceLimitError {}
 
 struct TextSurfaceBuilder<'a> {
     request: &'a ReviewSurfaceRequestV1,
@@ -162,10 +174,12 @@ pub fn produce_text_diff(
     ) {
         eyre::bail!("text-diff producer received a non-text surface request");
     }
-    Ok(produce_validated_text_diff(request))
+    produce_validated_text_diff(request)
 }
 
-pub(crate) fn produce_validated_text_diff(request: &ReviewSurfaceRequestV1) -> ReviewSurfaceV1 {
+pub(crate) fn produce_validated_text_diff(
+    request: &ReviewSurfaceRequestV1,
+) -> eyre::Result<ReviewSurfaceV1> {
     let before_text = request
         .file_pair
         .before
@@ -180,19 +194,26 @@ pub(crate) fn produce_validated_text_diff(request: &ReviewSurfaceRequestV1) -> R
     let after_lines = source_lines(after_text);
     let hunks = histogram_hunks(before_text, after_text);
     if hunks.is_empty() {
-        return unchanged_surface(request);
+        return Ok(unchanged_surface(request));
     }
     let context = match request.surface_kind {
         // The inline and split text-diff presentations are source surfaces, not
         // abbreviated patches. One maximal group retains every unchanged line.
         ReviewSurfaceKindV1::TextDiff => before_lines.len().max(after_lines.len()),
         ReviewSurfaceKindV1::TextPatch => request.context_lines,
-        ReviewSurfaceKindV1::JavaStructuredDiff => unreachable!("validated text producer kind"),
+        ReviewSurfaceKindV1::JavaStructuredDiff => {
+            eyre::bail!("text-diff producer received a non-text surface request");
+        }
     };
     let groups = group_hunks(&hunks, before_lines.len(), after_lines.len(), context);
     match build_text_surface(request, &before_lines, &after_lines, &groups) {
-        Ok(surface) => surface,
-        Err(error) => limit_surface(request, error.message),
+        Ok(surface) => Ok(surface),
+        Err(error) => {
+            let Some(limit) = error.downcast_ref::<SurfaceLimitError>() else {
+                return Err(error);
+            };
+            Ok(limit_surface(request, limit.message.clone()))
+        }
     }
 }
 
@@ -205,7 +226,7 @@ fn build_text_surface(
     before_lines: &[SourceLine],
     after_lines: &[SourceLine],
     groups: &[HunkGroup],
-) -> Result<ReviewSurfaceV1, SurfaceLimitError> {
+) -> eyre::Result<ReviewSurfaceV1> {
     let mut builder = TextSurfaceBuilder::new(request);
     let before_path = request
         .file_pair
@@ -257,7 +278,7 @@ fn build_text_surface(
                     &request.file_pair,
                     SnapshotSideV1::Before,
                     range.clone(),
-                ));
+                )?);
                 emit_source_line(
                     request,
                     &mut builder,
@@ -279,7 +300,7 @@ fn build_text_surface(
                     &request.file_pair,
                     SnapshotSideV1::After,
                     range.clone(),
-                ));
+                )?);
                 emit_source_line(
                     request,
                     &mut builder,
@@ -386,19 +407,19 @@ fn emit_common_context(
     after_cursor: &mut usize,
     before_target: usize,
     after_target: usize,
-) -> Result<(), SurfaceLimitError> {
+) -> eyre::Result<()> {
     let before_count = before_target.saturating_sub(*before_cursor);
     let after_count = after_target.saturating_sub(*after_cursor);
     let paired_count = before_count.min(after_count);
     for offset in 0..paired_count {
         let before = before_lines[*before_cursor + offset];
         let after = after_lines[*after_cursor + offset];
-        let before_text = source_line_text(request, SnapshotSideV1::Before, before);
-        let after_text = source_line_text(request, SnapshotSideV1::After, after);
+        let before_text = source_line_text(request, SnapshotSideV1::Before, before)?;
+        let after_text = source_line_text(request, SnapshotSideV1::After, after)?;
         if before_text == after_text {
             let sources = vec![
-                source_range(&request.file_pair, SnapshotSideV1::Before, before.range()),
-                source_range(&request.file_pair, SnapshotSideV1::After, after.range()),
+                source_range(&request.file_pair, SnapshotSideV1::Before, before.range())?,
+                source_range(&request.file_pair, SnapshotSideV1::After, after.range())?,
             ];
             let surface_range = builder.push_mapped(
                 " ",
@@ -486,11 +507,11 @@ fn emit_source_line(
     prefix: &str,
     mapping_kind: ReviewSurfaceMappingKindV1,
     region_kind: ReviewSurfaceRegionKindV1,
-) -> Result<(), SurfaceLimitError> {
-    let source = source_range(&request.file_pair, side, line.range());
+) -> eyre::Result<()> {
+    let source = source_range(&request.file_pair, side, line.range())?;
     let surface_range = builder.push_mapped(
         prefix,
-        source_line_text(request, side, line),
+        source_line_text(request, side, line)?,
         mapping_kind,
         vec![source.clone()],
     )?;
@@ -515,19 +536,22 @@ fn emit_source_line(
         .to_owned(),
         surface_range,
         source_ranges: vec![source],
-    })
+    })?;
+    Ok(())
 }
 
 fn source_line_text(
     request: &ReviewSurfaceRequestV1,
     side: SnapshotSideV1,
     line: SourceLine,
-) -> &str {
-    &request
+) -> eyre::Result<&str> {
+    request
         .file_pair
         .source(side)
-        .expect("line side exists")
-        .text[line.start..line.end]
+        .ok_or_else(|| eyre::eyre!("text diff source side is absent: {side:?}"))?
+        .text
+        .get(line.start..line.end)
+        .ok_or_else(|| eyre::eyre!("text diff line range is outside its UTF-8 source"))
 }
 
 fn unchanged_surface(request: &ReviewSurfaceRequestV1) -> ReviewSurfaceV1 {
@@ -697,6 +721,35 @@ mod tests {
             ReviewSurfaceKindV1::TextDiff,
             limits,
         )
+    }
+
+    #[test]
+    fn text_builder_rejects_an_unsupported_surface_kind() {
+        let mut request = request("before\n", "after\n");
+        request.surface_kind = ReviewSurfaceKindV1::JavaStructuredDiff;
+        assert!(produce_validated_text_diff(&request).is_err());
+    }
+
+    #[test]
+    fn source_lines_reject_missing_sides_and_non_boundary_ranges() {
+        let mut request = request("caf\u{e9}\n", "after\n");
+        assert!(
+            source_line_text(
+                &request,
+                SnapshotSideV1::Before,
+                SourceLine { start: 0, end: 4 },
+            )
+            .is_err()
+        );
+        request.file_pair.after = None;
+        assert!(
+            source_line_text(
+                &request,
+                SnapshotSideV1::After,
+                SourceLine { start: 0, end: 1 },
+            )
+            .is_err()
+        );
     }
 
     #[test]

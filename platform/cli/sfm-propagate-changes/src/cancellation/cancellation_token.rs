@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -47,7 +48,7 @@ impl CancellationToken {
                 .inner
                 .reason
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                .unwrap_or_else(sync::PoisonError::into_inner);
             if stored_reason.is_none() {
                 *stored_reason = Some(reason.into());
             }
@@ -71,7 +72,7 @@ impl CancellationToken {
             .inner
             .reason
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(sync::PoisonError::into_inner)
             .clone();
         local_reason.or_else(|| {
             self.inner

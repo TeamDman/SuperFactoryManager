@@ -101,10 +101,18 @@ impl HeldPinnedSdk {
         cancel.bail_if_cancelled()?;
         let image_started = std::time::Instant::now();
         checked_pinned_sdk_home(root, &mut self.image, &self.pin, &self.artifact)?;
-        tracing::info!(phase = "warm_sdk_held_image_recheck", elapsed_ms = image_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_sdk_held_image_recheck",
+            elapsed_ms = image_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         let launch_started = std::time::Instant::now();
         self.launch.recheck(cancel)?;
-        tracing::info!(phase = "warm_sdk_launch_recheck", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_sdk_launch_recheck",
+            elapsed_ms = launch_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         Ok(())
     }
 }
@@ -164,7 +172,11 @@ impl NativeCacheRoot {
             "Native cache root override is unsupported on this platform"
         );
         let checked = validate_location(path, repository, source_project, Some(java_home))?;
-        let _parents = lease_ancestors(checked.parent().expect("validated root has parent"))?;
+        let _parents = lease_ancestors(
+            checked
+                .parent()
+                .ok_or_else(|| eyre::eyre!("Validated native cache root has no parent"))?,
+        )?;
         if checked.try_exists()? {
             let _root = lease_ancestors(&checked)?;
             let _marker = wait_for_marker(&checked, &CancellationToken::new())?;
@@ -215,7 +227,11 @@ impl NativeCacheRoot {
             checked.try_exists()?,
             "Claim the native root with acquire_for_source before acquiring its pinned JBRSDK"
         );
-        let _parents = lease_ancestors(checked.parent().expect("validated root has parent"))?;
+        let _parents = lease_ancestors(
+            checked
+                .parent()
+                .ok_or_else(|| eyre::eyre!("Validated native cache root has no parent"))?,
+        )?;
         let _root = lease_ancestors(&checked)?;
         let _marker = wait_for_marker(&checked, &CancellationToken::new())?;
         checked_pinned_sdk_home(&checked, image, pin, artifact)?;
@@ -282,7 +298,9 @@ impl NativeCacheRoot {
             "Native cache root override is unsupported on this platform"
         );
         let checked = validate_location(path, repository, source_project, java_home)?;
-        let parent = checked.parent().expect("validated root has parent");
+        let parent = checked
+            .parent()
+            .ok_or_else(|| eyre::eyre!("Validated native cache root has no parent"))?;
         // Hold existing parents before attempting the single new leaf creation.
         let mut guards = lease_ancestors(parent)?;
         ensure!(
@@ -448,10 +466,9 @@ fn validate_location(
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("Native cache root has no parent"))?;
-    ensure!(
-        path.file_name().is_some(),
-        "Native cache root cannot be a filesystem root"
-    );
+    let name = path
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("Native cache root cannot be a filesystem root"))?;
     let parent =
         dunce::canonicalize(parent).wrap_err("Native cache root parent must already exist")?;
     ensure!(
@@ -466,9 +483,7 @@ fn validate_location(
             );
             dunce::canonicalize(path)?
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            parent.join(path.file_name().expect("validated leaf"))
-        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => parent.join(name),
         Err(error) => return Err(error.into()),
     };
     ensure!(

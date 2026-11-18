@@ -7,11 +7,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-/// The cache home directory.
-pub static CACHE_DIR: LazyLock<CacheHome> = LazyLock::new(|| {
-    CacheHome::resolve()
-        .expect("Cannot resolve SFM cache root; refusing to use the working directory")
-});
+static CACHE_DIR: LazyLock<eyre::Result<CacheHome>> = LazyLock::new(CacheHome::resolve);
 
 pub const CACHE_ROOT_FILE: &str = "cache_root.txt";
 pub const CACHE_ROOT_MARKER: &str = ".sfm-propagate-changes-cache-root";
@@ -53,6 +49,16 @@ pub(crate) fn portable_cache_relative(path: &Path) -> eyre::Result<Option<PathBu
 pub struct CacheHome(pub PathBuf);
 
 impl CacheHome {
+    /// Return the cache selection held for this process.
+    ///
+    /// # Errors
+    /// Returns the original resolution failure without selecting another directory.
+    pub fn current() -> eyre::Result<&'static Self> {
+        CACHE_DIR
+            .as_ref()
+            .map_err(|error| eyre::eyre!("Cannot resolve SFM cache root: {error:#}"))
+    }
+
     /// Resolve the `CacheHome` according to:
     /// * If [`super::APP_CACHE_ENV_VAR`] env var is set, use that directory
     /// * Otherwise use the persisted `cache root set` choice

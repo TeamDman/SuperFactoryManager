@@ -2047,16 +2047,18 @@ fn surface_coverage(
                 bounded &= ranges.is_empty();
                 continue;
             };
-            let source = sources.get(id);
+            let Some(source) = sources.get(id) else {
+                bounded = false;
+                continue;
+            };
             if corpus
                 .get(id)
                 .is_none_or(|entry| entry.materialization != MaterializationV1::Complete)
-                || source.is_none()
             {
                 bounded = false;
                 continue;
             }
-            let text = &source.expect("checked source").text;
+            let text = &source.text;
             if ranges.is_empty() {
                 if text.is_empty() {
                     bounded = false;

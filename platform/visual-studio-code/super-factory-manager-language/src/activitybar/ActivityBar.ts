@@ -29,7 +29,8 @@ export async function activityBar(context: vscode.ExtensionContext)
     //Dont ask why there 2 openFiles
     if(hasSFMLFiles) 
     {
-        const treeDataProvider = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/platform/minecraft/src/main/resources/assets/sfm/template_programs');
+        // Read rendered SFML from the plain release projection. The authored core contains Liquid.
+        const treeDataProvider = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/platform/minecraft/projections/sfm-4.35.0/mc-1.19.2/src/main/resources/assets/sfm/template_programs');
         const treeDataProvider2 = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/examples');
         const treeDataProvider3 = new SFMLTreeDataProvider(context);
 

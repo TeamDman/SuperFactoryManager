@@ -123,10 +123,15 @@ impl DependencyInventory {
             .ok_or_else(|| eyre::eyre!("Unknown dependency '{id}'."))
     }
 
-    #[must_use]
-    pub fn artifact(&self, component: &DependencyComponentV3) -> &ArtifactV3 {
+    pub fn artifact(&self, component: &DependencyComponentV3) -> eyre::Result<&ArtifactV3> {
         self.artifact_by_id(&component.derived_checks.artifact_id)
-            .expect("v3 validation guarantees component artifact references")
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "Component `{}` references missing artifact `{}`",
+                    component.id,
+                    component.derived_checks.artifact_id
+                )
+            })
     }
 
     #[must_use]
@@ -137,20 +142,17 @@ impl DependencyInventory {
             .find(|artifact| artifact.id == id)
     }
 
-    #[must_use]
-    pub fn local_path(&self, portable: &Path) -> PathBuf {
-        if let Some(relative) = crate::paths::portable_cache_relative(portable)
-            .expect("invalid portable cache path after lockfile validation")
-        {
-            return self.cache_home.join("minecraft-toolchain").join(relative);
+    pub fn local_path(&self, portable: &Path) -> eyre::Result<PathBuf> {
+        if let Some(relative) = crate::paths::portable_cache_relative(portable)? {
+            return Ok(self.cache_home.join("minecraft-toolchain").join(relative));
         }
         if portable.is_absolute() {
-            return portable.to_path_buf();
+            return Ok(portable.to_path_buf());
         }
-        if self.target.branch.0.starts_with("project:") {
+        Ok(if self.target.branch.0.starts_with("project:") {
             self.lockfile_path
                 .parent()
-                .expect("loaded project lockfile has a parent")
+                .ok_or_else(|| eyre::eyre!("Loaded project lockfile has no parent directory"))?
                 .join(portable)
         } else {
             self.target
@@ -158,38 +160,41 @@ impl DependencyInventory {
                 .join("platform")
                 .join("minecraft")
                 .join(portable)
-        }
+        })
     }
 
-    #[must_use]
-    pub fn binary_status(&self, component: &DependencyComponentV3) -> AcquisitionStatus {
+    pub fn binary_status(
+        &self,
+        component: &DependencyComponentV3,
+    ) -> eyre::Result<AcquisitionStatus> {
         self.locked_file_status(
             &component.derived_checks.cache_path,
             component.derived_checks.expected_hash,
         )
     }
 
-    #[must_use]
     pub fn locked_file_status(
         &self,
         portable: &Path,
         expected: crate::jar_build::hash::ContentHash,
-    ) -> AcquisitionStatus {
-        AcquisitionStatus::from_locked_file(&self.local_path(portable), expected)
+    ) -> eyre::Result<AcquisitionStatus> {
+        Ok(AcquisitionStatus::from_locked_file(
+            &self.local_path(portable)?,
+            expected,
+        ))
     }
 
-    #[must_use]
-    pub fn source_status(&self, component: &DependencyComponentV3) -> SourceStatus {
+    pub fn source_status(&self, component: &DependencyComponentV3) -> eyre::Result<SourceStatus> {
         if component.source_providers.is_empty() {
-            return SourceStatus::NoneDeclared;
+            return Ok(SourceStatus::NoneDeclared);
         }
         let statuses: Vec<_> = component
             .source_providers
             .iter()
             .enumerate()
             .map(|(priority, provider)| SourceProviderView::new(self, provider, priority).status())
-            .collect();
-        SourceStatus::from_provider_statuses(&statuses)
+            .collect::<eyre::Result<_>>()?;
+        Ok(SourceStatus::from_provider_statuses(&statuses))
     }
 
     pub fn source_providers<'a>(
@@ -438,18 +443,29 @@ mod tests {
             .derived_checks
             .expected_hash = expected;
         let component = &inventory.lockfile.dependencies[dependency_index].components[0];
-        let local = inventory.local_path(&component.derived_checks.cache_path);
+        let local = inventory
+            .local_path(&component.derived_checks.cache_path)
+            .expect("checked fixture inventory");
 
         assert_eq!(
-            inventory.binary_status(component),
+            inventory
+                .binary_status(component)
+                .expect("checked fixture inventory"),
             AcquisitionStatus::Missing
         );
         std::fs::create_dir_all(local.parent().expect("cache parent")).expect("cache parent");
         std::fs::write(&local, b"wrong").expect("stale fixture");
-        assert_eq!(inventory.binary_status(component), AcquisitionStatus::Stale);
+        assert_eq!(
+            inventory
+                .binary_status(component)
+                .expect("checked fixture inventory"),
+            AcquisitionStatus::Stale
+        );
         std::fs::write(&local, b"expected").expect("acquired fixture");
         assert_eq!(
-            inventory.binary_status(component),
+            inventory
+                .binary_status(component)
+                .expect("checked fixture inventory"),
             AcquisitionStatus::Acquired
         );
     }
@@ -475,15 +491,24 @@ mod tests {
         std::fs::write(&path, b"expected").unwrap();
         let component = &inventory.lockfile.dependencies[index].components[0];
         assert_eq!(
-            inventory.local_path(&component.derived_checks.cache_path),
+            inventory
+                .local_path(&component.derived_checks.cache_path)
+                .expect("checked fixture inventory"),
             path
         );
         assert_eq!(
-            inventory.binary_status(component),
+            inventory
+                .binary_status(component)
+                .expect("checked fixture inventory"),
             AcquisitionStatus::Acquired
         );
         std::fs::write(&path, b"wrong").unwrap();
-        assert_eq!(inventory.binary_status(component), AcquisitionStatus::Stale);
+        assert_eq!(
+            inventory
+                .binary_status(component)
+                .expect("checked fixture inventory"),
+            AcquisitionStatus::Stale
+        );
     }
 
     #[test]
@@ -508,6 +533,28 @@ mod tests {
             .expect("catalog source fixture");
         source.derived_checks.tree_cache_path = PathBuf::from(r"$sfm-cache\sources\..\outside");
         assert!(inventory.lockfile.validate().is_err());
+    }
+
+    #[test]
+    fn malformed_inventory_references_return_errors() {
+        let mut inventory = fixture(CacheHome(PathBuf::from("unused-cache")));
+        let mut component = inventory
+            .dependency("cc-tweaked")
+            .expect("fixture dependency")
+            .components[0]
+            .clone();
+        component.derived_checks.artifact_id = "missing-artifact".to_owned();
+        assert!(inventory.artifact(&component).is_err());
+        assert!(
+            inventory
+                .local_path(Path::new(r"$sfm-cache\sources\..\outside"))
+                .is_err()
+        );
+        component.derived_checks.cache_path = PathBuf::from(r"$sfm-cache\sources\..\outside");
+        assert!(inventory.binary_status(&component).is_err());
+        inventory.target.branch = BranchName::from("project:fixture");
+        inventory.lockfile_path = PathBuf::new();
+        assert!(inventory.local_path(Path::new("relative.jar")).is_err());
     }
 
     fn fixture(cache_home: CacheHome) -> DependencyInventory {

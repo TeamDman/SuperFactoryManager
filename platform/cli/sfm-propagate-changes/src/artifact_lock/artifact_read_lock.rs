@@ -5,8 +5,10 @@ use super::artifact_lock::wait_for_retry;
 use crate::cancellation::CancellationToken;
 use eyre::Context;
 use std::fs::File;
+use std::fs::TryLockError;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::id as process_id;
 use std::time::Instant;
 
 #[derive(Debug)]
@@ -77,7 +79,7 @@ impl ArtifactReadLock {
                         artifact = %artifact,
                         lock = %lock_path.display(),
                         waited_ms = started.elapsed().as_millis(),
-                        pid = std::process::id(),
+                        pid = process_id(),
                         operation = "shared_read",
                         "acquired_shared_lock"
                     );
@@ -94,7 +96,7 @@ impl ArtifactReadLock {
                     artifact = %artifact,
                     lock = %lock_path.display(),
                     waited_ms = started.elapsed().as_millis(),
-                    pid = std::process::id(),
+                    pid = process_id(),
                     operation = "shared_read",
                     "waiting_for_shared_lock"
                 );
@@ -152,8 +154,8 @@ impl Drop for ArtifactReadLock {
 fn try_lock_shared_file(file: &File, lock_path: &Path) -> eyre::Result<bool> {
     match file.try_lock_shared() {
         Ok(()) => Ok(true),
-        Err(std::fs::TryLockError::WouldBlock) => Ok(false),
-        Err(std::fs::TryLockError::Error(error)) => Err(error).wrap_err_with(|| {
+        Err(TryLockError::WouldBlock) => Ok(false),
+        Err(TryLockError::Error(error)) => Err(error).wrap_err_with(|| {
             format!(
                 "Failed to acquire artifact read lock on {}",
                 lock_path.display()

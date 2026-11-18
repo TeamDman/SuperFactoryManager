@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -70,7 +71,7 @@ impl JavaSourceCatalog {
     }
 
     pub fn validate(self) -> eyre::Result<()> {
-        let mut source_set_ids = std::collections::BTreeSet::new();
+        let mut source_set_ids = BTreeSet::new();
         for source_set in self.source_sets {
             if !source_set_ids.insert(source_set.id) {
                 eyre::bail!("duplicate Java source-set declaration `{}`", source_set.id);
@@ -87,7 +88,7 @@ impl JavaSourceCatalog {
             }
         }
 
-        let mut root_ids = std::collections::BTreeSet::new();
+        let mut root_ids = BTreeSet::new();
         for root in self.roots {
             if !root_ids.insert(root.id) {
                 eyre::bail!("duplicate Java source-root declaration `{}`", root.id);

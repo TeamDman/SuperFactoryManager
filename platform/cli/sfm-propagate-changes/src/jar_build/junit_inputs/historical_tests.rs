@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::sync::Arc;
 
+#[cfg(test)]
 fn fixture(version: &str) -> eyre::Result<(Fixture, BuildPlan, Vec<u8>)> {
     let (fixture, slot, recipe) = if matches!(version, "1.19.2" | "1.19.4" | "1.20" | "1.20.1") {
         let (fixture, slot, recipe, _) =

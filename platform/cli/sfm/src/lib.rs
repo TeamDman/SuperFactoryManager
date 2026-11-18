@@ -15,22 +15,22 @@ use crate::cli::Cli;
 ///
 /// Returns an error when initialization, parsing, discovery, transport, or
 /// output rendering fails.
-///
-/// # Panics
-///
-/// Panics only if the compile-time Figue schema for [`Cli`] is invalid.
 pub fn main() -> eyre::Result<std::process::ExitCode> {
     color_eyre::install()?;
 
-    let cli: Cli = figue::Driver::new(
+    let outcome = figue::Driver::new(
         figue::builder::<Cli>()
-            .expect("SFM control CLI schema should be valid")
+            .map_err(|error| eyre::eyre!("invalid SFM control CLI schema: {error}"))?
             .cli(|driver| driver.args(std::env::args().skip(1)))
             .help(|help| help.version(env!("CARGO_PKG_VERSION")))
             .build(),
     )
     .run()
-    .unwrap();
+    .into_result();
+    let cli: Cli = match outcome {
+        Ok(output) => output.get(),
+        Err(error) => return Ok(std::process::Termination::report(error)),
+    };
 
     #[cfg(windows)]
     {

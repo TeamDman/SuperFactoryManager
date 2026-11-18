@@ -102,8 +102,10 @@ fn accept_artifact(
         .artifacts
         .iter()
         .position(|artifact| artifact.id == artifact_id)
-        .expect("v3 validation guarantees artifact references");
-    let artifact_path = inventory.local_path(&component.derived_checks.cache_path);
+        .ok_or_else(|| {
+            eyre::eyre!("Component references missing locked artifact `{artifact_id}`")
+        })?;
+    let artifact_path = inventory.local_path(&component.derived_checks.cache_path)?;
     if !artifact_path.is_file() {
         eyre::bail!("Locked artifact is missing: {}", artifact_path.display());
     }
@@ -349,7 +351,9 @@ mod tests {
             .expect("CC:Tweaked fixture")
             .components[0];
         assert_eq!(component.derived_checks.artifact_id, artifact_id);
-        let artifact_path = inventory.local_path(&component.derived_checks.cache_path);
+        let artifact_path = inventory
+            .local_path(&component.derived_checks.cache_path)
+            .expect("checked fixture inventory");
         std::fs::create_dir_all(artifact_path.parent().expect("artifact parent"))
             .expect("cache fixture");
         std::fs::write(&artifact_path, b"controlled artifact bytes").expect("artifact fixture");

@@ -851,22 +851,21 @@ fn intersection(left: &Utf8RangeV1, right: &Utf8RangeV1) -> Option<Utf8RangeV1> 
     })
 }
 
-#[must_use]
 pub(crate) fn source_range(
     file_pair: &ReviewFilePairV1,
     side: SnapshotSideV1,
     range: Utf8RangeV1,
-) -> ReviewSurfaceSourceRangeV1 {
+) -> eyre::Result<ReviewSurfaceSourceRangeV1> {
     let source = file_pair
         .source(side)
-        .expect("producer only creates ranges for present source sides");
-    ReviewSurfaceSourceRangeV1 {
+        .ok_or_else(|| eyre::eyre!("review source side is absent: {side:?}"))?;
+    Ok(ReviewSurfaceSourceRangeV1 {
         side,
         document_revision_id: source.document_revision_id.clone(),
         document_sha256: source.sha256.clone(),
         path: source.path.clone(),
         range,
-    }
+    })
 }
 
 #[must_use]
@@ -911,6 +910,23 @@ mod tests {
         )
     }
 
+    #[test]
+    fn source_range_rejects_a_missing_side() {
+        let mut request = request();
+        request.file_pair.before = None;
+        assert!(
+            source_range(
+                &request.file_pair,
+                SnapshotSideV1::Before,
+                Utf8RangeV1 {
+                    start_byte: 0,
+                    end_byte: 0
+                },
+            )
+            .is_err()
+        );
+    }
+
     fn mapped_surface(request: &ReviewSurfaceRequestV1) -> ReviewSurfaceV1 {
         let copied = "caf\u{e9}!";
         let start = "+++ src/A.java\n+".len();
@@ -932,14 +948,17 @@ mod tests {
                     end_byte: start + copied.len(),
                 },
                 kind: ReviewSurfaceMappingKindV1::Addition,
-                source_ranges: vec![source_range(
-                    &request.file_pair,
-                    SnapshotSideV1::After,
-                    Utf8RangeV1 {
-                        start_byte: 0,
-                        end_byte: copied.len(),
-                    },
-                )],
+                source_ranges: vec![
+                    source_range(
+                        &request.file_pair,
+                        SnapshotSideV1::After,
+                        Utf8RangeV1 {
+                            start_byte: 0,
+                            end_byte: copied.len(),
+                        },
+                    )
+                    .expect("present source"),
+                ],
             }],
             regions: Vec::new(),
             correspondence: ReviewCorrespondenceReportV1::empty(request.file_pair.id.clone(), true),

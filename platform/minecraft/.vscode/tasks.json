@@ -2,134 +2,294 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Gradle: Compile Java",
-            "type": "shell",
-            "command": "./gradlew compileJava",
-            "group": "build",
-            "problemMatcher": ["$gradle"],
+            "label": "SFM: Compile",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "run",
+                "compile",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "Gradle: Build",
-            "type": "shell",
-            "command": "./gradlew build",
+                "panel": "dedicated"
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
             }
         },
         {
-            "label": "Gradle: Run Client",
-            "type": "shell",
-            "command": "./gradlew runClient",
-            "group": "none",
-            "problemMatcher": ["$gradle"],
+            "label": "SFM: Build JAR",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "jar",
+                "build",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated"
             },
-            "isBackground": true
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
         },
         {
-            "label": "Gradle: Run Client (TeamDman)",
-            "type": "shell",
-            "command": "./gradlew runClient_teamy",
-            "group": "none",
-            "problemMatcher": ["$gradle"],
+            "label": "SFM: Run Client",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "run",
+                "client",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "SFM: Run Client with JDWP",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "run",
+                "client",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}",
+                "--hotswap",
+                "--hotswap-port",
+                "5005"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "SFM: Run Server",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "run",
+                "server",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "SFM: Run Data Generation",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "run",
+                "data",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "SFM: Run Tests",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "test",
+                "run",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated"
             },
-            "isBackground": true
-        },
-        {
-            "label": "Gradle: Run Server",
-            "type": "shell",
-            "command": "./gradlew runServer",
-            "group": "none",
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            },
-            "isBackground": true
-        },
-        {
-            "label": "Gradle: Run Data Generation",
-            "type": "shell",
-            "command": "./gradlew runData",
-            "group": "none",
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "Gradle: Run Game Tests",
-            "type": "shell",
-            "command": "./gradlew runGameTestServer",
-            "group": "test",
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "Gradle: Generate ANTLR Sources",
-            "type": "shell",
-            "command": "./gradlew generateGrammarSource",
-            "group": "build",
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "Gradle: Clean",
-            "type": "shell",
-            "command": "./gradlew clean",
-            "group": "build",
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "Gradle: Refresh Dependencies",
-            "type": "shell",
-            "command": "./gradlew --refresh-dependencies",
-            "group": "build",
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            }
-        },
-        {
-            "label": "Gradle: Run Tests",
-            "type": "shell",
-            "command": "./gradlew test",
             "group": {
                 "kind": "test",
                 "isDefault": true
+            }
+        },
+        {
+            "label": "SFM: List GameTests",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "game-test",
+                "list",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
             },
-            "problemMatcher": ["$gradle"],
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
-                "panel": "shared"
+                "panel": "dedicated"
             }
+        },
+        {
+            "label": "SFM: Run Selected GameTests",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "game-test",
+                "run-server",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}",
+                "--filter",
+                "${input:sfmGameTestFilter}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "SFM: Preview Projection Changes",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "source",
+                "project",
+                "dry-run",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "SFM: Synchronize Projection",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "source",
+                "project",
+                "sync",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "SFM: Check Projection",
+            "type": "process",
+            "command": "sfm-propagate-changes",
+            "args": [
+                "source",
+                "project",
+                "check",
+                "--repo-root",
+                "${workspaceFolder}/../..",
+                "--projection",
+                "${input:sfmProjection}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/../.."
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "sfmProjection",
+            "type": "promptString",
+            "description": "Exact projection key from source list (Minecraft version and features)",
+            "default": "sfm-dev/mc-1.19.2"
+        },
+        {
+            "id": "sfmGameTestFilter",
+            "type": "promptString",
+            "description": "GameTest selector (*, ?, comma-separated names)",
+            "default": "*"
         }
     ]
 }

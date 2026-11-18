@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 #[path = "../src/release_review_git.rs"]
 mod release_review_git;
 

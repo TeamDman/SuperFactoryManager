@@ -3,6 +3,7 @@ use super::MinecraftVersion;
 use super::WorktreePath;
 use crate::worktree::Worktree;
 use eyre::Context;
+use std::fs::read_to_string;
 use std::path::Path;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -52,7 +53,7 @@ fn read_minecraft_version(worktree_path: &Path) -> eyre::Result<Option<Minecraft
         return Ok(None);
     }
 
-    let content = std::fs::read_to_string(&properties_path)
+    let content = read_to_string(&properties_path)
         .wrap_err_with(|| format!("Failed to read {}", properties_path.display()))?;
     for line in content.lines() {
         let trimmed = line.trim();

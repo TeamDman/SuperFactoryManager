@@ -49,8 +49,8 @@ pub(crate) fn configure_maven_sources(
     cancellation_token.bail_if_cancelled()?;
     let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
     let paths = SourceCacheLayout::maven(&coordinate, hash);
-    let archive = inventory.local_path(&paths.archive);
-    let tree = inventory.local_path(&paths.tree);
+    let archive = inventory.local_path(&paths.archive)?;
+    let tree = inventory.local_path(&paths.tree)?;
     let _lock = acquire_source_lock(&tree)?;
     write_payload_atomically(&archive, &bytes)?;
     extract_zip_atomically(&archive, &tree)?;
@@ -79,13 +79,13 @@ pub(crate) fn acquire_locked_maven_sources(
     cancellation_token: &CancellationToken,
     fetcher: &dyn PayloadFetcher,
 ) -> eyre::Result<()> {
-    let archive = inventory.local_path(&provider.derived_checks.archive_cache_path);
-    let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+    let archive = inventory.local_path(&provider.derived_checks.archive_cache_path)?;
+    let tree = inventory.local_path(&provider.derived_checks.tree_cache_path)?;
     let _lock = acquire_source_lock(&tree)?;
     if inventory.locked_file_status(
         &provider.derived_checks.archive_cache_path,
         provider.derived_checks.hash,
-    ) == AcquisitionStatus::Acquired
+    )? == AcquisitionStatus::Acquired
         && tree.is_dir()
     {
         if !extracted_tree_matches_archive(&archive, &tree)? {
@@ -294,6 +294,7 @@ mod tests {
         assert!(
             inventory
                 .local_path(&provider.derived_checks.tree_cache_path)
+                .unwrap()
                 .join("dan200/computercraft/api/IPeripheral.java")
                 .is_file()
         );
@@ -347,7 +348,9 @@ mod tests {
         )
         .unwrap()
         .unwrap();
-        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let tree = inventory
+            .local_path(&provider.derived_checks.tree_cache_path)
+            .unwrap();
         let java = tree.join("dan200/computercraft/api/IPeripheral.java");
         std::fs::write(&java, b"interface IPeripheral { altered }").unwrap();
 

@@ -119,7 +119,7 @@ pub(crate) fn verify_recipe_without_output(
             let anchor = super::source_build_external_inputs::HistoricalProducerAnchor {
                 receipt_sha256: build
                     .and_then(|build| build.environment.get(RECEIPT_KEY))
-                    .expect("receipt pin was verified above")
+                    .ok_or_else(|| eyre::eyre!("Producer recipe has no pinned receipt"))?
                     .clone(),
                 repository_url: receipt.repository_url,
                 commit: receipt.commit,

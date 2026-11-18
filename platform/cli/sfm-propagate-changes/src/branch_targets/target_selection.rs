@@ -1,14 +1,18 @@
 use super::BranchQuery;
 use super::WorktreeTarget;
 use super::discover_worktree_targets;
+use crate::paths::AppHome;
 
 /// Resolve a branch query against discovered worktrees.
 ///
 /// # Errors
 ///
 /// Returns an error if worktree discovery fails.
-pub fn select_worktree_targets(query: &BranchQuery) -> eyre::Result<Vec<WorktreeTarget>> {
-    Ok(discover_worktree_targets()?
+pub fn select_worktree_targets(
+    query: &BranchQuery,
+    app_home: &AppHome,
+) -> eyre::Result<Vec<WorktreeTarget>> {
+    Ok(discover_worktree_targets(app_home)?
         .into_iter()
         .filter(|target| query.matches(target))
         .collect())
@@ -19,8 +23,11 @@ pub fn select_worktree_targets(query: &BranchQuery) -> eyre::Result<Vec<Worktree
 /// # Errors
 ///
 /// Returns an error if worktree discovery fails or no worktrees match.
-pub fn select_required_worktree_targets(query: &BranchQuery) -> eyre::Result<Vec<WorktreeTarget>> {
-    let targets = select_worktree_targets(query)?;
+pub fn select_required_worktree_targets(
+    query: &BranchQuery,
+    app_home: &AppHome,
+) -> eyre::Result<Vec<WorktreeTarget>> {
+    let targets = select_worktree_targets(query, app_home)?;
     if targets.is_empty() {
         eyre::bail!("No worktrees match --branch '{query}'.");
     }
@@ -32,8 +39,11 @@ pub fn select_required_worktree_targets(query: &BranchQuery) -> eyre::Result<Vec
 /// # Errors
 ///
 /// Returns an error if no worktrees match, or if the query matches more than one worktree.
-pub fn select_single_worktree_target(query: &BranchQuery) -> eyre::Result<WorktreeTarget> {
-    let targets = select_required_worktree_targets(query)?;
+pub fn select_single_worktree_target(
+    query: &BranchQuery,
+    app_home: &AppHome,
+) -> eyre::Result<WorktreeTarget> {
+    let targets = select_required_worktree_targets(query, app_home)?;
     require_single_worktree_target(query, &targets)
 }
 

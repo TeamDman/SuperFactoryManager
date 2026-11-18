@@ -190,7 +190,10 @@ fn capture_observed(
                 &manifest.id,
                 "after",
                 &entry.path,
-                entry.sha256.as_deref().expect("regular file hash"),
+                entry
+                    .sha256
+                    .as_deref()
+                    .ok_or_else(|| eyre!("UTF-8 capture entry has no hash: {}", entry.path))?,
             ));
         }
     }
@@ -696,7 +699,8 @@ fn validate_windows_aliases(paths: &BTreeSet<String>) -> eyre::Result<()> {
     Ok(())
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
+#[cfg(windows)]
 mod tests {
     use super::*;
     use std::process::Command;

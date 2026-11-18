@@ -29,7 +29,7 @@ ctrlc = "3.5.1"
 directories-next = "2.0.0"
 dunce = "1.0.5"
 eyre = "0.6.12"
-facet = { package = "teamy-facet", version = "=0.50.0-rc.7" }
+facet = { package = "teamy-facet", version = "=0.50.0-rc.7", features = ["reflect"] }
 facet-csv = { git = "https://github.com/TeamDman/facet-format.git", rev = "1bd90d49eb0d9f78d00b14ba85d79612dd78c927", package = "facet-csv" }
 facet-json = { package = "teamy-facet-json", version = "=0.50.0-rc.7" }
 facet-pretty = { package = "teamy-facet-pretty", version = "=0.50.0-rc.7" }
@@ -50,7 +50,9 @@ open = { version = "5.3.3", features = ["shellexecute-on-windows"] }
 rand = "0.9.2"
 ratatui = "0.30.0"
 rayon = "1.12.0"
+regex = "=1.12.2"
 reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "multipart", "rustls-tls-native-roots"] }
+semver = "=1.0.27"
 sha1 = "0.10.6"
 sha2 = "0.10.9"
 sfm-styx-state = { path = "crates/sfm-styx-state" }
@@ -109,6 +111,10 @@ unsafe_op_in_unsafe_fn = "warn"
 unused_lifetimes = "warn"
 
 [lints.clippy]
+# Production failures are returned; test-only assertions are configured in clippy.toml.
+expect_used = "deny"
+unwrap_used = "deny"
+absolute_paths = "warn"
 cargo = { level = "warn", priority = -1 }
 complexity = { level = "warn", priority = -1 }
 correctness = { level = "warn", priority = -1 }

@@ -151,7 +151,7 @@ pub(crate) fn materialize_locked_minecraft_classfile_stubs(
     fetcher: &dyn PayloadFetcher,
 ) -> eyre::Result<ClassfileStubMaterialization> {
     cancellation_token.bail_if_cancelled()?;
-    let tree = inventory.local_path(&source.provider.derived_checks.tree_cache_path);
+    let tree = inventory.local_path(&source.provider.derived_checks.tree_cache_path)?;
     let lock_path = tree
         .parent()
         .unwrap_or(&tree)
@@ -308,7 +308,7 @@ pub(crate) fn materialized_classfile_stub_tree_matches(
     let shadowed = authoritative_top_level_types(preflight, &source.target)?;
     let completion =
         materialization_fingerprint(&source.provider.derived_checks.fingerprint, &shadowed);
-    let tree = inventory.local_path(&source.provider.derived_checks.tree_cache_path);
+    let tree = inventory.local_path(&source.provider.derived_checks.tree_cache_path)?;
     Ok(completed_tree_matches(&tree, &completion))
 }
 

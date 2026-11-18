@@ -55,14 +55,14 @@ pub(crate) fn derive_locked_loader_artifact_sources(
                 !fixture.decompiler_runtime_identity.trim().is_empty(),
                 "scenario decompiler runtime identity must be explicit"
             );
-            return Ok(derive_locked_decompile_provider_with_runtime(
+            return derive_locked_decompile_provider_with_runtime(
                 inventory,
                 binary,
                 decompiler,
                 LOCKED_DECOMPILER_PROVIDER_ID,
                 Vec::new(),
                 &fixture.decompiler_runtime_identity,
-            ));
+            );
         }
         derive_locked_decompile_provider(
             inventory,
@@ -177,24 +177,26 @@ pub(crate) fn append_locked_artifact_source_preflight(
     inventory: &DependencyInventory,
     sources: &[LockedArtifactSource],
     preflight: &mut SourcePreflight,
-) {
+) -> eyre::Result<()> {
     for source in sources {
-        let status = locked_artifact_source_status(inventory, source);
+        let status = locked_artifact_source_status(inventory, source)?;
         let provider_definition =
             crate::toolchain_lockfile_schema::version::v3::SourceProviderV3::Decompile(
                 source.provider.clone(),
             );
         let view = SourceProviderView::new(inventory, &provider_definition, 0);
-        let searchable_roots = view.searchable_roots();
+        let searchable_roots = view.searchable_roots()?;
         let provider = SourceProviderPreflight {
             id: source.provider.id.clone(),
             kind: SourceProviderKind::Decompile,
             priority: 0,
             status,
             searchable_roots: searchable_roots.clone(),
-            unavailable_reason: (status != SourceStatus::Acquired)
-                .then(|| locked_artifact_unavailable_reason(inventory, source))
-                .flatten(),
+            unavailable_reason: if status == SourceStatus::Acquired {
+                None
+            } else {
+                Some(locked_artifact_unavailable_reason(inventory, source)?)
+            },
         };
         let target = source.target();
         if status == SourceStatus::Acquired {
@@ -227,64 +229,89 @@ pub(crate) fn append_locked_artifact_source_preflight(
             providers: vec![provider],
         });
     }
+    Ok(())
 }
 
 fn locked_artifact_source_status(
     inventory: &DependencyInventory,
     source: &LockedArtifactSource,
-) -> SourceStatus {
+) -> eyre::Result<SourceStatus> {
     let provider = crate::toolchain_lockfile_schema::version::v3::SourceProviderV3::Decompile(
         source.provider.clone(),
     );
     let view = SourceProviderView::new(inventory, &provider, 0);
-    if view.status() == SourceStatus::Acquired {
-        return SourceStatus::Acquired;
+    if view.status()? == SourceStatus::Acquired {
+        return Ok(SourceStatus::Acquired);
     }
     let binary = inventory
         .artifact_by_id(&source.artifact_id)
-        .expect("derived source binary belongs to the validated lock");
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "Derived source references missing binary artifact `{}`",
+                source.artifact_id
+            )
+        })?;
     let decompiler = inventory
         .artifact_by_id(&source.provider.derived_checks.decompiler_artifact_id)
-        .expect("derived source decompiler belongs to the validated lock");
-    if [binary, decompiler].into_iter().any(|artifact| {
-        inventory.locked_file_status(&artifact.cache_path, artifact.hash)
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "Derived source references missing decompiler artifact `{}`",
+                source.provider.derived_checks.decompiler_artifact_id
+            )
+        })?;
+    for artifact in [binary, decompiler] {
+        if inventory.locked_file_status(&artifact.cache_path, artifact.hash)?
             == AcquisitionStatus::Stale
-    }) {
-        SourceStatus::Stale
-    } else {
-        SourceStatus::Missing
+        {
+            return Ok(SourceStatus::Stale);
+        }
     }
+    Ok(SourceStatus::Missing)
 }
 
 fn locked_artifact_unavailable_reason(
     inventory: &DependencyInventory,
     source: &LockedArtifactSource,
-) -> Option<String> {
-    let binary = inventory.artifact_by_id(&source.artifact_id)?;
-    match inventory.locked_file_status(&binary.cache_path, binary.hash) {
+) -> eyre::Result<String> {
+    let binary = inventory
+        .artifact_by_id(&source.artifact_id)
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "Derived source references missing binary artifact `{}`",
+                source.artifact_id
+            )
+        })?;
+    match inventory.locked_file_status(&binary.cache_path, binary.hash)? {
         AcquisitionStatus::Stale => {
-            return Some("locked Forge binary artifact hash does not match".to_owned());
+            return Ok("locked Forge binary artifact hash does not match".to_owned());
         }
         AcquisitionStatus::Missing => {
-            return Some(
+            return Ok(
                 "locked Forge binary artifact and derived source tree are missing".to_owned(),
             );
         }
         AcquisitionStatus::Acquired => {}
     }
-    let decompiler =
-        inventory.artifact_by_id(&source.provider.derived_checks.decompiler_artifact_id)?;
-    match inventory.locked_file_status(&decompiler.cache_path, decompiler.hash) {
-        AcquisitionStatus::Stale => {
-            Some("locked Vineflower artifact hash does not match".to_owned())
+    let decompiler = inventory
+        .artifact_by_id(&source.provider.derived_checks.decompiler_artifact_id)
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "Derived source references missing decompiler artifact `{}`",
+                source.provider.derived_checks.decompiler_artifact_id
+            )
+        })?;
+    Ok(
+        match inventory.locked_file_status(&decompiler.cache_path, decompiler.hash)? {
+            AcquisitionStatus::Stale => "locked Vineflower artifact hash does not match",
+            AcquisitionStatus::Missing => {
+                "locked Vineflower artifact and derived source tree are missing"
+            }
+            AcquisitionStatus::Acquired => {
+                "derived source tree is missing or has a different fingerprint"
+            }
         }
-        AcquisitionStatus::Missing => {
-            Some("locked Vineflower artifact and derived source tree are missing".to_owned())
-        }
-        AcquisitionStatus::Acquired => {
-            Some("derived source tree is missing or has a different fingerprint".to_owned())
-        }
-    }
+        .to_owned(),
+    )
 }
 
 #[cfg(test)]
@@ -340,10 +367,13 @@ mod tests {
         let sources = derive_with_runtime(&inventory, "fixture Java 17");
         let source = &sources[0];
         let binary = inventory.artifact_by_id(&source.artifact_id).unwrap();
-        let binary_path = inventory.local_path(&binary.cache_path);
+        let binary_path = inventory
+            .local_path(&binary.cache_path)
+            .expect("checked fixture inventory");
 
         let mut missing = SourcePreflight::default();
-        append_locked_artifact_source_preflight(&inventory, &sources, &mut missing);
+        append_locked_artifact_source_preflight(&inventory, &sources, &mut missing)
+            .expect("locked source preflight");
         assert_eq!(missing.components[0].status, SourceStatus::Missing);
         assert!(missing.roots.is_empty());
         assert!(missing.missing[0].reason.contains("binary artifact"));
@@ -352,11 +382,14 @@ mod tests {
         fs::create_dir_all(binary_path.parent().unwrap()).unwrap();
         fs::write(&binary_path, b"not the locked artifact").unwrap();
         let mut stale = SourcePreflight::default();
-        append_locked_artifact_source_preflight(&inventory, &sources, &mut stale);
+        append_locked_artifact_source_preflight(&inventory, &sources, &mut stale)
+            .expect("locked source preflight");
         assert_eq!(stale.components[0].status, SourceStatus::Stale);
         assert!(stale.missing[0].reason.contains("hash does not match"));
 
-        let tree = inventory.local_path(&source.provider.derived_checks.tree_cache_path);
+        let tree = inventory
+            .local_path(&source.provider.derived_checks.tree_cache_path)
+            .expect("checked fixture inventory");
         fs::create_dir_all(&tree).unwrap();
         fs::write(
             tree.join(FINGERPRINT_FILE),
@@ -364,7 +397,8 @@ mod tests {
         )
         .unwrap();
         let mut ready = SourcePreflight::default();
-        append_locked_artifact_source_preflight(&inventory, &sources, &mut ready);
+        append_locked_artifact_source_preflight(&inventory, &sources, &mut ready)
+            .expect("locked source preflight");
         assert_eq!(ready.components[0].status, SourceStatus::Acquired);
         assert_eq!(ready.roots.len(), 1);
         assert!(ready.missing.is_empty());
@@ -376,14 +410,14 @@ mod tests {
         runtime_identity: &str,
     ) -> Vec<LockedArtifactSource> {
         derive_locked_loader_artifact_sources_with(inventory, |binary, decompiler| {
-            Ok(derive_locked_decompile_provider_with_runtime(
+            derive_locked_decompile_provider_with_runtime(
                 inventory,
                 binary,
                 decompiler,
                 LOCKED_DECOMPILER_PROVIDER_ID,
                 Vec::new(),
                 runtime_identity,
-            ))
+            )
         })
         .expect("locked Forge source derivation")
     }

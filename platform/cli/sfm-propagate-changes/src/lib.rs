@@ -11,14 +11,34 @@ pub(crate) mod dependency_locked_sources;
 pub(crate) mod dependency_sources;
 mod file_identity;
 pub(crate) mod git_read;
+pub mod github_issue_tracker_url;
+pub mod github_username;
+pub mod gradle_dot_properties_file_content;
+pub mod gradle_properties_key;
+pub mod gradle_properties_value;
+pub mod gradle_properties_version_edit;
 pub mod jar_build;
 pub mod java_analysis;
+pub mod java_identifier;
+pub mod java_package_name;
 pub(crate) mod java_source_catalog;
 pub mod jdk;
 pub(crate) mod jdk_artifact_cache;
 pub(crate) mod jdk_install_control;
 pub mod jdk_preferences;
 pub mod logging;
+pub mod minecraft_date_version_pair_proxy;
+pub mod minecraft_mapping_version;
+pub mod minecraft_mapping_version_proxy;
+pub mod mod_authors;
+pub mod mod_authors_csv_proxy;
+pub mod mod_description;
+pub mod mod_group_id;
+pub mod mod_id;
+pub mod mod_issue_tracker;
+pub mod mod_name;
+pub mod mod_software_license;
+pub mod mod_version;
 pub mod modrinth;
 pub mod one_password;
 pub mod panic;
@@ -26,6 +46,7 @@ pub mod paths;
 pub(crate) mod payload_fetcher;
 pub mod prism;
 pub mod propagate;
+pub mod raw_gradle_properties_document;
 pub mod release_report;
 pub mod release_review_capture;
 mod release_review_capture_io;
@@ -42,11 +63,24 @@ pub mod release_review_working_tree;
 pub mod release_review_working_tree_materialize;
 pub mod review_session_v1;
 pub mod review_session_v2;
+pub mod semver_version_bound;
+pub mod semver_version_range;
+pub mod sfm_gradle_dot_properties_file_content;
+pub mod sfm_mod_authors;
+pub mod sfm_mod_description;
+pub mod sfm_mod_group_id;
+pub mod sfm_mod_id;
+pub mod sfm_mod_issue_tracker;
+pub mod sfm_mod_name;
+pub mod sfm_mod_software_license;
+pub mod sfm_mod_version;
 pub mod sfm_path;
+pub mod software_license;
+pub mod software_license_declaration;
 pub mod source_archive;
 pub mod source_audit;
-pub mod source_cache;
 pub(crate) mod source_binding;
+pub mod source_cache;
 pub mod source_comparison;
 
 pub(crate) mod source_decompile;
@@ -74,6 +108,7 @@ use crate::cli::Cli;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::Utc;
+use std::ops::ControlFlow;
 
 /// Version string combining package version, git revision, and build time.
 fn version() -> String {
@@ -110,10 +145,6 @@ fn reject_stage_log_file_before_logging(cli: &Cli) -> eyre::Result<()> {
 /// # Errors
 ///
 /// This function will return an error if `color_eyre` installation, CLI parsing, logging initialization, or command execution fails.
-///
-/// # Panics
-///
-/// Panics if the CLI schema is invalid (should never happen with correct code).
 pub fn main() -> eyre::Result<std::process::ExitCode> {
     if java_analysis::run_live_definition_worker_from_env()? {
         return Ok(std::process::ExitCode::SUCCESS);
@@ -129,17 +160,19 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
     let parse_arguments = arguments.iter().skip(1).cloned().collect::<Vec<_>>();
     let version = version();
 
-    // Parse command line arguments using figue
-    // unwrap() handles --help, --version, completions, and errors with proper exit codes
+    // Parse command line arguments using figue.
     let parsed = figue::Driver::new(
         figue::builder::<Cli>()
-            .expect("schema should be valid")
+            .map_err(|error| eyre::eyre!("invalid CLI schema: {error}"))?
             .cli(move |c| c.args(parse_arguments))
             .help(|h| h.version(version))
             .build(),
     )
     .run();
-    let cli: Cli = startup_argv::finish_parse(parsed)?;
+    let cli: Cli = match startup_argv::finish_parse(parsed)? {
+        ControlFlow::Continue(cli) => cli,
+        ControlFlow::Break(exit_code) => return Ok(exit_code),
+    };
 
     // Candidate-only staging must not let a global log path write elsewhere
     // before the command has checked its external checkout boundary.

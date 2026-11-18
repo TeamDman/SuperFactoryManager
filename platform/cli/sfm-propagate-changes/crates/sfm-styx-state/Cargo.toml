@@ -10,3 +10,7 @@ description = "Private compatibility boundary for existing SFM Styx state files"
 eyre = "0.6.12"
 facet = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet" }
 facet-styx = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-styx" }
+
+[lints.clippy]
+expect_used = "deny"
+unwrap_used = "deny"

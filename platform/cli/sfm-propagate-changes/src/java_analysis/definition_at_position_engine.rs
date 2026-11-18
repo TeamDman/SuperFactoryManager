@@ -273,13 +273,13 @@ struct FactCache {
 
 impl FactCache {
     fn prepare_generation(&mut self, generation: u64) -> eyre::Result<bool> {
-        if self
+        if let Some(current) = self
             .workspace_generation
-            .is_some_and(|current| generation < current)
+            .filter(|&current| generation < current)
         {
             eyre::bail!(
                 "definition request workspace generation {generation} is older than engine generation {}",
-                self.workspace_generation.expect("checked generation")
+                current
             );
         }
         if self.workspace_generation != Some(generation) {
@@ -292,13 +292,13 @@ impl FactCache {
     }
 
     fn replace_generation(&mut self, generation: u64) -> eyre::Result<bool> {
-        if self
+        if let Some(current) = self
             .workspace_generation
-            .is_some_and(|current| generation < current)
+            .filter(|&current| generation < current)
         {
             eyre::bail!(
                 "replacement workspace generation {generation} is older than engine generation {}",
-                self.workspace_generation.expect("checked generation")
+                current
             );
         }
         if self.workspace_generation == Some(generation) {

@@ -1,5 +1,6 @@
 //! Public source commands use the authoritative Liquid catalog.
 
+use super::catalog_release_args::CatalogReleaseArgs;
 use super::comparison_cli::SourceComparisonArgs;
 use super::core_project_cli::CoreProjectArgs;
 use super::oracle_cli::SourceOracleArgs;
@@ -32,6 +33,8 @@ pub enum SourceCommand {
     ComparePrepare(SourceComparisonArgs),
     /// Query declared issue relevance for one file in an explicitly selected input.
     References(super::references_cli::SourceReferencesArgs),
+    /// Inspect exact catalog-selected release metadata without publishing.
+    Release(CatalogReleaseArgs),
     /// Assemble a local HTML release report from explicit evidence.
     ReleaseReport(ReleaseReportArgs),
     /// Compare pinned Git oracles with current core-rendered projections.
@@ -67,6 +70,7 @@ impl SourceArgs {
             SourceCommand::ComparePrepare(args) => args.invoke(cancellation),
             SourceCommand::References(args) => args.invoke(cancellation),
             SourceCommand::ReleaseReport(args) => args.invoke(cancellation),
+            SourceCommand::Release(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::Oracle(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::Project(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::List(args) => args.invoke_in(invocation_dir),

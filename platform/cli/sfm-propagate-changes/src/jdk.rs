@@ -1,3 +1,4 @@
+use crate::paths::CacheHome;
 use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
 use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use eyre::Context;
@@ -140,7 +141,7 @@ pub(crate) fn resolve_exact_java_for_minecraft_dir(
     let Some(pins) = pins else {
         return resolve_exact_java(required_major);
     };
-    let cache_root = crate::paths::CACHE_DIR
+    let cache_root = CacheHome::current()?
         .0
         .join("minecraft-toolchain")
         .join("jbrsdk");

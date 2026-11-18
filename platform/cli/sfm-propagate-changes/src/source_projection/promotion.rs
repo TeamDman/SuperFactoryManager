@@ -633,14 +633,22 @@ fn pin_output_parents(
         let destination = root
             .join(&operation.project_dir)
             .join(&operation.relative_path);
-        pinned.pin_or_create_below(root, destination.parent().expect("output has parent"))?;
+        pinned.pin_or_create_below(
+            root,
+            destination.parent().ok_or_else(|| {
+                eyre::eyre!("promotion output has no parent: {}", destination.display())
+            })?,
+        )?;
     }
     for file in expected {
         pinned.pin_or_create_below(
             root,
-            file.destination
-                .parent()
-                .expect("candidate output has parent"),
+            file.destination.parent().ok_or_else(|| {
+                eyre::eyre!(
+                    "candidate output has no parent: {}",
+                    file.destination.display()
+                )
+            })?,
         )?;
     }
     Ok(())
@@ -1387,7 +1395,10 @@ fn apply_one(
     ensure!(
         pinned
             .handles
-            .contains_key(destination.parent().expect("output has parent")),
+            .contains_key(destination.parent().ok_or_else(|| eyre::eyre!(
+                "promotion output has no parent: {}",
+                destination.display()
+            ))?),
         "promotion output parent was not pinned"
     );
     #[cfg(not(windows))]
@@ -1416,7 +1427,10 @@ fn apply_one(
         quarantine: stage.join("backup").join(format!("{index}.quarantine")),
         installed: None,
     });
-    if let Some(backup) = applied.last().and_then(|entry| entry.backup.as_deref()) {
+    let applied_operation = applied.last_mut().ok_or_else(|| {
+        eyre::eyre!("promotion operation was not retained in the rollback journal")
+    })?;
+    if let Some(backup) = applied_operation.backup.as_deref() {
         ensure!(
             Some(sha256(&read_required(backup)?)) == operation.old_sha256,
             "promoted output '{}/{}' changed between inspection and backup; preserving the concurrent edit",
@@ -1441,7 +1455,7 @@ fn apply_one(
         // after the old output was backed up.
         fs::hard_link(&staged, &destination)
             .wrap_err("could not install candidate output without clobbering a concurrent path")?;
-        applied.last_mut().expect("just applied").installed = Some(InstalledFile {
+        applied_operation.installed = Some(InstalledFile {
             handle: installed_handle,
             sha256: new_hash.clone(),
         });
@@ -1465,15 +1479,17 @@ fn rollback(
 ) -> Vec<String> {
     let mut errors = Vec::new();
     for operation in applied.iter().rev() {
-        match read_optional(&operation.destination) {
-            Ok(Some(_)) if operation.installed.is_some() => {
+        match (
+            read_optional(&operation.destination),
+            operation.installed.as_ref(),
+        ) {
+            (Ok(Some(_)), Some(installed)) => {
                 // Move the path into the retained stage before checking it.
                 // A replacement racing with this move is preserved there.
                 if let Err(error) = fs::rename(&operation.destination, &operation.quarantine) {
                     errors.push(format!("{}: {error}", operation.destination.display()));
                     continue;
                 }
-                let installed = operation.installed.as_ref().expect("checked above");
                 let moved_is_ours = (|| -> Result<bool> {
                     let bytes = read_required(&operation.quarantine)?;
                     let moved = fs::File::open(&operation.quarantine)?;
@@ -1505,8 +1521,8 @@ fn rollback(
                 // Retain even our own installed file for recovery review. Its
                 // open handle also keeps the identity stable through rollback.
             }
-            Ok(None) => {}
-            Ok(Some(_)) | Err(_) => {
+            (Ok(None), _) => {}
+            (Ok(Some(_)), None) | (Err(_), _) => {
                 errors.push(format!(
                     "{} changed after installation; preserving output and backup",
                     operation.destination.display()
@@ -1704,7 +1720,7 @@ fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
     let mut parent = root
         .join(path)
         .parent()
-        .expect("validated output has parent")
+        .ok_or_else(|| eyre::eyre!("promotion output {path} has no parent"))?
         .to_path_buf();
     while parent.starts_with(root) {
         match fs::symlink_metadata(&parent) {
@@ -1718,7 +1734,10 @@ fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
         if parent == root {
             break;
         }
-        parent = parent.parent().expect("parent stays in root").to_path_buf();
+        parent = parent
+            .parent()
+            .ok_or_else(|| eyre::eyre!("promotion output {path} has no ancestor within its root"))?
+            .to_path_buf();
     }
     Ok(())
 }

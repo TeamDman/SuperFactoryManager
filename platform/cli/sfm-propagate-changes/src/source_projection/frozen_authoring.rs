@@ -307,7 +307,10 @@ fn derive_physical_owners(
             "selected output '{output}' has {} physical owner routes; expected exactly one",
             matching.len()
         );
-        let source_repo_path = matching.into_iter().next().unwrap();
+        let source_repo_path = matching
+            .into_iter()
+            .next()
+            .ok_or_else(|| eyre::eyre!("selected output has no physical owner route"))?;
         validate_relative_path(&source_repo_path)?;
         let source = checked_file(&root, &source_repo_path)?;
         let bytes = fs::read(&source).wrap_err_with(|| {

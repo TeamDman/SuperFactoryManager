@@ -14,7 +14,6 @@ use eyre::ensure;
 use facet::Facet;
 use figue::{self as args};
 use sha2::Digest as _;
-use std::fmt::Write as _;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -358,7 +357,9 @@ fn pump(
 fn lower_hex(bytes: &[u8]) -> String {
     let mut hex = String::with_capacity(bytes.len() * 2);
     for byte in bytes {
-        write!(&mut hex, "{byte:02x}").expect("writing to String cannot fail");
+        const DIGITS: &[u8; 16] = b"0123456789abcdef";
+        hex.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        hex.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
     }
     hex
 }

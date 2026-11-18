@@ -249,7 +249,7 @@ pub(super) fn add_component(
         &resolved,
         evidence,
         append_artifact,
-    );
+    )?;
     let output = inventory.to_canonical_json()?;
     write_lockfile_atomically(
         &inventory.lockfile_path,
@@ -332,7 +332,7 @@ fn resolve_component_artifact(
     )?;
     let hash = ContentHash::from_bytes(&resolved.bytes, ContentHashAlgorithm::Blake3);
     let portable_cache_path = coordinate.portable_cache_path();
-    let cache_path = inventory.local_path(&portable_cache_path);
+    let cache_path = inventory.local_path(&portable_cache_path)?;
     write_cache_file_atomically(&cache_path, &resolved.bytes)?;
     let artifact_id = format!(
         "{}-{}",
@@ -412,7 +412,10 @@ fn add_curseforge_dependency(
     )?;
     let hash = ContentHash::from_bytes(&resolved.bytes, ContentHashAlgorithm::Blake3);
     let portable_cache_path = coordinate.portable_cache_path();
-    write_cache_file_atomically(&inventory.local_path(&portable_cache_path), &resolved.bytes)?;
+    write_cache_file_atomically(
+        &inventory.local_path(&portable_cache_path)?,
+        &resolved.bytes,
+    )?;
     let artifact_id = format!(
         "{}-{}",
         portable_id(&coordinate.canonical),
@@ -499,7 +502,7 @@ fn append_lock_entries(
     resolved: &ResolvedMavenArtifact,
     evidence: LockedComponentEvidence,
     append_artifact: bool,
-) {
+) -> eyre::Result<()> {
     let scopes: Vec<_> = args
         .scope
         .iter()
@@ -516,7 +519,7 @@ fn append_lock_entries(
                 repository_id: resolved.repository_id.clone(),
             }),
             scopes,
-            bundle: bundle_policy(args, coordinate),
+            bundle: bundle_policy(args, coordinate)?,
             artifact_treatment: args
                 .artifact_treatment
                 .unwrap_or(ArtifactTreatmentV3::LoaderManagedMod),
@@ -535,7 +538,7 @@ fn append_lock_entries(
         .dependencies
         .iter_mut()
         .find(|dependency| dependency.id == args.id)
-        .expect("component mutation validates dependency")
+        .ok_or_else(|| eyre::eyre!("Component mutation dependency `{}` is missing", args.id))?
         .components
         .push(component);
     if !append_artifact {
@@ -544,13 +547,18 @@ fn append_lock_entries(
             .artifacts
             .iter_mut()
             .find(|artifact| artifact.id == evidence.artifact_id)
-            .expect("existing artifact evidence references a locked artifact");
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "Component evidence references missing artifact `{}`",
+                    evidence.artifact_id
+                )
+            })?;
         artifact.owner = Some(ArtifactOwnerV3 {
             dependency_id: args.id.clone(),
             component_id: component_id.to_owned(),
         });
         artifact.purposes = purposes;
-        return;
+        return Ok(());
     }
     inventory.lockfile.artifacts.push(ArtifactV3 {
         id: evidence.artifact_id,
@@ -569,6 +577,7 @@ fn append_lock_entries(
         source_build: None,
         weak: None,
     });
+    Ok(())
 }
 
 fn validate_bundle_options(
@@ -604,20 +613,24 @@ fn validate_bundle_options(
     Ok(())
 }
 
-fn bundle_policy(args: &DependencyAddArgs, coordinate: &MavenCoordinate) -> Option<BundlePolicyV3> {
-    args.scope
-        .contains(&DependencyScopeV3::Bundle)
-        .then(|| BundlePolicyV3 {
-            accepted_version_range: args
-                .bundle_accepted_version_range
-                .clone()
-                .expect("bundle options validated before lock mutation"),
-            artifact_version: args
-                .bundle_artifact_version
-                .clone()
-                .unwrap_or_else(|| coordinate.version.clone()),
-            is_obfuscated: args.bundle_is_obfuscated,
-        })
+fn bundle_policy(
+    args: &DependencyAddArgs,
+    coordinate: &MavenCoordinate,
+) -> eyre::Result<Option<BundlePolicyV3>> {
+    if !args.scope.contains(&DependencyScopeV3::Bundle) {
+        return Ok(None);
+    }
+    Ok(Some(BundlePolicyV3 {
+        accepted_version_range: args
+            .bundle_accepted_version_range
+            .clone()
+            .ok_or_else(|| eyre::eyre!("Bundle policy has no accepted version range"))?,
+        artifact_version: args
+            .bundle_artifact_version
+            .clone()
+            .unwrap_or_else(|| coordinate.version.clone()),
+        is_obfuscated: args.bundle_is_obfuscated,
+    }))
 }
 
 struct CurseforgeLockEntryInputs<'a> {

@@ -37,7 +37,7 @@ impl DependencySourceProviderListArgs {
                 }
                 for provider in inventory.source_providers(component) {
                     rows += 1;
-                    let status = provider.status();
+                    let status = provider.status()?;
                     stdout_line(format!(
                         "{} | {} | {} | priority={} | any={} | locked=yes | status={} | roots={} | unavailable={}",
                         identity,
@@ -51,12 +51,12 @@ impl DependencySourceProviderListArgs {
                         },
                         status.label(),
                         provider
-                            .searchable_roots()
+                            .searchable_roots()?
                             .iter()
                             .map(|root| root.display().to_string())
                             .collect::<Vec<_>>()
                             .join(","),
-                        provider.unavailable_reason().unwrap_or("-")
+                        provider.unavailable_reason()?.unwrap_or("-")
                     ))?;
                 }
             }

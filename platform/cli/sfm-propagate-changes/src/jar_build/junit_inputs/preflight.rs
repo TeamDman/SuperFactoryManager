@@ -22,7 +22,7 @@ use std::time::Instant;
 pub(crate) fn preflight(repo: &Path, cancel: &CancellationToken) -> eyre::Result<PreflightReport> {
     run(
         repo,
-        &super::super::common_toolchain_cache_dir().join("maven"),
+        &super::super::common_toolchain_cache_dir()?.join("maven"),
         None,
         cancel,
     )

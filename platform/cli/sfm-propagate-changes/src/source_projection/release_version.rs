@@ -2,9 +2,8 @@
 //! frozen-inventory authoring. It changes only a canonical Gradle property.
 
 use super::sync::ProjectedArtifact;
+use crate::gradle_properties_version_edit::GradlePropertiesVersionEdit;
 use eyre::Result;
-use eyre::WrapErr;
-use eyre::ensure;
 use std::collections::BTreeMap;
 
 /// Replace exactly one canonical `mod_version=<value>` property.
@@ -19,101 +18,9 @@ pub fn apply_release_mod_version(
     let properties = artifacts
         .get_mut("gradle.properties")
         .ok_or_else(|| eyre::eyre!("release projection has no gradle.properties"))?;
-    let text = std::str::from_utf8(&properties.output_bytes)
-        .wrap_err("release Gradle properties are not UTF-8")?;
-    let mut version_range = None;
-    let mut offset = 0;
-    for line in text.split_inclusive('\n') {
-        let line_without_lf = line.strip_suffix('\n').unwrap_or(line);
-        let body = line_without_lf
-            .strip_suffix('\r')
-            .unwrap_or(line_without_lf);
-        let trimmed = body.trim_start();
-        if !trimmed.starts_with('#') && !trimmed.starts_with('!') {
-            ensure!(
-                !has_continuation(body),
-                "release Gradle properties cannot contain continued lines"
-            );
-        }
-        if parsed_property_key(body)?.as_deref() == Some("mod_version") {
-            let old_version = body.strip_prefix("mod_version=").ok_or_else(|| {
-                eyre::eyre!(
-                    "release Gradle mod_version must use one canonical mod_version=<value> line"
-                )
-            })?;
-            ensure!(
-                old_version == old_version.trim(),
-                "release Gradle mod_version must use one canonical mod_version=<value> line"
-            );
-            ensure!(
-                version_range.is_none(),
-                "release Gradle properties contain multiple mod_version entries"
-            );
-            ensure!(
-                !old_version.trim().is_empty(),
-                "release Gradle properties contain an empty mod_version"
-            );
-            version_range = Some((offset + "mod_version=".len(), offset + body.len()));
-        }
-        offset += line.len();
-    }
-    let (start, end) = version_range
-        .ok_or_else(|| eyre::eyre!("release Gradle properties need one mod_version entry"))?;
-    let mut projected = Vec::with_capacity(properties.output_bytes.len() + version.len());
-    projected.extend_from_slice(&properties.output_bytes[..start]);
-    projected.extend_from_slice(version.as_bytes());
-    projected.extend_from_slice(&properties.output_bytes[end..]);
-    properties.output_bytes = projected;
+    let content = GradlePropertiesVersionEdit::from_bytes(&properties.output_bytes)?;
+    properties.output_bytes = content.with_mod_version(version)?.into_bytes();
     Ok(())
-}
-
-fn has_continuation(line: &str) -> bool {
-    line.as_bytes()
-        .iter()
-        .rev()
-        .take_while(|byte| **byte == b'\\')
-        .count()
-        % 2
-        == 1
-}
-
-fn parsed_property_key(line: &str) -> Result<Option<String>> {
-    let trimmed = line.trim_start();
-    if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with('!') {
-        return Ok(None);
-    }
-    let mut chars = trimmed.chars();
-    let mut key = String::new();
-    while let Some(next) = chars.next() {
-        match next {
-            '=' | ':' => break,
-            whitespace if whitespace.is_whitespace() => break,
-            '\\' => {
-                let escaped = chars
-                    .next()
-                    .ok_or_else(|| eyre::eyre!("unterminated Gradle property key escape"))?;
-                if escaped == 'u' {
-                    let digits = (0..4)
-                        .map(|_| {
-                            chars.next().ok_or_else(|| {
-                                eyre::eyre!("incomplete Gradle property Unicode escape")
-                            })
-                        })
-                        .collect::<Result<String>>()?;
-                    let scalar = u32::from_str_radix(&digits, 16)
-                        .wrap_err("invalid Gradle property Unicode escape")?;
-                    key.push(
-                        char::from_u32(scalar)
-                            .ok_or_else(|| eyre::eyre!("invalid Gradle property Unicode scalar"))?,
-                    );
-                } else {
-                    key.push(escaped);
-                }
-            }
-            ordinary => key.push(ordinary),
-        }
-    }
-    Ok(Some(key))
 }
 
 #[cfg(test)]
@@ -147,6 +54,26 @@ mod tests {
             properties.source_bytes,
             b"# mod_version=ignored\r\nmod_version=4.34.0\r\nother=ok\r\n"
         );
+    }
+
+    #[test]
+    fn rejected_rewrites_preserve_source_and_projected_bytes() {
+        let original = b"mod_version=4.34.0\r\nother=ok\r\n";
+        for version in [
+            "",
+            " 4.35.0",
+            "4.35.0\nmod_id=other",
+            "4.35.0\rmod_id=other",
+        ] {
+            let mut artifacts = artifact(original);
+            assert!(apply_release_mod_version(&mut artifacts, version).is_err());
+            assert_eq!(artifacts["gradle.properties"].output_bytes, original);
+            assert_eq!(artifacts["gradle.properties"].source_bytes, original);
+        }
+        let bare_cr = b"other=hidden\rmod_version=4.34.0\n";
+        let mut artifacts = artifact(bare_cr);
+        assert!(apply_release_mod_version(&mut artifacts, "4.35.0").is_err());
+        assert_eq!(artifacts["gradle.properties"].output_bytes, bare_cr);
     }
 
     #[test]

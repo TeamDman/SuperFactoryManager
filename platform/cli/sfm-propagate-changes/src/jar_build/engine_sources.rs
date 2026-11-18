@@ -258,7 +258,7 @@ fn resolve_project_compile_classpath(
     let mut classpath = Vec::new();
     {
         let _span = tracing::debug_span!("resolve_project_compile_loader_jar").entered();
-        classpath.push(loader_dev_compile_jar(context));
+        classpath.push(loader_dev_compile_jar(context)?);
     };
     context.bail_if_cancelled()?;
     {
@@ -290,7 +290,7 @@ fn resolve_project_compile_classpath(
         let selected = context
             .selected_dependency_remaps
             .lock()
-            .expect("selected remap paths poisoned");
+            .map_err(|_poisoned| eyre::eyre!("Selected remap paths poisoned"))?;
         if let Some(paths) = selected.as_ref() {
             classpath.extend(paths.iter().cloned());
         } else {
@@ -426,7 +426,11 @@ fn run_antlr(
     reset_cache_directory(&context.plan.cache_dir, output_dir)?;
     context.bail_if_cancelled()?;
     let mut command = Command::new(&context.plan.java.executable);
-    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, context.plan.java.major_version)?;
+    let java_trust = super::java_trust::JavaTrust::configure_java(
+        &mut command,
+        false,
+        context.plan.java.major_version,
+    )?;
     command
         .arg("-cp")
         .arg(join_classpath(classpath))
@@ -447,14 +451,7 @@ fn run_antlr(
     trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stdout", &output.stdout);
     trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stderr", &output.stderr);
     context.bail_if_cancelled()?;
-    let log_path = output_dir.parent().unwrap_or(output_dir).join("antlr.log");
-    let mut log = Vec::new();
-    log.extend_from_slice(b"--- stdout ---\n");
-    log.extend_from_slice(&output.stdout);
-    log.extend_from_slice(b"\n--- stderr ---\n");
-    log.extend_from_slice(&output.stderr);
-    fs::write(&log_path, log)
-        .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    let log_path = write_antlr_console_log(output_dir, &output)?;
     context.bail_if_cancelled()?;
     if output.cancelled {
         eyre::bail!("ANTLR was cancelled by Ctrl+C. See {}", log_path.display());
@@ -479,6 +476,18 @@ fn run_antlr(
     context.bail_if_cancelled()?;
     tracing::info!("ANTLR main: done in {} ms", started.elapsed().as_millis());
     Ok(())
+}
+
+fn write_antlr_console_log(output_dir: &Path, output: &CancellableOutput) -> eyre::Result<PathBuf> {
+    let log_path = output_dir.parent().unwrap_or(output_dir).join("antlr.log");
+    let mut log = Vec::new();
+    log.extend_from_slice(b"--- stdout ---\n");
+    log.extend_from_slice(&output.stdout);
+    log.extend_from_slice(b"\n--- stderr ---\n");
+    log.extend_from_slice(&output.stderr);
+    fs::write(&log_path, log)
+        .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    Ok(log_path)
 }
 
 fn resolve_forge_userdev_libraries(
@@ -789,7 +798,7 @@ fn write_javac_argfile(
         .cache_dir
         .join("project")
         .join("compileJava-mappings.tsrg");
-    let reobf_tsrg = context.forge_mapping_path("official_to_srg.tsrg");
+    let reobf_tsrg = context.forge_mapping_path("official_to_srg.tsrg")?;
     if let Some(parent) = refmap.parent() {
         fs::create_dir_all(parent)?;
     }

@@ -294,12 +294,13 @@ fn java_call_frame_lines(call_site: &super::JavaCallSite) -> Vec<String> {
         } else {
             String::new()
         };
-        lines.push(format!("        {prefix}{first}"));
-        lines.extend(rest.iter().map(|line| format!("            {line}")));
-        let last = lines
-            .last_mut()
-            .expect("call expression should produce a line");
-        last.push(';');
+        if let Some((last, middle)) = rest.split_last() {
+            lines.push(format!("        {prefix}{first}"));
+            lines.extend(middle.iter().map(|line| format!("            {line}")));
+            lines.push(format!("            {last};"));
+        } else {
+            lines.push(format!("        {prefix}{first};"));
+        }
     } else {
         lines.push(format!(
             "        {};",

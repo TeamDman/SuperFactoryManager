@@ -20,3 +20,9 @@ disallowed-macros = [
   { path = "std::ptr::addr_of_mut", reason = "Use `&raw mut` or `&const` instead." },
   { path = "serde_json::json", reason = "Use facet_json value construction or typed Facet models instead.", allow-invalid = true },
 ]
+
+# Production code propagates failures; test assertions may panic.
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+allow-expect-in-consts = false
+allow-unwrap-in-consts = false

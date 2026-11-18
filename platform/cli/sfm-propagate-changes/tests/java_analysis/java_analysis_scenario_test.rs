@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use eyre::Context as _;
 use eyre::bail;
 use facet::Facet;

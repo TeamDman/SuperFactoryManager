@@ -13,22 +13,33 @@ mod tests;
 #[cfg(test)]
 #[path = "linux_forge_verification_tests.rs"]
 mod verification_tests;
-use super::{
-    ArtifactId, ArtifactPlan, ArtifactPurpose, BuildPlan, BuildProjectIdentity, ContentHash,
-    ContentHashAlgorithm, DependencyDeobfProducer, ExecutionContext, MavenCoordinate,
-    NamedSourceOrigin, OwnedDependencyRemapOutput, execute_forge_userdev_uncached,
-    execute_mcp_config_joined_uncached, named_forge_compile_recipe_for_project,
-    parse_unique_srg_member_mappings, requires_forge_dependency_deobf,
-    rewrite_srg_member_constants_in_jar,
-};
+use super::ArtifactId;
+use super::ArtifactPlan;
+use super::ArtifactPurpose;
+use super::BuildPlan;
+use super::BuildProjectIdentity;
+use super::ContentHash;
+use super::ContentHashAlgorithm;
+use super::DependencyDeobfProducer;
+use super::ExecutionContext;
+use super::MavenCoordinate;
+use super::NamedSourceOrigin;
+use super::OwnedDependencyRemapOutput;
+use super::execute_forge_userdev_uncached;
+use super::execute_mcp_config_joined_uncached;
+use super::named_forge_compile_recipe_for_project;
+use super::parse_unique_srg_member_mappings;
+use super::requires_forge_dependency_deobf;
+use super::rewrite_srg_member_constants_in_jar;
 use crate::cancellation::CancellationToken;
+use inputs::DependencyRemapArtifactInputs;
+use inputs::ForgePreparationInputs;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read as _;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
-
-use inputs::{DependencyRemapArtifactInputs, ForgePreparationInputs};
 use store::Store;
 
 const MCP_ROLES: &[&str] = &["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"];
@@ -228,7 +239,7 @@ fn remap(
     coordinate: &MavenCoordinate,
     existing_only: bool,
 ) -> eyre::Result<PathBuf> {
-    let mapping = context.forge_mapping_path("srg_to_official.tsrg");
+    let mapping = context.forge_mapping_path("srg_to_official.tsrg")?;
     let input = DependencyRemapArtifactInputs::capture(
         context,
         artifact,
@@ -253,7 +264,7 @@ fn remap(
             !existing_only && !context.plan.refresh,
             "verified Linux remap absent; compile required"
         );
-        let raw = common.mapping_bytes();
+        let raw = common.mapping_bytes()?;
         let mapping_hash = ContentHash::from_bytes(raw, ContentHashAlgorithm::Blake3);
         let members = parse_unique_srg_member_mappings(std::str::from_utf8(raw)?);
         cache.produce(
@@ -334,7 +345,7 @@ fn remap_common(context: &ExecutionContext<'_>) -> eyre::Result<Arc<ForgePrepara
     {
         return Ok(Arc::clone(common));
     }
-    let mapping = context.forge_mapping_path("srg_to_official.tsrg");
+    let mapping = context.forge_mapping_path("srg_to_official.tsrg")?;
     let common = Arc::new(
         ForgePreparationInputs::prepare_remap(context, &mapping)?
             .ok_or_else(|| eyre::eyre!("Linux remap common authority unavailable"))?,
@@ -388,7 +399,7 @@ pub(super) fn dependencies(
 ) -> eyre::Result<()> {
     let resolver = context.plan.resolver(&context.cancellation_token)?;
     let mut rows = Vec::new();
-    let mapping = context.forge_mapping_path("srg_to_official.tsrg");
+    let mapping = context.forge_mapping_path("srg_to_official.tsrg")?;
     let mapping_hash = ContentHash::from_path(&mapping, ContentHashAlgorithm::Blake3)?;
     for (index, dependency) in context.plan.dependencies.iter().enumerate() {
         if !requires_forge_dependency_deobf(dependency) {

@@ -245,7 +245,7 @@ impl PromotionArgs {
         let lock_path = self
             .candidate_lock
             .as_ref()
-            .expect("validated Apply requires a candidate lock");
+            .ok_or_else(|| eyre::eyre!("Apply requires a candidate lock"))?;
         let lock_path = if lock_path.is_absolute() {
             lock_path.clone()
         } else {

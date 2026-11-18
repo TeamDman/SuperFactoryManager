@@ -1,9 +1,0 @@
-{
-  "parent": "minecraft:block/cube_bottom_top",
-  "textures": {
-    "bottom": "sfm:block/touch_display_bottom",
-    "particle": "#top",
-    "side": "sfm:block/touch_display_side",
-    "top": "sfm:block/touch_display_face"
-  }
-}

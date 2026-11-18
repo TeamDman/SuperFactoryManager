@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 mod legacy_state;
 
 // Compile the unchanged historical path proxy against this crate's old Facet

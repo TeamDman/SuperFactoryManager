@@ -60,7 +60,7 @@ impl DependencySourceArgs {
             crate::jar_build::engine::select_branch_source_cache(
                 self.command
                     .branch()
-                    .expect("non-acquire commands require a branch"),
+                    .ok_or_else(|| eyre::eyre!("Source command requires a branch"))?,
                 self.cache_root.as_deref(),
                 cancellation_token,
             )?

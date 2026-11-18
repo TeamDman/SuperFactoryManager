@@ -41,7 +41,7 @@ pub(in crate::jar_build::engine) fn enforce_selected(
     }
     let report = preflight::run(
         &root,
-        &super::super::common_toolchain_cache_dir().join("maven"),
+        &super::super::common_toolchain_cache_dir()?.join("maven"),
         Some(&ids),
         cancel,
     )?;
@@ -74,7 +74,7 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
     verify_roots(plan, &target)?;
     let owner = plan
         .named_project()
-        .expect("catalog project checked")
+        .ok_or_else(|| eyre::eyre!("Catalog JUnit plan has no named project owner"))?
         .project()
         .receipt();
     let source_snapshot_identity = if historical {

@@ -426,7 +426,7 @@ fn poll_completed_workers(
     for (key, status) in completed_keys {
         let worker = running
             .remove(&key)
-            .expect("completed worker remains in the running map");
+            .ok_or_else(|| eyre::eyre!("completed live definition worker is missing: {key:?}"))?;
         completed.push((key, worker, status));
     }
     Ok(completed)

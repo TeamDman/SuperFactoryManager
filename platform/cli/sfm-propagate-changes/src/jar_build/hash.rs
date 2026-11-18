@@ -4,7 +4,6 @@ use facet::Facet;
 use sha1::Digest;
 use sha1::Sha1 as Sha1Hasher;
 use sha1::digest::Update;
-use std::fmt::Write as _;
 use std::path::Path;
 use tracing::debug_span;
 use tracing::instrument;
@@ -44,9 +43,11 @@ impl core::fmt::Display for ContentHash {
 impl ContentHash {
     #[must_use]
     pub fn hex(&self) -> String {
+        const DIGITS: &[u8; 16] = b"0123456789abcdef";
         let mut output = String::with_capacity(self.value.len() * 2);
         for byte in &self.value {
-            write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
+            output.push(char::from(DIGITS[usize::from(byte >> 4)]));
+            output.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
         }
         output
     }

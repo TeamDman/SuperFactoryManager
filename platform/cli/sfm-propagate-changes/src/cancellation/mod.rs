@@ -1,3 +1,5 @@
+use std::process::exit;
+use std::sync;
 mod cancellation_state;
 mod cancellation_token;
 
@@ -27,9 +29,7 @@ pub fn install_ctrlc_handler() -> eyre::Result<CancellationToken> {
 fn handle_ctrl_c(cancellation_token: &CancellationToken, state: &Mutex<CancellationState>) {
     eprintln!("{}", "^C".red());
     let action = {
-        let mut state = state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut state = state.lock().unwrap_or_else(sync::PoisonError::into_inner);
         state.record_ctrl_c(Instant::now())
     };
     cancellation_token.request_cancel("Operation cancelled by Ctrl+C");
@@ -39,7 +39,7 @@ fn handle_ctrl_c(cancellation_token: &CancellationToken, state: &Mutex<Cancellat
         }
         CtrlCAction::ForceExit => {
             tracing::warn!("{}", "Second Ctrl+C received; forcing exit".red());
-            std::process::exit(130);
+            exit(130);
         }
     }
 }

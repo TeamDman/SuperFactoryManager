@@ -37,8 +37,8 @@ use super::super::LoaderToolchainKind;
 use super::super::SPECIALSOURCE_REVIEWED_COORDINATE;
 use super::super::SPECIALSOURCE_REVIEWED_HASH;
 use super::super::SPECIALSOURCE_REVIEWED_MAIN;
-use super::super::authenticated_minecraft_inputs;
 use super::super::acquire_authenticated_child;
+use super::super::authenticated_minecraft_inputs;
 use super::super::read_main_class;
 use super::super::read_named_authenticated_file;
 use super::super::resolve_current_minecraft_libraries;
@@ -225,7 +225,7 @@ impl ForgePreparationInputs {
                 .properties
                 .get("mapping_version")
                 .map(String::as_str),
-        );
+        )?;
         if !owner.capture_lock(context, project, lock_sha256)? {
             return Ok(None);
         }
@@ -251,7 +251,7 @@ impl ForgePreparationInputs {
             );
             return Ok(None);
         }
-        let expected = context.forge_mapping_path("srg_to_official.tsrg");
+        let expected = context.forge_mapping_path("srg_to_official.tsrg")?;
         if !crate::jar_build::build_snapshot_receipt::same_path_spelling(mapping_path, &expected) {
             return Ok(None);
         }
@@ -325,13 +325,13 @@ impl ForgePreparationInputs {
     }
 
     /// Exact held mapping bytes from `prepare_remap`, never a physical reread.
-    /// # Panics
-    /// Panics if called on an owner made for MCP or Forge instead of remapping.
-    pub(in crate::jar_build::engine) fn mapping_bytes(&self) -> &[u8] {
-        assert_eq!(self.kind, "remap", "mapping bytes require a remap owner");
+    /// # Errors
+    /// Returns an error unless this owner retains the admitted remapping bytes.
+    pub(in crate::jar_build::engine) fn mapping_bytes(&self) -> Result<&[u8]> {
+        ensure!(self.kind == "remap", "Mapping bytes require a remap owner");
         self.at
             .as_deref()
-            .expect("admitted remap owner retains mapping bytes")
+            .ok_or_else(|| eyre::eyre!("Admitted remap owner lost its mapping bytes"))
     }
 
     pub(in crate::jar_build::engine) fn recheck(
@@ -564,7 +564,7 @@ impl ForgePreparationInputs {
             ] {
                 requests.push(ForgePreparationInputRequest::new(
                     format!("mcp-output:{relative}"),
-                    context.mcp_output_path(relative),
+                    context.mcp_output_path(relative)?,
                 ));
             }
         }
@@ -905,7 +905,7 @@ fn recipe_basis(
     java_release: u32,
     mapping_channel: Option<&str>,
     mapping_version: Option<&str>,
-) {
+) -> Result<()> {
     append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@5");
     #[cfg(target_os = "linux")]
     {
@@ -932,7 +932,7 @@ fn recipe_basis(
         append(hash, value.unwrap_or_default().as_bytes());
     }
     if kind == "remap" {
-        append_remap_recipe(hash);
+        append_remap_recipe(hash)?;
     }
     for (name, source) in [
         (
@@ -1029,25 +1029,35 @@ fn recipe_basis(
             "fn projected_compile_grammar_paths(",
         ),
     ] {
-        append_source_region(hash, name, source, start, end);
+        append_source_region(hash, name, source, start, end)?;
     }
     append(hash, b"forge-at-transport");
     append(hash, include_bytes!("held_forge_at_transport.rs"));
+    Ok(())
 }
 
-fn append_source_region(hash: &mut Sha256, name: &str, source: &str, start: &str, end: &str) {
-    let (_, after_start) = source
-        .split_once(start)
-        .expect("Forge producer recipe source start marker must exist");
-    let (body, _) = after_start
-        .split_once(end)
-        .expect("Forge producer recipe source end marker must exist after start");
+fn append_source_region(
+    hash: &mut Sha256,
+    name: &str,
+    source: &str,
+    start: &str,
+    end: &str,
+) -> Result<()> {
+    let (_, after_start) = source.split_once(start).ok_or_else(|| {
+        eyre::eyre!("Forge producer recipe `{name}` source start marker is missing: {start}")
+    })?;
+    let (body, _) = after_start.split_once(end).ok_or_else(|| {
+        eyre::eyre!(
+            "Forge producer recipe `{name}` source end marker is missing after start: {end}"
+        )
+    })?;
     append(hash, name.as_bytes());
     append(hash, start.as_bytes());
     append(hash, body.as_bytes());
+    Ok(())
 }
 
-fn append_remap_recipe(hash: &mut Sha256) {
+fn append_remap_recipe(hash: &mut Sha256) -> Result<()> {
     for (name, source) in [
         (
             "remap-launch",
@@ -1082,8 +1092,9 @@ fn append_remap_recipe(hash: &mut Sha256) {
             "fn remove_stale_dependency_outputs(",
         ),
     ] {
-        append_source_region(hash, name, source, start, end);
+        append_source_region(hash, name, source, start, end)?;
     }
+    Ok(())
 }
 
 fn append(hash: &mut Sha256, bytes: &[u8]) {

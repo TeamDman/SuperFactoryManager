@@ -22,9 +22,11 @@ use std::fs;
 use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::Path;
 
+#[cfg(test)]
 fn selected_source_digest(source: &str, start: &str, end: &str) -> Vec<u8> {
     let mut hash = Sha256::new();
-    append_source_region(&mut hash, "producer-launch", source, start, end);
+    append_source_region(&mut hash, "producer-launch", source, start, end)
+        .expect("fixture source region");
     hash.finalize().to_vec()
 }
 
@@ -119,7 +121,7 @@ fn launch_source_identity_changes_only_for_producer_launch_regions() {
         original_orchestration,
         "restoration selection must not invalidate producer output"
     );
-    let hit_branch_edit = cache.replace("held_dev_jar = hold_dev_jar,", "held_dev_jar = false,");
+    let hit_branch_edit = cache.replace("held_dev_jar = retain_dev_jar,", "held_dev_jar = false,");
     assert_ne!(hit_branch_edit, cache);
     assert_eq!(
         selected_source_digest(&hit_branch_edit, cache_start, cache_end),
@@ -219,6 +221,7 @@ fn held_version_directory_blocks_child_publication_until_release() -> Result<()>
     assert_eq!(fs::read(&destination)?, b"pinned child");
     Ok(())
 }
+#[cfg(test)]
 fn payloads(kind: &str) -> Vec<(&'static str, &'static str, &'static [u8])> {
     let mut inputs: Vec<(&str, &str, &[u8])> = vec![
         (
@@ -287,6 +290,7 @@ fn payloads(kind: &str) -> Vec<(&'static str, &'static str, &'static [u8])> {
     inputs
 }
 
+#[cfg(test)]
 fn captured_fixture(
     root: &Path,
     kind: &str,
@@ -314,6 +318,7 @@ fn captured_fixture(
     Ok((leases, files))
 }
 
+#[cfg(test)]
 fn actual_key(kind: &str, files: &[HeldForgePreparationInput]) -> String {
     let mut basis = Sha256::new();
     recipe_basis(
@@ -324,7 +329,8 @@ fn actual_key(kind: &str, files: &[HeldForgePreparationInput]) -> String {
         17,
         Some("official"),
         Some("1.19.2"),
-    );
+    )
+    .expect("fixture recipe source regions");
     append(&mut basis, b"same-selected-AT-role-and-template-mode");
     finish_fingerprint(
         basis,
@@ -379,7 +385,10 @@ fn consumed_keys_change_for_actual_at_mcp_tool_library_or_config_bytes() -> Resu
 
 #[test]
 fn unrelated_checked_lock_bytes_reuse_one_published_forge_entry() -> Result<()> {
-    use super::super::{entry_directories, make_directory, publish, restore};
+    use super::super::entry_directories;
+    use super::super::make_directory;
+    use super::super::publish;
+    use super::super::restore;
 
     let fixture = tempfile::tempdir()?;
     let first_root = fixture.path().join("first-projection");
@@ -479,9 +488,9 @@ fn selected_lock_requires_current_raw_source_and_output_bytes() -> Result<()> {
 
 #[test]
 fn held_inputs_enforce_pins_and_refuse_existing_or_later_writers() -> Result<()> {
-    use windows::Win32::Storage::FileSystem::{
-        FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE,
-    };
+    use windows::Win32::Storage::FileSystem::FILE_SHARE_DELETE;
+    use windows::Win32::Storage::FileSystem::FILE_SHARE_READ;
+    use windows::Win32::Storage::FileSystem::FILE_SHARE_WRITE;
     let fixture = tempfile::tempdir()?;
     let path = fixture.path().join("input.jar");
     let raw = b"actual source bytes";
@@ -554,6 +563,7 @@ fn optional_admission_declines_bounded_capacity_and_all_java_overrides() {
     }
 }
 
+#[cfg(test)]
 fn recapture_existing_fixture(
     root: &Path,
     kind: &str,
@@ -570,6 +580,7 @@ fn recapture_existing_fixture(
     Ok((leases, files))
 }
 
+#[cfg(test)]
 fn produce_fixture_outputs(
     root: &Path,
     at: &[u8],
@@ -679,4 +690,12 @@ fn actual_at_change_rekeys_store_decision_and_preserves_previous_entry() -> Resu
     assert_eq!(entry_directories(&old_store)?.unwrap(), vec![old_entry]);
     assert_eq!(entry_directories(&new_store)?.unwrap().len(), 1);
     Ok(())
+}
+
+#[test]
+fn recipe_source_regions_reject_missing_markers() {
+    let mut hash = Sha256::new();
+    assert!(append_source_region(&mut hash, "fixture", "body end", "start", "end").is_err());
+    assert!(append_source_region(&mut hash, "fixture", "start body", "start", "end").is_err());
+    assert!(append_source_region(&mut hash, "fixture", "start body end", "start", "end").is_ok());
 }

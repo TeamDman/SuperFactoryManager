@@ -261,7 +261,10 @@ fn stale_catalog_java(
     for entry in walkdir::WalkDir::new(&source).follow_links(false) {
         let entry = entry?;
         if !entry.file_type().is_file()
-            || entry.path().extension().is_none_or(|extension| extension != "java")
+            || entry
+                .path()
+                .extension()
+                .is_none_or(|extension| extension != "java")
         {
             continue;
         }
@@ -616,10 +619,18 @@ fn write_one(
         (None, None) => {}
         _ => bail!("generated output '{relative_path}' changed during apply"),
     }
-    fs::create_dir_all(destination.parent().expect("validated output has parent"))?;
+    fs::create_dir_all(
+        destination
+            .parent()
+            .ok_or_else(|| eyre::eyre!("generated output {relative_path} has no parent"))?,
+    )?;
     let staged_hash = sha256(&fs::read(staged)?);
     let previous_backup = if actual.is_some() {
-        fs::create_dir_all(backup.parent().expect("stage backup has parent"))?;
+        fs::create_dir_all(
+            backup
+                .parent()
+                .ok_or_else(|| eyre::eyre!("staged backup has no parent: {}", backup.display()))?,
+        )?;
         fs::rename(destination, &backup)
             .wrap_err_with(|| format!("could not back up generated output '{relative_path}'"))?;
         Some(backup)
@@ -631,12 +642,12 @@ fn write_one(
         backup: previous_backup,
         installed_hash: None,
     });
+    let applied_file = applied.last_mut().ok_or_else(|| {
+        eyre::eyre!("generated output write was not retained in the rollback journal")
+    })?;
     fs::rename(staged, destination)
         .wrap_err_with(|| format!("could not install staged output '{relative_path}'"))?;
-    applied
-        .last_mut()
-        .expect("the applied write was just recorded")
-        .installed_hash = Some(staged_hash);
+    applied_file.installed_hash = Some(staged_hash);
     Ok(())
 }
 
@@ -988,7 +999,7 @@ pub(super) fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
     let mut parent = root
         .join(path)
         .parent()
-        .expect("validated path has parent")
+        .ok_or_else(|| eyre::eyre!("generated output {path} has no parent"))?
         .to_path_buf();
     while parent.starts_with(root) {
         match fs::symlink_metadata(&parent) {
@@ -1006,7 +1017,7 @@ pub(super) fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
         }
         parent = parent
             .parent()
-            .expect("relative path remains under root")
+            .ok_or_else(|| eyre::eyre!("generated output {path} has no ancestor within its root"))?
             .to_path_buf();
     }
     Ok(())
@@ -1214,7 +1225,10 @@ mod tests {
         let identity = catalog_identity();
         let mut first = catalog_files("first\n");
         let obsolete = "src/main/java/Obsolete.java";
-        let generated = format!("{}\nclass Obsolete {{}}\n", super::super::inputs::GENERATED_BANNER);
+        let generated = format!(
+            "{}\nclass Obsolete {{}}\n",
+            super::super::inputs::GENERATED_BANNER
+        );
         first.insert(obsolete.to_owned(), catalog_artifact(&generated));
         sync_catalog_projection(&destination, &identity, &first, SyncMode::Apply).unwrap();
         let unowned = destination.join("src/main/java/Unowned.java");
@@ -1227,10 +1241,16 @@ mod tests {
                 .to_string();
             assert!(error.contains(obsolete), "{error}");
         }
-        assert_eq!(fs::read(destination.join(obsolete)).unwrap(), generated.as_bytes());
+        assert_eq!(
+            fs::read(destination.join(obsolete)).unwrap(),
+            generated.as_bytes()
+        );
         assert_eq!(fs::read(&unowned).unwrap(), b"class Unowned {}\n");
 
-        let edited = format!("{}\n// contributor edit\n", super::super::inputs::GENERATED_BANNER);
+        let edited = format!(
+            "{}\n// contributor edit\n",
+            super::super::inputs::GENERATED_BANNER
+        );
         fs::write(destination.join(obsolete), &edited).unwrap();
         for mode in [SyncMode::Check, SyncMode::Apply] {
             let error = sync_catalog_projection(&destination, &identity, &next, mode)
@@ -1238,7 +1258,10 @@ mod tests {
                 .to_string();
             assert!(error.contains(obsolete), "{error}");
         }
-        assert_eq!(fs::read(destination.join(obsolete)).unwrap(), edited.as_bytes());
+        assert_eq!(
+            fs::read(destination.join(obsolete)).unwrap(),
+            edited.as_bytes()
+        );
         assert_eq!(fs::read(&unowned).unwrap(), b"class Unowned {}\n");
     }
 

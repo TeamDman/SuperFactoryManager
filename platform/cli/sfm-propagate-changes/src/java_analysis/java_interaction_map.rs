@@ -594,18 +594,6 @@ impl OutlinkBuilder {
             spec.destination_region_id.clone(),
             spec.relation_kind.clone(),
         );
-        if !self.seen.insert(key) {
-            return self
-                .values
-                .iter()
-                .find(|value| {
-                    value.source_region_id == spec.source_region_id
-                        && value.destination_region_id == spec.destination_region_id
-                        && value.relation_kind == spec.relation_kind
-                })
-                .map(|value| value.id.clone())
-                .expect("deduplicated outlink remains present");
-        }
         let id = stable_id(
             "outlink",
             &[
@@ -614,6 +602,9 @@ impl OutlinkBuilder {
                 &spec.relation_kind,
             ],
         );
+        if !self.seen.insert(key) {
+            return id;
+        }
         self.values.push(JavaInteractionOutlinkOutput {
             schema: JAVA_INTERACTION_OUTLINK_SCHEMA.to_owned(),
             id: id.clone(),
@@ -939,7 +930,7 @@ fn build_complete_map(
         &mut outlinks,
         &mut reciprocity,
         &mut exceptions,
-    );
+    )?;
 
     let mut by_source = BTreeMap::<String, Vec<String>>::new();
     for outlink in &outlinks.values {
@@ -1755,18 +1746,20 @@ fn add_delimiter_outlinks(
         if chars.next().is_some() {
             continue;
         }
-        match character {
-            '{' | '(' | '[' => stacks.entry(character).or_default().push(node),
-            '}' | ')' | ']' => {
-                let opening = match character {
-                    '}' => '{',
-                    ')' => '(',
-                    ']' => '[',
-                    _ => unreachable!(),
-                };
-                let Some(open_node) = stacks.entry(opening).or_default().pop() else {
-                    let region_id = raw_region_ids[&node.ordinal].clone();
-                    exceptions.push(JavaInteractionExceptionOutput {
+        let opening = match character {
+            '{' | '(' | '[' => {
+                stacks.entry(character).or_default().push(node);
+                continue;
+            }
+            '}' => '{',
+            ')' => '(',
+            ']' => '[',
+            _ => continue,
+        };
+
+        let Some(open_node) = stacks.entry(opening).or_default().pop() else {
+            let region_id = raw_region_ids[&node.ordinal].clone();
+            exceptions.push(JavaInteractionExceptionOutput {
                         id: stable_id("exception", &[&region_id, "unmatched-closing-delimiter"]),
                         region_id,
                         code: "java.unmatched-closing-delimiter".to_owned(),
@@ -1774,36 +1767,33 @@ fn add_delimiter_outlinks(
                         effect: JavaInteractionExceptionEffect::FailsStrictProfile,
                         witness: format!("byte {}", node.start),
                     });
-                    continue;
-                };
-                let open_id = raw_region_ids[&open_node.ordinal].clone();
-                let close_id = raw_region_ids[&node.ordinal].clone();
-                for (source_id, destination_id, reason) in [
-                    (
-                        open_id.clone(),
-                        close_id.clone(),
-                        "Opening delimiter resolves to its closing delimiter",
-                    ),
-                    (
-                        close_id,
-                        open_id,
-                        "Closing delimiter resolves to its opening delimiter",
-                    ),
-                ] {
-                    outlinks.add(OutlinkSpec {
-                        source_region_id: source_id,
-                        destination_region_id: destination_id,
-                        destination_query: None,
-                        relation_kind: "matching-delimiter".to_owned(),
-                        reason: reason.to_owned(),
-                        confidence: "resolved".to_owned(),
-                        completeness: "complete".to_owned(),
-                        recommended_projection: "start".to_owned(),
-                        action_drafts: Vec::new(),
-                    });
-                }
-            }
-            _ => {}
+            continue;
+        };
+        let open_id = raw_region_ids[&open_node.ordinal].clone();
+        let close_id = raw_region_ids[&node.ordinal].clone();
+        for (source_id, destination_id, reason) in [
+            (
+                open_id.clone(),
+                close_id.clone(),
+                "Opening delimiter resolves to its closing delimiter",
+            ),
+            (
+                close_id,
+                open_id,
+                "Closing delimiter resolves to its opening delimiter",
+            ),
+        ] {
+            outlinks.add(OutlinkSpec {
+                source_region_id: source_id,
+                destination_region_id: destination_id,
+                destination_query: None,
+                relation_kind: "matching-delimiter".to_owned(),
+                reason: reason.to_owned(),
+                confidence: "resolved".to_owned(),
+                completeness: "complete".to_owned(),
+                recommended_projection: "start".to_owned(),
+                action_drafts: Vec::new(),
+            });
         }
     }
     for (delimiter, nodes) in stacks {
@@ -1889,7 +1879,8 @@ fn add_symbol_outlinks(
     outlinks: &mut OutlinkBuilder,
     reciprocity: &mut Vec<JavaInteractionReciprocityOutput>,
     exceptions: &mut Vec<JavaInteractionExceptionOutput>,
-) {
+) -> eyre::Result<()> {
+    let definition_request = request.as_definition_request()?;
     for (source_region_id, usage) in symbol_regions {
         let symbols = BTreeSet::from([usage.target.clone()]);
         let mut definitions = surface.definitions_for_symbols(&symbols);
@@ -1917,13 +1908,8 @@ fn add_symbol_outlinks(
             continue;
         }
         for definition in definitions {
-            let mut output = definition_at_position_definition(
-                &definition,
-                workspace,
-                &request
-                    .as_definition_request()
-                    .expect("validated interaction request has a valid origin position"),
-            );
+            let mut output =
+                definition_at_position_definition(&definition, workspace, &definition_request);
             workspace
                 .jdk_sources
                 .enrich_span(&mut output.identifier_span);
@@ -1988,6 +1974,7 @@ fn add_symbol_outlinks(
             });
         }
     }
+    Ok(())
 }
 
 fn definitions_count_for_target(

@@ -2,14 +2,18 @@
 //! Runtime selection and activation are deliberately separate from acquisition.
 
 use crate::artifact_lock::ArtifactLock;
+use crate::file_identity;
 use crate::jdk_install_control::InstallControl;
 use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
 use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use eyre::Context;
+use reqwest::blocking;
 use sha2::Digest;
 use sha2::Sha512;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+#[cfg(windows)]
+use std::ffi::OsString;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::fs::{self};
@@ -19,9 +23,14 @@ use std::io::Write;
 use std::io::{self};
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command as ProcessCommand;
+use std::process::Stdio;
 use std::time::Duration;
+use std::time::Instant;
+#[cfg(windows)]
+use std::time::SystemTime;
 use zip::ZipArchive;
-
+use zip::read::ZipFile;
 const MAX_ARCHIVE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_EXTRACTED_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_ZIP_ENTRIES: usize = 100_000;
@@ -37,27 +46,31 @@ const INSTALL_KEY_HEX_CHARS: usize = 64;
 #[path = "jdk_install_lifecycle_tests.rs"]
 mod install_tests;
 
-fn install_key(sha512: &str) -> String {
-    format!(
+fn install_key(sha512: &str) -> eyre::Result<String> {
+    Ok(format!(
         "v2-{}",
         sha512
             .get(..INSTALL_KEY_HEX_CHARS)
-            .expect("validated SHA-512 hex digest")
-    )
+            .ok_or_else(|| eyre::eyre!(
+                "JBRSDK SHA-512 digest has no valid 64-byte install prefix"
+            ))?
+    ))
 }
 
 // A completed install is immutable to SFM writers and sealed after full
-// ZIP comparison. Hold only launch-critical paths during normal reuse;
-// explicit audit performs the recursive comparison.
+// ZIP comparison. Normal reuse holds launch-critical paths and compares only
+// direct member names/kinds of their held directories; no child payloads or
+// recursive trees are read. Explicit audit performs the full ZIP comparison.
 #[cfg(windows)]
 #[derive(Debug)]
 struct HeldInstalledEntry {
     path: PathBuf,
     handle: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
     bytes: u64,
-    modified: std::time::SystemTime,
+    modified: SystemTime,
     is_file: bool,
+    direct_members: BTreeMap<OsString, bool>,
 }
 
 #[cfg(windows)]
@@ -65,7 +78,8 @@ impl HeldInstalledEntry {
     fn open(path: &Path, is_file: bool) -> eyre::Result<Self> {
         let metadata = fs::symlink_metadata(path)?;
         eyre::ensure!(
-            !is_reparse_point(&metadata) && metadata.file_type().is_file() == is_file
+            !is_reparse_point(&metadata)
+                && metadata.file_type().is_file() == is_file
                 && (is_file || metadata.file_type().is_dir()),
             "Verified JBRSDK installed path is unsafe: {}",
             path.display()
@@ -73,18 +87,24 @@ impl HeldInstalledEntry {
         let handle = Self::open_guard(path, is_file)?;
         let metadata = handle.metadata()?;
         eyre::ensure!(
-            !is_reparse_point(&metadata) && metadata.file_type().is_file() == is_file
+            !is_reparse_point(&metadata)
+                && metadata.file_type().is_file() == is_file
                 && (is_file || metadata.file_type().is_dir()),
             "Verified JBRSDK installed handle is unsafe: {}",
             path.display()
         );
         let entry = Self {
             path: path.to_path_buf(),
-            identity: crate::file_identity::file_identity(&handle)?,
+            identity: file_identity::file_identity(&handle)?,
             bytes: metadata.len(),
             modified: metadata.modified()?,
             handle,
             is_file,
+            direct_members: if is_file {
+                BTreeMap::new()
+            } else {
+                Self::read_direct_members(path)?
+            },
         };
         entry.recheck()?;
         Ok(entry)
@@ -96,16 +116,26 @@ impl HeldInstalledEntry {
         if is_file {
             options.read(true).share_mode(1).custom_flags(0x0020_0000);
         } else {
-            options.access_mode(0x0081).share_mode(1).custom_flags(0x0220_0000);
+            options
+                .access_mode(0x0081)
+                .share_mode(1)
+                .custom_flags(0x0220_0000);
         }
         Ok(options.open(path)?)
     }
 
     fn recheck(&self) -> eyre::Result<()> {
+        self.recheck_with_metadata(File::metadata)
+    }
+
+    fn recheck_with_metadata(
+        &self,
+        mut metadata_for: impl FnMut(&File) -> io::Result<fs::Metadata>,
+    ) -> eyre::Result<()> {
         let metadata = fs::symlink_metadata(&self.path)?;
         let reopened = Self::open_guard(&self.path, self.is_file)?;
-        let current = reopened.metadata()?;
-        let held = self.handle.metadata()?;
+        let current = metadata_for(&reopened)?;
+        let held = metadata_for(&self.handle)?;
         eyre::ensure!(
             !is_reparse_point(&metadata)
                 && metadata.file_type().is_file() == self.is_file
@@ -114,12 +144,46 @@ impl HeldInstalledEntry {
                 && held.len() == self.bytes
                 && current.modified()? == self.modified
                 && held.modified()? == self.modified
-                && crate::file_identity::file_identity(&reopened)? == self.identity
-                && crate::file_identity::file_identity(&self.handle)? == self.identity,
+                && file_identity::file_identity(&reopened)? == self.identity
+                && file_identity::file_identity(&self.handle)? == self.identity,
             "Verified JBRSDK installed path changed: {}",
             self.path.display()
         );
+        if !self.is_file {
+            eyre::ensure!(
+                Self::read_direct_members(&self.path)? == self.direct_members,
+                "Verified JBRSDK installed directory membership changed: {}",
+                self.path.display()
+            );
+        }
         Ok(())
+    }
+
+    fn read_direct_members(path: &Path) -> eyre::Result<BTreeMap<OsString, bool>> {
+        let mut members = BTreeMap::new();
+        for (index, entry) in fs::read_dir(path)?.enumerate() {
+            eyre::ensure!(
+                index < MAX_ZIP_ENTRIES,
+                "Verified JBRSDK directory exceeds its direct member budget: {}",
+                path.display()
+            );
+            let entry = entry?;
+            let metadata = fs::symlink_metadata(entry.path())?;
+            eyre::ensure!(
+                !is_reparse_point(&metadata)
+                    && (metadata.file_type().is_file() || metadata.file_type().is_dir()),
+                "Verified JBRSDK directory contains an unsafe direct member: {}",
+                entry.path().display()
+            );
+            eyre::ensure!(
+                members
+                    .insert(entry.file_name(), metadata.file_type().is_file())
+                    .is_none(),
+                "Verified JBRSDK directory repeated a direct member: {}",
+                path.display()
+            );
+        }
+        Ok(members)
     }
 }
 
@@ -146,7 +210,11 @@ impl HeldInstalledTree {
         ] {
             entries.push(HeldInstalledEntry::open(&home.join(relative), is_file)?);
         }
-        let tree = Self { home: home.to_path_buf(), root, entries };
+        let tree = Self {
+            home: home.to_path_buf(),
+            root,
+            entries,
+        };
         tree.recheck(home)?;
         Ok(tree)
     }
@@ -218,8 +286,8 @@ impl VerifiedPinnedJbrsdk {
             .join(archive_name(&sha, artifact));
         eyre::ensure!(
             is_real_file(&archive_path)
-                && crate::file_identity::file_identity(&File::open(&archive_path)?)?
-                    == crate::file_identity::file_identity(&self.archive)?,
+                && file_identity::file_identity(&File::open(&archive_path)?)?
+                    == file_identity::file_identity(&self.archive)?,
             "Verified JBRSDK archive path changed"
         );
         // The same Windows handle was SHA-512 authenticated at acquisition and
@@ -233,20 +301,20 @@ impl VerifiedPinnedJbrsdk {
         );
         #[cfg(not(windows))]
         {
-            let archive_started = std::time::Instant::now();
+            let archive_started = Instant::now();
             verify_archive_sha512(&mut self.archive, &sha)?;
-            tracing::info!(phase = "warm_sdk_archive_sha512", elapsed_ms = archive_started.elapsed().as_millis(), "warm_run_stage");
+            tracing::info!(
+                phase = "warm_sdk_archive_sha512",
+                elapsed_ms = archive_started.elapsed().as_millis(),
+                "warm_run_stage"
+            );
         }
         #[cfg(windows)]
         tracing::info!(phase = "warm_sdk_archive_held_identity", "warm_run_stage");
         #[cfg(windows)]
-        {
-            let held_started = std::time::Instant::now();
-            self.held_install.recheck(&self.home)?;
-            tracing::info!(phase = "warm_sdk_installed_held_identity", elapsed_ms = held_started.elapsed().as_millis(), "warm_run_stage");
-        }
+        self.recheck_held_install()?;
         #[cfg(not(windows))]
-        let install_started = std::time::Instant::now();
+        let install_started = Instant::now();
         #[cfg(not(windows))]
         if is_linux_tar(artifact) {
             check_installed_receipt(&self.home, artifact, &receipt(pin, artifact))?;
@@ -263,6 +331,18 @@ impl VerifiedPinnedJbrsdk {
         );
         control.checkpoint()?;
         Ok(&self.home)
+    }
+
+    #[cfg(windows)]
+    fn recheck_held_install(&self) -> eyre::Result<()> {
+        let held_started = Instant::now();
+        self.held_install.recheck(&self.home)?;
+        tracing::info!(
+            phase = "warm_sdk_installed_held_identity",
+            elapsed_ms = held_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
+        Ok(())
     }
 }
 
@@ -314,6 +394,7 @@ pub(crate) fn install_verified_pinned_jbrsdk(
     acquire_with_control(pin, artifact, cache_root, offline, control, fetch_zip_url)
 }
 
+#[cfg(test)]
 fn acquire_pinned_jbrsdk_zip_with(
     pin: &JdkPinV4,
     artifact: &JdkArtifactV4,
@@ -413,9 +494,9 @@ fn acquire_with_control(
     }
     // The same file handle is hashed, parsed, and extracted. Reopening after
     // verification would allow replacement of the path between those steps.
-    let installed = install_dir.join(install_key(&sha));
+    let installed = install_dir.join(install_key(&sha)?);
     let expected_receipt = receipt(pin, artifact);
-    let seal = seal_path(&install_dir, &sha);
+    let seal = seal_path(&install_dir, &sha)?;
     let expected_seal = format!("{SEALED_RECEIPT_SCHEMA}{expected_receipt}");
     if is_linux_tar(artifact) {
         return acquire_tar_install(
@@ -441,19 +522,32 @@ fn acquire_with_control(
         let held_install = HeldInstalledTree::capture(&installed)?;
         tracing::info!(phase = "warm_sdk_sealed_reuse", "warm_run_stage");
         return Ok(VerifiedPinnedJbrsdk {
-            home: installed, cache_root: cache_root.to_path_buf(),
-            pin: pin.clone(), artifact: artifact.clone(), archive, archive_len,
-            #[cfg(windows)] held_install,
+            home: installed,
+            cache_root: cache_root.to_path_buf(),
+            pin: pin.clone(),
+            artifact: artifact.clone(),
+            archive,
+            archive_len,
+            #[cfg(windows)]
+            held_install,
         });
     }
-    let archive_started = std::time::Instant::now();
+    let archive_started = Instant::now();
     let mut verified_zip = open_verified_archive(&archive, &sha)?;
-    tracing::info!(phase = "warm_sdk_initial_archive_sha512", elapsed_ms = archive_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_sdk_initial_archive_sha512",
+        elapsed_ms = archive_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     match fs::symlink_metadata(&installed) {
         Ok(_) => {
-            let install_started = std::time::Instant::now();
+            let install_started = Instant::now();
             verify_installed_home(&installed, artifact, &expected_receipt, &mut verified_zip)?;
-            tracing::info!(phase = "warm_sdk_initial_installed_compare", elapsed_ms = install_started.elapsed().as_millis(), "warm_run_stage");
+            tracing::info!(
+                phase = "warm_sdk_initial_installed_compare",
+                elapsed_ms = install_started.elapsed().as_millis(),
+                "warm_run_stage"
+            );
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             let stage = tempfile::Builder::new()
@@ -522,7 +616,7 @@ fn verify_archive_identity(pin: &JdkPinV4, artifact: &JdkArtifactV4) -> eyre::Re
         zip_identity.url = artifact
             .url
             .strip_suffix(".tar.gz")
-            .expect("checked suffix")
+            .ok_or_else(|| eyre::eyre!("Linux JBRSDK archive URL has no .tar.gz suffix"))?
             .to_owned()
             + ".zip";
         return verify_zip_identity(pin, &zip_identity);
@@ -556,9 +650,12 @@ fn acquire_tar_install(
             run_tar_helper_controlled(&mut archive, "verify", installed, sha, control)?;
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound && !sealed => {
-            let stage = tempfile::Builder::new()
-                .prefix(".sfm-jbrsdk-install.")
-                .tempdir_in(installed.parent().expect("install directory"))?;
+            let stage =
+                tempfile::Builder::new()
+                    .prefix(".sfm-jbrsdk-install.")
+                    .tempdir_in(installed.parent().ok_or_else(|| {
+                        eyre::eyre!("JBRSDK installation has no parent directory")
+                    })?)?;
             let payload = stage.path().join("payload");
             fs::create_dir(&payload)?;
             run_tar_helper_controlled(&mut archive, "extract", &payload, sha, control)?;
@@ -607,12 +704,12 @@ fn run_tar_helper_controlled(
         "Linux JBRSDK tarballs require a Linux host"
     );
     archive.rewind()?;
-    let mut command = std::process::Command::new("python3");
+    let mut command = ProcessCommand::new("python3");
     command
         .args(["-I", "-S", "-c", include_str!("jdk_tar.py"), operation])
         .arg(home)
         .arg(sha)
-        .stdin(std::process::Stdio::from(archive.try_clone()?));
+        .stdin(Stdio::from(archive.try_clone()?));
     if operation == "extract"
         && let Some(rate) = control.extraction_bytes_per_second
     {
@@ -725,7 +822,7 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
 }
 
 fn fetch_zip_url(url: &str, destination: &mut File) -> eyre::Result<()> {
-    let client = reqwest::blocking::Client::builder()
+    let client = blocking::Client::builder()
         .user_agent(concat!("sfm-propagate-changes/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(30))
         .timeout(Duration::from_mins(30))
@@ -750,9 +847,14 @@ fn fetch_zip_url(url: &str, destination: &mut File) -> eyre::Result<()> {
 
 fn open_held_archive(path: &Path) -> eyre::Result<File> {
     let metadata = fs::symlink_metadata(path)?;
-    if !metadata.file_type().is_file() || is_reparse_point(&metadata)
-        || metadata.len() > MAX_ARCHIVE_BYTES {
-        eyre::bail!("JBRSDK archive is not a regular bounded file: {}", path.display());
+    if !metadata.file_type().is_file()
+        || is_reparse_point(&metadata)
+        || metadata.len() > MAX_ARCHIVE_BYTES
+    {
+        eyre::bail!(
+            "JBRSDK archive is not a regular bounded file: {}",
+            path.display()
+        );
     }
     let mut options = OpenOptions::new();
     options.read(true);
@@ -762,7 +864,10 @@ fn open_held_archive(path: &Path) -> eyre::Result<File> {
         options.share_mode(0x1) // FILE_SHARE_READ
     };
     let file = options.open(path)?;
-    eyre::ensure!(file.metadata()?.len() == metadata.len(), "JBRSDK archive changed while opening");
+    eyre::ensure!(
+        file.metadata()?.len() == metadata.len(),
+        "JBRSDK archive changed while opening"
+    );
     Ok(file)
 }
 
@@ -946,8 +1051,12 @@ fn write_receipt(home: &Path, expected: &str) -> eyre::Result<()> {
 fn publish_destination(path: &Path) -> eyre::Result<PathBuf> {
     #[cfg(windows)]
     {
-        let parent = path.parent().ok_or_else(|| eyre::eyre!("JBRSDK publication has no parent"))?;
-        let leaf = path.file_name().ok_or_else(|| eyre::eyre!("JBRSDK publication has no leaf"))?;
+        let parent = path
+            .parent()
+            .ok_or_else(|| eyre::eyre!("JBRSDK publication has no parent"))?;
+        let leaf = path
+            .file_name()
+            .ok_or_else(|| eyre::eyre!("JBRSDK publication has no leaf"))?;
         Ok(fs::canonicalize(parent)?.join(leaf))
     }
     #[cfg(not(windows))]
@@ -956,17 +1065,21 @@ fn publish_destination(path: &Path) -> eyre::Result<PathBuf> {
     }
 }
 
-fn seal_path(install_dir: &Path, sha: &str) -> PathBuf {
-    install_dir.join(format!("{}.sealed", install_key(sha)))
+fn seal_path(install_dir: &Path, sha: &str) -> eyre::Result<PathBuf> {
+    Ok(install_dir.join(format!("{}.sealed", install_key(sha)?)))
 }
 
 fn read_seal(path: &Path, expected: &str) -> eyre::Result<bool> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
-            eyre::ensure!(metadata.file_type().is_file() && !is_reparse_point(&metadata),
-                "JBRSDK completion seal is unsafe");
-            eyre::ensure!(fs::read_to_string(path)? == expected,
-                "JBRSDK completion seal differs from the selected pin");
+            eyre::ensure!(
+                metadata.file_type().is_file() && !is_reparse_point(&metadata),
+                "JBRSDK completion seal is unsafe"
+            );
+            eyre::ensure!(
+                fs::read_to_string(path)? == expected,
+                "JBRSDK completion seal differs from the selected pin"
+            );
             Ok(true)
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
@@ -975,9 +1088,12 @@ fn read_seal(path: &Path, expected: &str) -> eyre::Result<bool> {
 }
 
 fn write_seal(path: &Path, expected: &str) -> eyre::Result<()> {
-    let parent = path.parent().ok_or_else(|| eyre::eyre!("JBRSDK seal has no parent"))?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| eyre::eyre!("JBRSDK seal has no parent"))?;
     let mut temporary = tempfile::Builder::new()
-        .prefix(".sfm-jbrsdk-seal.").tempfile_in(parent)?;
+        .prefix(".sfm-jbrsdk-seal.")
+        .tempfile_in(parent)?;
     temporary.write_all(expected.as_bytes())?;
     temporary.as_file_mut().sync_all()?;
     match temporary.persist_noclobber(&publish_destination(path)?) {
@@ -990,22 +1106,38 @@ fn write_seal(path: &Path, expected: &str) -> eyre::Result<()> {
     }
 }
 
-fn check_installed_receipt(home: &Path, artifact: &JdkArtifactV4, expected: &str) -> eyre::Result<()> {
-    eyre::ensure!(is_real_dir(home) && has_jdk_executables(home, artifact)
-        && is_real_file(&home.join("lib/modules")),
-        "Cached JBRSDK installation is incomplete or unsafe: {}", home.display());
+fn check_installed_receipt(
+    home: &Path,
+    artifact: &JdkArtifactV4,
+    expected: &str,
+) -> eyre::Result<()> {
+    eyre::ensure!(
+        is_real_dir(home)
+            && has_jdk_executables(home, artifact)
+            && is_real_file(&home.join("lib/modules")),
+        "Cached JBRSDK installation is incomplete or unsafe: {}",
+        home.display()
+    );
     let path = home.join(RECEIPT_NAME);
-    eyre::ensure!(is_real_file(&path) && fs::read_to_string(path)? == expected,
-        "Cached JBRSDK installation has no matching checksum receipt: {}", home.display());
+    eyre::ensure!(
+        is_real_file(&path) && fs::read_to_string(path)? == expected,
+        "Cached JBRSDK installation has no matching checksum receipt: {}",
+        home.display()
+    );
     Ok(())
 }
 
 /// Full cache integrity audit. Normal sealed reuse deliberately does not call this.
 pub(crate) fn audit_pinned_jbrsdk_zip(
-    pin: &JdkPinV4, artifact: &JdkArtifactV4, cache_root: &Path,
+    pin: &JdkPinV4,
+    artifact: &JdkArtifactV4,
+    cache_root: &Path,
 ) -> eyre::Result<()> {
     verify_archive_identity(pin, artifact)?;
-    eyre::ensure!(pin.artifacts.contains(artifact), "JBRSDK audit pin mismatch");
+    eyre::ensure!(
+        pin.artifacts.contains(artifact),
+        "JBRSDK audit pin mismatch"
+    );
     let sha = artifact.sha512.to_ascii_lowercase();
     for directory in [
         cache_root.to_path_buf(),
@@ -1019,17 +1151,19 @@ pub(crate) fn audit_pinned_jbrsdk_zip(
         cache_root.join("locks").join(format!("{sha}.lock")),
         format!("JBRSDK audit {} {}", pin.version, artifact.platform),
     )?;
-    let archive = cache_root.join("archives").join(archive_name(&sha, artifact));
+    let archive = cache_root
+        .join("archives")
+        .join(archive_name(&sha, artifact));
     if is_linux_tar(artifact) {
         let mut archive = open_held_archive(&archive)?;
         verify_archive_sha512(&mut archive, &sha)?;
-        let home = cache_root.join("installs").join(install_key(&sha));
+        let home = cache_root.join("installs").join(install_key(&sha)?);
         require_existing_safe_cache_dir(&home)?;
         check_installed_receipt(&home, artifact, &receipt(pin, artifact))?;
         return run_tar_helper(&mut archive, "verify", &home, &sha);
     }
     let mut zip = open_verified_archive(&archive, &sha)?;
-    let home = cache_root.join("installs").join(install_key(&sha));
+    let home = cache_root.join("installs").join(install_key(&sha)?);
     require_existing_safe_cache_dir(&home)?;
     verify_installed_home(&home, artifact, &receipt(pin, artifact), &mut zip)
 }
@@ -1166,7 +1300,7 @@ fn record_expected_path(
     Ok(())
 }
 
-fn compare_installed_file(entry: &mut zip::read::ZipFile<'_>, path: &Path) -> eyre::Result<()> {
+fn compare_installed_file(entry: &mut ZipFile<'_>, path: &Path) -> eyre::Result<()> {
     let mismatch = || {
         format!(
             "Cached JBRSDK installation does not match verified ZIP: {}",
@@ -1244,6 +1378,16 @@ mod tests {
     use std::io::Cursor;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn install_key_rejects_truncated_or_split_utf8_prefixes() {
+        assert!(install_key(&"a".repeat(63)).is_err());
+        assert!(install_key(&format!("{}é", "a".repeat(63))).is_err());
+        assert_eq!(
+            install_key(&"a".repeat(128)).expect("valid prefix"),
+            format!("v2-{}", "a".repeat(64))
+        );
+    }
 
     fn zip_bytes(entries: &[(&str, &[u8])]) -> Vec<u8> {
         let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
@@ -1387,7 +1531,7 @@ sys.stdout.buffer.write(b.getvalue())"#;
             !root
                 .path()
                 .join("installs")
-                .join(install_key(&pin.artifacts[0].sha512))
+                .join(install_key(&pin.artifacts[0].sha512).expect("fixture install key"))
                 .exists()
         );
     }
@@ -1404,15 +1548,29 @@ sys.stdout.buffer.write(b.getvalue())"#;
             .replace(".zip", ".tar.gz");
         let root = tempfile::tempdir().unwrap();
         assert!(
-            acquire_pinned_jbrsdk_zip_with(&pin, &pin.artifacts[0], root.path(), false, |_, file| {
-                file.write_all(bytes)?;
-                Ok(())
-            })
+            acquire_pinned_jbrsdk_zip_with(
+                &pin,
+                &pin.artifacts[0],
+                root.path(),
+                false,
+                |_, file| {
+                    file.write_all(bytes)?;
+                    Ok(())
+                }
+            )
             .is_err()
         );
         let installs = root.path().join("installs");
-        assert!(!installs.join(install_key(&pin.artifacts[0].sha512)).exists());
-        assert!(!seal_path(&installs, &pin.artifacts[0].sha512).exists());
+        assert!(
+            !installs
+                .join(install_key(&pin.artifacts[0].sha512).expect("fixture install key"))
+                .exists()
+        );
+        assert!(
+            !seal_path(&installs, &pin.artifacts[0].sha512)
+                .expect("fixture seal path")
+                .exists()
+        );
     }
 
     #[test]
@@ -1449,20 +1607,37 @@ sys.stdout.buffer.write(b.getvalue())"#;
         let temporary = tempfile::tempdir().unwrap();
         let root = temporary.path().join("x".repeat(100));
         fs::create_dir(&root).unwrap();
-        let archive = root.join("archives").join(format!("{}.zip", pin.artifacts[0].sha512));
+        let archive = root
+            .join("archives")
+            .join(format!("{}.zip", pin.artifacts[0].sha512));
         assert!(archive.to_string_lossy().len() > 260);
         let image = acquire_verified_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], &root, false,
-            |_, file| { file.write_all(&bytes)?; Ok(()) },
-        ).unwrap();
+            &pin,
+            &pin.artifacts[0],
+            &root,
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
         assert!(archive.is_file());
         assert!(image.home().join("bin/java.exe").is_file());
-        assert!(seal_path(&root.join("installs"), &pin.artifacts[0].sha512).is_file());
+        assert!(
+            seal_path(&root.join("installs"), &pin.artifacts[0].sha512)
+                .expect("fixture seal path")
+                .is_file()
+        );
         drop(image);
         let reused = acquire_verified_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], &root, true,
+            &pin,
+            &pin.artifacts[0],
+            &root,
+            true,
             |_, _| unreachable!("sealed hit must not fetch"),
-        ).unwrap();
+        )
+        .unwrap();
         drop(reused);
     }
 
@@ -1496,9 +1671,13 @@ sys.stdout.buffer.write(b.getvalue())"#;
         fs::write(&archive, b"changed").unwrap();
         // The sealed hit deliberately trusts tool-owned bytes between runs.
         let reused = acquire_verified_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], root.path(), true,
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            true,
             |_, _| unreachable!("sealed cache hit must not fetch"),
-        ).unwrap();
+        )
+        .unwrap();
         drop(reused);
         assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
     }
@@ -1524,7 +1703,9 @@ sys.stdout.buffer.write(b.getvalue())"#;
         {
             assert!(fs::write(&java, b"tampered").is_err());
             assert!(fs::rename(&java, root.path().join("replaced-java.exe")).is_err());
-            image.recheck_for(root.path(), &pin, &pin.artifacts[0]).unwrap();
+            image
+                .recheck_for(root.path(), &pin, &pin.artifacts[0])
+                .unwrap();
             drop(image);
             fs::write(&java, b"tampered").unwrap();
             assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
@@ -1532,8 +1713,13 @@ sys.stdout.buffer.write(b.getvalue())"#;
         #[cfg(not(windows))]
         {
             fs::write(&java, b"tampered").unwrap();
-            assert!(image.recheck_for(root.path(), &pin, &pin.artifacts[0])
-                .unwrap_err().to_string().contains("does not match verified ZIP"));
+            assert!(
+                image
+                    .recheck_for(root.path(), &pin, &pin.artifacts[0])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("does not match verified ZIP")
+            );
         }
     }
 
@@ -1556,15 +1742,57 @@ sys.stdout.buffer.write(b.getvalue())"#;
         .unwrap();
         let extra = image.home().join("lib/extra.dll");
         let inserted = fs::write(&extra, b"unexpected member").is_ok();
-        let recheck = image.recheck_for(root.path(), &pin, &pin.artifacts[0]).map(|_| ());
+        let recheck = image
+            .recheck_for(root.path(), &pin, &pin.artifacts[0])
+            .map(|_| ());
         drop(image);
         if inserted {
-            assert!(recheck.is_err(), "held directory metadata must detect a new child");
+            assert!(
+                recheck.is_err(),
+                "held directory membership must detect a new child"
+            );
             assert!(audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).is_err());
         } else {
             recheck.unwrap();
         }
     }
+    #[cfg(windows)]
+    #[test]
+    fn held_directory_membership_rejects_new_child_with_unchanged_metadata_observation() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(directory.path().join("existing.dll"), b"existing").unwrap();
+        let held = HeldInstalledEntry::open(directory.path(), false).unwrap();
+        let before = held.handle.metadata().unwrap();
+        held.recheck_with_metadata(|_| Ok(before.clone())).unwrap();
+
+        fs::write(directory.path().join("new.dll"), b"new member").unwrap();
+        // Reproduce Windows returning unchanged directory size/timestamps.
+        // Object identity, safe path checks and member enumeration remain real.
+        let error = held
+            .recheck_with_metadata(|_| Ok(before.clone()))
+            .unwrap_err();
+        assert!(error.to_string().contains("directory membership changed"));
+        assert!(held.recheck().is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn held_directory_membership_rejects_same_names_with_changed_member_kind() {
+        let directory = tempfile::tempdir().unwrap();
+        let child = directory.path().join("member");
+        fs::write(&child, b"file").unwrap();
+        let held = HeldInstalledEntry::open(directory.path(), false).unwrap();
+        let before = held.handle.metadata().unwrap();
+        held.recheck_with_metadata(|_| Ok(before.clone())).unwrap();
+
+        fs::remove_file(&child).unwrap();
+        fs::create_dir(&child).unwrap();
+        let error = held
+            .recheck_with_metadata(|_| Ok(before.clone()))
+            .unwrap_err();
+        assert!(error.to_string().contains("directory membership changed"));
+    }
+
     #[test]
     fn verified_pinned_image_rejects_wrong_root_and_pin() {
         let bytes = sdk_zip();
@@ -1614,7 +1842,9 @@ sys.stdout.buffer.write(b.getvalue())"#;
         .unwrap();
         assert_eq!(
             home.file_name().expect("installation key"),
-            std::ffi::OsStr::new(&install_key(&pin.artifacts[0].sha512))
+            std::ffi::OsStr::new(
+                &install_key(&pin.artifacts[0].sha512).expect("fixture install key")
+            )
         );
         assert_eq!(home.file_name().unwrap().to_string_lossy().len(), 67);
         assert_eq!(fs::read(home.join("bin/java.exe")).unwrap(), b"java");
@@ -1643,8 +1873,7 @@ sys.stdout.buffer.write(b.getvalue())"#;
         )
         .unwrap();
         fs::write(home.join("bin/java.exe"), b"evil").unwrap();
-        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path())
-            .unwrap_err();
+        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).unwrap_err();
         assert!(error.to_string().contains("does not match verified ZIP"));
     }
 
@@ -1665,8 +1894,7 @@ sys.stdout.buffer.write(b.getvalue())"#;
         )
         .unwrap();
         fs::write(home.join("lib/modules"), b"altered modules").unwrap();
-        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path())
-            .unwrap_err();
+        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).unwrap_err();
         assert!(error.to_string().contains("does not match verified ZIP"));
     }
 
@@ -1687,8 +1915,7 @@ sys.stdout.buffer.write(b.getvalue())"#;
         )
         .unwrap();
         fs::write(home.join("lib/extra.dll"), b"unexpected library").unwrap();
-        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path())
-            .unwrap_err();
+        let error = audit_pinned_jbrsdk_zip(&pin, &pin.artifacts[0], root.path()).unwrap_err();
         assert!(error.to_string().contains("unexpected extra paths"));
     }
 
@@ -1698,17 +1925,31 @@ sys.stdout.buffer.write(b.getvalue())"#;
         let pin = pin_for(&bytes);
         let root = tempfile::tempdir().unwrap();
         let home = acquire_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], root.path(), false,
-            |_, file| { file.write_all(&bytes)?; Ok(()) },
-        ).unwrap();
-        let seal = seal_path(&root.path().join("installs"), &pin.artifacts[0].sha512);
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
+        let seal = seal_path(&root.path().join("installs"), &pin.artifacts[0].sha512)
+            .expect("fixture seal path");
         assert!(seal.is_file());
         fs::remove_file(seal).unwrap();
         fs::write(home.join("bin/java.exe"), b"altered").unwrap();
-        assert!(acquire_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], root.path(), true,
-            |_, _| panic!("offline reuse must not fetch"),
-        ).is_err());
+        assert!(
+            acquire_pinned_jbrsdk_zip_with(
+                &pin,
+                &pin.artifacts[0],
+                root.path(),
+                true,
+                |_, _| panic!("offline reuse must not fetch"),
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1717,20 +1958,39 @@ sys.stdout.buffer.write(b.getvalue())"#;
         let pin = pin_for(&bytes);
         let root = tempfile::tempdir().unwrap();
         let home = acquire_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], root.path(), false,
-            |_, file| { file.write_all(&bytes)?; Ok(()) },
-        ).unwrap();
+            &pin,
+            &pin.artifacts[0],
+            root.path(),
+            false,
+            |_, file| {
+                file.write_all(&bytes)?;
+                Ok(())
+            },
+        )
+        .unwrap();
         let mut changed = pin.clone();
         changed.build = "different".to_owned();
-        assert!(acquire_pinned_jbrsdk_zip_with(
-            &changed, &pin.artifacts[0], root.path(), true,
-            |_, _| panic!("wrong pin must not fetch"),
-        ).is_err());
+        assert!(
+            acquire_pinned_jbrsdk_zip_with(
+                &changed,
+                &pin.artifacts[0],
+                root.path(),
+                true,
+                |_, _| panic!("wrong pin must not fetch"),
+            )
+            .is_err()
+        );
         fs::remove_file(home.join("lib/modules")).unwrap();
-        assert!(acquire_pinned_jbrsdk_zip_with(
-            &pin, &pin.artifacts[0], root.path(), true,
-            |_, _| panic!("incomplete install must not fetch"),
-        ).is_err());
+        assert!(
+            acquire_pinned_jbrsdk_zip_with(
+                &pin,
+                &pin.artifacts[0],
+                root.path(),
+                true,
+                |_, _| panic!("incomplete install must not fetch"),
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1790,7 +2050,7 @@ sys.stdout.buffer.write(b.getvalue())"#;
             !root
                 .path()
                 .join("installs")
-                .join(install_key(&pin.artifacts[0].sha512))
+                .join(install_key(&pin.artifacts[0].sha512).expect("fixture install key"))
                 .exists()
         );
     }
@@ -1829,7 +2089,7 @@ sys.stdout.buffer.write(b.getvalue())"#;
                 !root
                     .path()
                     .join("installs")
-                    .join(install_key(&pin.artifacts[0].sha512))
+                    .join(install_key(&pin.artifacts[0].sha512).expect("fixture install key"))
                     .exists()
             );
         }

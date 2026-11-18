@@ -17,7 +17,8 @@ use figue as args;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Component;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 const MAX_MAVEN_ENTRIES: usize = 100_000;
@@ -369,14 +370,14 @@ fn expected_paths(inventory: &DependencyInventory) -> eyre::Result<ExpectedPaths
     for artifact in &inventory.lockfile.artifacts {
         paths
             .direct
-            .insert(inventory.local_path(&artifact.cache_path));
+            .insert(inventory.local_path(&artifact.cache_path)?);
         if let Some(source_git) = &artifact.source_git {
             if let Some(remote) = source_git.remote_url.as_deref() {
                 let remote = crate::source_git::canonical_https_remote(remote)?;
                 paths.derived.insert(
                     inventory.local_path(
                         &SourceCacheLayout::git(&remote, &source_git.commit).repository,
-                    ),
+                    )?,
                 );
             }
         }
@@ -387,29 +388,29 @@ fn expected_paths(inventory: &DependencyInventory) -> eyre::Result<ExpectedPaths
                 match provider {
                     SourceProviderV3::MavenSources(provider) => {
                         paths.direct.insert(
-                            inventory.local_path(&provider.derived_checks.archive_cache_path),
+                            inventory.local_path(&provider.derived_checks.archive_cache_path)?,
                         );
-                        paths
-                            .derived
-                            .insert(inventory.local_path(&provider.derived_checks.tree_cache_path));
+                        paths.derived.insert(
+                            inventory.local_path(&provider.derived_checks.tree_cache_path)?,
+                        );
                     }
                     SourceProviderV3::Git(provider) => {
                         paths.derived.insert(
-                            inventory.local_path(&provider.derived_checks.repository_cache_path),
+                            inventory.local_path(&provider.derived_checks.repository_cache_path)?,
                         );
-                        paths
-                            .derived
-                            .insert(inventory.local_path(&provider.derived_checks.tree_cache_path));
+                        paths.derived.insert(
+                            inventory.local_path(&provider.derived_checks.tree_cache_path)?,
+                        );
                     }
                     SourceProviderV3::Decompile(provider) => {
-                        paths
-                            .derived
-                            .insert(inventory.local_path(&provider.derived_checks.tree_cache_path));
+                        paths.derived.insert(
+                            inventory.local_path(&provider.derived_checks.tree_cache_path)?,
+                        );
                     }
                     SourceProviderV3::PlatformPipeline(provider) => {
-                        paths
-                            .derived
-                            .insert(inventory.local_path(&provider.derived_checks.tree_cache_path));
+                        paths.derived.insert(
+                            inventory.local_path(&provider.derived_checks.tree_cache_path)?,
+                        );
                     }
                 }
             }

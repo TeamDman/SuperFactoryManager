@@ -153,18 +153,19 @@ pub(crate) struct SourceProviderPreflight {
 }
 
 impl SourceProviderPreflight {
-    fn from_view(view: SourceProviderView<'_>, status: SourceStatus) -> Self {
-        Self {
+    fn from_view(view: SourceProviderView<'_>, status: SourceStatus) -> eyre::Result<Self> {
+        Ok(Self {
             id: view.id().to_owned(),
             kind: view.kind(),
             priority: view.priority(),
             status,
-            searchable_roots: view.searchable_roots(),
-            unavailable_reason: (status != SourceStatus::Acquired)
-                .then(|| view.unavailable_reason())
-                .flatten()
-                .map(ToOwned::to_owned),
-        }
+            searchable_roots: view.searchable_roots()?,
+            unavailable_reason: if status == SourceStatus::Acquired {
+                None
+            } else {
+                view.unavailable_reason()?.map(ToOwned::to_owned)
+            },
+        })
     }
 }
 
@@ -225,7 +226,7 @@ pub(crate) fn preflight_sources(
                 }
                 result.components.push(SourceComponentPreflight {
                     target: target.clone(),
-                    status: inventory.source_status(component),
+                    status: inventory.source_status(component)?,
                     preferred_provider: None,
                     providers: Vec::new(),
                 });
@@ -244,11 +245,12 @@ pub(crate) fn preflight_sources(
             let statuses = declared
                 .iter()
                 .map(|view| view.status())
-                .collect::<Vec<_>>();
+                .collect::<eyre::Result<Vec<_>>>()?;
             let preferred_provider = matching
                 .first()
                 .copied()
-                .map(|view| SourceProviderPreflight::from_view(view, statuses[view.priority()]));
+                .map(|view| SourceProviderPreflight::from_view(view, statuses[view.priority()]))
+                .transpose()?;
             let selected = match selection {
                 SourceProviderSelection::AllMatching => matching.as_slice(),
                 SourceProviderSelection::PreferredMatching => &matching[..1],
@@ -257,7 +259,7 @@ pub(crate) fn preflight_sources(
                 .iter()
                 .copied()
                 .map(|view| SourceProviderPreflight::from_view(view, statuses[view.priority()]))
-                .collect::<Vec<_>>();
+                .collect::<eyre::Result<Vec<_>>>()?;
             for provider in &providers {
                 if provider.status == SourceStatus::Acquired {
                     result
@@ -307,12 +309,20 @@ impl SourceAcquisitionTarget<'_> {
         provider_id(self.provider)
     }
 
-    #[must_use]
-    pub(crate) fn searchable_roots(&self, inventory: &DependencyInventory) -> Vec<PathBuf> {
+    pub(crate) fn searchable_roots(
+        &self,
+        inventory: &DependencyInventory,
+    ) -> eyre::Result<Vec<PathBuf>> {
         inventory
             .source_providers(self.component)
             .find(|view| view.id() == self.provider_id())
-            .expect("selected provider belongs to component")
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "Selected provider `{}` does not belong to component `{}`",
+                    self.provider_id(),
+                    self.identity()
+                )
+            })?
             .searchable_roots()
     }
 }
@@ -482,21 +492,22 @@ fn execute_acquisition_tasks<T: Sync>(
     let stop_starting = Arc::new(AtomicBool::new(false));
     let (sender, receiver) = mpsc::channel::<(usize, eyre::Result<()>)>();
     thread::scope(|scope| {
+        let mut workers = Vec::with_capacity(limit.min(tasks.len()));
         for _ in 0..limit.min(tasks.len()) {
             let queue = Arc::clone(&queue);
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
             let cancellation_token = cancellation_token.clone();
             let execute = &execute;
-            scope.spawn(move || {
+            workers.push(scope.spawn(move || -> eyre::Result<()> {
                 loop {
                     if stop_starting.load(Ordering::Acquire) || cancellation_token.is_cancelled() {
                         break;
                     }
                     let task_index = {
-                        let mut queue = queue
-                            .lock()
-                            .expect("source acquisition queue should not be poisoned");
+                        let mut queue = queue.lock().map_err(|_poisoned| {
+                            eyre::eyre!("Source acquisition queue was poisoned")
+                        })?;
                         queue.pop_front()
                     };
                     let Some(task_index) = task_index else {
@@ -511,10 +522,16 @@ fn execute_acquisition_tasks<T: Sync>(
                         break;
                     }
                 }
-            });
+                Ok(())
+            }));
         }
         drop(sender);
         let mut results = receiver.into_iter().collect::<Vec<_>>();
+        for worker in workers {
+            worker
+                .join()
+                .map_err(|_panic| eyre::eyre!("Source acquisition worker panicked"))??;
+        }
         results.sort_by_key(|(index, _)| *index);
         for (_, result) in results {
             result?;
@@ -551,7 +568,7 @@ fn acquire_platform_sources(
             &SourceProviderV3::PlatformPipeline(provider.clone()),
             0,
         )
-        .status()
+        .status()?
             == SourceStatus::Acquired
         {
             return Ok(());
@@ -604,7 +621,7 @@ fn acquire_platform_sources(
         } else {
             eyre::bail!("catalog platform source is missing its locked source identity");
         };
-        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path)?;
         crate::jar_build::engine::invoke_catalog_platform_source_output(
             &build,
             &tree,
@@ -617,7 +634,7 @@ fn acquire_platform_sources(
                 &SourceProviderV3::PlatformPipeline(provider.clone()),
                 0,
             )
-            .status()
+            .status()?
                 == crate::dependency_inventory::SourceStatus::Acquired,
             "catalog platform output differs from the exact locked source JAR or filetree"
         );
@@ -854,7 +871,10 @@ mod tests {
             .expect("preferred provider should exist");
         assert_eq!(preferred.id(), "first");
         assert_eq!(preferred.priority(), 0);
-        assert_eq!(preferred.status(), SourceStatus::Missing);
+        assert_eq!(
+            preferred.status().expect("provider status"),
+            SourceStatus::Missing
+        );
 
         let preflight = preflight_sources(
             &inventory,
@@ -1149,8 +1169,12 @@ mod tests {
         let SourceProviderV3::Git(provider) = provider else {
             panic!("expected Git provider");
         };
-        let repository_path = inventory.local_path(&provider.derived_checks.repository_cache_path);
-        let tree_path = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let repository_path = inventory
+            .local_path(&provider.derived_checks.repository_cache_path)
+            .expect("checked fixture inventory");
+        let tree_path = inventory
+            .local_path(&provider.derived_checks.tree_cache_path)
+            .expect("checked fixture inventory");
         std::fs::create_dir_all(repository_path.parent().expect("repository parent"))
             .expect("repository cache parent");
         let repository = gix::init_bare(&repository_path).expect("synthetic Git repository");
@@ -1226,7 +1250,9 @@ mod tests {
         else {
             unreachable!()
         };
-        let archive = inventory.local_path(&provider.derived_checks.archive_cache_path);
+        let archive = inventory
+            .local_path(&provider.derived_checks.archive_cache_path)
+            .expect("checked fixture inventory");
         std::fs::create_dir_all(archive.parent().expect("archive parent")).expect("archive parent");
         std::fs::write(archive, b"stale").expect("stale archive");
     }

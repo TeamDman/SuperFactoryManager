@@ -63,7 +63,7 @@ impl DependencySourceCacheAuditArgs {
     fn invoke(self, cache_home: &CacheHome) -> eyre::Result<()> {
         let inventory = load_inventory(self.branch, cache_home)?;
         let references = discovered_git_cache_references(cache_home)?;
-        render_git_cache_audit(&audit_git_cache(&inventory, &references))
+        render_git_cache_audit(&audit_git_cache(&inventory, &references)?)
     }
 }
 
@@ -71,11 +71,13 @@ impl DependencySourceCacheCleanupArgs {
     fn invoke(self, cache_home: &CacheHome) -> eyre::Result<()> {
         let inventory = load_inventory(self.branch, cache_home)?;
         let references = discovered_git_cache_references(cache_home)?;
-        let audit = audit_git_cache(&inventory, &references);
+        let audit = audit_git_cache(&inventory, &references)?;
         render_git_cache_audit(&audit)?;
         ensure_cleanup_is_safe(&references)?;
         refuse_unproven_deletion(self.confirm)?;
-        stdout_line("No cache entries were removed. Entries absent from discovered lockfiles are candidates only; a shared cache may have other owners.")?;
+        stdout_line(
+            "No cache entries were removed. Entries absent from discovered lockfiles are candidates only; a shared cache may have other owners.",
+        )?;
         Ok(())
     }
 }
@@ -114,8 +116,10 @@ fn discovered_git_cache_references(
         if !lockfile_path(&target).is_file() {
             continue;
         }
-        match DependencyInventory::load_target(target.clone(), cache_home.clone()) {
-            Ok(inventory) => result.references.extend(git_cache_references(&inventory)),
+        match DependencyInventory::load_target(target.clone(), cache_home.clone())
+            .and_then(|inventory| git_cache_references(&inventory))
+        {
+            Ok(references) => result.references.extend(references),
             Err(error) => result.unverified_lockfiles.push(UnverifiedLockfile {
                 branch: target.branch.to_string(),
                 path: lockfile_path(&target),
@@ -142,7 +146,7 @@ fn lockfile_path(target: &WorktreeTarget) -> PathBuf {
         .join("sfm-toolchain.lock.json")
 }
 
-fn git_cache_references(inventory: &DependencyInventory) -> GitCacheReferences {
+fn git_cache_references(inventory: &DependencyInventory) -> eyre::Result<GitCacheReferences> {
     let mut references = GitCacheReferences::default();
     for dependency in &inventory.lockfile.dependencies {
         for component in &dependency.components {
@@ -152,14 +156,14 @@ fn git_cache_references(inventory: &DependencyInventory) -> GitCacheReferences {
                 };
                 references
                     .repositories
-                    .insert(inventory.local_path(&provider.derived_checks.repository_cache_path));
+                    .insert(inventory.local_path(&provider.derived_checks.repository_cache_path)?);
                 references
                     .trees
-                    .insert(inventory.local_path(&provider.derived_checks.tree_cache_path));
+                    .insert(inventory.local_path(&provider.derived_checks.tree_cache_path)?);
             }
         }
     }
-    references
+    Ok(references)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -184,7 +188,7 @@ struct GitProviderAudit {
 fn audit_git_cache(
     inventory: &DependencyInventory,
     references: &DiscoveredGitCacheReferences,
-) -> GitCacheAudit {
+) -> eyre::Result<GitCacheAudit> {
     let mut providers = Vec::new();
     for dependency in &inventory.lockfile.dependencies {
         for component in &dependency.components {
@@ -193,8 +197,8 @@ fn audit_git_cache(
                     continue;
                 };
                 let repository =
-                    inventory.local_path(&provider.derived_checks.repository_cache_path);
-                let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+                    inventory.local_path(&provider.derived_checks.repository_cache_path)?;
+                let tree = inventory.local_path(&provider.derived_checks.tree_cache_path)?;
                 providers.push(GitProviderAudit {
                     dependency: dependency.id.clone(),
                     component: component.id.clone(),
@@ -212,10 +216,10 @@ fn audit_git_cache(
             &right.commit,
         ))
     });
-    let git_root = inventory.local_path(Path::new("$sfm-cache/sources/git"));
+    let git_root = inventory.local_path(Path::new("$sfm-cache/sources/git"))?;
     let repositories = child_directories(&git_root.join("repositories"));
     let trees = git_tree_directories(&git_root.join("trees"));
-    GitCacheAudit {
+    Ok(GitCacheAudit {
         referenced_repositories: references.references.repositories.len(),
         materialized_trees: references
             .references
@@ -233,7 +237,7 @@ fn audit_git_cache(
             .count(),
         providers,
         unverified_lockfiles: references.unverified_lockfiles.clone(),
-    }
+    })
 }
 
 fn render_git_cache_audit(audit: &GitCacheAudit) -> eyre::Result<()> {
@@ -345,17 +349,19 @@ mod tests {
         let (repository, tree) = add_git_provider(&mut inventory);
         std::fs::create_dir_all(&repository).expect("referenced repository");
         std::fs::create_dir_all(&tree).expect("referenced tree");
-        let git_root = inventory.local_path(Path::new("$sfm-cache/sources/git"));
+        let git_root = inventory
+            .local_path(Path::new("$sfm-cache/sources/git"))
+            .expect("checked fixture inventory");
         let stale_repository = git_root.join("repositories/stale.git");
         let stale_tree = git_root.join("trees/stale/commit");
         std::fs::create_dir_all(&stale_repository).expect("stale repository");
         std::fs::create_dir_all(&stale_tree).expect("stale tree");
         let references = DiscoveredGitCacheReferences {
-            references: git_cache_references(&inventory),
+            references: git_cache_references(&inventory).expect("checked fixture references"),
             unverified_lockfiles: Vec::new(),
         };
 
-        let audit = audit_git_cache(&inventory, &references);
+        let audit = audit_git_cache(&inventory, &references).expect("checked fixture audit");
         assert_eq!(audit.unreferenced_repositories, 1);
         assert_eq!(audit.unreferenced_trees, 1);
 
@@ -421,8 +427,12 @@ mod tests {
         component
             .source_providers
             .push(SourceProviderV3::Git(provider));
-        let repository = inventory.local_path(&repository_cache_path);
-        let tree = inventory.local_path(&tree_cache_path);
+        let repository = inventory
+            .local_path(&repository_cache_path)
+            .expect("checked fixture inventory");
+        let tree = inventory
+            .local_path(&tree_cache_path)
+            .expect("checked fixture inventory");
         (repository, tree)
     }
 

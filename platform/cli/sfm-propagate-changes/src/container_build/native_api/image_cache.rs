@@ -52,14 +52,19 @@ pub(super) fn save(
     let target = receipt(request, report)?;
     if target.exists() {
         checked_file(
-            target.parent().expect("receipt parent"),
             target
-                .file_name()
-                .and_then(|n| n.to_str())
-                .expect("receipt filename"),
+                .parent()
+                .ok_or_else(|| eyre::eyre!("Image receipt has no parent directory"))?,
+            target.file_name().and_then(|n| n.to_str()).ok_or_else(|| {
+                eyre::eyre!("Image receipt filename is missing or is not Unicode")
+            })?,
         )?;
     }
-    let mut temporary = tempfile::NamedTempFile::new_in(target.parent().expect("receipt parent"))?;
+    let mut temporary = tempfile::NamedTempFile::new_in(
+        target
+            .parent()
+            .ok_or_else(|| eyre::eyre!("Image receipt has no parent directory"))?,
+    )?;
     temporary.write_all(facet_json::to_string_pretty(image)?.as_bytes())?;
     temporary.as_file().sync_all()?;
     temporary.persist(target).map_err(|error| error.error)?;
@@ -126,11 +131,13 @@ pub(super) async fn reuse(
         return Ok(None);
     }
     let bytes = crate::source_projection::core_catalog::read_bounded_input(
-        target.parent().expect("receipt parent"),
+        target
+            .parent()
+            .ok_or_else(|| eyre::eyre!("Image receipt has no parent directory"))?,
         target
             .file_name()
             .and_then(|n| n.to_str())
-            .expect("receipt filename"),
+            .ok_or_else(|| eyre::eyre!("Image receipt filename is missing or is not Unicode"))?,
         1024 * 1024,
     )?;
     let saved: ImageIdentity = facet_json::from_slice(&bytes)?;

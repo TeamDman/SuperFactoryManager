@@ -93,10 +93,15 @@ impl CaptureBudget {
             .ok_or_else(|| eyre!("capture Git stderr unavailable"))?;
         let out = std::thread::spawn(move || read_pipe(stdout, limit, &out_flag));
         let err = std::thread::spawn(move || read_pipe(stderr, 1024 * 1024, &err_flag));
-        let writer = input.map(|input| {
-            let mut stdin = child.stdin.take().expect("piped stdin requested");
-            std::thread::spawn(move || stdin.write_all(&input))
-        });
+        let writer = if let Some(input) = input {
+            let mut stdin = child
+                .stdin
+                .take()
+                .ok_or_else(|| eyre!("capture Git stdin unavailable"))?;
+            Some(std::thread::spawn(move || stdin.write_all(&input)))
+        } else {
+            None
+        };
         let status = loop {
             if let Err(error) = self.check() {
                 let _ = child.kill();

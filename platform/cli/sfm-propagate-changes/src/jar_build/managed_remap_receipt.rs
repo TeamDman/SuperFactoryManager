@@ -3,9 +3,11 @@
 //! completion receipt while the selected output stays held read-only.
 
 use super::project_compilation_cache;
-use eyre::{Result, ensure};
+use eyre::Result;
+use eyre::ensure;
 use facet::Facet;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
+use sha2::Sha256;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read as _;
@@ -101,7 +103,9 @@ fn checked_match_or_seal(
         {
             return Ok(false);
         }
-        let leaf = output.relative_path.strip_prefix("payload/").unwrap();
+        let Some(leaf) = output.relative_path.strip_prefix("payload/") else {
+            return Ok(false);
+        };
         let payload = project_compilation_cache::open_read(&entry.join("payload").join(leaf))?;
         if payload.metadata()?.len() != output.bytes {
             return Ok(false);

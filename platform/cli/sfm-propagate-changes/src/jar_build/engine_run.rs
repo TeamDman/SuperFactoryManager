@@ -829,7 +829,11 @@ fn execute_run_with_context(
     }
     let run_config_started = Instant::now();
     let run_config = read_forge_run_config(context, kind)?;
-    tracing::info!(phase = "warm_run_config_read", elapsed_ms = run_config_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_config_read",
+        elapsed_ms = run_config_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     context.bail_if_cancelled()?;
     if run_config.main.is_empty() {
         eyre::bail!(
@@ -989,7 +993,11 @@ fn execute_run_with_context(
     context.bail_if_cancelled()?;
     let mut launch_classpath = resolve_run_classpath(context, &resolver, kind, run_options)?;
     context.bail_if_cancelled()?;
-    tracing::info!(phase = "warm_run_classpath_resolution", elapsed_ms = run_resolution_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_classpath_resolution",
+        elapsed_ms = run_resolution_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
     let mut captured_inputs = BTreeMap::new();
@@ -1026,7 +1034,11 @@ fn execute_run_with_context(
             &mut copy_budget,
         )?;
     }
-    tracing::info!(phase = "warm_run_classpath_capture", elapsed_ms = classpath_capture_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_classpath_capture",
+        elapsed_ms = classpath_capture_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     // The JVM consumes private session copies; no store reader is needed
     // after every selected remap has been captured successfully.
     launch_classpath.held_dependency_remaps.clear();
@@ -1049,7 +1061,11 @@ fn execute_run_with_context(
     } else {
         None
     };
-    tracing::info!(phase = "warm_run_asset_prepare", elapsed_ms = assets_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_asset_prepare",
+        elapsed_ms = assets_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     context.bail_if_cancelled()?;
 
     let source_roots = run_source_roots(context, &session)?;
@@ -1256,7 +1272,11 @@ fn execute_run_with_context(
         &mut captured_inputs,
         &mut copy_budget,
     )?;
-    tracing::info!(phase = "warm_run_value_rewrite", elapsed_ms = rewrite_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_value_rewrite",
+        elapsed_ms = rewrite_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     fs::write(
         run_state_dir.join("owned-launch-inputs.json"),
         facet_json::to_string_pretty(
@@ -1324,7 +1344,11 @@ fn execute_run_with_context(
         None
     };
     #[cfg(windows)]
-    tracing::info!(phase = "warm_run_owned_capture", elapsed_ms = owned_capture_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_owned_capture",
+        elapsed_ms = owned_capture_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     let launch_log = run_state_dir.join("console.log");
     *owned_console_log = Some(launch_log.clone());
     if let Some(holds) = build_holds.as_deref_mut() {
@@ -1358,7 +1382,11 @@ fn execute_run_with_context(
         );
         return Ok(());
     }
-    tracing::info!(phase = "warm_run_prelaunch", elapsed_ms = run_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_prelaunch",
+        elapsed_ms = run_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     release_launch_preparation_lock(kind, run_options, build_cache_lock);
     let launch_started = Instant::now();
     let max_launch_attempts = run_max_launch_attempts(kind);
@@ -1402,7 +1430,11 @@ fn execute_run_with_context(
             launch_log.display()
         );
     }
-    tracing::info!(phase = "warm_run_jvm_wait", elapsed_ms = launch_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_run_jvm_wait",
+        elapsed_ms = launch_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     let post_launch_started = Instant::now();
     let launch_output = launch_output.ok_or_else(|| {
         eyre::eyre!(
@@ -1579,20 +1611,36 @@ fn shared_forge_session_stays_with_the_bounded_client_workflow() {
     let forge = LoaderToolchainKind::ForgeGradleForge;
     let neo = LoaderToolchainKind::NeoGradleUserdev;
     assert!(uses_shared_forge_session(&forge, RunKind::Client, None));
-    assert!(uses_shared_forge_session(&forge, RunKind::ClientSmoke, None));
-    assert!(!uses_shared_forge_session(&forge, RunKind::Client, Some(5005)));
-    assert!(!uses_shared_forge_session(&forge, RunKind::GameTestServer, None));
+    assert!(uses_shared_forge_session(
+        &forge,
+        RunKind::ClientSmoke,
+        None
+    ));
+    assert!(!uses_shared_forge_session(
+        &forge,
+        RunKind::Client,
+        Some(5005)
+    ));
+    assert!(!uses_shared_forge_session(
+        &forge,
+        RunKind::GameTestServer,
+        None
+    ));
     assert!(!uses_shared_forge_session(&neo, RunKind::Client, None));
 }
 
 #[cfg(windows)]
 const fn retires_successful_session_inputs(kind: RunKind) -> bool {
-    matches!(kind, RunKind::Client | RunKind::GameTestServer | RunKind::ClientSmoke)
+    matches!(
+        kind,
+        RunKind::Client | RunKind::GameTestServer | RunKind::ClientSmoke
+    )
 }
 
 #[cfg(all(test, windows))]
 mod successful_session_retirement_tests {
-    use super::{RunKind, retires_successful_session_inputs};
+    use super::RunKind;
+    use super::retires_successful_session_inputs;
 
     #[test]
     fn ordinary_client_joins_existing_successful_run_retirement() {
@@ -1822,9 +1870,10 @@ fn execute_junit_tests_with_context(
         .as_ref()
         .map(|_| junit_logging::JunitLogging::prepare(&plan.cache_dir, &run_state_dir))
         .transpose()?;
-    let working_directory = fixture
-        .as_ref()
-        .map_or(plan.minecraft_dir.as_path(), junit_fixture::JunitFixture::root);
+    let working_directory = fixture.as_ref().map_or(
+        plan.minecraft_dir.as_path(),
+        junit_fixture::JunitFixture::root,
+    );
     let working_directory_record = run_state_dir.join("junit-working-directory.json");
     let working_directory_identity = junit_fixture::write_working_directory_record(
         &plan.cache_dir,
@@ -1849,10 +1898,7 @@ fn execute_junit_tests_with_context(
     extra_cache_paths.push(console_launcher.clone());
     write_artifact_lockfile_with_extra_cache_paths(plan, &extra_cache_paths)?;
 
-    tracing::info!(
-        "Launching JUnit tests from {}",
-        working_directory.display()
-    );
+    tracing::info!("Launching JUnit tests from {}", working_directory.display());
     tracing::info!("JUnit args: {}", argfile.display());
     if let Some(logging) = &logging {
         tracing::info!(log_file = %logging.log_file().display(), "JUnit JVM logging output");
@@ -1896,7 +1942,8 @@ fn execute_junit_tests_with_context(
         logging.recheck()?;
     }
     let mut command = Command::new(&plan.java.executable);
-    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, plan.java.major_version)?;
+    let java_trust =
+        super::java_trust::JavaTrust::configure_java(&mut command, false, plan.java.major_version)?;
     command
         .arg(format!("@{}", argfile.display()))
         .current_dir(working_directory);
@@ -1929,7 +1976,7 @@ fn execute_junit_tests_with_context(
         prepared.recheck(plan, &context.cancellation_token)?;
         let launch_inputs = junit_launch_inputs
             .as_ref()
-            .expect("prepared launch inputs captured");
+            .ok_or_else(|| eyre::eyre!("Prepared JUnit execution has no captured launch inputs"))?;
         launch_inputs.recheck(&run_state_dir)?;
         junit_inputs::write_execution_receipt(
             prepared,
@@ -2001,7 +2048,11 @@ fn prepare_junit_runner_compilation(
         );
     }
     junit_runner_compile::JunitRunnerCompile::prepare(
-        console, source, classes, context.plan.java_release, context.plan.java.major_version,
+        console,
+        source,
+        classes,
+        context.plan.java_release,
+        context.plan.java.major_version,
     )
 }
 
@@ -2060,7 +2111,11 @@ fn compile_junit_event_runner(
     }
     compilation.recheck()?;
     let mut command = Command::new(javac_executable(&context.plan.java));
-    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
+    let java_trust = super::java_trust::JavaTrust::configure_java(
+        &mut command,
+        true,
+        context.plan.java.major_version,
+    )?;
     command.arg(format!("@{}", argfile.display()));
     let output = run_command_capture_output(
         &context.cancellation_token,
@@ -3767,16 +3822,21 @@ fn run_launch_command(
     context.recheck_compiler_image()?;
     let spawn_attempt_utc = chrono::Utc::now();
     // Preserve the source argfile; keep any short Windows copy until JVM exit.
-    let (mut child, _launch_argfile_copy) =
-        match spawn_owned_session_child(session, &plan.java.executable, argfile, working_dir, env) {
-            Ok(spawned) => spawned,
-            Err(error) => {
-                if let Some(gate) = &gate {
-                    let _ = gate.record_abort(&format!("JVM spawn failed: {error:#}"));
-                }
-                return Err(error);
+    let (mut child, _launch_argfile_copy) = match spawn_owned_session_child(
+        session,
+        &plan.java.executable,
+        argfile,
+        working_dir,
+        env,
+    ) {
+        Ok(spawned) => spawned,
+        Err(error) => {
+            if let Some(gate) = &gate {
+                let _ = gate.record_abort(&format!("JVM spawn failed: {error:#}"));
             }
-        };
+            return Err(error);
+        }
+    };
     if let Some(gate) = &gate
         && let Err(error) = gate.record_spawn(spawn_attempt_utc, child.id())
     {
@@ -5811,19 +5871,15 @@ fn render_game_puppet_preview_contact_sheet(
         for (width, height) in sizes {
             let _ = write!(html, "<tr><th>{width}×{height}</th>");
             for scale in &scales {
-                let cell = cells.iter().find(|cell| {
-                    cell.metadata.viewport.as_ref().is_some_and(|view| {
-                        view.actual_window_width == width
+                let cell = cells.iter().find_map(|cell| {
+                    cell.metadata.viewport.as_ref().and_then(|view| {
+                        (view.actual_window_width == width
                             && view.actual_window_height == height
-                            && view.requested_gui_scale == *scale
+                            && view.requested_gui_scale == *scale)
+                            .then_some((cell, view))
                     })
                 });
-                if let Some(artifact) = cell {
-                    let view = artifact
-                        .metadata
-                        .viewport
-                        .as_ref()
-                        .expect("filtered viewport cell");
+                if let Some((artifact, view)) = cell {
                     let path = if from_run_root {
                         artifact
                             .relative_path
@@ -6642,7 +6698,7 @@ fn ensure_run_neoforge_dev_jars(
 ) -> eyre::Result<Vec<PathBuf>> {
     let _span =
         tracing::debug_span!("ensure_run_neoforge_dev_jars", kind = %kind.command_name()).entered();
-    let input = loader_dev_compile_jar(context);
+    let input = loader_dev_compile_jar(context)?;
     if !input.is_file() {
         eyre::bail!(
             "{} requires the Rust-owned NeoForm dev jar first: {}",
@@ -6747,12 +6803,12 @@ fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<Path
     #[cfg(windows)]
     let held = forge_preparation_cache::hold_dev_jar_for_run(context)?;
     #[cfg(windows)]
-    let input = held.as_ref().map_or_else(
-        || loader_dev_compile_jar(context),
-        |held| held.path().to_path_buf(),
-    );
+    let input = match held.as_ref() {
+        Some(held) => held.path().to_path_buf(),
+        None => loader_dev_compile_jar(context)?,
+    };
     #[cfg(not(windows))]
-    let input = loader_dev_compile_jar(context);
+    let input = loader_dev_compile_jar(context)?;
     if !input.is_file() {
         eyre::bail!(
             "Forge userdev launch requires the Rust-owned mapped dev compile jar first: {}",
@@ -6827,7 +6883,7 @@ fn ensure_client_extra_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathB
 
 fn ensure_runtime_mcp_csv_mappings(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
     let _span = tracing::debug_span!("ensure_runtime_mcp_csv_mappings").entered();
-    let input = context.forge_mapping_path("srg_to_official.tsrg");
+    let input = context.forge_mapping_path("srg_to_official.tsrg")?;
     if !input.is_file() {
         eyre::bail!(
             "Forge userdev launch requires SRG-to-named mappings first: {}",
@@ -6849,7 +6905,7 @@ fn ensure_runtime_mcp_csv_mappings(context: &ExecutionContext<'_>) -> eyre::Resu
 }
 
 fn ensure_run_refmap_remapping_file(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
-    let input = context.forge_mapping_path("srg_to_official.tsrg");
+    let input = context.forge_mapping_path("srg_to_official.tsrg")?;
     if !input.is_file() {
         eyre::bail!(
             "Forge userdev launch requires SRG-to-named mappings first: {}",
@@ -6924,7 +6980,7 @@ fn resolve_run_deobf_dependencies(
     let _span = tracing::debug_span!("resolve_run_deobf_dependencies", kind = %kind.command_name())
         .entered();
     let dependency_output = context.plan.cache_dir.join("dependencies");
-    let mapping_path = context.forge_mapping_path("srg_to_official.tsrg");
+    let mapping_path = context.forge_mapping_path("srg_to_official.tsrg")?;
     if !mapping_path.is_file() {
         eyre::bail!(
             "{} requires generated dependency mappings first: {}",

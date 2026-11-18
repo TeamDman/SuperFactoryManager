@@ -632,11 +632,9 @@ impl JavaDefinitionResolutionSurface {
         diagnostics.dedup();
 
         Ok(JavaResolvedInteractionDocument {
-            syntax: model
-                .files
-                .into_iter()
-                .next()
-                .expect("one addressed Java document remains in the interaction model"),
+            syntax: model.files.into_iter().next().ok_or_else(|| {
+                eyre::eyre!("addressed Java interaction model has no syntax document")
+            })?,
             usages,
             local_definitions,
             diagnostics,
@@ -727,13 +725,13 @@ impl JavaDefinitionResolutionSurface {
         let definition_request = request.as_definition_request();
         let definition = self.definition_at_position(workspace, target, &definition_request)?;
         let mut result = UsageAtPositionResult::from_definition(definition);
-        if result.outcome != super::UsageAtPositionOutcome::Success || result.targets.len() != 1 {
+        let (super::UsageAtPositionOutcome::Success, [target]) =
+            (result.outcome, result.targets.as_slice())
+        else {
             result.refresh_index_fingerprint();
             return Ok((result, JavaUsageResolutionTelemetry::default()));
-        }
-
+        };
         let selected = result.targets.iter().cloned().collect::<BTreeSet<_>>();
-        let target = result.targets.first().expect("one successful target");
         let (mut scanned, mut usage_telemetry) = usage_surface.selected_or_build(
             self,
             snapshot.files,

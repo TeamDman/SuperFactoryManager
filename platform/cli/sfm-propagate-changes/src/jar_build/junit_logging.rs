@@ -1,12 +1,15 @@
 //! Separate mutable JVM logging from immutable historical `JUnit` fixtures.
-use crate::jar_build::build_snapshot_receipt::{checked_descendant, ensure_owned_directory};
+use crate::jar_build::build_snapshot_receipt::checked_descendant;
+use crate::jar_build::build_snapshot_receipt::ensure_owned_directory;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::provenance::sha256;
-use eyre::{Result, ensure};
+use eyre::Result;
+use eyre::ensure;
 use facet::Facet;
 use std::fs;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 const MAX_INPUT: u64 = 8 * 1024 * 1024;
 
@@ -93,13 +96,20 @@ impl JunitLogging {
     pub(super) fn recheck(&self) -> Result<()> {
         checked_directory(&self.root)?;
         checked_descendant(&self.cache, &self.root)?;
-        checked_directory(self.argfile.parent().expect("owned run directory"))?;
+        checked_directory(
+            self.argfile
+                .parent()
+                .ok_or_else(|| eyre::eyre!("JUnit argument file has no run directory"))?,
+        )?;
         ensure!(
             read_input(&self.configuration)? == self.config_bytes
                 && read_input(&self.argfile)? == self.argfile_bytes,
             "JUnit logging configuration or arguments changed after admission"
         );
-        let logs = self.log_file.parent().expect("owned logging directory");
+        let logs = self
+            .log_file
+            .parent()
+            .ok_or_else(|| eyre::eyre!("JUnit log file has no logging directory"))?;
         checked_directory(logs)?;
         // Bytes here are mutable output. Names, link safety and the selected
         // destination remain checked; no fixture inventory exception is used.

@@ -50,19 +50,22 @@ pub fn reflect_liquid_object<'a, T: Facet<'a>>(value: &T) -> Result<liquid::Obje
 
 fn convert_value(value: &FacetValue, path: &str) -> Result<LiquidValue> {
     match value.value_type() {
-        ValueType::Bool => Ok(LiquidValue::scalar(
-            value.as_bool().expect("Facet reported a boolean"),
-        )),
+        ValueType::Bool => Ok(LiquidValue::scalar(value.as_bool().ok_or_else(|| {
+            eyre!("Facet reported a boolean without a boolean value at {path}")
+        })?)),
         ValueType::String => Ok(LiquidValue::scalar(
             value
                 .as_string()
-                .expect("Facet reported a string")
+                .ok_or_else(|| eyre!("Facet reported a string without a string value at {path}"))?
                 .as_str()
                 .to_owned(),
         )),
         ValueType::Object => {
             let mut object = liquid::Object::new();
-            for (key, child) in value.as_object().expect("Facet reported an object") {
+            for (key, child) in value
+                .as_object()
+                .ok_or_else(|| eyre!("Facet reported an object without object entries at {path}"))?
+            {
                 let key = key.as_str();
                 object.insert(
                     key.to_owned().into(),

@@ -1,63 +1,123 @@
 # Super Factory Manager (SFM)
 
-The other branches' AGENTS.md files all point to this one, do not read those other agent files to save us some tokens.
+The other branches' AGENTS.md files point to this one. Do not read those copies.
 
-We use worktrees to support multiple MC versions at the same time, see `git worktree list`
-Before creating a worktree or choosing toolchain-cache isolation/sharing, read
-[the worktree cache decision guide](worktree-toolchain-cache.md). Creating a
+## Current source workflow
+
+The current checkout uses one authored
+[`core-liquid-template`](../platform/minecraft/core-liquid-template/) tree and an
+explicit [`projections.json`](../platform/minecraft/projections.json) catalog.
+Generated Java and resources belong to a selected projection under
+`platform/minecraft/projections/<projection-key>/`. Edit the core templates and
+selection rules, then generate and review the affected projections. Do not create
+or restore a flat `platform/minecraft/src` tree.
+
+From the repository root:
+
+```powershell
+sfm-propagate-changes source list --repo-root .
+sfm-propagate-changes source show --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes source project dry-run --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes source project sync --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes source project check --repo-root . --projection sfm-dev/mc-1.19.2
+```
+
+Choose the projection for the task; `sfm-dev/mc-1.19.2` is an example, not an
+implicit default. A Minecraft version alone does not identify a projection's
+features or release environment. Review contributor edits before synchronizing
+tracked output. Use a scoped dirty override only when the intended replacement
+has been reviewed. Follow the
+[contributor guide](source-projection-contributor-guide.md) for authoring,
+projection selection and contributor-change hydration.
+
+Before creating a worktree or choosing toolchain-cache isolation or sharing, read
+the [worktree cache decision guide](worktree-toolchain-cache.md). Creating a
 worktree or cache link requires Teamy's approval.
 
-## The Golden Rule
+## Native builds and runtime commands
 
-> Work only on the oldest version/branch that needs attention; `sfm-propagate-changes.exe git merge` will handle updating the other branches.
+Do not execute Gradle for automated repository work. Use the Rust CLI with an
+explicit projection:
 
-Most work should occur in the 1.19.2 branch.
-The `sfm-propagate-changes.exe git merge` command will handle updating the other branches.
-Feature worktrees that are not named like Minecraft versions are intentionally skipped by propagation.
+```powershell
+sfm-propagate-changes run compile --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes jar build --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes test run --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes game-test run-server --repo-root . --projection sfm-dev/mc-1.19.2 --filter 'sfm:*'
+sfm-propagate-changes run client --repo-root . --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes run data --repo-root . --projection sfm-dev/mc-1.19.2
+```
 
-When merging, the default behaviour should be "keep existing" and subsequently meticulously graft the essence of the change over, we NEVER want to accidentally clobber changes that were present in the code for supporting the newer MC version. Absolute caution must be exercised when modifying build.gradle especially.
+Build, test and launch are separate operations. Run only the operations authorized
+for the task. Successful rendering or compilation does not prove gameplay or
+publication readiness. Never publish, upload, push or tag without the user's
+authorization for that operation.
 
-## !!!🚫🐘🚫 NO GRADLE 🚫🐘🚫!!!
+The `sfm-propagate-changes` source is
+[here](../platform/cli/sfm-propagate-changes/src/cli/cli.rs).
+[The installer](../platform/cli/sfm-propagate-changes/install.ps1) updates the EXE
+on PATH; do not assume an installed binary includes current uncommitted source.
+After Rust changes, run
+[`check-all.ps1`](../platform/cli/sfm-propagate-changes/check-all.ps1).
 
-Instead of `./gradlew build`, use `sfm-propagate-changes run compile`
-Instead of `./gradlew runClient_teamy`, use `sfm-propagate-changes run client`
-Instead of `./gradlew runDatagen`, use `sfm-propagate-changes run data`
-Instead of `./gradlew runGameTestServer`, use `sfm-propagate-changes game-test run-server`
-Instead of `./gradlew test`, use `sfm-propagate-changes test run`
+The Codex harness buffers stdio by default. If a CLI command hangs, use
+`--log-file` to write progress to a chosen file. The log obeys `RUST_LOG`;
+`RUST_LOG=warn` can leave healthy INFO progress invisible. Use `--log-filter info`
+with `--log-file` when progress evidence is required. Normal automatic logs belong
+to the selected application home, not the invocation directory.
 
-The `sfm-propagate-changes` source code is [here](../platform/cli/sfm-propagate-changes/src/cli/cli.rs)
-
-[There is a script to update the EXE in PATH after changes.](../platform/cli/sfm-propagate-changes/install.ps1).
-
-After making changes to rust code, run [`check-all.ps1`](../platform/cli/sfm-propagate-changes/check-all.ps1).
-
-The codex harness buffers stdio by default, so if a `sfm-propagate-changes.exe` command is hanging without exiting you can use the `--log-file` argument to write to a file that can be inspected while the program is running to diagnose problems.
-The log file obeys `RUST_LOG`; on this machine `RUST_LOG=warn` suppresses healthy INFO progress and can leave the file empty. Add `--log-filter info` with `--log-file` when progress evidence is required, which explicitly overrides the environment filter.
-
-When the CLI reports `os_error=5` while opening a lock under the user-level artifact cache, first treat it as a Codex sandbox access-denial case. The sandbox may be unable to open the lock even when no other process owns it; rerun the command with normal Windows cache access or outside the sandbox before investigating stale locks. A real concurrent process can produce the same Windows error, so the CLI still retries briefly and reports both possibilities.
+When the CLI reports `os_error=5` opening a user-cache lock, first check for a
+sandbox access denial. Rerun with normal Windows cache access or outside the
+sandbox before assuming the lock is stale. A concurrent process can cause the
+same error; preserve lock diagnostics and ownership information.
 
 ## Goal execution and testing readiness
 
-For a prepared Codex cloud image, use [the repository-owned cloud setup and offline publication gate](codex-cloud-environment.md). Its declared scope and lock hashes must pass inside a networkless candidate image before publication.
+For a prepared Codex cloud image, use the repository-owned
+[cloud setup and offline publication gate](codex-cloud-environment.md). Its
+scope and lock hashes must pass inside a networkless candidate image before
+publication.
 
-Read the repository-wide [goal execution and testing readiness guidelines](tasks/goal%20execution%20and%20testing%20readiness%20guidelines.md) before starting or completing an autonomous implementation goal. It requires explicit tooling freshness, installer responsibility, bounded in-scope process cleanup, lock diagnostics, and a copyable manual-testing handoff. Goal authority permits stopping and restarting only processes proven to belong to the SFM/Minecraft/toolchain test scope; it does not permit broad process killing, repository reset, recursive deletion, or unrelated-application disruption.
+Read the repository-wide
+[goal execution and testing readiness guidelines](tasks/goal%20execution%20and%20testing%20readiness%20guidelines.md)
+before starting or completing an autonomous implementation goal. It requires
+tooling freshness, installer responsibility, bounded process cleanup, lock
+diagnostics and a copyable manual-testing handoff. Goal authority permits
+stopping and restarting only processes proven to belong to the SFM/Minecraft/
+toolchain test scope. It does not permit broad process killing, repository reset,
+recursive deletion or unrelated-application disruption.
 
 ## Changelog
 
-The SFM changelog is [here](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml) and MUST be updated after performing changes that are observable during gameplay.
-Always update the changelog on 1.19.2 so we may `sfm-propagate-changes.exe git merge` to update all versions.
-
-We can use `sfm-propagate-changes.exe git status` to view a summary of all of the worktrees instead of manually running `git status` in each one.
+The authored changelog is
+[`core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml`](../platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml).
+Update it for gameplay-observable changes. Put version- or feature-specific
+entries under the appropriate Liquid conditions. Generate the affected
+projections and inspect their rendered changelogs; do not edit only generated
+copies or revive the flat source tree.
 
 ## Writing Java
 
-When we encounter a part of code that requires a difference across the branches, we should introduce adapter methods annotated with `@MCVersionDependentBehaviour` to minimize and make obvious the surface area where the code is forced to change to accommodate the differences between Minecraft versions.
+Express Minecraft API differences with Liquid target/feature conditions in the
+core. Keep version-specific behavior in small adapters when that improves the
+code. Verify both enabled and disabled contexts affected by a condition, including
+source membership and registrations. Use `source oracle` for pinned comparisons;
+text parity does not replace compilation or runtime evidence.
 
-Run `cargo run -- audit --branch core --version-surfaces` before/after propagating version work. It warns when a later branch has a non-1.19.2 CLI commit or differing CLI source tree, and reports Java diff hunks that are not bounded by `@MCVersionDependentBehaviour`; use the report to move version-specific code behind explicit adapters.
+Minecraft and Forge/NeoForge source discovery is available through the CLI's
+`dependency source` commands. Inspect their help and select the intended project
+inputs instead of relying on an arbitrary branch's local build directory.
 
-We have source code for Minecraft and for Forge/NeoForge available to us:
+## Historical branch checkouts
 
-- `sfm-propagate-changes.exe dependency source acquire minecraft --provider platform-pipeline --branch 1.19.2`
-- `teamy-mft query --profile sfm "1.19.2 GameTestHelper.java"`
-- `rg --files "D:\Repos\Minecraft\SFM\repos2\1.21.1\platform\minecraft\build" | rg "GameTestHelper\.java$|SummonCommand\.java$"`
-- `ls G:\Programming\Repos\Minecraft` contains many toolchain-relevant cloned repos such as MinecraftForge, NeoForged, and supporting elements.
+Version branches and pre-consolidation checkouts retain their historical source
+layout. Only when explicitly working on those checkouts, start with the oldest
+version that needs the change and use `sfm-propagate-changes git merge` for branch
+propagation. Feature worktrees whose names are not Minecraft versions are skipped.
+The default merge behavior is to keep existing changes and graft the intended
+behavior carefully, especially around version-specific build configuration.
+
+These branch-propagation rules do not select inputs for the current catalog
+checkout. Historical snapshot/preset operations are under `source legacy`.
+Do not recreate retired trees in the current checkout to make a legacy command
+work.

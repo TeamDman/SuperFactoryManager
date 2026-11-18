@@ -15,7 +15,8 @@ use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
 use sha2::Digest as _;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::fs;
 use std::io::Read;
@@ -269,7 +270,10 @@ impl ExternalInputManifest {
             .ok_or_else(|| eyre::eyre!("unlisted external producer input: {request}"))?;
         let cache = checked_directory(cache)?;
         let path = checked_file(&cache, &input.relative_path)?;
-        let directories = lease_ancestors(path.parent().expect("checked file has parent"))?;
+        let directories = lease_ancestors(
+            path.parent()
+                .ok_or_else(|| eyre::eyre!("External producer input has no parent directory"))?,
+        )?;
         let mut file = open_read(&path)?;
         let identity = file_identity(&file)?;
         ensure!(

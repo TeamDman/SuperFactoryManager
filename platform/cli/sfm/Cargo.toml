@@ -52,6 +52,9 @@ unsafe_op_in_unsafe_fn = "warn"
 unused_lifetimes = "warn"
 
 [lints.clippy]
+# Production failures are returned; test-only assertions are configured in clippy.toml.
+expect_used = "deny"
+unwrap_used = "deny"
 cargo = { level = "warn", priority = -1 }
 complexity = { level = "warn", priority = -1 }
 correctness = { level = "warn", priority = -1 }

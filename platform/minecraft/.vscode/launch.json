@@ -3,38 +3,24 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Run Minecraft Client",
-            "request": "launch",
-            "mainClass": "net.minecraftforge.userdev.LaunchTesting",
-            "projectName": "SuperFactoryManager",
-            "cwd": "${workspaceFolder}/run",
-            "args": "--launchTarget forgeclientuserdev --gameDir . --assetsDir ${workspaceFolder}/run/assets --assetIndex 1.19 --username Dev",
-            "vmArgs": "-Xmx4G -Dforge.logging.markers=REGISTRIES -Dforge.logging.console.level=debug -Dmixin.env.remapRefMap=true",
-            "env": {
-                "MOD_CLASSES": "${workspaceFolder}/build/classes/java/main;${workspaceFolder}/build/resources/main"
-            },
-            "preLaunchTask": "Gradle: Build"
-        },
+            "name": "Attach to selected SFM projection (start native JDWP task first)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005,
+            "sourcePaths": [
+                "${workspaceFolder}/projections/${input:sfmProjection}/src/main/java",
+                "${workspaceFolder}/projections/${input:sfmProjection}/src/test/java",
+                "${workspaceFolder}/projections/${input:sfmProjection}/src/gametest/java",
+                "${workspaceFolder}/projections/${input:sfmProjection}/src/datagen/java"
+            ]
+        }
+    ],
+    "inputs": [
         {
-            "type": "java",
-            "name": "Run Minecraft Server",
-            "request": "launch",
-            "mainClass": "net.minecraftforge.userdev.LaunchTesting",
-            "projectName": "SuperFactoryManager",
-            "cwd": "${workspaceFolder}/runServer",
-            "args": "--launchTarget forgeserveruserdev --gameDir .",
-            "vmArgs": "-Xmx4G -Dforge.logging.markers=REGISTRIES -Dforge.logging.console.level=debug -Dmixin.env.remapRefMap=true",
-            "env": {
-                "MOD_CLASSES": "${workspaceFolder}/build/classes/java/main;${workspaceFolder}/build/resources/main"
-            },
-            "preLaunchTask": "Gradle: Build"
-        },
-        {
-            "type": "java",
-            "name": "Debug Current Test",
-            "request": "launch",
-            "mainClass": "",
-            "projectName": "SuperFactoryManager"
+            "id": "sfmProjection",
+            "type": "promptString",
+            "description": "Exact projection key from source list (Minecraft version and features)",
+            "default": "sfm-dev/mc-1.19.2"
         }
     ]
 }

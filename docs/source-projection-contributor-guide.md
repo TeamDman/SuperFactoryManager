@@ -50,9 +50,15 @@ There is no automatic inverse transform from Java edits to Liquid templates. The
 
 Each generated root has ordinary Java, resources, build scripts and a Gradle wrapper. Contributors can use that standalone Gradle project without Rust. Automated work in this repository must follow `docs/AGENTS.md`: use native Rust build tooling rather than executing Gradle. Native `source project compile` and `jar` take exactly one of `--released-recipe <exact-recipe-id>` or `--dependency-profile rust-toolchain`, plus `--java-home <approved-sdk-directory>`. Release recipes retain their original locks. Development builds use the selected project's captured schema-4 profile; they do not borrow a release recipe or fabricate a version branch.
 
-The development native route has passed compilation and packaging for all ten supported Minecraft targets using the validated installed CLI. Older installed executables may lack these routes. The first NeoForm development build exposed a graph-boundary mismatch. Its narrow correction passes retained 1.20.2 and 26.1.2 graph checks, the full v41 Rust gate, fresh installation and all six NeoForm development JAR builds. Consult `source project jar --help` and the active plan before choosing a route. A successful JAR build does not establish a named native application-launch contract.
+The following native-build and latency results are historical evidence from the
+[oracle workflow](tasks/sfm-core-liquid-oracle-workflow-plan.md). They describe its
+recorded SDKs, binaries and source snapshots before later normalization. They do
+not qualify the CLI installed on 17 November or current candidate artifacts; use
+the [current candidate ledger](projection-migration/release-readiness.md).
 
-All 20 required text comparisons and generated-output checks pass. All ten previous-release native JARs pass practical published-JAR inventory checks, and all ten development JARs compile and package. Three representative partial-feature builds, the final Rust gate and CLI installation also pass. The installed CLI's twenty unchanged launches measure 963 ms p95; ten earlier real edit cycles measure 972 ms p95. Explicit content-index initialization remains separate at 4.76 seconds. Text matching does not prove compilation, GameTest execution, gameplay compatibility or publication readiness. Follow the [completed oracle workflow plan](tasks/sfm-core-liquid-oracle-workflow-plan.md) for per-target evidence and operational readiness.
+At that checkpoint, the development native route passed compilation and packaging for all ten supported Minecraft targets using the recorded CLI. Older installed executables may lack these routes. The first NeoForm development build exposed a graph-boundary mismatch. Its narrow correction passes retained 1.20.2 and 26.1.2 graph checks, the full v41 Rust gate, fresh installation and all six NeoForm development JAR builds. Consult `source project jar --help` and the active plan before choosing a route. A successful JAR build does not establish a named native application-launch contract.
+
+At that checkpoint, all 20 required text comparisons and generated-output checks passed. All ten previous-release native JARs pass practical published-JAR inventory checks, and all ten development JARs compile and package. Three representative partial-feature builds, the final Rust gate and CLI installation also pass. The recorded CLI's twenty unchanged launches measured 963 ms p95; ten earlier real edit cycles measured 972 ms p95. Explicit content-index initialization remains separate at 4.76 seconds. Text matching does not prove compilation, GameTest execution, gameplay compatibility or publication readiness. Follow the [completed oracle workflow plan](tasks/sfm-core-liquid-oracle-workflow-plan.md) for per-target evidence and operational readiness.
 
 ### Build a current projection without Gradle
 
@@ -133,6 +139,96 @@ smoke harness in the selected projection. Historical releases without that
 harness support ordinary launching, not that readiness test. Consult the
 [launch validation plan](tasks/projection-native-client-cutover.md) for tested
 targets and pending checks.
+
+### Use the projection tasks in VS Code
+
+Open `platform/minecraft` as the VS Code folder to use its `SFM:` tasks. Each task
+asks for an exact projection key and passes the repository root explicitly to the
+Rust CLI. The default is the declared `sfm-dev/mc-1.19.2` entry; change it to the
+projection you intend to build or run. Preview and synchronize the selected
+projection after editing the core templates. These tasks require a current
+`sfm-propagate-changes` executable on `PATH`.
+
+For Java debugging, start `SFM: Run Client with JDWP`. Once the client is running,
+use the attach configuration and enter the same projection key. It attaches on
+localhost port 5005 and reads Java sources from that projection. The folder's
+settings disable automatic Gradle import; the Liquid core is authoring input,
+not a Java source root.
+
+The selected GameTest task also asks for a test selector. The equivalent wrapper
+requires both the projection and selector, and works from any current directory:
+
+```powershell
+./platform/minecraft/Run-SelectedGameTests.ps1 -Projection sfm-dev/mc-1.19.2 -Pattern 'sfm:*'
+```
+
+For additional native runtime options, use `game-test run-server --help` and
+invoke the CLI directly.
+
+### Prepare release metadata for review
+
+Select one exact catalog projection and state the expected release version:
+
+```powershell
+sfm-propagate-changes --output-format json source release plan --repo-root . --projection sfm-4.35.0/mc-1.21.0 --expected-mod-version 4.35.0
+```
+
+Omit `--repo-root` to discover the containing checkout. Explicit roots may be
+absolute or non-traversing relative paths; parent (`..`) components are rejected.
+
+The command requires release environment, exactly the matching explicit
+`release_version_*` feature, current generated ownership, literal selected
+properties and one exact nonempty changelog section. It reads the selected
+projection's retained rendered inputs; branch names, global JAR settings and the
+flat Minecraft source tree supply no fallback. Stale or absent projections are
+reported without synchronization.
+
+The result records source metadata and input hashes. Target ID `1.21.0` remains
+separate from upstream Minecraft version `1.21`. The package loader comes from the
+validated build target; provider compatibility labeling is not selected here.
+Artifact readiness remains `not_assessed`: no compilation, JAR inspection,
+provider request, tag or publication occurs. Normal CLI logging remains enabled;
+automatic logs use the CLI application directory independently of invocation CWD.
+An explicit `--log-file` retains its usual caller-selected destination.
+
+Catalog checkouts reject legacy provider, collection and tag commands. Use the
+projection-specific preparation route below. Explicit historical checkouts retain
+their legacy workflows. The [migration plan](projection-migration/plan.md) records
+qualification and the remaining release evidence.
+
+### Prepare provider handoffs from one native artifact
+
+After a native release JAR build, inspect its exact artifact and provider handoff:
+
+```powershell
+sfm-propagate-changes --output-format json source release prepare --repo-root . --projection sfm-4.35.0/mc-1.19.2 --expected-mod-version 4.35.0 --jar "build/libs/release-review.jar" --curseforge-game-versions "./offline-game-versions.json"
+```
+
+`--jar` is relative to the selected projection and must name a direct `build/libs`
+JAR with its native packaging receipt. Older artifacts without that receipt need a
+native rebuild; a matching filename does not qualify them. Preparation rechecks
+current selected inputs, recipe/producer identity, retained artifact bytes and
+archive metadata. The receipt records local native provenance; it is unsigned and
+cannot authenticate evidence against a writer who can fabricate both files.
+
+Receipt creation never replaces an existing record. On Windows, an exclusive
+writer blocks readers until it writes, syncs and closes the receipt; the filename
+is visible while writing. Failure can leave partial or complete bytes. Independent
+verification decides whether the record qualifies. Preserve failed records and
+use a fresh `--output-name` for another build. Unix uses create-only atomic rename.
+
+The provider catalog is an explicitly supplied JSON array of CurseForge
+`id`, `name` and `gameVersionTypeID` observations. Missing or ambiguous mappings
+are rejected. Its hash is reported; no freshness or remote existence is inferred.
+Creation is the default. To prepare amendments, add `--operation amend`,
+`--modrinth-version-id <existing-version>` and
+`--curseforge-file-id <existing-file>`. Both existing IDs are required; no latest
+object is selected automatically.
+
+The result contains provider payloads and proposed collection/tag records. Git status and an existing tag object are reported for review; these observations
+do not qualify source-to-commit binding or authorize tag creation. Preparation performs no copy,
+tag creation, provider request or publication. Normal application-home logging
+remains enabled.
 
 ### Review one feature at a time
 
@@ -255,6 +351,11 @@ Run `clean` in its own invocation: this Forge configuration can prepare Minecraf
 The twenty-project static audit verifies required scripts, wrapper entry points and literal script references. It does not execute Gradle or prove dynamic dependency resolution. Use the wrapper and profile selected by that exact projection; do not copy build files from another Minecraft version.
 
 ## Adoption and historical reference
+
+The flat `platform/minecraft/src` tree and its root Gradle project were retired.
+Current tooling reads the Liquid core or an explicitly selected rendered
+projection. Root properties/toolchain metadata retained by compatibility tests
+is not a current release input.
 
 The snapshot-era `development-baselines`, `development-overlays`, `release-baselines`, `mc-version` and `projection-resources` trees have been retired. The old root `source-projection.json` is retained only as a test fixture. Current commands use `projections.json` and the Liquid core.
 

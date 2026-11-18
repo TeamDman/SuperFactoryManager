@@ -564,11 +564,9 @@ impl DependencySymbolIndexStore {
             .wrap_err("Failed to serialize dependency symbol index manifest")?
             .into_bytes();
         let layout = self.layout(&manifest.identity)?;
-        let version_root = layout
-            .concrete
-            .root
-            .parent()
-            .expect("identity directory always has a version-root parent");
+        let version_root = layout.concrete.root.parent().ok_or_else(|| {
+            eyre::eyre!("dependency index identity directory has no version root")
+        })?;
         fs::create_dir_all(version_root).wrap_err_with(|| {
             format!(
                 "Failed to create dependency symbol index root {}",

@@ -182,7 +182,9 @@ impl DevelopmentNfrtDependencies {
             "development profile requires one exact Minecraft version JSON pin"
         );
         self.exact_url(
-            matches[0].url.as_deref().expect("selected exact URL"),
+            matches[0].url.as_deref().ok_or_else(|| {
+                eyre::eyre!("selected Minecraft version JSON pin has no exact URL")
+            })?,
             false,
         )
     }

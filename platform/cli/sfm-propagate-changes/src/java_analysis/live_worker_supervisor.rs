@@ -342,13 +342,9 @@ impl LiveWorkerScheduler {
                 worker_limit: self.worker_limit,
             });
         }
-        let Some(key) = self.pending.keys().next().cloned() else {
+        let Some((key, range)) = self.pending.pop_first() else {
             return Ok(None);
         };
-        let range = self
-            .pending
-            .remove(&key)
-            .expect("selected pending shard should still exist");
         if self.running.insert(key.clone(), range).is_some() {
             return Err(LiveWorkerSchedulerError::DuplicateShardKey { key });
         }
@@ -362,13 +358,12 @@ impl LiveWorkerScheduler {
     ) -> Result<Vec<ScheduledShard>, LiveWorkerSchedulerError> {
         self.reject_if_terminal()?;
         let available = self.worker_limit - self.running.len();
-        let dispatch_count = available.min(self.pending.len());
-        let mut dispatched = Vec::with_capacity(dispatch_count);
-        for _ in 0..dispatch_count {
-            dispatched.push(
-                self.dispatch_one()?
-                    .expect("dispatch count should not exceed pending work"),
-            );
+        let mut dispatched = Vec::with_capacity(available.min(self.pending.len()));
+        for _ in 0..available {
+            let Some(shard) = self.dispatch_one()? else {
+                break;
+            };
+            dispatched.push(shard);
         }
         Ok(dispatched)
     }

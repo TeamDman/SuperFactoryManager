@@ -1,8 +1,11 @@
 //! Typed path, expression, and selector contracts shared with the game client.
 
 use std::cmp::Ordering;
-use std::fmt::{Display, Formatter};
-use std::path::{Component, Path, PathBuf};
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
 
 /// A stable parse failure suitable for machine-readable diagnostics.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -753,8 +756,10 @@ fn encode_component(value: &str) -> String {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
             answer.push(byte as char);
         } else {
-            use std::fmt::Write as _;
-            write!(&mut answer, "%{byte:02X}").expect("writing to String cannot fail");
+            const DIGITS: &[u8; 16] = b"0123456789ABCDEF";
+            answer.push('%');
+            answer.push(char::from(DIGITS[usize::from(byte >> 4)]));
+            answer.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
         }
     }
     answer
@@ -958,15 +963,12 @@ impl EntitySelector {
     }
 
     /// Construct the selector matching every entity in one domain.
-    ///
-    /// # Panics
-    ///
-    /// Panics only if the internal selector validator stops accepting the
-    /// domain-independent `all` node, which would violate this type's
-    /// constructor invariant.
     #[must_use]
     pub fn all(domain: SelectorDomain) -> Self {
-        Self::new(domain, SelectorNode::All).expect("all is valid in every selector domain")
+        Self {
+            domain,
+            node: SelectorNode::All,
+        }
     }
 
     /// Construct a non-empty union of selectors from one domain.

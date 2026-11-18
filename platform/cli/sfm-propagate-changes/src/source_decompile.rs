@@ -42,7 +42,7 @@ pub(crate) fn configure_decompile_sources(
     decompiler_component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
     roots: Vec<String>,
 ) -> eyre::Result<DecompileSourceProviderV3> {
-    let binary = inventory.artifact(component);
+    let binary = inventory.artifact(component)?;
     derive_locked_decompile_provider(inventory, binary, decompiler_component, "vineflower", roots)
 }
 
@@ -57,14 +57,14 @@ pub(crate) fn derive_locked_decompile_provider(
     roots: Vec<String>,
 ) -> eyre::Result<DecompileSourceProviderV3> {
     let runtime = VineflowerRunner.prepare(inventory)?;
-    Ok(derive_locked_decompile_provider_with_runtime(
+    derive_locked_decompile_provider_with_runtime(
         inventory,
         binary,
         decompiler_component,
         provider_id,
         roots,
         &runtime.runtime_identity,
-    ))
+    )
 }
 
 pub(crate) fn derive_locked_decompile_provider_with_runtime(
@@ -74,10 +74,10 @@ pub(crate) fn derive_locked_decompile_provider_with_runtime(
     provider_id: &str,
     roots: Vec<String>,
     runtime_identity: &str,
-) -> DecompileSourceProviderV3 {
-    let decompiler = inventory.artifact(decompiler_component);
+) -> eyre::Result<DecompileSourceProviderV3> {
+    let decompiler = inventory.artifact(decompiler_component)?;
     let fingerprint = decompile_fingerprint(binary.hash, decompiler.hash, runtime_identity);
-    DecompileSourceProviderV3 {
+    Ok(DecompileSourceProviderV3 {
         id: provider_id.to_owned(),
         declaration: DecompileSourceDeclarationV3 { roots },
         derived_checks: DecompileSourceDerivedChecksV3 {
@@ -86,7 +86,7 @@ pub(crate) fn derive_locked_decompile_provider_with_runtime(
             tree_cache_path: SourceCacheLayout::decompiled(binary.hash, &fingerprint),
             fingerprint,
         },
-    }
+    })
 }
 
 pub(crate) fn acquire_locked_decompiled_sources(
@@ -128,7 +128,7 @@ fn acquire_with_runner(
                 provider.derived_checks.decompiler_artifact_id
             )
         })?;
-    let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+    let tree = inventory.local_path(&provider.derived_checks.tree_cache_path)?;
     let _lock = acquire_source_lock(&tree)?;
     let prepared = runner.prepare(inventory)?;
     let fingerprint =
@@ -169,8 +169,8 @@ pub(crate) fn acquire_locked_artifact(
     cancellation_token: &CancellationToken,
     fetcher: &dyn PayloadFetcher,
 ) -> eyre::Result<PathBuf> {
-    let path = inventory.local_path(&artifact.cache_path);
-    if inventory.locked_file_status(&artifact.cache_path, artifact.hash)
+    let path = inventory.local_path(&artifact.cache_path)?;
+    if inventory.locked_file_status(&artifact.cache_path, artifact.hash)?
         == AcquisitionStatus::Acquired
     {
         return Ok(path);
@@ -693,7 +693,9 @@ mod tests {
         )
         .expect("second materialization reuses completed tree");
 
-        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let tree = inventory
+            .local_path(&provider.derived_checks.tree_cache_path)
+            .unwrap();
         assert_eq!(runner.runs.get(), 1);
         assert!(tree.join("src/Example.java").is_file());
         assert_eq!(
@@ -719,7 +721,9 @@ mod tests {
         );
         let token = CancellationToken::new();
         acquire_with_runner(&inventory, &provider, &token, &NeverFetcher, &runner).unwrap();
-        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let tree = inventory
+            .local_path(&provider.derived_checks.tree_cache_path)
+            .unwrap();
         let source = tree.join("src/Example.java");
         let original = fs::read(&source).unwrap();
         let held = fs::File::open(&source).unwrap();
@@ -783,7 +787,9 @@ mod tests {
             inventory.artifact_by_id("decompiler").unwrap().hash,
             "fixture Java 17",
         );
-        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let tree = inventory
+            .local_path(&provider.derived_checks.tree_cache_path)
+            .unwrap();
         fs::create_dir_all(tree.join("src")).unwrap();
         let source = tree.join("src/Example.java");
         fs::write(&source, b"class Existing {}").unwrap();
@@ -813,7 +819,7 @@ mod tests {
             }
         }
         for (cache_path, bytes) in writes {
-            let path = inventory.local_path(&cache_path);
+            let path = inventory.local_path(&cache_path).unwrap();
             fs::create_dir_all(path.parent().expect("artifact parent")).unwrap();
             fs::write(path, bytes).unwrap();
         }

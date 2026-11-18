@@ -117,10 +117,9 @@ fn export_artifact(
         Ok(bytes) if bytes.len() as u64 == artifact.bytes && sha256(&bytes) == expected => {
             cancellation.bail_if_cancelled()?;
             put_bytes(stage, &destination, &bytes, parent, report, max_bytes)?;
-            let row = report
-                .files
-                .get_mut(&destination)
-                .expect("staged checked artifact");
+            let row = report.files.get_mut(&destination).ok_or_else(|| {
+                eyre::eyre!("Staged NFRT artifact has no manifest entry: {destination}")
+            })?;
             row.expected_hash = Some(expected.clone());
             row.authenticated_parents.insert(parent.into(), expected);
         }

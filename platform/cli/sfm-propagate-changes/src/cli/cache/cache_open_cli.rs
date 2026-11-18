@@ -1,4 +1,4 @@
-use crate::paths::CACHE_DIR;
+use crate::paths::CacheHome;
 use facet::Facet;
 
 /// Arguments for opening the cache directory.
@@ -10,7 +10,7 @@ impl CacheOpenArgs {
     ///
     /// Returns an error if the cache directory cannot be created or opened.
     pub fn invoke(self) -> eyre::Result<()> {
-        let path = &CACHE_DIR.0;
+        let path = &CacheHome::current()?.0;
         if !path.exists() {
             std::fs::create_dir_all(path)?;
         }

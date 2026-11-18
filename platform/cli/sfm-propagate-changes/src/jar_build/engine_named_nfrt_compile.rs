@@ -198,7 +198,10 @@ fn resolve_development_minecraft_plan(
     let source = development_neoform_source(project, profile)?;
     let request = source.dependencies.version_json_request()?;
     let pin = source.dependencies.artifact_pin(&request)?;
-    let url = pin.url.as_deref().expect("exact version JSON URL");
+    let url = pin
+        .url
+        .as_deref()
+        .ok_or_else(|| eyre::eyre!("Development version JSON pin has no exact URL"))?;
     let minecraft = &source.dependencies.receipt().minecraft_version;
     let path = frozen_version_metadata_path(minecraft_cache, minecraft, url)?;
     let raw = acquire_named_frozen_download(
@@ -374,7 +377,9 @@ fn acquire_named_neoform_inputs(
 ) -> eyre::Result<super::nfrt_launch_contract::PreparedNfrtInvocationInput> {
     let project = source.owner();
     let catalog = source.catalog();
-    let trust = super::java_trust::JavaTrust::from_environment_for_major(context.plan.java.major_version)?.map(Arc::new);
+    let trust =
+        super::java_trust::JavaTrust::from_environment_for_major(context.plan.java.major_version)?
+            .map(Arc::new);
     context.plan.recheck_named_inputs()?;
     context.plan.recheck_named_sdk()?;
     let java = &context.plan.java;

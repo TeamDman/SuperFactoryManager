@@ -20,6 +20,7 @@ use crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3;
 use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
 use std::sync::Arc;
 
+#[cfg(test)]
 fn fixture(
     version: &str,
     edit: impl FnOnce(&mut ArtifactLockfileV4),
@@ -101,6 +102,7 @@ fn fixture(
     Ok((fixture, plan))
 }
 
+#[cfg(test)]
 pub(super) fn report(version: &str) -> super::preflight_report::PreflightReport {
     let pins: Vec<_> = COMMON_PINS
         .iter()
@@ -157,6 +159,7 @@ pub(super) fn report(version: &str) -> super::preflight_report::PreflightReport 
     report
 }
 
+#[cfg(test)]
 fn install_hash_only_sdk(plan: &mut BuildPlan, root: &std::path::Path) -> eyre::Result<()> {
     let home = root.join("fake-sdk");
     let java = if cfg!(windows) {

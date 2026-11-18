@@ -4,10 +4,12 @@ use crate::cli::output::CliOutput;
 use crate::java_analysis::DefinitionAtPositionEngine;
 use crate::java_analysis::DefinitionAtPositionEngineLimits;
 use crate::java_analysis::DefinitionAtPositionRequest;
+use crate::java_analysis::DefinitionAtPositionResult;
 use crate::java_analysis::DefinitionDocumentInput;
 use crate::java_analysis::DefinitionTextPositionInput;
 use crate::java_analysis::DefinitionWorkspaceIdentityInput;
 use crate::java_analysis::JavaSymbolSelector;
+use crate::java_analysis::SymbolDefinitionOutput;
 use crate::java_analysis::blake3_content_hash;
 use crate::java_analysis::definition_workspace_fingerprint;
 use facet::Facet;
@@ -102,7 +104,7 @@ impl SymbolShowDefinitionArgs {
                 };
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
-                    |report| Ok(report.to_csv()),
+                    SymbolDefinitionOutput::to_csv,
                     exit_code,
                 ))
             }
@@ -177,7 +179,7 @@ impl SymbolShowDefinitionArgs {
                 let exit_code = report.status();
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
-                    |report| Ok(report.to_csv()),
+                    DefinitionAtPositionResult::to_csv,
                     exit_code,
                 ))
             }

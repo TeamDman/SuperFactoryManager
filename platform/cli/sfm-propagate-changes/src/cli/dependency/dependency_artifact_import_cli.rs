@@ -134,7 +134,7 @@ fn repin_source_build(
     let projected = project
         .artifacts()
         .get("sfm-toolchain.lock.json")
-        .expect("selected input has a projected artifact");
+        .ok_or_else(|| eyre::eyre!("Selected toolchain lock input has no projected artifact"))?;
     ensure!(
         projected.overlay.is_none(),
         "manual pin update requires the primary checked authored lock"
@@ -153,7 +153,7 @@ fn repin_source_build(
         .iter()
         .find(|component| component.id == component_id)
         .ok_or_else(|| eyre::eyre!("Unknown component {dependency_id}/{component_id}"))?;
-    let artifact = inventory.artifact(component);
+    let artifact = inventory.artifact(component)?;
     ensure!(
         artifact.provenance == ArtifactProvenanceV3::SourceBuild
             && artifact.source_git.is_some()
@@ -305,7 +305,7 @@ fn admit_exact_source_build(
         .iter()
         .find(|component| component.id == component_id)
         .ok_or_else(|| eyre::eyre!("Unknown component {dependency_id}/{component_id}"))?;
-    let artifact = inventory.artifact(component);
+    let artifact = inventory.artifact(component)?;
     ensure!(
         artifact.owner.as_ref().is_some_and(
             |owner| owner.dependency_id == dependency_id && owner.component_id == component_id
@@ -336,21 +336,7 @@ fn admit_exact_source_build(
         sha256(&receipt) == *pin,
         "producer receipt SHA-256 mismatch"
     );
-    let staged = tempfile::tempdir()?;
-    let staged_receipt = staged.path().join(format!("producer-receipts/{pin}.json"));
-    fs::create_dir_all(staged_receipt.parent().expect("receipt has parent"))?;
-    fs::write(&staged_receipt, &receipt)?;
-    let staged_jar = staged.path().join("selected.jar");
-    fs::write(&staged_jar, &jar)?;
-    source_build_receipt::verify(
-        staged.path(),
-        &staged_jar,
-        artifact.coordinate.as_deref(),
-        artifact.hash,
-        artifact.source_git.as_ref(),
-        artifact.source_build.as_ref(),
-    )?
-    .ok_or_else(|| eyre::eyre!("source-built artifact lacks a verified producer receipt"))?;
+    verify_supplied_source_build(artifact, &jar, &receipt, pin)?;
     cancellation.bail_if_cancelled()?;
     let cache = inventory.cache_home.join("minecraft-toolchain");
     ensure!(
@@ -364,16 +350,20 @@ fn admit_exact_source_build(
             && component.derived_checks.cache_path == artifact.cache_path,
         "manual source-build destination is not the exact locked producer output"
     );
-    let destination = inventory.local_path(&artifact.cache_path);
+    let destination = inventory.local_path(&artifact.cache_path)?;
     ensure!(
         destination.starts_with(&cache),
         "producer destination escapes managed cache"
     );
     check_existing_ancestors(&destination, &cache)?;
-    fs::create_dir_all(destination.parent().expect("artifact has parent"))?;
+    fs::create_dir_all(
+        destination
+            .parent()
+            .ok_or_else(|| eyre::eyre!("Producer artifact destination has no parent directory"))?,
+    )?;
     let name = destination
         .file_name()
-        .expect("artifact has name")
+        .ok_or_else(|| eyre::eyre!("Producer artifact destination has no filename"))?
         .to_string_lossy();
     let lock = destination.with_file_name(format!("{name}.lock"));
     let _writer = ArtifactLock::acquire_with_cancellation(
@@ -396,6 +386,54 @@ fn admit_exact_source_build(
     )?
     .ok_or_else(|| eyre::eyre!("admitted output lacks verified provenance"))?;
     cancellation.bail_if_cancelled()?;
+    record_exact_source_build(
+        inventory,
+        artifact,
+        (dependency_id, component_id),
+        jar_sha256,
+        pin,
+        destination,
+    )
+}
+
+fn verify_supplied_source_build(
+    artifact: &ArtifactV3,
+    jar: &[u8],
+    receipt: &[u8],
+    pin: &str,
+) -> eyre::Result<()> {
+    let staged = tempfile::tempdir()?;
+    let staged_receipt = staged.path().join(format!("producer-receipts/{pin}.json"));
+    fs::create_dir_all(
+        staged_receipt
+            .parent()
+            .ok_or_else(|| eyre::eyre!("Staged producer receipt has no parent directory"))?,
+    )?;
+    fs::write(&staged_receipt, receipt)?;
+    let staged_jar = staged.path().join("selected.jar");
+    fs::write(&staged_jar, jar)?;
+    source_build_receipt::verify(
+        staged.path(),
+        &staged_jar,
+        artifact.coordinate.as_deref(),
+        artifact.hash,
+        artifact.source_git.as_ref(),
+        artifact.source_build.as_ref(),
+    )?
+    .ok_or_else(|| eyre::eyre!("source-built artifact lacks a verified producer receipt"))?;
+    Ok(())
+}
+
+fn record_exact_source_build(
+    inventory: &DependencyInventory,
+    artifact: &ArtifactV3,
+    target: (&str, &str),
+    jar_sha256: String,
+    pin: &str,
+    destination: PathBuf,
+) -> eyre::Result<AdmissionReport> {
+    let (dependency_id, component_id) = target;
+    let cache = inventory.cache_home.join("minecraft-toolchain");
     let record = ManualAdmissionRecord {
         schema: "sfm:manual-source-build-admission@1".to_owned(),
         dependency: dependency_id.to_owned(),
@@ -403,12 +441,12 @@ fn admit_exact_source_build(
         coordinate: artifact
             .coordinate
             .clone()
-            .expect("receipt verified coordinate"),
+            .ok_or_else(|| eyre::eyre!("Verified producer artifact has no coordinate"))?,
         artifact_id: artifact.id.clone(),
         lock_sha256: sha256(inventory.original_input.as_bytes()),
         jar_sha256: jar_sha256.clone(),
         locked_content_hash: artifact.hash.to_string(),
-        producer_receipt_sha256: pin.clone(),
+        producer_receipt_sha256: pin.to_owned(),
         method: "user-supplied-exact-file".to_owned(),
     };
     let record_bytes = facet_json::to_string_pretty(&record)?.into_bytes();
@@ -493,7 +531,9 @@ fn sha256(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::branch_targets::{BranchName, WorktreePath, WorktreeTarget};
+    use crate::branch_targets::BranchName;
+    use crate::branch_targets::WorktreePath;
+    use crate::branch_targets::WorktreeTarget;
     use crate::paths::CacheHome;
     use crate::toolchain_lockfile_schema::read_current;
 
@@ -592,19 +632,22 @@ mod tests {
     #[test]
     fn wrong_jar_or_receipt_is_refused_before_publication() {
         let (temp, inventory, mut args) = fixture();
-        let destination = inventory.local_path(
-            &inventory
-                .artifact(
-                    &inventory
-                        .dependency("mekanism")
-                        .unwrap()
-                        .components
-                        .iter()
-                        .find(|component| component.id == "main")
-                        .unwrap(),
-                )
-                .cache_path,
-        );
+        let destination = inventory
+            .local_path(
+                &inventory
+                    .artifact(
+                        &inventory
+                            .dependency("mekanism")
+                            .unwrap()
+                            .components
+                            .iter()
+                            .find(|component| component.id == "main")
+                            .unwrap(),
+                    )
+                    .expect("checked fixture inventory")
+                    .cache_path,
+            )
+            .expect("checked fixture cache path");
         let wrong = temp.path().join("wrong.jar");
         fs::write(&wrong, b"not the locked jar").unwrap();
         args.file = wrong;
@@ -626,19 +669,22 @@ mod tests {
         let token = CancellationToken::new();
         token.request_cancel("test interruption");
         assert!(admit_exact_source_build(&inventory, &args, &token).is_err());
-        let destination = inventory.local_path(
-            &inventory
-                .artifact(
-                    &inventory
-                        .dependency("mekanism")
-                        .unwrap()
-                        .components
-                        .iter()
-                        .find(|component| component.id == "main")
-                        .unwrap(),
-                )
-                .cache_path,
-        );
+        let destination = inventory
+            .local_path(
+                &inventory
+                    .artifact(
+                        &inventory
+                            .dependency("mekanism")
+                            .unwrap()
+                            .components
+                            .iter()
+                            .find(|component| component.id == "main")
+                            .unwrap(),
+                    )
+                    .expect("checked fixture inventory")
+                    .cache_path,
+            )
+            .expect("checked fixture cache path");
         assert!(!destination.exists());
         fs::create_dir_all(destination.parent().unwrap()).unwrap();
         fs::write(&destination, b"corrupt").unwrap();
@@ -656,7 +702,9 @@ mod tests {
             .iter()
             .find(|component| component.id == "main")
             .unwrap();
-        let artifact = inventory.artifact(component);
+        let artifact = inventory
+            .artifact(component)
+            .expect("checked fixture inventory");
         let pin = artifact
             .source_build
             .as_ref()

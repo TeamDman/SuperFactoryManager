@@ -428,7 +428,9 @@ impl SymbolIndexArgs {
             )?
         } else {
             crate::jar_build::engine::select_branch_source_cache(
-                branch.as_ref().expect("one selection checked"),
+                branch.as_ref().ok_or_else(|| {
+                    eyre::eyre!("symbol index requires exactly one of --branch and --project-root")
+                })?,
                 self.cache_root.as_deref(),
                 cancellation_token,
             )?
@@ -1412,7 +1414,7 @@ fn preflight_index_sources(
         filter,
         SourceProviderSelection::PreferredMatching,
     )?;
-    append_locked_artifact_source_preflight(inventory, locked_artifact_sources, &mut preflight);
+    append_locked_artifact_source_preflight(inventory, locked_artifact_sources, &mut preflight)?;
     Ok(preflight)
 }
 
@@ -1429,7 +1431,7 @@ fn preflight_resolved_index_sources(
     if materialized_classfile_stub_tree_matches(&resolved.inventory, source, &preflight)? {
         let tree = resolved
             .inventory
-            .local_path(&source.provider.derived_checks.tree_cache_path);
+            .local_path(&source.provider.derived_checks.tree_cache_path)?;
         promote_materialized_classfile_stub_source(
             &mut preflight,
             &source.target,

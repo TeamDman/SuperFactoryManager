@@ -95,7 +95,7 @@ impl ArtifactLockfileV2 {
         let hints = self
             .migration_hints
             .as_ref()
-            .expect("diagnostics require migration hints");
+            .ok_or_else(|| eyre::eyre!("migration hints disappeared after diagnostics"))?;
         let (repositories, repository_ids) = migrate_repositories(self);
         let artifact_ids = create_artifact_ids(&self.artifacts);
         let references = collect_component_artifact_references(hints, self)?;
@@ -105,14 +105,13 @@ impl ArtifactLockfileV2 {
         let lockfile = ArtifactLockfileV3 {
             schema_version: SCHEMA_VERSION,
             platform: PlatformV3 {
-                minecraft_dependency: hints
-                    .minecraft_dependency_id
-                    .clone()
-                    .expect("diagnostics require Minecraft dependency ID"),
+                minecraft_dependency: hints.minecraft_dependency_id.clone().ok_or_else(|| {
+                    eyre::eyre!("migration hints have no Minecraft dependency ID")
+                })?,
                 loader_dependency: hints
                     .loader_dependency_id
                     .clone()
-                    .expect("diagnostics require loader dependency ID"),
+                    .ok_or_else(|| eyre::eyre!("migration hints have no loader dependency ID"))?,
             },
             policy: LockfilePolicyV3 {
                 allow_local_artifact_cache: self.allow_local_artifact_cache,
@@ -191,10 +190,9 @@ fn collect_component_artifact_references(
                 dependency_id: dependency.id.clone(),
                 component_id: component.id.clone(),
                 artifact_index,
-                scopes: component
-                    .scopes
-                    .clone()
-                    .expect("diagnostics require semantic scopes"),
+                scopes: component.scopes.clone().ok_or_else(|| {
+                    eyre::eyre!("component {} has no semantic scopes", component.id)
+                })?,
             });
         }
     }
@@ -212,7 +210,7 @@ fn component_artifact_index(
         .legacy_dependency_indices
         .first()
         .and_then(|index| lockfile.dependencies.get(*index))
-        .expect("diagnostics require component artifact evidence");
+        .ok_or_else(|| eyre::eyre!("component {} has no legacy artifact evidence", component.id))?;
     lockfile
         .artifacts
         .iter()
@@ -244,11 +242,18 @@ fn migrate_dependencies(
                             reference.dependency_id == dependency.id
                                 && reference.component_id == component.id
                         })
-                        .expect("component reference collected above");
+                        .ok_or_else(|| {
+                            eyre::eyre!(
+                                "component {}/{} has no collected artifact reference",
+                                dependency.id,
+                                component.id
+                            )
+                        })?;
                     let artifact = &lockfile.artifacts[reference.artifact_index];
-                    let acquisition = component.acquisition.clone().unwrap_or_else(|| {
-                        derive_acquisition(component, lockfile, artifact, repository_ids)
-                    });
+                    let acquisition = match &component.acquisition {
+                        Some(acquisition) => acquisition.clone(),
+                        None => derive_acquisition(component, lockfile, artifact, repository_ids)?,
+                    };
                     let resolved_coordinate = component
                         .legacy_dependency_indices
                         .first()
@@ -261,12 +266,12 @@ fn migrate_dependencies(
                             acquisition,
                             scopes: reference.scopes.clone(),
                             bundle: None,
-                            artifact_treatment: component
-                                .artifact_treatment
-                                .expect("diagnostics require artifact treatment"),
-                            data_run_policy: component
-                                .data_run_policy
-                                .expect("diagnostics require data-run policy"),
+                            artifact_treatment: component.artifact_treatment.ok_or_else(|| {
+                                eyre::eyre!("component {} has no artifact treatment", component.id)
+                            })?,
+                            data_run_policy: component.data_run_policy.ok_or_else(|| {
+                                eyre::eyre!("component {} has no data-run policy", component.id)
+                            })?,
                         },
                         derived_checks: ComponentDerivedChecksV3 {
                             artifact_id: artifact_ids[reference.artifact_index].clone(),
@@ -282,10 +287,10 @@ fn migrate_dependencies(
                 id: dependency.id.clone(),
                 kind: dependency
                     .kind
-                    .expect("diagnostics require dependency kind"),
+                    .ok_or_else(|| eyre::eyre!("dependency {} has no kind", dependency.id))?,
                 role: dependency
                     .role
-                    .expect("diagnostics require dependency role"),
+                    .ok_or_else(|| eyre::eyre!("dependency {} has no role", dependency.id))?,
                 display_name: dependency.display_name.clone(),
                 project_url: dependency.project_url.clone(),
                 notes: dependency.notes.clone(),
@@ -300,32 +305,39 @@ fn derive_acquisition(
     lockfile: &ArtifactLockfileV2,
     artifact: &ArtifactLockEntryV2,
     repository_ids: &BTreeMap<&str, String>,
-) -> ComponentAcquisitionV3 {
+) -> eyre::Result<ComponentAcquisitionV3> {
     let row = component
         .legacy_dependency_indices
         .first()
         .and_then(|index| lockfile.dependencies.get(*index))
-        .expect("diagnostics require rows for derived acquisition");
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "component {} has no legacy row for derived acquisition",
+                component.id
+            )
+        })?;
     let repository_name = artifact
         .repository
         .as_deref()
-        .expect("diagnostics require artifact repository");
+        .ok_or_else(|| eyre::eyre!("artifact has no repository for derived acquisition"))?;
     let repository_id = repository_ids
         .get(repository_name)
         .cloned()
-        .expect("diagnostics require known artifact repository");
+        .ok_or_else(|| eyre::eyre!("artifact repository {repository_name} is unknown"))?;
     if let Some(curse) = parse_curse_coordinate(&row.notation) {
-        return ComponentAcquisitionV3::CurseForge(CurseForgeAcquisitionV3 {
-            project_id: curse.project_id,
-            file_id: curse.file_id,
-            slug: curse.slug.to_owned(),
-            repository_id,
-        });
+        return Ok(ComponentAcquisitionV3::CurseForge(
+            CurseForgeAcquisitionV3 {
+                project_id: curse.project_id,
+                file_id: curse.file_id,
+                slug: curse.slug.to_owned(),
+                repository_id,
+            },
+        ));
     }
-    ComponentAcquisitionV3::Maven(MavenAcquisitionV3 {
+    Ok(ComponentAcquisitionV3::Maven(MavenAcquisitionV3 {
         requested_coordinate: row.notation.clone(),
         repository_id,
-    })
+    }))
 }
 
 fn migrate_artifacts(
@@ -671,10 +683,10 @@ fn validate_component_evidence(
         .iter()
         .filter_map(|index| legacy.get(*index).map(|row| (*index, row)))
         .collect();
-    if rows.is_empty() {
+    let Some((_, first_row)) = rows.first() else {
         validate_component_without_rows(component, path, diagnostics);
         return;
-    }
+    };
 
     let requested: BTreeSet<&str> = rows.iter().map(|(_, row)| row.notation.as_str()).collect();
     let resolved: BTreeSet<&str> = rows
@@ -718,9 +730,9 @@ fn validate_component_evidence(
         return;
     }
 
-    let requested = *requested.first().expect("one requested coordinate");
-    let resolved = *resolved.first().expect("one resolved coordinate");
-    let cache_path = *cache_paths.first().expect("one cache path");
+    let requested = first_row.notation.as_str();
+    let resolved = first_row.resolved_notation.as_str();
+    let cache_path = &first_row.cache_path;
     if component.acquisition.is_none() {
         validate_acquisition(requested, path, &rows, diagnostics);
     }

@@ -234,10 +234,9 @@ impl JavaDefinitionLinker {
             if self.members.insert(key.clone(), member.clone()).is_some() {
                 eyre::bail!("duplicate Java raw member fact {key:?}");
             }
-            let scope = self
-                .scopes
-                .get(&sequence)
-                .expect("scope is inserted before member registration");
+            let scope = self.scopes.get(&sequence).ok_or_else(|| {
+                eyre::eyre!("Java member resolution scope is missing for sequence {sequence}")
+            })?;
             for raw_type in member.raw_types() {
                 for candidate in candidate_type_names(raw_type, &key.owner, scope) {
                     self.watchers
@@ -586,14 +585,14 @@ impl JavaDefinitionLinker {
                     .map(|declaration| declaration.qualified_name.clone()),
             );
         }
-        match visible.len() {
-            1 => Ok(visible
-                .into_iter()
-                .next()
-                .expect("one visible declaration exists")),
-            0 if inaccessible => Err(TypeResolutionFailure::Inaccessible(display_name.to_owned())),
-            0 => Err(TypeResolutionFailure::Unresolved(display_name.to_owned())),
-            _ => Err(TypeResolutionFailure::Ambiguous(display_name.to_owned())),
+        let mut visible = visible.into_iter();
+        match (visible.next(), visible.next()) {
+            (Some(name), None) => Ok(name),
+            (None, _) if inaccessible => {
+                Err(TypeResolutionFailure::Inaccessible(display_name.to_owned()))
+            }
+            (None, _) => Err(TypeResolutionFailure::Unresolved(display_name.to_owned())),
+            (Some(_), Some(_)) => Err(TypeResolutionFailure::Ambiguous(display_name.to_owned())),
         }
     }
 }

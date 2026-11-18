@@ -270,13 +270,24 @@ impl ArtifactLockfileV4 {
                 .dependencies
                 .iter_mut()
                 .find(|candidate| candidate.id == dependency.id)
-                .expect("effective dependencies originate in the maintained v4 document");
+                .ok_or_else(|| {
+                    eyre::eyre!(
+                        "effective dependency {} is missing from the maintained v4 document",
+                        dependency.id
+                    )
+                })?;
             for component in dependency.components {
                 let maintained_component = maintained_dependency
                     .components
                     .iter_mut()
                     .find(|candidate| candidate.id == component.id)
-                    .expect("effective components originate in the maintained v4 document");
+                    .ok_or_else(|| {
+                        eyre::eyre!(
+                            "effective component {} is missing from maintained dependency {}",
+                            component.id,
+                            dependency.id
+                        )
+                    })?;
                 maintained_component
                     .derived_checks
                     .clone_from(&component.derived_checks);

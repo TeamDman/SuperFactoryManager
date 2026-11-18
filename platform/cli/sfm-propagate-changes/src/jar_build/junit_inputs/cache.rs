@@ -55,7 +55,9 @@ pub(super) fn verify_all(
                     },
                     format!("{error:#}"),
                 );
-                let issue = report.issues.last_mut().expect("just appended issue");
+                let issue = report.issues.last_mut().ok_or_else(|| {
+                    eyre::eyre!("JUnit artifact failure did not produce a preflight issue")
+                })?;
                 issue.target_ids = target_ids;
                 issue.coordinate = Some(pin.coordinate.clone());
                 issue.path = Some(cache_path(cache, &pin.coordinate)?.display().to_string());

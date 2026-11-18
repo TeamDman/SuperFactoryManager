@@ -270,18 +270,41 @@ pub(crate) fn select_named_pinned_sdk(
     let mut image = crate::jdk_artifact_cache::acquire_verified_pinned_jbrsdk_zip(
         pin, artifact, &cache, false,
     )?;
-    tracing::info!(phase = "warm_sdk_acquire_image", elapsed_ms = image_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_sdk_acquire_image",
+        elapsed_ms = image_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     let preflight_started = std::time::Instant::now();
     native_cache_root::NativeCacheRoot::preflight_for_verified_pinned_sdk(
-        root, repository, source_project, &mut image, pin, artifact,
+        root,
+        repository,
+        source_project,
+        &mut image,
+        pin,
+        artifact,
     )?;
-    tracing::info!(phase = "warm_sdk_root_preflight", elapsed_ms = preflight_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_sdk_root_preflight",
+        elapsed_ms = preflight_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     let home = image.home().to_path_buf();
     let owner_started = std::time::Instant::now();
     let owner = native_cache_root::NativeCacheRoot::acquire_for_verified_pinned_sdk(
-        root, repository, source_project, image, pin, artifact, cancellation,
+        root,
+        repository,
+        source_project,
+        image,
+        pin,
+        artifact,
+        cancellation,
     )?;
-    tracing::info!(phase = "warm_sdk_owner_capture", elapsed_ms = owner_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_sdk_owner_capture",
+        elapsed_ms = owner_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     let resolved = crate::jdk::resolve_pinned_java_from_verified_home(&home, pin, artifact)?;
     eyre::ensure!(
         resolved.home.as_deref() == Some(home.as_path()),
@@ -301,7 +324,11 @@ pub(crate) fn select_named_pinned_sdk(
         required_major,
         cancellation,
     )?;
-    tracing::info!(phase = "warm_sdk_selection_recheck", elapsed_ms = final_started.elapsed().as_millis(), "warm_run_stage");
+    tracing::info!(
+        phase = "warm_sdk_selection_recheck",
+        elapsed_ms = final_started.elapsed().as_millis(),
+        "warm_run_stage"
+    );
     Ok(Some(selected))
 }
 
@@ -354,10 +381,12 @@ mod named_pinned_sdk_selection_tests {
             explain_rebuild: false,
             wait_for_build_lock: false,
         };
-        assert!(selected_named_cache_owner(&wrong_root, &identity, &cancellation)
-            .unwrap_err()
-            .to_string()
-            .contains("differs from its selected owner"));
+        assert!(
+            selected_named_cache_owner(&wrong_root, &identity, &cancellation)
+                .unwrap_err()
+                .to_string()
+                .contains("differs from its selected owner")
+        );
         let mut changed_pin = selected.pin.clone();
         changed_pin.version.push_str("-different");
         let changed = NamedPinnedSdk {
@@ -368,10 +397,13 @@ mod named_pinned_sdk_selection_tests {
             artifact: selected.artifact.clone(),
             home: selected.home.clone(),
         };
-        assert!(changed.recheck_lock(&lockfile, 17, &cancellation)
-            .unwrap_err()
-            .to_string()
-            .contains("pin changed"));
+        assert!(
+            changed
+                .recheck_lock(&lockfile, 17, &cancellation)
+                .unwrap_err()
+                .to_string()
+                .contains("pin changed")
+        );
         fs::write(&lockfile, b"changed lock bytes")?;
         assert!(selected.recheck_lock(&lockfile, 17, &cancellation).is_err());
         Ok(())
@@ -1629,32 +1661,27 @@ fn named_sdk_identity(java: &JavaPlan) -> eyre::Result<String> {
         let spec = java.pin_spec_identity.as_deref().ok_or_else(|| {
             eyre::eyre!("Pinned SDK requires its verified portable spec identity")
         })?;
-        let pin_url = java.pin_url.as_deref().ok_or_else(|| {
-            eyre::eyre!("Pinned SDK requires its exact selected archive URL")
-        })?;
-        let pin_sha512 = java.pin_sha512.as_deref().ok_or_else(|| {
-            eyre::eyre!("Pinned SDK requires its exact selected archive SHA-512")
-        })?;
+        let pin_url = java
+            .pin_url
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("Pinned SDK requires its exact selected archive URL"))?;
+        let pin_sha512 = java
+            .pin_sha512
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("Pinned SDK requires its exact selected archive SHA-512"))?;
         eyre::ensure!(
             spec.starts_with("sha256:") && pin_sha512.len() == 128,
             "Pinned SDK spec or archive identity is malformed"
         );
-        let expected_java = home.join("bin").join(if cfg!(windows) {
-            "java.exe"
-        } else {
-            "java"
-        });
+        let expected_java = home
+            .join("bin")
+            .join(if cfg!(windows) { "java.exe" } else { "java" });
         eyre::ensure!(
             java.executable == expected_java,
             "Pinned SDK executable is not the selected home Java"
         );
         let mut evidence = format!("sfm:native_sdk_identity@2\nmajor={}\n", java.major_version);
-        for field in [
-            spec,
-            pin_url,
-            pin_sha512,
-            java.version_output.as_str(),
-        ] {
+        for field in [spec, pin_url, pin_sha512, java.version_output.as_str()] {
             writeln!(evidence, "{}:{field}", field.len())?;
         }
         for (relative, path) in [
@@ -1717,11 +1744,9 @@ mod portable_pinned_sdk_identity_tests {
     fn fixture(home: &Path, spec: &str) -> eyre::Result<JavaPlan> {
         fs::create_dir_all(home.join("bin"))?;
         fs::create_dir_all(home.join("lib"))?;
-        let executable = home.join("bin").join(if cfg!(windows) {
-            "java.exe"
-        } else {
-            "java"
-        });
+        let executable = home
+            .join("bin")
+            .join(if cfg!(windows) { "java.exe" } else { "java" });
         for path in [
             executable.clone(),
             home.join("bin")
@@ -1746,11 +1771,17 @@ mod portable_pinned_sdk_identity_tests {
     }
 
     #[test]
-    fn pinned_identity_reuses_across_safe_home_paths_but_not_changed_pin_or_bytes(
-    ) -> eyre::Result<()> {
+    fn pinned_identity_reuses_across_safe_home_paths_but_not_changed_pin_or_bytes()
+    -> eyre::Result<()> {
         let temporary = tempfile::tempdir()?;
-        let first = fixture(&temporary.path().join("first"), &format!("sha256:{}", "b".repeat(64)))?;
-        let mut second = fixture(&temporary.path().join("second"), &format!("sha256:{}", "b".repeat(64)))?;
+        let first = fixture(
+            &temporary.path().join("first"),
+            &format!("sha256:{}", "b".repeat(64)),
+        )?;
+        let mut second = fixture(
+            &temporary.path().join("second"),
+            &format!("sha256:{}", "b".repeat(64)),
+        )?;
         let identity = named_sdk_identity(&first)?;
         assert_eq!(identity, named_sdk_identity(&second)?);
         second.execution_identity = Some(identity.clone());
@@ -1761,7 +1792,10 @@ mod portable_pinned_sdk_identity_tests {
         second.pin_sha512 = Some("d".repeat(128));
         assert_ne!(identity, named_sdk_identity(&second)?);
         second.pin_sha512 = first.pin_sha512.clone();
-        fs::write(second.home.as_ref().unwrap().join("lib/modules"), b"changed bytes")?;
+        fs::write(
+            second.home.as_ref().unwrap().join("lib/modules"),
+            b"changed bytes",
+        )?;
         assert!(verify_named_sdk_identity(&second).is_err());
         Ok(())
     }
@@ -1913,7 +1947,7 @@ pub(crate) fn prepare_named_frozen_recipe_project(
         |requirements| {
             load_named_exact_byte_witnesses(
                 requirements,
-                &common_toolchain_cache_dir().join("maven"),
+                &common_toolchain_cache_dir()?.join("maven"),
             )
         },
     )
@@ -2221,7 +2255,7 @@ mod named_compile_wire_tests {
                     );
                     load_named_exact_byte_witnesses(
                         requirements,
-                        &common_toolchain_cache_dir().join("maven"),
+                        &common_toolchain_cache_dir()?.join("maven"),
                     )
                 },
             )?;

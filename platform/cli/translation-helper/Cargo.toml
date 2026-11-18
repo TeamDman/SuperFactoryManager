@@ -18,3 +18,7 @@ strum = { version = "0.27.2", features = ["derive"] }
 itertools = "0.14.0"
 tokio = { version = "1.46.1", features = ["full"] }
 open = "5.3.2"
+
+[lints.clippy]
+expect_used = "deny"
+unwrap_used = "deny"

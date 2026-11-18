@@ -510,16 +510,17 @@ impl DefinitionAtPositionResult {
         self
     }
 
-    #[must_use]
-    pub fn to_csv(&self) -> String {
-        let report_row = DefinitionAtPositionCsvRow::report(self);
+    /// # Errors
+    /// Returns a serialization error if a result row or its context cannot be encoded.
+    pub fn to_csv(&self) -> eyre::Result<String> {
+        let report_row = DefinitionAtPositionCsvRow::report(self)?;
         let mut output = DefinitionAtPositionCsvRow::header();
-        append_definition_position_csv_row(&mut output, &report_row);
+        append_definition_position_csv_row(&mut output, &report_row)?;
         for definition in &self.definitions {
             let mut row = report_row.clone();
             "definition".clone_into(&mut row.record_kind);
             row.set_definition(definition);
-            append_definition_position_csv_row(&mut output, &row);
+            append_definition_position_csv_row(&mut output, &row)?;
         }
         for diagnostic in &self.diagnostics {
             let mut row = report_row.clone();
@@ -527,7 +528,7 @@ impl DefinitionAtPositionResult {
             row.diagnostic_code.clone_from(&diagnostic.code);
             diagnostic_severity_name(diagnostic.severity).clone_into(&mut row.diagnostic_severity);
             row.message.clone_from(&diagnostic.message);
-            append_definition_position_csv_row(&mut output, &row);
+            append_definition_position_csv_row(&mut output, &row)?;
         }
         for recovery in &self.recovery_actions {
             let mut row = report_row.clone();
@@ -535,9 +536,9 @@ impl DefinitionAtPositionResult {
             recovery_kind_name(recovery.kind).clone_into(&mut row.recovery_kind);
             row.message.clone_from(&recovery.label);
             row.recovery_command = recovery.command.clone().unwrap_or_default();
-            append_definition_position_csv_row(&mut output, &row);
+            append_definition_position_csv_row(&mut output, &row)?;
         }
-        output
+        Ok(output)
     }
 
     #[must_use]
@@ -618,8 +619,8 @@ struct DefinitionAtPositionCsvRow {
 }
 
 impl DefinitionAtPositionCsvRow {
-    fn report(result: &DefinitionAtPositionResult) -> Self {
-        Self {
+    fn report(result: &DefinitionAtPositionResult) -> eyre::Result<Self> {
+        Ok(Self {
             schema: result.schema.clone(),
             record_kind: "report".to_owned(),
             outcome: definition_outcome_name(result.outcome).to_owned(),
@@ -628,8 +629,7 @@ impl DefinitionAtPositionCsvRow {
             request_generation: result.request_generation,
             workspace_generation: result.workspace_generation,
             completeness: completeness_name(result.completeness).to_owned(),
-            context_json: facet_json::to_string(&result.context)
-                .expect("definition context must remain JSON serializable"),
+            context_json: facet_json::to_string(&result.context)?,
             document_address: result.document.address.clone(),
             document_root_id: result.document.root_id.clone(),
             document_root_relative_path: result.document.root_relative_path.clone(),
@@ -668,7 +668,7 @@ impl DefinitionAtPositionCsvRow {
             recovery_kind: String::new(),
             recovery_command: String::new(),
             message: String::new(),
-        }
+        })
     }
 
     fn header() -> String {
@@ -714,11 +714,12 @@ impl DefinitionAtPositionCsvRow {
     }
 }
 
-fn append_definition_position_csv_row(output: &mut String, row: &DefinitionAtPositionCsvRow) {
-    output.push_str(
-        &facet_csv::to_string(row)
-            .expect("the flat definition-at-position CSV row must remain serializable"),
-    );
+fn append_definition_position_csv_row(
+    output: &mut String,
+    row: &DefinitionAtPositionCsvRow,
+) -> eyre::Result<()> {
+    output.push_str(&facet_csv::to_string(row)?);
+    Ok(())
 }
 
 const fn definition_outcome_name(outcome: DefinitionAtPositionOutcome) -> &'static str {
@@ -916,7 +917,9 @@ fn byte_offset_for_line_column(text: &str, line: u64, column: u64) -> eyre::Resu
             .char_indices()
             .nth(scalar_index)
             .map(|(offset, _)| offset)
-            .expect("bounded Unicode scalar index must exist")
+            .ok_or_else(|| {
+                eyre::eyre!("definition column {column} has no Unicode scalar in line {line}")
+            })?
     };
     Ok(line_start + relative)
 }
@@ -1022,7 +1025,7 @@ mod tests {
         let invalid =
             DefinitionAtPositionResult::invalid_request(&request, context(), "invalid fixture");
         assert_eq!(invalid.status(), 4);
-        let csv = invalid.to_csv();
+        let csv = invalid.to_csv().expect("definition CSV");
         assert!(csv.starts_with("schema,record_kind,outcome,status,"));
         assert!(csv.contains("invalid-request"));
         let encoded = facet_json::to_string(&invalid).expect("encode result");

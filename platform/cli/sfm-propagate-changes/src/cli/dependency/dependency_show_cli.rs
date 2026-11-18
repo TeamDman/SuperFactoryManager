@@ -41,14 +41,17 @@ impl DependencyShowArgs {
     ) -> eyre::Result<()> {
         let inventory = load_inventory(self.branch, cache_home)?;
         let dependency = inventory.dependency(&self.id)?;
-        for line in format_dependency(&inventory, dependency).lines() {
+        for line in format_dependency(&inventory, dependency)?.lines() {
             stdout_line(line)?;
         }
         Ok(())
     }
 }
 
-fn format_dependency(inventory: &DependencyInventory, dependency: &DependencyV3) -> String {
+fn format_dependency(
+    inventory: &DependencyInventory,
+    dependency: &DependencyV3,
+) -> eyre::Result<String> {
     let mut output = format!(
         "Dependency: {}\nLockfile: {}\nKind: {}\nRole: {}\nDisplay name: {}\nProject URL: {}\nNotes: {}\n",
         dependency.id,
@@ -60,13 +63,16 @@ fn format_dependency(inventory: &DependencyInventory, dependency: &DependencyV3)
         dependency.notes.as_deref().unwrap_or("not declared")
     );
     for component in &dependency.components {
-        output.push_str(&format_component(inventory, component));
+        output.push_str(&format_component(inventory, component)?);
     }
-    output
+    Ok(output)
 }
 
-fn format_component(inventory: &DependencyInventory, component: &DependencyComponentV3) -> String {
-    let artifact = inventory.artifact(component);
+fn format_component(
+    inventory: &DependencyInventory,
+    component: &DependencyComponentV3,
+) -> eyre::Result<String> {
+    let artifact = inventory.artifact(component)?;
     let repository = artifact.repository_id.as_deref().and_then(|id| {
         inventory
             .lockfile
@@ -82,8 +88,8 @@ fn format_component(inventory: &DependencyInventory, component: &DependencyCompo
         .map(scope_label)
         .collect::<Vec<_>>()
         .join(", ");
-    let local_binary = inventory.local_path(&component.derived_checks.cache_path);
-    let binary_status = inventory.binary_status(component).label();
+    let local_binary = inventory.local_path(&component.derived_checks.cache_path)?;
+    let binary_status = inventory.binary_status(component)?.label();
     let bundle = component.declaration.bundle.as_ref().map_or_else(
         || "not bundled".to_string(),
         |bundle| {
@@ -117,22 +123,25 @@ fn format_component(inventory: &DependencyInventory, component: &DependencyCompo
         component.derived_checks.cache_path.display(),
         binary_status,
         local_binary.display(),
-        inventory.source_status(component).label()
+        inventory.source_status(component)?.label()
     );
     if component.source_providers.is_empty() {
         output.push_str("  Source strategies: none declared\n");
     } else {
         output.push_str("  Source strategies:\n");
         for provider in inventory.source_providers(component) {
-            output.push_str(&format_provider(inventory, provider));
+            output.push_str(&format_provider(inventory, provider)?);
         }
     }
-    output
+    Ok(output)
 }
 
-fn format_provider(inventory: &DependencyInventory, provider: SourceProviderView<'_>) -> String {
+fn format_provider(
+    inventory: &DependencyInventory,
+    provider: SourceProviderView<'_>,
+) -> eyre::Result<String> {
     let roots = provider
-        .searchable_roots()
+        .searchable_roots()?
         .iter()
         .map(|root| root.display().to_string())
         .collect::<Vec<_>>()
@@ -142,17 +151,17 @@ fn format_provider(inventory: &DependencyInventory, provider: SourceProviderView
         provider.id(),
         provider.kind().label(),
         provider.priority(),
-        provider.status().label(),
+        provider.status()?.label(),
         roots
     );
     let details = match provider.definition() {
         SourceProviderV3::MavenSources(provider) => {
-            let archive = inventory.local_path(&provider.derived_checks.archive_cache_path);
+            let archive = inventory.local_path(&provider.derived_checks.archive_cache_path)?;
             let archive_status = inventory
                 .locked_file_status(
                     &provider.derived_checks.archive_cache_path,
                     provider.derived_checks.hash,
-                )
+                )?
                 .label();
             format!(
                 "      requested: {}\n      resolved: {}\n      archive: {}: {}\n      tree: {}\n",
@@ -161,7 +170,7 @@ fn format_provider(inventory: &DependencyInventory, provider: SourceProviderView
                 archive_status,
                 archive.display(),
                 path_status(
-                    &inventory.local_path(&provider.derived_checks.tree_cache_path),
+                    &inventory.local_path(&provider.derived_checks.tree_cache_path)?,
                     true
                 )
             )
@@ -172,11 +181,11 @@ fn format_provider(inventory: &DependencyInventory, provider: SourceProviderView
             provider.declaration.requested_revision,
             provider.derived_checks.commit,
             path_status(
-                &inventory.local_path(&provider.derived_checks.repository_cache_path),
+                &inventory.local_path(&provider.derived_checks.repository_cache_path)?,
                 true
             ),
             path_status(
-                &inventory.local_path(&provider.derived_checks.tree_cache_path),
+                &inventory.local_path(&provider.derived_checks.tree_cache_path)?,
                 true
             )
         ),
@@ -186,7 +195,7 @@ fn format_provider(inventory: &DependencyInventory, provider: SourceProviderView
             provider.derived_checks.decompiler_artifact_id,
             provider.derived_checks.fingerprint,
             path_status(
-                &inventory.local_path(&provider.derived_checks.tree_cache_path),
+                &inventory.local_path(&provider.derived_checks.tree_cache_path)?,
                 true
             )
         ),
@@ -194,13 +203,13 @@ fn format_provider(inventory: &DependencyInventory, provider: SourceProviderView
             "      fingerprint: {}\n      tree: {}\n",
             provider.derived_checks.fingerprint,
             path_status(
-                &inventory.local_path(&provider.derived_checks.tree_cache_path),
+                &inventory.local_path(&provider.derived_checks.tree_cache_path)?,
                 true
             )
         ),
     };
     output.push_str(&details);
-    output
+    Ok(output)
 }
 
 fn path_status(path: &Path, directory: bool) -> String {
@@ -264,7 +273,7 @@ mod tests {
     fn show_reports_missing_paths_without_claiming_acquisition() {
         let inventory = fixture();
         let dependency = inventory.dependency("cc-tweaked").expect("CC:Tweaked");
-        let output = format_dependency(&inventory, dependency);
+        let output = format_dependency(&inventory, dependency).expect("dependency report");
 
         assert!(output.contains("Dependency: cc-tweaked"));
         assert!(output.contains("Artifact treatment: loader-managed-mod"));
@@ -280,7 +289,7 @@ mod tests {
     fn show_preserves_multicomponent_identity() {
         let inventory = fixture();
         let dependency = inventory.dependency("mekanism").expect("Mekanism");
-        let output = format_dependency(&inventory, dependency);
+        let output = format_dependency(&inventory, dependency).expect("dependency report");
 
         assert!(output.contains("Component: api"));
         assert!(output.contains("Component: main"));

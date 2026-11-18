@@ -84,38 +84,35 @@ impl<'a> SourceProviderView<'a> {
         self.inventory.target.branch.as_str()
     }
 
-    #[must_use]
-    pub fn tree_path(self) -> PathBuf {
+    pub fn tree_path(self) -> eyre::Result<PathBuf> {
         self.inventory.local_path(self.tree_cache_path())
     }
 
-    #[must_use]
-    pub fn searchable_roots(self) -> Vec<PathBuf> {
-        let tree = self.tree_path();
+    pub fn searchable_roots(self) -> eyre::Result<Vec<PathBuf>> {
+        let tree = self.tree_path()?;
         let roots = self.roots();
-        if roots.is_empty() {
+        Ok(if roots.is_empty() {
             vec![tree]
         } else {
             roots.iter().map(|root| tree.join(root)).collect()
-        }
+        })
     }
 
-    #[must_use]
-    pub fn status(self) -> SourceStatus {
+    pub fn status(self) -> eyre::Result<SourceStatus> {
         let materialization = match self.provider {
             SourceProviderV3::MavenSources(provider) => {
                 let archive = self.inventory.locked_file_status(
                     &provider.derived_checks.archive_cache_path,
                     provider.derived_checks.hash,
-                );
+                )?;
                 if archive == AcquisitionStatus::Stale {
                     SourceStatus::Stale
                 } else if archive == AcquisitionStatus::Acquired
                     && extracted_tree_matches_archive(
                         &self
                             .inventory
-                            .local_path(&provider.derived_checks.archive_cache_path),
-                        &self.tree_path(),
+                            .local_path(&provider.derived_checks.archive_cache_path)?,
+                        &self.tree_path()?,
                     )
                     .unwrap_or(false)
                 {
@@ -127,10 +124,10 @@ impl<'a> SourceProviderView<'a> {
             SourceProviderV3::Git(provider) => {
                 let repository = self
                     .inventory
-                    .local_path(&provider.derived_checks.repository_cache_path);
+                    .local_path(&provider.derived_checks.repository_cache_path)?;
                 if locked_git_tree_matches_commit(
                     &repository,
-                    &self.tree_path(),
+                    &self.tree_path()?,
                     &provider.derived_checks.commit,
                     &provider.declaration.roots,
                 ) {
@@ -141,7 +138,7 @@ impl<'a> SourceProviderView<'a> {
             }
             SourceProviderV3::Decompile(provider) => {
                 if completed_tree_matches(
-                    &self.tree_path(),
+                    &self.tree_path()?,
                     &provider.derived_checks.fingerprint,
                     &provider.declaration.roots,
                 ) {
@@ -151,7 +148,7 @@ impl<'a> SourceProviderView<'a> {
                 }
             }
             SourceProviderV3::PlatformPipeline(provider) => {
-                let tree = self.tree_path();
+                let tree = self.tree_path()?;
                 let source_jar = tree.with_extension("jar");
                 if provider
                     .derived_checks
@@ -164,7 +161,7 @@ impl<'a> SourceProviderView<'a> {
                         )
                     })
                 {
-                    return SourceStatus::Stale;
+                    return Ok(SourceStatus::Stale);
                 }
                 let archive_matches_lock = provider
                     .derived_checks
@@ -196,29 +193,28 @@ impl<'a> SourceProviderView<'a> {
             }
         };
         if materialization == SourceStatus::Acquired
-            && self.searchable_roots().iter().any(|root| !root.is_dir())
+            && self.searchable_roots()?.iter().any(|root| !root.is_dir())
         {
-            SourceStatus::Missing
+            Ok(SourceStatus::Missing)
         } else {
-            materialization
+            Ok(materialization)
         }
     }
 
-    #[must_use]
-    pub fn unavailable_reason(self) -> Option<&'static str> {
-        if self.status() == SourceStatus::Acquired {
-            return None;
+    pub fn unavailable_reason(self) -> eyre::Result<Option<&'static str>> {
+        if self.status()? == SourceStatus::Acquired {
+            return Ok(None);
         }
-        match self.provider {
+        Ok(match self.provider {
             SourceProviderV3::MavenSources(provider) => {
                 let archive = self.inventory.locked_file_status(
                     &provider.derived_checks.archive_cache_path,
                     provider.derived_checks.hash,
-                );
+                )?;
                 match archive {
                     AcquisitionStatus::Stale => Some("locked source archive hash does not match"),
                     AcquisitionStatus::Missing => Some("locked source archive is not cached"),
-                    AcquisitionStatus::Acquired if !self.tree_path().is_dir() => {
+                    AcquisitionStatus::Acquired if !self.tree_path()?.is_dir() => {
                         Some("source archive has not been extracted")
                     }
                     AcquisitionStatus::Acquired => Some(
@@ -229,8 +225,8 @@ impl<'a> SourceProviderView<'a> {
             SourceProviderV3::Git(provider) => {
                 let repository = self
                     .inventory
-                    .local_path(&provider.derived_checks.repository_cache_path);
-                match (repository.is_dir(), self.tree_path().is_dir()) {
+                    .local_path(&provider.derived_checks.repository_cache_path)?;
+                match (repository.is_dir(), self.tree_path()?.is_dir()) {
                     (false, false) => Some("managed repository and materialized tree are missing"),
                     (false, true) => Some("managed repository is missing"),
                     (true, false) => Some("locked commit tree is not materialized"),
@@ -259,7 +255,7 @@ impl<'a> SourceProviderView<'a> {
                     Some("platform source filetree is missing or differs from its source JAR")
                 }
             }
-        }
+        })
     }
 
     fn roots(self) -> &'a [String] {
@@ -337,16 +333,17 @@ mod tests {
                 source_binding_sha256: None,
             },
         });
-        let shared_candidate =
-            inventory.local_path(Path::new("$sfm-cache/sources/platform/forge/1.19.2/tree"));
+        let shared_candidate = inventory
+            .local_path(Path::new("$sfm-cache/sources/platform/forge/1.19.2/tree"))
+            .unwrap();
         std::fs::create_dir_all(&shared_candidate).expect("separate shared candidate");
         let view = SourceProviderView::new(&inventory, &provider, 0);
         let historical = temporary
             .path()
             .join("checkout/platform/minecraft")
             .join(relative);
-        assert_eq!(view.tree_path(), historical);
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.tree_path().unwrap(), historical);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         std::fs::create_dir_all(historical.parent().unwrap()).expect("pipeline source parent");
         let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
         writer
@@ -355,19 +352,24 @@ mod tests {
         writer.write_all(b"class Example {}").unwrap();
         let source_jar = historical.with_extension("jar");
         std::fs::write(&source_jar, writer.finish().unwrap().into_inner()).unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         extract_zip_atomically(&source_jar, &historical).unwrap();
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status().unwrap(), SourceStatus::Acquired);
         std::fs::write(historical.join("src/Example.java"), b"changed").unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
-        assert!(view.unavailable_reason().unwrap().contains("differs"));
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
+        assert!(
+            view.unavailable_reason()
+                .unwrap()
+                .unwrap()
+                .contains("differs")
+        );
         std::fs::write(historical.join("src/Example.java"), b"class Example {}").unwrap();
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status().unwrap(), SourceStatus::Acquired);
         std::fs::write(historical.join("src/extra.java"), b"extra").unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         std::fs::remove_file(historical.join("src/extra.java")).unwrap();
         std::fs::remove_file(source_jar).unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
     }
 
     #[test]
@@ -377,7 +379,7 @@ mod tests {
         let portable = PathBuf::from(
             "$sfm-cache/sources/platform/forge/1.19.2/fixture/combined-deobfuscated.filetree",
         );
-        let tree = inventory.local_path(&portable);
+        let tree = inventory.local_path(&portable).unwrap();
         assert_eq!(
             tree,
             temporary
@@ -408,19 +410,19 @@ mod tests {
             },
         });
         let view = SourceProviderView::new(&inventory, &provider, 0);
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         std::fs::write(&jar, &bytes).unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         extract_zip_atomically(&jar, &tree).unwrap();
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status().unwrap(), SourceStatus::Acquired);
         std::fs::write(tree.join("src/Example.java"), b"tampered").unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         std::fs::write(tree.join("src/Example.java"), b"class Example {}").unwrap();
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status().unwrap(), SourceStatus::Acquired);
         std::fs::write(&jar, b"changed archive").unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         std::fs::remove_file(&jar).unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
     }
 
     #[test]
@@ -435,10 +437,10 @@ mod tests {
         let bytes = writer.finish().unwrap().into_inner();
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
         let paths = SourceCacheLayout::maven("example:source:1.0:sources", hash);
-        let archive = inventory.local_path(&paths.archive);
+        let archive = inventory.local_path(&paths.archive).unwrap();
         std::fs::create_dir_all(archive.parent().unwrap()).unwrap();
         std::fs::write(&archive, bytes).unwrap();
-        let tree = inventory.local_path(&paths.tree);
+        let tree = inventory.local_path(&paths.tree).unwrap();
         extract_zip_atomically(&archive, &tree).unwrap();
         let provider = SourceProviderV3::MavenSources(MavenSourceProviderV3 {
             id: "maven-sources".to_owned(),
@@ -456,10 +458,15 @@ mod tests {
             },
         });
         let view = SourceProviderView::new(&inventory, &provider, 0);
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status().unwrap(), SourceStatus::Acquired);
         std::fs::write(tree.join("src/Example.java"), b"class Example { altered }").unwrap();
-        assert_eq!(view.status(), SourceStatus::Missing);
-        assert!(view.unavailable_reason().unwrap().contains("differs"));
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
+        assert!(
+            view.unavailable_reason()
+                .unwrap()
+                .unwrap()
+                .contains("differs")
+        );
     }
 
     #[test]
@@ -486,16 +493,16 @@ mod tests {
         assert_eq!(view.id(), "upstream");
         assert_eq!(view.kind(), SourceProviderKind::Git);
         assert_eq!(view.priority(), 2);
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         assert_eq!(
-            view.unavailable_reason(),
+            view.unavailable_reason().unwrap(),
             Some("managed repository and materialized tree are missing")
         );
         assert_eq!(
-            view.searchable_roots(),
+            view.searchable_roots().unwrap(),
             vec![
-                view.tree_path().join("src/main/java"),
-                view.tree_path().join("projects/api/src")
+                view.tree_path().unwrap().join("src/main/java"),
+                view.tree_path().unwrap().join("projects/api/src")
             ]
         );
 
@@ -503,15 +510,18 @@ mod tests {
             unreachable!()
         };
         std::fs::create_dir_all(
-            inventory.local_path(&provider.derived_checks.repository_cache_path),
+            inventory
+                .local_path(&provider.derived_checks.repository_cache_path)
+                .unwrap(),
         )
         .expect("repository cache");
-        for root in view.searchable_roots() {
+        for root in view.searchable_roots().unwrap() {
             std::fs::create_dir_all(root).expect("searchable root");
         }
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         assert!(
             view.unavailable_reason()
+                .unwrap()
                 .unwrap()
                 .contains("differs from its locked commit")
         );
@@ -534,12 +544,12 @@ mod tests {
             },
         });
         let view = SourceProviderView::new(&inventory, &provider, 0);
-        let tree = view.tree_path();
+        let tree = view.tree_path().unwrap();
         std::fs::create_dir_all(tree.join("src")).expect("source root");
 
-        assert_eq!(view.status(), SourceStatus::Missing);
+        assert_eq!(view.status().unwrap(), SourceStatus::Missing);
         std::fs::write(tree.join(FINGERPRINT_FILE), "blake3:fixture").expect("completion marker");
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status().unwrap(), SourceStatus::Acquired);
     }
 
     fn fixture(cache_home: CacheHome) -> DependencyInventory {

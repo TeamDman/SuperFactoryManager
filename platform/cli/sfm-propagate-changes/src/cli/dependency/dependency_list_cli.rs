@@ -30,14 +30,14 @@ impl DependencyListArgs {
         cache_home: &CacheHome,
     ) -> eyre::Result<()> {
         let inventory = load_inventory(self.branch, cache_home)?;
-        for line in format_inventory(&inventory).lines() {
+        for line in format_inventory(&inventory)?.lines() {
             stdout_line(line)?;
         }
         Ok(())
     }
 }
 
-fn format_inventory(inventory: &DependencyInventory) -> String {
+fn format_inventory(inventory: &DependencyInventory) -> eyre::Result<String> {
     let mut dependencies: Vec<_> = inventory.dependencies().collect();
     dependencies.sort_by(|left, right| {
         kind_order(left.kind)
@@ -50,13 +50,16 @@ fn format_inventory(inventory: &DependencyInventory) -> String {
         inventory.lockfile_path.display()
     );
     for dependency in dependencies {
-        output.push_str(&format_dependency_row(inventory, dependency));
+        output.push_str(&format_dependency_row(inventory, dependency)?);
         output.push('\n');
     }
-    output
+    Ok(output)
 }
 
-fn format_dependency_row(inventory: &DependencyInventory, dependency: &DependencyV3) -> String {
+fn format_dependency_row(
+    inventory: &DependencyInventory,
+    dependency: &DependencyV3,
+) -> eyre::Result<String> {
     let versions = dependency
         .components
         .iter()
@@ -93,7 +96,7 @@ fn format_dependency_row(inventory: &DependencyInventory, dependency: &Dependenc
         .components
         .iter()
         .map(|component| inventory.binary_status(component))
-        .collect::<Vec<_>>();
+        .collect::<eyre::Result<Vec<_>>>()?;
     let binary = if binary_statuses
         .iter()
         .all(|status| status.label() == "acquired")
@@ -110,14 +113,17 @@ fn format_dependency_row(inventory: &DependencyInventory, dependency: &Dependenc
     let source_labels = dependency
         .components
         .iter()
-        .map(|component| inventory.source_status(component).label())
-        .collect::<Vec<_>>();
-    let sources = if source_labels.iter().all(|label| *label == source_labels[0]) {
-        source_labels[0].to_owned()
+        .map(|component| Ok(inventory.source_status(component)?.label()))
+        .collect::<eyre::Result<Vec<_>>>()?;
+    let first_source = source_labels
+        .first()
+        .ok_or_else(|| eyre::eyre!("Dependency `{}` has no components", dependency.id))?;
+    let sources = if source_labels.iter().all(|label| label == first_source) {
+        (*first_source).to_owned()
     } else {
         source_labels.join(",")
     };
-    format!(
+    Ok(format!(
         "{} | {} | {} | {} | {} | {} | {}",
         dependency.id,
         kind_label(dependency.kind),
@@ -126,7 +132,7 @@ fn format_dependency_row(inventory: &DependencyInventory, dependency: &Dependenc
         scopes,
         binary,
         sources
-    )
+    ))
 }
 
 const fn kind_order(kind: DependencyKindV3) -> u8 {
@@ -153,8 +159,8 @@ mod tests {
     #[test]
     fn list_is_deterministic_and_contains_one_cc_tweaked_row() {
         let inventory = fixture();
-        let first = format_inventory(&inventory);
-        let second = format_inventory(&inventory);
+        let first = format_inventory(&inventory).expect("inventory report");
+        let second = format_inventory(&inventory).expect("inventory report");
 
         assert_eq!(first, second);
         assert!(first.starts_with("Dependencies for 1.19.2\nLockfile:"));

@@ -722,7 +722,10 @@ fn headless_game_test_world_is_private_flat_and_preserves_slot_world() -> eyre::
     std::fs::write(old_world.join("level.dat"), b"existing world")?;
     let old_game_test_world = slot.join("runGameTest/gametestserver");
     std::fs::create_dir(&old_game_test_world)?;
-    std::fs::write(old_game_test_world.join("level.dat"), b"existing test world")?;
+    std::fs::write(
+        old_game_test_world.join("level.dat"),
+        b"existing test world",
+    )?;
     let session = slot.join("launches/session-test");
     let private_run = session.join("runGameTest");
     std::fs::create_dir_all(&private_run)?;
@@ -4198,7 +4201,7 @@ fn strict_main_cache_checks_outputs_before_reusing_historical_dependencies() -> 
     let mut context = ExecutionContext::new(&plan, CancellationToken::new())?;
     context.verify_compilation_outputs = true;
     context.compiler_image_identity = Some("synthetic-image-no-execution".to_owned());
-    let allowed = super::project_java_cache_reuse_allowed(&context);
+    let allowed = super::project_java_cache_reuse_allowed(&context)?;
     assert_eq!(
         super::main_compilation_cache_matches(&context, &state, "inputs", &classes, &refmap)?,
         allowed
@@ -4208,7 +4211,7 @@ fn strict_main_cache_checks_outputs_before_reusing_historical_dependencies() -> 
         &context, &state, "inputs", &classes, &refmap
     )?);
     context.compiler_image_identity = None;
-    assert!(!super::project_java_cache_reuse_allowed(&context));
+    assert!(!super::project_java_cache_reuse_allowed(&context)?);
     Ok(())
 }
 
@@ -4531,12 +4534,8 @@ fn verified_gradle_runner_uses_owned_offline_inputs_and_retains_stage() -> eyre:
         gradle_executable: gradle,
         java_home: java_home.clone(),
     };
-    let staged = super::run_verified_gradle_source_build(
-        &CancellationToken::new(),
-        &build,
-        staged,
-        &tools,
-    )?;
+    let staged =
+        super::run_verified_gradle_source_build(&CancellationToken::new(), &build, staged, &tools)?;
     let args = std::fs::read_to_string(project.join("invocation-args.txt"))?;
     assert!(args.contains("--no-daemon"));
     assert!(args.contains("--offline --dependency-verification strict"));
@@ -4593,12 +4592,8 @@ fn verified_gradle_runner_refuses_unlisted_environment_before_spawn() -> eyre::R
         gradle_executable: gradle,
         java_home,
     };
-    let result = super::run_verified_gradle_source_build(
-        &CancellationToken::new(),
-        &build,
-        staged,
-        &tools,
-    );
+    let result =
+        super::run_verified_gradle_source_build(&CancellationToken::new(), &build, staged, &tools);
     assert!(
         result
             .err()

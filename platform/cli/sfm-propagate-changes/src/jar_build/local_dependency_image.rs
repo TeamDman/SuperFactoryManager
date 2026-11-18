@@ -389,7 +389,8 @@ fn append(hash: &mut Sha256, bytes: &[u8]) {
     hash.update(bytes);
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
+#[cfg(windows)]
 mod tests {
     use super::*;
     use crate::source_projection::provenance::sha256;

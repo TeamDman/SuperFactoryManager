@@ -76,7 +76,7 @@ pub(crate) fn configure_git_sources(
 ) -> eyre::Result<GitSourceProviderV3> {
     let remote = canonical_https_remote(remote)?;
     let repository_path = SourceCacheLayout::git(&remote, "unresolved").repository;
-    let repository_path = inventory.local_path(&repository_path);
+    let repository_path = inventory.local_path(&repository_path)?;
     let commit = resolve_git_revision(
         &remote,
         &repository_path,
@@ -360,8 +360,8 @@ pub(crate) fn acquire_locked_git_sources(
     provider: &GitSourceProviderV3,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
-    let repository_path = inventory.local_path(&provider.derived_checks.repository_cache_path);
-    let output = inventory.local_path(&provider.derived_checks.tree_cache_path);
+    let repository_path = inventory.local_path(&provider.derived_checks.repository_cache_path)?;
+    let output = inventory.local_path(&provider.derived_checks.tree_cache_path)?;
     let repository = open_locked_bare_repository(
         &provider.declaration.remote_url,
         &repository_path,

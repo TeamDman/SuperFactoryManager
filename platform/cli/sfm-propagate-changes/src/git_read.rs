@@ -1,7 +1,11 @@
 //! Read repository metadata without starting Git. Mutating Git operations and
 //! porcelain status remain separate so their hooks and worktree semantics survive.
+use gix::index::entry::Stage;
 use std::collections::BTreeSet;
+use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
+use std::str::from_utf8;
 
 pub(crate) fn head_revision(path: &Path) -> eyre::Result<String> {
     Ok(gix::discover(path)?.head_id()?.to_string())
@@ -18,20 +22,20 @@ pub(crate) fn conflicted_paths(path: &Path) -> eyre::Result<Vec<String>> {
     let repository = gix::discover(path)?;
     // The pinned gix-index version subtracts the checksum length before
     // validating a truncated file. Reject that corrupt input before decoding.
-    match std::fs::metadata(repository.index_path()) {
+    match fs::metadata(repository.index_path()) {
         Ok(metadata) => eyre::ensure!(
             metadata.len() >= (12 + repository.object_hash().len_in_bytes()) as u64,
             "Git index is truncated"
         ),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
     let index = repository.index_or_empty()?;
     let paths = index
         .entries()
         .iter()
-        .filter(|entry| entry.stage() != gix::index::entry::Stage::Unconflicted)
-        .map(|entry| std::str::from_utf8(entry.path(&index)).map(str::to_owned))
+        .filter(|entry| entry.stage() != Stage::Unconflicted)
+        .map(|entry| from_utf8(entry.path(&index)).map(str::to_owned))
         .collect::<Result<BTreeSet<_>, _>>()?;
     Ok(paths.into_iter().collect())
 }
@@ -41,7 +45,7 @@ pub(crate) fn tag_names(path: &Path) -> eyre::Result<Vec<String>> {
     let mut names = Vec::new();
     for reference in repository.references()?.tags()? {
         let reference = reference.map_err(|error| eyre::eyre!("reading Git tag: {error}"))?;
-        let name = std::str::from_utf8(reference.name().as_bstr())?;
+        let name = from_utf8(reference.name().as_bstr())?;
         if let Some(name) = name.strip_prefix("refs/tags/") {
             names.push(name.to_owned());
         }

@@ -255,7 +255,9 @@ fn bundle_cli_options_require_scope_and_capture_explicit_policy() {
 
     dependency_args.bundle_accepted_version_range = Some("[0.1.0,0.2.0)".to_string());
     validate_bundle_options(&dependency_args, &coordinate).expect("bundle options");
-    let policy = bundle_policy(&dependency_args, &coordinate).expect("bundle policy");
+    let policy = bundle_policy(&dependency_args, &coordinate)
+        .expect("valid bundle policy")
+        .expect("bundle policy");
     assert_eq!(policy.accepted_version_range, "[0.1.0,0.2.0)");
     assert_eq!(policy.artifact_version, "0.1.3");
     assert!(!policy.is_obfuscated);

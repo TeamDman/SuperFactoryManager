@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 //! Real process checks for the startup event and builtin/filter boundaries.
 use std::process::Command;
 

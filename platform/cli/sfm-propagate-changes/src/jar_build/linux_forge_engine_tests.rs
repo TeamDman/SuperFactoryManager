@@ -62,12 +62,12 @@ fn linux_forge_admission_requires_checked_catalog_managed_root_and_exact_owned_p
         (
             temporary.path().join("foreign.jar"),
             temporary.path().join("diagnostics"),
-            context.forge_mapping_path("srg_to_official.tsrg"),
+            context.forge_mapping_path("srg_to_official.tsrg")?,
         ),
         (
             temporary.path().join("specialsource.jar"),
             temporary.path().join("foreign"),
-            context.forge_mapping_path("srg_to_official.tsrg"),
+            context.forge_mapping_path("srg_to_official.tsrg")?,
         ),
         (
             temporary.path().join("specialsource.jar"),

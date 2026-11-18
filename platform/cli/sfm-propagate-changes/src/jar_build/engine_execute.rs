@@ -1,13 +1,13 @@
-#[path = "project_compilation_cache.rs"]
-mod project_compilation_cache;
-#[path = "project_compile_identity.rs"]
-mod project_compile_identity;
-#[path = "junit_runner_compile.rs"]
-mod junit_runner_compile;
 #[path = "junit_fixture.rs"]
 mod junit_fixture;
 #[path = "junit_logging.rs"]
 mod junit_logging;
+#[path = "junit_runner_compile.rs"]
+mod junit_runner_compile;
+#[path = "project_compilation_cache.rs"]
+mod project_compilation_cache;
+#[path = "project_compile_identity.rs"]
+mod project_compile_identity;
 
 #[path = "dependency_deobf_producer.rs"]
 mod dependency_deobf_producer;
@@ -238,38 +238,42 @@ impl<'a> ExecutionContext<'a> {
         self.cancellation_token.bail_if_cancelled()
     }
 
-    fn preparation_read_path(&self, kind: &str, name: &str, local: PathBuf) -> PathBuf {
+    fn preparation_read_path(
+        &self,
+        kind: &str,
+        name: &str,
+        local: PathBuf,
+    ) -> eyre::Result<PathBuf> {
         #[cfg(target_os = "linux")]
         if let Some(path) = self
             .linux_forge
             .lock()
-            .expect("Linux Forge state poisoned")
-            .path(kind, name)
-            .expect("invalid held Linux Forge role")
+            .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+            .path(kind, name)?
         {
-            return path;
+            return Ok(path);
         }
         #[cfg(windows)]
         if let Some(path) = self
             .held_shared_preparation
             .lock()
-            .expect("Shared preparation hold poisoned")
+            .map_err(|_poisoned| eyre::eyre!("Shared preparation hold poisoned"))?
             .iter()
             .find(|(held_kind, held_name, _)| held_kind == kind && held_name == name)
         {
-            return path.2.clone();
+            return Ok(path.2.clone());
         }
         #[cfg(not(windows))]
         let _ = (kind, name);
-        local
+        Ok(local)
     }
 
-    fn mcp_output_path(&self, relative: &str) -> PathBuf {
+    fn mcp_output_path(&self, relative: &str) -> eyre::Result<PathBuf> {
         let name = match relative {
             "patch/joined-patched-sources.jar" => "patched_sources.jar",
             "mergeMappings/output.tsrg" => "merged_mappings.tsrg",
             "rename/output.jar" => "renamed.jar",
-            _ => panic!("Unsupported MCP output role"),
+            _ => eyre::bail!("Unsupported MCP output role: {relative}"),
         };
         let local = self
             .plan
@@ -281,10 +285,10 @@ impl<'a> ExecutionContext<'a> {
         self.preparation_read_path("mcp", name, local)
     }
 
-    fn forge_mapping_path(&self, name: &str) -> PathBuf {
-        assert!(
+    fn forge_mapping_path(&self, name: &str) -> eyre::Result<PathBuf> {
+        eyre::ensure!(
             matches!(name, "srg_to_official.tsrg" | "official_to_srg.tsrg"),
-            "Unsupported Forge mapping role"
+            "Unsupported Forge mapping role: {name}"
         );
         let local = self
             .plan
@@ -506,15 +510,13 @@ impl<'a> ExecutionContext<'a> {
         );
         let classpath_arg = join_classpath(&classpath);
         let java_argfile = work_dir.join(format!("{tool_id}.java.args"));
-        let mut java_args = jvm_args
-            .iter()
-            .map(|arg| (*arg).to_string())
-            .collect::<Vec<_>>();
-        java_args.extend(["-cp".to_string(), classpath_arg.clone(), main_class.clone()]);
-        java_args.extend(args.iter().cloned());
-        let argfile_contents = encoded_java_argfile(java_args);
-        fs::write(&java_argfile, &argfile_contents)
-            .wrap_err_with(|| format!("Failed to write {}", java_argfile.display()))?;
+        let argfile_contents = write_java_tool_argument_file(
+            &java_argfile,
+            jvm_args,
+            &classpath_arg,
+            &main_class,
+            args,
+        )?;
         // Retain the original file for inspection. Windows' Java launcher uses
         // a short-path reader even when Java/NIO accepts long output paths.
         // Keep this exact-byte transport owner alive until its child finishes.
@@ -527,7 +529,11 @@ impl<'a> ExecutionContext<'a> {
             log_path.display()
         );
         let mut command = Command::new(&self.plan.java.executable);
-        let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, false, self.plan.java.major_version)?;
+        let java_trust = super::java_trust::JavaTrust::configure_java(
+            &mut command,
+            false,
+            self.plan.java.major_version,
+        )?;
         command.arg(java_tool_argfile_argument(launch_argfile.path())?);
         let source_check_started = Instant::now();
         self.plan.recheck_named_inputs()?;
@@ -595,6 +601,28 @@ impl<'a> ExecutionContext<'a> {
         tracing::info!("Java tool {tool_id}: done in {duration_ms} ms");
         Ok(())
     }
+}
+
+fn write_java_tool_argument_file(
+    path: &Path,
+    jvm_args: &[&str],
+    classpath: &str,
+    main_class: &str,
+    args: &[String],
+) -> eyre::Result<String> {
+    let mut java_args = jvm_args
+        .iter()
+        .map(|arg| (*arg).to_string())
+        .collect::<Vec<_>>();
+    java_args.extend([
+        "-cp".to_string(),
+        classpath.to_owned(),
+        main_class.to_owned(),
+    ]);
+    java_args.extend(args.iter().cloned());
+    let contents = encoded_java_argfile(java_args);
+    fs::write(path, &contents).wrap_err_with(|| format!("Failed to write {}", path.display()))?;
+    Ok(contents)
 }
 
 #[cfg(target_os = "linux")]
@@ -818,40 +846,41 @@ fn required_minecraft_mapping_url<'a>(
     })
 }
 
-fn loader_dev_compile_jar(context: &ExecutionContext<'_>) -> PathBuf {
+fn loader_dev_compile_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
     #[cfg(target_os = "linux")]
     if let Some(path) = context
         .linux_forge
         .lock()
-        .expect("Linux Forge state poisoned")
-        .path("forge", "dev_compile.jar")
-        .expect("invalid held Forge role")
+        .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
+        .path("forge", "dev_compile.jar")?
     {
-        return path;
+        return Ok(path);
     }
     #[cfg(windows)]
     if let Some(held) = context
         .held_forge_dev_jar_path
         .lock()
-        .expect("Forge dev JAR hold poisoned")
+        .map_err(|_poisoned| eyre::eyre!("Forge dev JAR hold poisoned"))?
         .as_ref()
     {
-        return held.clone();
+        return Ok(held.clone());
     }
     if let Some(held) = context.held_neoform_compile_jar {
-        return held.to_path_buf();
+        return Ok(held.to_path_buf());
     }
-    if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        neoform_dev_compile_jar(context)
-    } else {
-        context
-            .plan
-            .cache_dir
-            .join("forge")
-            .join(context.plan.minecraft_version.as_str())
-            .join("classes")
-            .join("dev-compile.jar")
-    }
+    Ok(
+        if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+            neoform_dev_compile_jar(context)
+        } else {
+            context
+                .plan
+                .cache_dir
+                .join("forge")
+                .join(context.plan.minecraft_version.as_str())
+                .join("classes")
+                .join("dev-compile.jar")
+        },
+    )
 }
 
 fn write_neoform_artifact_manifest(
@@ -940,7 +969,7 @@ fn execute_dependency_deobf(
         return Ok(Vec::new());
     }
 
-    let mapping_path = context.forge_mapping_path("srg_to_official.tsrg");
+    let mapping_path = context.forge_mapping_path("srg_to_official.tsrg")?;
     if !mapping_path.is_file() {
         eyre::bail!(
             "Dependency deobf requires generated mapping first: {}",
@@ -972,7 +1001,7 @@ fn execute_dependency_deobf(
     #[cfg(windows)]
     let (mapping_hash, member_mappings) = if let Some(owner) = &remap_authority {
         tracing::info!(outcome = "admitted", "dependency_remap_shared_authority");
-        let raw = owner.mapping_bytes();
+        let raw = owner.mapping_bytes()?;
         let mapping_text =
             std::str::from_utf8(raw).wrap_err("Captured remap mapping is not UTF-8")?;
         (
@@ -1031,45 +1060,42 @@ fn execute_dependency_deobf(
             physical_producers = producers.len(),
             "Selected distinct dependency deobf producers; all configuration bindings retained"
         );
-        let producer_results =
-            producers
-                .par_iter()
-                .map(
-                    |producer| -> eyre::Result<
-                        Option<SelectedDependencyRemap>,
-                    > {
-                        context.bail_if_cancelled()?;
-                        #[cfg(windows)]
-                        if let (Some(key), Some(check)) = (&remap_key, &remap_check) {
-                            return dependency_remap_cache::execute(
-                                context,
-                                key,
-                                producer,
-                                &mapping_path,
-                                &member_mappings,
-                                &|| check(context),
-                                || {
-                                    execute_dependency_deobf_dependency(
-                                        context,
-                                        &resolver,
-                                        producer,
-                                        &mapping_path,
-                                        &member_mappings,
-                                    )
-                                },
-                            );
-                        }
-                        execute_dependency_deobf_dependency(
+        let producer_results = producers
+            .par_iter()
+            .map(
+                |producer| -> eyre::Result<Option<SelectedDependencyRemap>> {
+                    context.bail_if_cancelled()?;
+                    #[cfg(windows)]
+                    if let (Some(key), Some(check)) = (&remap_key, &remap_check) {
+                        return dependency_remap_cache::execute(
                             context,
-                            &resolver,
+                            key,
                             producer,
                             &mapping_path,
                             &member_mappings,
-                        )?;
-                        Ok(None)
-                    },
-                )
-                .collect::<Vec<eyre::Result<_>>>();
+                            &|| check(context),
+                            || {
+                                execute_dependency_deobf_dependency(
+                                    context,
+                                    &resolver,
+                                    producer,
+                                    &mapping_path,
+                                    &member_mappings,
+                                )
+                            },
+                        );
+                    }
+                    execute_dependency_deobf_dependency(
+                        context,
+                        &resolver,
+                        producer,
+                        &mapping_path,
+                        &member_mappings,
+                    )?;
+                    Ok(None)
+                },
+            )
+            .collect::<Vec<eyre::Result<_>>>();
         let selected = all_hit_cache_miss::collect_results(producer_results)
             .wrap_err("Failed to deobfuscate dependency")?;
         #[cfg(windows)]
@@ -1108,7 +1134,7 @@ fn execute_dependency_deobf(
     *context
         .selected_dependency_remaps
         .lock()
-        .expect("selected remap paths poisoned") = Some(outputs.clone());
+        .map_err(|_poisoned| eyre::eyre!("selected remap paths poisoned"))? = Some(outputs.clone());
 
     {
         let _span =
@@ -1279,10 +1305,16 @@ fn verify_complete_dependency_jar(path: &Path) -> eyre::Result<()> {
     );
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index).wrap_err_with(|| {
-            format!("invalid dependency remap JAR entry #{index}: {}", path.display())
+            format!(
+                "invalid dependency remap JAR entry #{index}: {}",
+                path.display()
+            )
         })?;
         std::io::copy(&mut entry, &mut std::io::sink()).wrap_err_with(|| {
-            format!("corrupt dependency remap JAR entry #{index}: {}", path.display())
+            format!(
+                "corrupt dependency remap JAR entry #{index}: {}",
+                path.display()
+            )
         })?;
     }
     Ok(())
@@ -1847,7 +1879,11 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         };
         context.bail_if_cancelled()?;
         let mut command = Command::new(javac_executable(&context.plan.java));
-        let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
+        let java_trust = super::java_trust::JavaTrust::configure_java(
+            &mut command,
+            true,
+            context.plan.java.major_version,
+        )?;
         command.arg(format!("@{}", argfile.display()));
         context.bail_if_cancelled()?;
         let output = {
@@ -1945,7 +1981,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                     &main_fingerprint,
                     &[("classes", &classes_dir), ("resources", &resources_dir)],
                 )?;
-            } else if project_java_cache_reuse_allowed(context) {
+            } else if project_java_cache_reuse_allowed(context)? {
                 context.recheck_compiler_image()?;
                 project_compilation_cache::record_admitted(
                     &context.plan.cache_dir,
@@ -2075,31 +2111,32 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     Ok(())
 }
 
-fn project_java_cache_reuse_allowed(context: &ExecutionContext<'_>) -> bool {
+fn project_java_cache_reuse_allowed(context: &ExecutionContext<'_>) -> eyre::Result<bool> {
+    context.bail_if_cancelled()?;
     #[cfg(target_os = "linux")]
     if linux_forge_cache::eligible(context.plan)
         && (!context
             .linux_forge
             .lock()
-            .expect("Linux Forge state poisoned")
+            .map_err(|_poisoned| eyre::eyre!("Linux Forge state poisoned"))?
             .ready_for_compiler()
             || context
                 .selected_dependency_remaps
                 .lock()
-                .expect("selected remaps poisoned")
+                .map_err(|_poisoned| eyre::eyre!("selected remaps poisoned"))?
                 .is_none())
     {
-        return false;
+        return Ok(false);
     }
     #[cfg(any(windows, target_os = "linux"))]
     {
-        context.compiler_image_identity.is_some()
-            && super::local_dependency_cache::environment_allows_reuse()
+        Ok(context.compiler_image_identity.is_some()
+            && super::local_dependency_cache::environment_allows_reuse())
     }
     #[cfg(not(any(windows, target_os = "linux")))]
     {
         let _ = context;
-        false
+        Ok(false)
     }
 }
 
@@ -2110,7 +2147,7 @@ fn write_project_java_cache(
     outputs: &[(&str, &Path)],
 ) -> eyre::Result<()> {
     context.recheck_compiler_image()?;
-    if project_java_cache_reuse_allowed(context) {
+    if project_java_cache_reuse_allowed(context)? {
         project_compilation_cache::record_admitted(
             &context.plan.cache_dir,
             state,
@@ -2139,7 +2176,7 @@ fn verified_java_cache_matches(
     context.plan.recheck_named_sdk()?;
     context.recheck_compiler_image()?;
     let matches = !context.plan.refresh
-        && project_java_cache_reuse_allowed(context)
+        && project_java_cache_reuse_allowed(context)?
         && project_compilation_cache::matches(
             &context.plan.cache_dir,
             state,
@@ -2189,7 +2226,7 @@ fn main_compilation_cache_matches(
         context.plan.recheck_named_sdk()?;
         context.recheck_compiler_image()?;
         let matches = !context.plan.refresh
-            && project_java_cache_reuse_allowed(context)
+            && project_java_cache_reuse_allowed(context)?
             && required_main_class.is_file()
             && (context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
                 || main_refmap.is_file())
@@ -2199,7 +2236,12 @@ fn main_compilation_cache_matches(
                 expected_state,
                 &[
                     ("classes", classes_dir),
-                    ("resources", main_refmap.parent().expect("refmap parent")),
+                    (
+                        "resources",
+                        main_refmap.parent().ok_or_else(|| {
+                            eyre::eyre!("Main compilation refmap has no parent directory")
+                        })?,
+                    ),
                 ],
                 &main_explicit_output_files(
                     context,
@@ -2438,7 +2480,11 @@ fn compile_optional_java_source_set(
     };
     context.bail_if_cancelled()?;
     let mut command = Command::new(javac_executable(&context.plan.java));
-    let java_trust = super::java_trust::JavaTrust::configure_java(&mut command, true, context.plan.java.major_version)?;
+    let java_trust = super::java_trust::JavaTrust::configure_java(
+        &mut command,
+        true,
+        context.plan.java.major_version,
+    )?;
     command.arg(format!("@{}", argfile.display()));
     let source = format!("javac-{source_set}");
     context.bail_if_cancelled()?;

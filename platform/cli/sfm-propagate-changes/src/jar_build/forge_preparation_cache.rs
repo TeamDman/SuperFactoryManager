@@ -12,7 +12,8 @@ mod inputs;
 mod managed_remap_receipt;
 #[path = "remap_cache_audit.rs"]
 mod remap_cache_audit;
-pub(super) use remap_cache_audit::{RemapAuditSummary, audit_managed_remaps};
+pub(super) use remap_cache_audit::RemapAuditSummary;
+pub(super) use remap_cache_audit::audit_managed_remaps;
 #[cfg(test)]
 #[path = "dependency_remap_cache_tests.rs"]
 mod remap_tests;
@@ -65,11 +66,14 @@ impl HeldSharedPreparation {
     }
 }
 
-fn record_shared_paths(context: &ExecutionContext<'_>, held: &HeldSharedPreparation) {
+fn record_shared_paths(
+    context: &ExecutionContext<'_>,
+    held: &HeldSharedPreparation,
+) -> eyre::Result<()> {
     context
         .held_shared_preparation
         .lock()
-        .expect("Shared preparation hold poisoned")
+        .map_err(|_poisoned| eyre::eyre!("Shared preparation hold poisoned"))?
         .extend(held.paths.iter().map(|(name, path)| {
             (
                 held.kind.to_owned(),
@@ -77,6 +81,7 @@ fn record_shared_paths(context: &ExecutionContext<'_>, held: &HeldSharedPreparat
                 held.path(held.kind, name).unwrap_or(path).to_path_buf(),
             )
         }));
+    Ok(())
 }
 
 /// A completed two-output remap entry held while its JAR is read directly.
@@ -234,10 +239,19 @@ pub(super) fn hold_dev_jar_for_run(
         .into_iter()
         .filter(|(name, _)| *name != "dev_compile.jar")
         .collect::<Vec<_>>();
-    let direct_mappings = context.forge_mapping_path("srg_to_official.tsrg")
-        != outputs.iter().find(|(name, _)| *name == "srg_to_official.tsrg")
-            .expect("Forge mapping output role").1;
-    let mappings = if direct_mappings { &[][..] } else { mappings.as_slice() };
+    let direct_mappings = context.forge_mapping_path("srg_to_official.tsrg")?
+        != outputs
+            .iter()
+            .find(|(name, _)| *name == "srg_to_official.tsrg")
+            .ok_or_else(|| {
+                eyre::eyre!("Forge preparation has no srg_to_official mapping output role")
+            })?
+            .1;
+    let mappings = if direct_mappings {
+        &[][..]
+    } else {
+        mappings.as_slice()
+    };
     let held = restore_held_dev_jar(
         &base.join(key),
         fingerprint,
@@ -259,8 +273,14 @@ pub(super) fn hold_preparation_for_run(
     }
     let mut holds = Vec::new();
     for (kind, names) in [
-        ("mcp", & ["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"][..]),
-        ("forge", & ["srg_to_official.tsrg", "official_to_srg.tsrg"][..]),
+        (
+            "mcp",
+            &["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"][..],
+        ),
+        (
+            "forge",
+            &["srg_to_official.tsrg", "official_to_srg.tsrg"][..],
+        ),
     ] {
         let Some(inputs) = ForgePreparationInputs::prepare(context, kind)? else {
             break;
@@ -269,16 +289,13 @@ pub(super) fn hold_preparation_for_run(
             break;
         };
         let key = inputs.fingerprint().trim_start_matches("sha256:");
-        let held = hold_shared_preparation(
-            &base.join(key),
-            inputs.fingerprint(),
-            kind,
-            names,
-            &|| context.bail_if_cancelled(),
-        )?;
+        let held =
+            hold_shared_preparation(&base.join(key), inputs.fingerprint(), kind, names, &|| {
+                context.bail_if_cancelled()
+            })?;
         inputs.recheck(context)?;
         let Some(held) = held else { break };
-        record_shared_paths(context, &held);
+        record_shared_paths(context, &held)?;
         holds.push(held);
     }
     let mut holds = holds.into_iter();
@@ -293,6 +310,101 @@ pub(super) fn eligible(context: &ExecutionContext<'_>) -> bool {
 
 fn force_fresh_preparation(refresh: bool, rebuild_shared_mcp: bool, kind: &str) -> bool {
     refresh || (rebuild_shared_mcp && kind == "mcp")
+}
+
+fn restore_preparation(
+    context: &ExecutionContext<'_>,
+    kind: &str,
+    materialize_sources: bool,
+    key_root: &Path,
+    fingerprint: &str,
+    materialized_outputs: &[(&'static str, PathBuf)],
+) -> eyre::Result<(bool, Option<HeldForgeDevJar>, Option<HeldSharedPreparation>)> {
+    let retain_dev_jar = kind == "forge" && !materialize_sources;
+    let mut shared = None;
+    let force_fresh =
+        force_fresh_preparation(context.plan.refresh, context.plan.rebuild_shared_mcp, kind);
+    let (reused, held_dev_jar) = if force_fresh {
+        (false, None)
+    } else if kind == "mcp" && !materialize_sources {
+        shared = hold_shared_preparation(
+            key_root,
+            fingerprint,
+            "mcp",
+            &["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"],
+            &|| context.bail_if_cancelled(),
+        )?;
+        (shared.is_some(), None)
+    } else if retain_dev_jar {
+        shared = hold_shared_preparation(
+            key_root,
+            fingerprint,
+            "forge",
+            &["srg_to_official.tsrg", "official_to_srg.tsrg"],
+            &|| context.bail_if_cancelled(),
+        )?;
+        let held = if shared.is_some() {
+            NfrtPreparationPhase::run("forge_preparation.reuse", || {
+                restore_held_dev_jar(key_root, fingerprint, &context.plan.cache_dir, &[], &|| {
+                    context.bail_if_cancelled()
+                })
+            })?
+        } else {
+            None
+        };
+        if held.is_none() {
+            shared = None;
+        }
+        (held.is_some(), held)
+    } else {
+        let reused = NfrtPreparationPhase::run("forge_preparation.reuse", || {
+            restore(
+                key_root,
+                fingerprint,
+                &context.plan.cache_dir,
+                materialized_outputs,
+                || context.bail_if_cancelled(),
+            )
+        })?;
+        (reused, None)
+    };
+    Ok((reused, held_dev_jar, shared))
+}
+
+fn record_reused_preparation(
+    context: &ExecutionContext<'_>,
+    kind: &str,
+    key: &str,
+    retain_dev_jar: bool,
+    materialized_outputs: Vec<(&'static str, PathBuf)>,
+    held_dev_jar: Option<&HeldForgeDevJar>,
+    shared: Option<&HeldSharedPreparation>,
+) -> eyre::Result<()> {
+    tracing::info!(
+        kind,
+        key,
+        outcome = "reused",
+        held_dev_jar = retain_dev_jar,
+        "forge_dependency_preparation"
+    );
+    let mut node_outputs = if let Some(held) = shared {
+        held.paths.clone()
+    } else {
+        materialized_outputs
+    };
+    if let Some(held) = shared {
+        record_shared_paths(context, held)?;
+    }
+    if let Some(held) = held_dev_jar {
+        let path = held.path().to_path_buf();
+        *context
+            .held_forge_dev_jar_path
+            .lock()
+            .map_err(|_poisoned| eyre::eyre!("Forge dev JAR path poisoned"))? = Some(path.clone());
+        node_outputs.push(("dev_compile.jar", path));
+    }
+    write_cached_node(context, kind, &node_outputs)?;
+    Ok(())
 }
 
 pub(super) fn execute(
@@ -359,9 +471,9 @@ pub(super) fn execute(
         return Ok((None, None, None));
     };
     let outputs = output_paths(context, kind)?;
-    let hold_dev_jar = kind == "forge" && !materialize_sources;
+    let retain_dev_jar = kind == "forge" && !materialize_sources;
     let restore_outputs = selected_restore_outputs(kind, materialize_sources, &outputs);
-    let materialized_outputs = if hold_dev_jar {
+    let materialized_outputs = if retain_dev_jar {
         restore_outputs
             .iter()
             .filter(|(name, _)| *name != "dev_compile.jar")
@@ -370,85 +482,43 @@ pub(super) fn execute(
     } else {
         restore_outputs.clone()
     };
-    let mut shared = None;
-    let force_fresh =
-        force_fresh_preparation(context.plan.refresh, context.plan.rebuild_shared_mcp, kind);
-    let (reused, held_dev_jar) = if force_fresh {
-        (false, None)
-    } else if kind == "mcp" && !materialize_sources {
-        shared = hold_shared_preparation(
-            &key_root,
-            fingerprint,
-            "mcp",
-            &["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"],
-            &|| context.bail_if_cancelled(),
-        )?;
-        (shared.is_some(), None)
-    } else if hold_dev_jar {
-        shared = hold_shared_preparation(
-            &key_root,
-            fingerprint,
-            "forge",
-            &["srg_to_official.tsrg", "official_to_srg.tsrg"],
-            &|| context.bail_if_cancelled(),
-        )?;
-        let held = if shared.is_some() {
-            NfrtPreparationPhase::run("forge_preparation.reuse", || {
-                restore_held_dev_jar(
-                    &key_root,
-                    fingerprint,
-                    &context.plan.cache_dir,
-                    &[],
-                    &|| context.bail_if_cancelled(),
-                )
-            })?
-        } else {
-            None
-        };
-        if held.is_none() {
-            shared = None;
-        }
-        (held.is_some(), held)
-    } else {
-        let reused = NfrtPreparationPhase::run("forge_preparation.reuse", || {
-            restore(
-                &key_root,
-                fingerprint,
-                &context.plan.cache_dir,
-                &materialized_outputs,
-                || context.bail_if_cancelled(),
-            )
-        })?;
-        (reused, None)
-    };
+    let (reused, held_dev_jar, shared) = restore_preparation(
+        context,
+        kind,
+        materialize_sources,
+        &key_root,
+        fingerprint,
+        &materialized_outputs,
+    )?;
     inputs.recheck(context)?;
     if reused {
-        tracing::info!(
+        record_reused_preparation(
+            context,
             kind,
             key,
-            outcome = "reused",
-            held_dev_jar = hold_dev_jar,
-            "forge_dependency_preparation"
-        );
-        let mut node_outputs = if let Some(held) = &shared {
-            held.paths.clone()
-        } else {
-            materialized_outputs
-        };
-        if let Some(held) = &shared {
-            record_shared_paths(context, held);
-        }
-        if let Some(held) = &held_dev_jar {
-            let path = held.path().to_path_buf();
-            *context
-                .held_forge_dev_jar_path
-                .lock()
-                .expect("Forge dev JAR path poisoned") = Some(path.clone());
-            node_outputs.push(("dev_compile.jar", path));
-        }
-        write_cached_node(context, kind, &node_outputs)?;
+            retain_dev_jar,
+            materialized_outputs,
+            held_dev_jar.as_ref(),
+            shared.as_ref(),
+        )?;
         return Ok((held_dev_jar, shared, Some(inputs)));
     }
+    produce_preparation(context, kind, &key_root, &inputs, &outputs, legacy, fresh)?;
+    Ok((None, None, None))
+}
+
+fn produce_preparation(
+    context: &ExecutionContext<'_>,
+    kind: &str,
+    key_root: &Path,
+    inputs: &ForgePreparationInputs,
+    outputs: &[(&'static str, PathBuf)],
+    legacy: impl FnOnce() -> eyre::Result<()>,
+    fresh: impl FnOnce(Option<&Path>) -> eyre::Result<()>,
+) -> eyre::Result<()> {
+    let forced_mcp = context.plan.rebuild_shared_mcp && kind == "mcp";
+    let fingerprint = inputs.fingerprint();
+    let key = fingerprint.trim_start_matches("sha256:");
     // Never turn an old existence-only project hit into a new validated entry.
     // This route deliberately invokes the original producer with that hit disabled.
     let at = if let Some(bytes) = inputs.at_bytes() {
@@ -459,7 +529,7 @@ pub(super) fn execute(
                 "forge_preparation_cache_declined"
             );
             legacy()?;
-            return Ok((None, None, None));
+            return Ok(());
         };
         Some(at)
     } else {
@@ -471,7 +541,7 @@ pub(super) fn execute(
     })?;
     inputs.recheck(context)?;
     let stored = NfrtPreparationPhase::run("forge_preparation.publish", || {
-        publish(&key_root, fingerprint, &outputs, || {
+        publish(key_root, fingerprint, outputs, || {
             context.bail_if_cancelled()
         })
     })?;
@@ -487,7 +557,7 @@ pub(super) fn execute(
         stored,
         "forge_dependency_preparation"
     );
-    Ok((None, None, None))
+    Ok(())
 }
 
 fn restore_held_dev_jar(
@@ -781,13 +851,14 @@ pub(super) fn publish_entry(
     let Some(entries) = entry_directories(key_root)? else {
         return Ok(None);
     };
-    let completed = entries.iter().try_fold(0_usize, |count, entry| {
-        match fs::symlink_metadata(entry.join("inputs.sha256")) {
-            Ok(_) => Ok(count + 1),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(count),
-            Err(error) => Err(error),
-        }
-    })?;
+    let completed =
+        entries.iter().try_fold(0_usize, |count, entry| {
+            match fs::symlink_metadata(entry.join("inputs.sha256")) {
+                Ok(_) => Ok(count + 1),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(count),
+                Err(error) => Err(error),
+            }
+        })?;
     if entries.len() >= MAX_ENTRY_DIRECTORIES || completed >= MAX_COMPLETED_ENTRIES {
         return Ok(None);
     }

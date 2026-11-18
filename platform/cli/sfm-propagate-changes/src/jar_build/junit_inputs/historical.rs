@@ -97,7 +97,9 @@ fn verify_product_pin_overlap(source: &SourceLock, authority: &TargetReport) -> 
 pub(super) fn bind_identity(plan: &BuildPlan, target: &TargetReport) -> eyre::Result<String> {
     verify_owner(plan)?;
     verify_pins(plan, target)?;
-    let project = plan.named_project().expect("owner checked above");
+    let project = plan
+        .named_project()
+        .ok_or_else(|| eyre::eyre!("Historical JUnit plan has no named project owner"))?;
     identity(&(
         "sfm:historical_junit_binding@2",
         identity(project.receipt())?,

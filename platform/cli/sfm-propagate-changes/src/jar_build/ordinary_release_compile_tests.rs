@@ -138,7 +138,7 @@ fn optional_fingerprint(context: &ExecutionContext<'_>) -> Result<String> {
 
 fn record_optional_hit(context: &ExecutionContext<'_>) -> Result<()> {
     assert!(
-        project_java_cache_reuse_allowed(context),
+        project_java_cache_reuse_allowed(context)?,
         "This fixture requires the production inherited-JVM reuse policy to admit its environment"
     );
     context.require_all_hit_compilation_binding()?;

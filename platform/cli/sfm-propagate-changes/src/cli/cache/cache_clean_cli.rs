@@ -1,4 +1,7 @@
-use crate::paths::{APP_CACHE_ENV_VAR, APP_HOME, CACHE_DIR, CACHE_ROOT_FILE};
+use crate::paths::APP_CACHE_ENV_VAR;
+use crate::paths::APP_HOME;
+use crate::paths::CACHE_ROOT_FILE;
+use crate::paths::CacheHome;
 use eyre::bail;
 use facet::Facet;
 use tracing::info;
@@ -19,7 +22,7 @@ impl CacheCleanArgs {
                 "cache clean refuses a custom cache root; remove only verified entries explicitly"
             );
         }
-        let path = &CACHE_DIR.0;
+        let path = &CacheHome::current()?.0;
         if path.exists() {
             std::fs::remove_dir_all(path)?;
             info!("Cleaned cache directory: {}", path.display());

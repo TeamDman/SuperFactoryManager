@@ -172,7 +172,10 @@ fn selected_provider<'a>(
         matching.len() == 1,
         "source binding requires one exact platform provider"
     );
-    let provider = matching.into_iter().next().expect("one checked provider");
+    let provider = matching
+        .into_iter()
+        .next()
+        .ok_or_else(|| eyre::eyre!("Source binding has no matching platform provider"))?;
     ensure!(
         provider.declaration.kind == kind,
         "source binding provider kind differs"
@@ -381,8 +384,13 @@ mod tests {
         std::fs::remove_file(&binding_path)?;
         let mut missing_binding = base.clone();
         assert!(
-            apply_for_project(temporary.path(), PROJECT_KEYS[0], LOCK, &mut missing_binding)
-                .is_err()
+            apply_for_project(
+                temporary.path(),
+                PROJECT_KEYS[0],
+                LOCK,
+                &mut missing_binding
+            )
+            .is_err()
         );
         assert_eq!(missing_binding, base);
         Ok(())

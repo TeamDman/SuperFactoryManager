@@ -1,5 +1,6 @@
 use crate::container_build::ContainerBuildRequest;
 use crate::container_build::ContainerEngine;
+use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
 use std::path::Path;
@@ -78,9 +79,10 @@ impl ContainerBuildArgs {
             repo_root: root,
             context: absolute(self.context),
             toolchain_lock: self.toolchain_lock.map(absolute),
-            cache_root: self
-                .cache_root
-                .map_or_else(|| crate::paths::CACHE_DIR.0.clone(), absolute),
+            cache_root: match self.cache_root {
+                Some(path) => absolute(path),
+                None => CacheHome::current()?.0.clone(),
+            },
             platform: self.platform,
             engine: self.engine,
             transport: self.transport,

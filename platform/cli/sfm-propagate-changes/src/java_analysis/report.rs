@@ -285,8 +285,9 @@ impl SymbolDefinitionOutput {
         query_status(self.outcome, self.dependency_index.as_ref())
     }
 
-    #[must_use]
-    pub fn to_csv(&self) -> String {
+    /// # Errors
+    /// Returns a serialization error if a report row or its context cannot be encoded.
+    pub fn to_csv(&self) -> eyre::Result<String> {
         csv_for_definitions(self)
     }
 }
@@ -334,8 +335,9 @@ impl SymbolListOutput {
         query_status(self.outcome, self.dependency_index.as_ref())
     }
 
-    #[must_use]
-    pub fn to_csv(&self) -> String {
+    /// # Errors
+    /// Returns a serialization error if a report row or its context cannot be encoded.
+    pub fn to_csv(&self) -> eyre::Result<String> {
         csv_for_symbol_list(self)
     }
 }
@@ -383,8 +385,9 @@ impl SymbolUsageListOutput {
         query_status(self.outcome, self.dependency_index.as_ref())
     }
 
-    #[must_use]
-    pub fn to_csv(&self) -> String {
+    /// # Errors
+    /// Returns a serialization error if a report row or its context cannot be encoded.
+    pub fn to_csv(&self) -> eyre::Result<String> {
         csv_for_usages(self)
     }
 }
@@ -428,16 +431,16 @@ impl SymbolMutationUnsupportedOutput {
     }
 }
 
-fn csv_for_definitions(report: &SymbolDefinitionOutput) -> String {
+fn csv_for_definitions(report: &SymbolDefinitionOutput) -> eyre::Result<String> {
     let mut report_row = SymbolCsvRow::report(
         &report.schema,
         report.outcome,
         &report.context,
         &report.selector,
-    );
+    )?;
     report_row.status = report.status();
     let mut output = csv_header();
-    append_csv_row(&mut output, &report_row);
+    append_csv_row(&mut output, &report_row)?;
     for definition in &report.definitions {
         let mut row = report_row.clone();
         "definition".clone_into(&mut row.record_kind);
@@ -445,13 +448,13 @@ fn csv_for_definitions(report: &SymbolDefinitionOutput) -> String {
         row.set_symbol(&definition.symbol);
         row.set_span(&definition.identifier_span);
         row.set_declaration_span(&definition.declaration_span);
-        append_csv_row(&mut output, &row);
+        append_csv_row(&mut output, &row)?;
     }
-    append_diagnostics(&mut output, &report_row, &report.diagnostics);
-    output
+    append_diagnostics(&mut output, &report_row, &report.diagnostics)?;
+    Ok(output)
 }
 
-fn csv_for_symbol_list(report: &SymbolListOutput) -> String {
+fn csv_for_symbol_list(report: &SymbolListOutput) -> eyre::Result<String> {
     let selector = JavaSymbolSelectorOutput {
         canonical: report.pattern.clone(),
         owner: String::new(),
@@ -460,11 +463,11 @@ fn csv_for_symbol_list(report: &SymbolListOutput) -> String {
         kind: JavaSymbolSelectorKind::Type,
     };
     let mut report_row =
-        SymbolCsvRow::report(&report.schema, report.outcome, &report.context, &selector);
+        SymbolCsvRow::report(&report.schema, report.outcome, &report.context, &selector)?;
     report_row.status = report.status();
     "glob".clone_into(&mut report_row.selector_kind);
     let mut output = csv_header();
-    append_csv_row(&mut output, &report_row);
+    append_csv_row(&mut output, &report_row)?;
     for definition in &report.definitions {
         let mut row = report_row.clone();
         "definition".clone_into(&mut row.record_kind);
@@ -472,22 +475,22 @@ fn csv_for_symbol_list(report: &SymbolListOutput) -> String {
         row.set_symbol(&definition.symbol);
         row.set_span(&definition.identifier_span);
         row.set_declaration_span(&definition.declaration_span);
-        append_csv_row(&mut output, &row);
+        append_csv_row(&mut output, &row)?;
     }
-    append_diagnostics(&mut output, &report_row, &report.diagnostics);
-    output
+    append_diagnostics(&mut output, &report_row, &report.diagnostics)?;
+    Ok(output)
 }
 
-fn csv_for_usages(report: &SymbolUsageListOutput) -> String {
+fn csv_for_usages(report: &SymbolUsageListOutput) -> eyre::Result<String> {
     let mut report_row = SymbolCsvRow::report(
         &report.schema,
         report.outcome,
         &report.context,
         &report.selector,
-    );
+    )?;
     report_row.status = report.status();
     let mut output = csv_header();
-    append_csv_row(&mut output, &report_row);
+    append_csv_row(&mut output, &report_row)?;
     for usage in &report.usages {
         let mut row = report_row.clone();
         "usage".clone_into(&mut row.record_kind);
@@ -495,10 +498,10 @@ fn csv_for_usages(report: &SymbolUsageListOutput) -> String {
         usage_kind_name(usage.kind).clone_into(&mut row.usage_kind);
         row.set_symbol(&usage.target);
         row.set_span(&usage.span);
-        append_csv_row(&mut output, &row);
+        append_csv_row(&mut output, &row)?;
     }
-    append_diagnostics(&mut output, &report_row, &report.diagnostics);
-    output
+    append_diagnostics(&mut output, &report_row, &report.diagnostics)?;
+    Ok(output)
 }
 
 fn csv_header() -> String {
@@ -575,8 +578,8 @@ impl SymbolCsvRow {
         outcome: SymbolCommandOutcome,
         context: &JavaAnalysisContextOutput,
         selector: &JavaSymbolSelectorOutput,
-    ) -> Self {
-        Self {
+    ) -> eyre::Result<Self> {
+        Ok(Self {
             schema: schema.to_owned(),
             record_kind: "report".to_owned(),
             outcome: outcome_name(outcome).to_owned(),
@@ -595,9 +598,9 @@ impl SymbolCsvRow {
             classpath_fingerprint: context.classpath_fingerprint.clone(),
             parser_fingerprint: context.parser_fingerprint.clone(),
             index_fingerprint: context.index_fingerprint.clone(),
-            source_roots_json: compact_json(&context.source_roots),
-            source_sets_json: compact_json(&context.source_sets),
-            source_exclusions_json: compact_json(&context.source_exclusions),
+            source_roots_json: compact_json(&context.source_roots)?,
+            source_sets_json: compact_json(&context.source_sets)?,
+            source_exclusions_json: compact_json(&context.source_exclusions)?,
             symbol_kind: String::new(),
             symbol_owner: String::new(),
             symbol_name: String::new(),
@@ -625,7 +628,7 @@ impl SymbolCsvRow {
             diagnostic_code: String::new(),
             diagnostic_severity: String::new(),
             message: String::new(),
-        }
+        })
     }
 
     fn set_symbol(&mut self, symbol: &JavaSymbolIdentityOutput) {
@@ -662,18 +665,16 @@ impl SymbolCsvRow {
     }
 }
 
-fn append_csv_row(output: &mut String, row: &SymbolCsvRow) {
-    output.push_str(
-        &facet_csv::to_string(row)
-            .expect("the flat symbol CSV row schema must remain serializable"),
-    );
+fn append_csv_row(output: &mut String, row: &SymbolCsvRow) -> eyre::Result<()> {
+    output.push_str(&facet_csv::to_string(row)?);
+    Ok(())
 }
 
 fn append_diagnostics(
     output: &mut String,
     report_row: &SymbolCsvRow,
     diagnostics: &[JavaAnalysisDiagnosticOutput],
-) {
+) -> eyre::Result<()> {
     for diagnostic in diagnostics {
         let mut row = report_row.clone();
         "diagnostic".clone_into(&mut row.record_kind);
@@ -683,12 +684,13 @@ fn append_diagnostics(
         if let Some(span) = &diagnostic.span {
             row.set_span(span);
         }
-        append_csv_row(output, &row);
+        append_csv_row(output, &row)?;
     }
+    Ok(())
 }
 
-fn compact_json<T: Facet<'static>>(value: &T) -> String {
-    facet_json::to_string(value).expect("report context must remain JSON serializable")
+fn compact_json<T: Facet<'static>>(value: &T) -> eyre::Result<String> {
+    Ok(facet_json::to_string(value)?)
 }
 
 const fn outcome_name(outcome: SymbolCommandOutcome) -> &'static str {
@@ -858,7 +860,7 @@ mod tests {
     fn symbol_output_renders_text_json_and_report_specific_csv() {
         for format in [OutputFormat::Text, OutputFormat::Json, OutputFormat::Csv] {
             let output =
-                CliOutput::facet_with_csv(definition_report(), |report| Ok(report.to_csv()));
+                CliOutput::facet_with_csv(definition_report(), SymbolDefinitionOutput::to_csv);
             let rendered = output
                 .render(Some(format), false)
                 .expect("symbol rendering")
@@ -866,7 +868,7 @@ mod tests {
             assert!(rendered.contains("example.A"));
         }
 
-        let csv = definition_report().to_csv();
+        let csv = definition_report().to_csv().expect("report CSV");
         let rows = csv.lines().collect::<Vec<_>>();
         assert_eq!(rows.len(), 3, "header, report, and definition rows");
         let report_row: SymbolCsvRow = facet_csv::from_str(rows[1]).expect("typed report CSV row");
@@ -881,7 +883,7 @@ mod tests {
         assert_eq!(definition_row.confidence, "resolved");
         assert_eq!(definition_row.source_hash, "blake3:source");
         assert_eq!(definition_row.declaration_source_hash, "blake3:source");
-        assert_eq!(csv, definition_report().to_csv());
+        assert_eq!(csv, definition_report().to_csv().expect("report CSV"));
     }
 
     #[test]
@@ -913,7 +915,7 @@ mod tests {
                 facet_json::from_str(&json).expect("usage JSON round trip");
             assert_eq!(reparsed, report);
             assert!(json.contains(SYMBOL_USAGE_LIST_SCHEMA));
-            let csv = report.to_csv();
+            let csv = report.to_csv().expect("report CSV");
             assert!(csv.contains("schema,record_kind"));
             let report_row: SymbolCsvRow =
                 facet_csv::from_str(csv.lines().nth(1).expect("CSV must contain a report row"))
@@ -930,7 +932,8 @@ mod tests {
             Vec::new(),
             Vec::new(),
         )
-        .to_csv();
+        .to_csv()
+        .expect("report CSV");
         let ambiguous = SymbolUsageListOutput::new(
             SymbolCommandOutcome::Ambiguous,
             context(),
@@ -938,7 +941,8 @@ mod tests {
             Vec::new(),
             Vec::new(),
         )
-        .to_csv();
+        .to_csv()
+        .expect("report CSV");
         assert_ne!(no_match, ambiguous);
         assert_eq!(no_match.lines().count(), 2, "empty report still has a row");
         assert_eq!(ambiguous.lines().count(), 2, "empty report still has a row");

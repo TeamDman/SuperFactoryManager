@@ -20,6 +20,7 @@ use sha2::Sha256;
 use std::fs;
 use std::path::Path;
 
+#[cfg(test)]
 fn capture_common(
     root: &Path,
     mapping: &[u8],
@@ -64,6 +65,7 @@ fn capture_common(
     Ok((directories, files))
 }
 
+#[cfg(test)]
 fn common_key(files: &[HeldForgePreparationInput]) -> String {
     let mut hash = Sha256::new();
     recipe_basis(
@@ -74,7 +76,8 @@ fn common_key(files: &[HeldForgePreparationInput]) -> String {
         17,
         Some("official"),
         Some("1.19.2"),
-    );
+    )
+    .expect("fixture recipe source regions");
     finish_fingerprint(
         hash,
         "remap",

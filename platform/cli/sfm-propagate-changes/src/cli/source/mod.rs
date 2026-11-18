@@ -1,9 +1,14 @@
-mod inspection_cli;
 mod candidate_lock_cli;
 mod catalog_commands;
+mod catalog_release_args;
+mod catalog_release_command;
+#[cfg(test)]
+mod catalog_release_logging_tests;
+mod catalog_release_plan_args;
 mod comparison_cli;
 mod core_project_cli;
 mod frozen_preset_stage_cli;
+mod inspection_cli;
 mod oracle_cli;
 mod projection_catalog_cli;
 mod promotion_cli;

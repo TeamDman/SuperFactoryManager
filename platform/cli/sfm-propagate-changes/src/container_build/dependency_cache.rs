@@ -63,7 +63,7 @@ pub(super) fn prepare(
     let identity = dependency
         .context_identity
         .clone()
-        .expect("dependency identity");
+        .ok_or_else(|| eyre::eyre!("Prepared dependency context has no identity"))?;
     let reference = format!("localhost/sfm-dependencies@{}", image.manifest_digest);
     let progress = directory.path().join("build-progress.log");
     if progress.exists() {

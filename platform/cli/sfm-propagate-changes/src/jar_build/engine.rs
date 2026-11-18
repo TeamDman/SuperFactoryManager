@@ -43,7 +43,7 @@ use crate::java_analysis::is_excluded_java_source as is_excluded_source;
 use crate::java_analysis::read_version_source_excludes as read_source_excludes_for_minecraft_dir;
 use crate::java_source_catalog::JAVA_SOURCE_CATALOG;
 use crate::java_source_catalog::JavaBuildSourceGroup;
-use crate::paths::CACHE_DIR;
+use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
@@ -640,13 +640,14 @@ fn execute_targets_parallel_with_cancellation(
     let (sender, receiver) = mpsc::channel::<TargetExecutionResult>();
 
     thread::scope(|scope| {
+        let mut workers = Vec::with_capacity(worker_count);
         for worker_index in 0..worker_count {
             let queue = Arc::clone(&queue);
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
             let execute = &execute;
             let cancellation_token = cancellation_token.clone();
-            scope.spawn(move || {
+            workers.push(scope.spawn(move || -> eyre::Result<()> {
                 loop {
                     if stop_starting.load(AtomicOrdering::Acquire)
                         || cancellation_token.is_cancelled()
@@ -654,7 +655,9 @@ fn execute_targets_parallel_with_cancellation(
                         break;
                     }
                     let target = {
-                        let mut queue = queue.lock().expect("target queue should not be poisoned");
+                        let mut queue = queue.lock().map_err(|_poisoned| {
+                            eyre::eyre!("Target execution queue was poisoned")
+                        })?;
                         queue.pop_front()
                     };
                     let Some((target_index, target)) = target else {
@@ -693,39 +696,47 @@ fn execute_targets_parallel_with_cancellation(
                         break;
                     }
                 }
-            });
+                Ok(())
+            }));
         }
         drop(sender);
 
         let mut results = receiver.into_iter().collect::<Vec<_>>();
+        for worker in workers {
+            worker
+                .join()
+                .map_err(|_panic| eyre::eyre!("Target execution worker panicked"))??;
+        }
         results.sort_by_key(|result| result.target_index);
 
-        let mut plans = Vec::new();
-        let mut failures = Vec::new();
-        let mut reports = Vec::new();
-        for result in results {
-            reports.push(result.report);
-            match result.result {
-                Ok(plan) => plans.push(plan),
-                Err(error) => {
-                    tracing::error!(
-                        branch = %result.target.branch,
-                        error = %error,
-                        "target_failed"
-                    );
-                    failures.push(TargetFailure::new(&result.target, &error));
-                }
+        cancellation_token.bail_if_cancelled()?;
+        Ok(collect_target_execution_results(results))
+    })
+}
+
+fn collect_target_execution_results(results: Vec<TargetExecutionResult>) -> TargetExecutionSummary {
+    let mut plans = Vec::new();
+    let mut failures = Vec::new();
+    let mut reports = Vec::new();
+    for result in results {
+        reports.push(result.report);
+        match result.result {
+            Ok(plan) => plans.push(plan),
+            Err(error) => {
+                tracing::error!(
+                    branch = %result.target.branch,
+                    error = %error,
+                    "target_failed"
+                );
+                failures.push(TargetFailure::new(&result.target, &error));
             }
         }
-
-        cancellation_token.bail_if_cancelled()?;
-
-        Ok(TargetExecutionSummary {
-            plans,
-            failures,
-            reports,
-        })
-    })
+    }
+    TargetExecutionSummary {
+        plans,
+        failures,
+        reports,
+    }
 }
 
 fn execute_build_target(
@@ -1444,12 +1455,13 @@ fn execute_compare_targets_parallel(
     let (sender, receiver) = mpsc::channel::<CompareExecutionResult>();
 
     thread::scope(|scope| {
+        let mut workers = Vec::with_capacity(worker_count);
         for worker_index in 0..worker_count {
             let queue = Arc::clone(&queue);
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
             let cancellation_token = cancellation_token.clone();
-            scope.spawn(move || {
+            workers.push(scope.spawn(move || -> eyre::Result<()> {
                 loop {
                     if stop_starting.load(AtomicOrdering::Acquire)
                         || cancellation_token.is_cancelled()
@@ -1457,7 +1469,9 @@ fn execute_compare_targets_parallel(
                         break;
                     }
                     let target = {
-                        let mut queue = queue.lock().expect("target queue should not be poisoned");
+                        let mut queue = queue.lock().map_err(|_poisoned| {
+                            eyre::eyre!("Target execution queue was poisoned")
+                        })?;
                         queue.pop_front()
                     };
                     let Some((target_index, target)) = target else {
@@ -1489,11 +1503,17 @@ fn execute_compare_targets_parallel(
                         break;
                     }
                 }
-            });
+                Ok(())
+            }));
         }
         drop(sender);
 
         let mut results = receiver.into_iter().collect::<Vec<_>>();
+        for worker in workers {
+            worker
+                .join()
+                .map_err(|_panic| eyre::eyre!("Target execution worker panicked"))??;
+        }
         results.sort_by_key(|result| result.target_index);
 
         let mut reports = Vec::new();
@@ -1726,12 +1746,13 @@ fn execute_artifact_audit_targets_parallel(
     let (sender, receiver) = mpsc::channel::<ArtifactAuditExecutionResult>();
 
     thread::scope(|scope| {
+        let mut workers = Vec::with_capacity(worker_count);
         for worker_index in 0..worker_count {
             let queue = Arc::clone(&queue);
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
             let cancellation_token = cancellation_token.clone();
-            scope.spawn(move || {
+            workers.push(scope.spawn(move || -> eyre::Result<()> {
                 loop {
                     if stop_starting.load(AtomicOrdering::Acquire)
                         || cancellation_token.is_cancelled()
@@ -1739,7 +1760,9 @@ fn execute_artifact_audit_targets_parallel(
                         break;
                     }
                     let target = {
-                        let mut queue = queue.lock().expect("target queue should not be poisoned");
+                        let mut queue = queue.lock().map_err(|_poisoned| {
+                            eyre::eyre!("Target execution queue was poisoned")
+                        })?;
                         queue.pop_front()
                     };
                     let Some((target_index, target)) = target else {
@@ -1769,11 +1792,17 @@ fn execute_artifact_audit_targets_parallel(
                         break;
                     }
                 }
-            });
+                Ok(())
+            }));
         }
         drop(sender);
 
         let mut results = receiver.into_iter().collect::<Vec<_>>();
+        for worker in workers {
+            worker
+                .join()
+                .map_err(|_panic| eyre::eyre!("Target execution worker panicked"))??;
+        }
         results.sort_by_key(|result| result.target_index);
 
         let mut reports = Vec::new();
@@ -1828,7 +1857,7 @@ fn audit_artifacts_for_target(
     let properties = read_properties(&properties_path)?;
     let minecraft_version = required_property(&properties, "minecraft_version")?;
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
-    let common_cache_dir = common_toolchain_cache_dir();
+    let common_cache_dir = common_toolchain_cache_dir()?;
     let report = audit_artifact_lockfile(
         &lockfile_path,
         &minecraft_dir,

@@ -42,7 +42,20 @@ $moduleRoots = @(
     'artifact_lock', 'branch_targets', 'cancellation', 'cli', 'colour', 'container_build',
     'curseforge', 'dependency_classfile_stubs', 'dependency_inventory',
     'dependency_locked_sources', 'dependency_sources', 'file_identity', 'git_read', 'jar_build',
+    'gradle_dot_properties_file_content', 'gradle_properties_version_edit', 'gradle_properties_key',
+    'gradle_properties_value', 'raw_gradle_properties_document',
+    'semver_version_range', 'minecraft_date_version_pair_proxy',
+    'minecraft_mapping_version_proxy',
+    'github_issue_tracker_url', 'github_username', 'java_identifier',
+    'java_package_name', 'mod_authors', 'mod_authors_csv_proxy',
+    'mod_description', 'mod_group_id', 'mod_id',
+    'mod_issue_tracker', 'mod_name', 'mod_version',
+    'sfm_gradle_dot_properties_file_content', 'sfm_mod_authors', 'sfm_mod_description',
+    'sfm_mod_group_id', 'sfm_mod_id', 'sfm_mod_issue_tracker',
+    'sfm_mod_name', 'sfm_mod_software_license', 'sfm_mod_version',
+    'software_license',
     'java_analysis', 'java_source_catalog', 'jdk', 'jdk_artifact_cache',
+    'jdk_install_control', 'jdk_preferences',
     'logging', 'modrinth', 'paths', 'payload_fetcher', 'propagate', 'release_report', 'release_review_capture',
     'release_review_capture_io', 'release_review_git',
     'release_review_java_diff', 'release_review_ledger',
@@ -50,7 +63,7 @@ $moduleRoots = @(
     'release_review_surface_v1', 'release_review_text_diff',
     'release_review_v1', 'release_review_working_tree',
     'review_session_v1', 'review_session_v2', 'source_archive',
-    'source_audit', 'source_cache', 'source_comparison', 'source_decompile', 'source_git',
+    'source_audit', 'source_binding', 'source_cache', 'source_comparison', 'source_decompile', 'source_git',
     'source_maven', 'source_projection', 'source_provider', 'startup_argv',
     'syntax_highlight', 'toolchain_lockfile_schema',
     'toolchain_lockfile_write'
@@ -155,8 +168,8 @@ function Assert-LibraryPartition {
         throw "Could not list library tests (exit $exitCode)."
     }
 
-    # Derive child shards from the actual list, then verify their real libtest
-    # substring/skip semantics cover every listed test exactly once.
+    # Verify exact ordinal module ownership for every listed name before any
+    # library process starts. Focused jobs execute those names with --exact.
     $plan = New-BoundedLibraryPlan -TestNames @($names.ToArray()) -ModuleRoots $moduleRoots -Fixture $fixture -StandaloneTests $standaloneTests
     Write-Host ("Library partition: {0} listed tests across {1} unsplit modules, {2} source_projection children ({3} tests), {4} standalone tests and one dedicated fixture." -f
         $plan.ListedTestCount, $plan.UnsplitModuleCount,
@@ -233,63 +246,36 @@ try {
 
     Assert-IntegrationTargets
     $executables = Get-BoundedTestExecutables
-    $needsLibraryPlan = $Shard -eq 'all' -or $Shard -eq 'unit:source_projection' -or
-        $Shard.StartsWith('unit:source_projection:', [System.StringComparison]::OrdinalIgnoreCase)
+    $needsLibraryPlan = $Shard -eq 'all' -or $Shard -eq 'fixture' -or
+        $Shard.StartsWith('unit:', [System.StringComparison]::OrdinalIgnoreCase)
     if ($needsLibraryPlan) {
         $plan = Assert-LibraryPartition -Executable $executables['lib']
         $libraryDescriptors = @($plan.Jobs)
     } else {
-        # Keep focused non-source_projection jobs on the existing no-list path.
-        $libraryDescriptors = @(Get-BoundedConfiguredLibraryJobs -ModuleRoots $moduleRoots -Fixture $fixture -StandaloneTests $standaloneTests)
+        $libraryDescriptors = @()
     }
     $selectedLibrary = @(Select-BoundedLibraryJobs -Jobs $libraryDescriptors -Shard $Shard)
     $jobs = [System.Collections.Generic.List[object]]::new()
-    foreach ($descriptor in @($selectedLibrary | Where-Object { $_.Kind -eq 'module' })) {
-        $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor -TestThreads $TestThreads)
-        $jobs.Add([pscustomobject]@{ Name = $descriptor.Name; Arguments = $cargoArgs })
+    foreach ($descriptor in $selectedLibrary) {
+        foreach ($job in @(New-BoundedLibraryExecutionJobs -Job $descriptor -Executable $executables['lib'] -WorkingDirectory $projectRoot -TestThreads $TestThreads)) {
+            $jobs.Add($job)
+        }
     }
     foreach ($target in $integrationTargets) {
         $name = "integration:$target"
         if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
-        $cargoArgs = $commonCargoArgs + @('--test', $target, '--', "--test-threads=$TestThreads")
-        $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
-    }
-    foreach ($kind in @('standalone', 'fixture')) {
-        foreach ($descriptor in @($selectedLibrary | Where-Object { $_.Kind -eq $kind })) {
-            $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor -TestThreads $TestThreads)
-            $jobs.Add([pscustomobject]@{ Name = $descriptor.Name; Arguments = $cargoArgs })
-        }
+        $jobs.Add([pscustomobject]@{
+            Name = $name
+            Executable = $executables[$name]
+            WorkingDirectory = $projectRoot
+            Arguments = @("--test-threads=$TestThreads")
+            ParallelSafe = $true
+        })
     }
     if ($jobs.Count -eq 0) {
-        throw "Unknown shard '$Shard'. Use all, fixture, unit:<module>, unit:source_projection:<listed-child>, or integration:<target>."
+        throw "Unknown or empty shard '$Shard'. Use all, fixture, unit:<module>, unit:source_projection:<listed-child>, or integration:<target>."
     }
-    # Tests use owned temporary repositories and child-command environment
-    # overrides; no tests change process-global cwd or environment. Shards
-    # remain separate processes to release accumulated allocator state.
-    $processJobs = @($jobs | ForEach-Object {
-        $key = if ($_.Name.StartsWith('integration:', [System.StringComparison]::Ordinal)) {
-            $_.Name
-        } else { 'lib' }
-        $separator = [array]::IndexOf([string[]]$_.Arguments, '--')
-        if ($separator -lt 0 -or $separator -ge $_.Arguments.Count - 1) {
-            throw "Missing libtest arguments for '$($_.Name)'."
-        }
-        $harnessArguments = @($_.Arguments[($separator + 1)..($_.Arguments.Count - 1)])
-        if ($key -eq 'lib') {
-            $library = [array]::IndexOf([string[]]$_.Arguments, '--lib')
-            if ($library -lt 0 -or $library + 1 -ge $separator) {
-                throw "Missing library filter for '$($_.Name)'."
-            }
-            $harnessArguments = @($_.Arguments[$library + 1]) + $harnessArguments
-        }
-        [pscustomobject]@{
-            Name = $_.Name
-            Executable = $executables[$key]
-            WorkingDirectory = $projectRoot
-            Arguments = $harnessArguments
-            ParallelSafe = $true
-        }
-    })
+    $processJobs = @($jobs.ToArray())
     if ($Shard -eq 'all') {
         # Run the complete library once. The previous per-module processes each
         # paid seconds of startup/shutdown even for zero-duration tests. Keep
