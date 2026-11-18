@@ -1,6 +1,8 @@
 use super::*;
-use crate::cli::jdk::{JdkArgs, JdkCommand};
+use crate::cli::jdk::JdkArgs;
+use crate::cli::jdk::JdkCommand;
 use crate::source_projection::catalog_owned_project::tests::Fixture;
+use sha2::Digest as _;
 
 fn published_sdk_project(fixture: &Fixture) -> eyre::Result<PathBuf> {
     let catalog = CoreCatalog::load(fixture.repository(), fixture.repository())?;
@@ -21,7 +23,6 @@ fn published_sdk_project(fixture: &Fixture) -> eyre::Result<PathBuf> {
 #[test]
 fn public_sdk_install_dispatch_returns_verified_offline_home_without_running_java()
 -> eyre::Result<()> {
-    use sha2::Digest as _;
     let made = std::process::Command::new("python3").args(["-I", "-S", "-c", r#"import io,sys,tarfile
 b=io.BytesIO()
 with tarfile.open(fileobj=b,mode='w:gz') as t:

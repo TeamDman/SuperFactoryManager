@@ -6,15 +6,21 @@
 //! therefore build a review corpus for arbitrary commits without checking them
 //! out or changing the repository's refs/index/worktree.
 
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::{self};
+use std::io::Error as IoError;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
+use std::str::from_utf8;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 pub const GIT_DOMAIN_SCHEMA: &str = "sfm.release-review.git-domain/1";
 pub const AMBIENT_REPOSITORY_RELATIONSHIP_SCHEMA: &str =
@@ -38,7 +44,7 @@ impl GitReviewDomain {
     /// Keep complete change records and rebuild all dependent reconciliation evidence.
     pub(crate) fn retain_changes(&mut self, keep: impl FnMut(&GitDomainChange) -> bool) {
         self.changes.retain(keep);
-        let retained: std::collections::BTreeSet<_> = self
+        let retained: BTreeSet<_> = self
             .changes
             .iter()
             .map(|change| change.change_id.as_str())
@@ -74,7 +80,7 @@ impl GitPath {
 
     #[must_use]
     pub fn as_utf8(&self) -> Option<&str> {
-        std::str::from_utf8(&self.bytes).ok()
+        from_utf8(&self.bytes).ok()
     }
 
     #[must_use]
@@ -269,8 +275,8 @@ pub fn inspect_working_tree(
     repository_root: &Path,
     review_evidence_paths: &[String],
 ) -> WorkingTreeEvidence {
-    let checked_at_unix_millis = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let checked_at_unix_millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| duration.as_millis());
     let failed = |message: String| WorkingTreeEvidence {
         schema: "sfm.release-review.working-tree-evidence/1",
@@ -378,7 +384,7 @@ pub fn parse_working_tree_status(
 pub enum GitDomainError {
     Io {
         operation: String,
-        source: std::io::Error,
+        source: IoError,
     },
     Git {
         operation: String,
@@ -596,7 +602,7 @@ pub fn classify_ambient_repository_relationship(
     let permitted_bytes = permitted_review_evidence_paths
         .iter()
         .map(String::as_bytes)
-        .collect::<std::collections::BTreeSet<_>>();
+        .collect::<BTreeSet<_>>();
     let source_affecting_git_paths = changed_git_paths
         .iter()
         .filter(|path| !permitted_bytes.contains(path.as_bytes()))
@@ -660,7 +666,7 @@ fn intervening_commits(
         None,
         "enumerating intervening commits",
     )?;
-    let text = std::str::from_utf8(&output.stdout).map_err(|error| GitDomainError::Parse {
+    let text = from_utf8(&output.stdout).map_err(|error| GitDomainError::Parse {
         stream: "rev-list",
         detail: format!("commit list was not UTF-8/ASCII: {error}"),
     })?;
@@ -674,7 +680,7 @@ fn paths_touched_by_commits(
     repository_root: &Path,
     commits: &[String],
 ) -> Result<Vec<GitPath>, GitDomainError> {
-    let mut paths = std::collections::BTreeSet::new();
+    let mut paths = BTreeSet::new();
     for commit in commits {
         let output = run_git(
             repository_root,
@@ -847,7 +853,7 @@ fn resolve_revision(
 }
 
 fn parse_object_id(bytes: &[u8], stream: &'static str) -> Result<String, GitDomainError> {
-    let value = std::str::from_utf8(bytes)
+    let value = from_utf8(bytes)
         .map_err(|error| GitDomainError::Parse {
             stream,
             detail: format!("object ID was not UTF-8: {error}"),
@@ -968,7 +974,7 @@ fn parse_raw_changes(bytes: &[u8]) -> Result<Vec<RawChange>, GitDomainError> {
                 detail: "encountered an empty raw header".to_owned(),
             });
         }
-        let header = std::str::from_utf8(header).map_err(|error| GitDomainError::Parse {
+        let header = from_utf8(header).map_err(|error| GitDomainError::Parse {
             stream: "raw diff",
             detail: format!("raw header was not ASCII/UTF-8: {error}"),
         })?;
@@ -1041,7 +1047,7 @@ fn parse_status(raw: &str) -> Result<GitChangeStatus, GitDomainError> {
     let similarity_percent = if suffix.is_empty() {
         None
     } else {
-        let suffix = std::str::from_utf8(&suffix).map_err(|error| GitDomainError::Parse {
+        let suffix = from_utf8(&suffix).map_err(|error| GitDomainError::Parse {
             stream: "raw diff",
             detail: format!("invalid similarity in status '{raw}': {error}"),
         })?;
@@ -1186,7 +1192,7 @@ fn parse_numstat_value(additions: &[u8], deletions: &[u8]) -> Result<GitNumstat,
 }
 
 fn parse_ascii_u64(bytes: &[u8], field: &'static str) -> Result<u64, GitDomainError> {
-    let value = std::str::from_utf8(bytes).map_err(|error| GitDomainError::Parse {
+    let value = from_utf8(bytes).map_err(|error| GitDomainError::Parse {
         stream: "numstat",
         detail: format!("{field} was not ASCII: {error}"),
     })?;
@@ -1303,7 +1309,7 @@ fn parse_patch_sections(bytes: &[u8]) -> Result<Vec<PatchSection>, GitDomainErro
 }
 
 fn parse_hunk_header(line: &[u8]) -> Result<GitHunkRange, GitDomainError> {
-    let line = std::str::from_utf8(line).map_err(|error| GitDomainError::Parse {
+    let line = from_utf8(line).map_err(|error| GitDomainError::Parse {
         stream: "patch",
         detail: format!("hunk header was not UTF-8/ASCII: {error}"),
     })?;
@@ -1393,7 +1399,7 @@ fn build_changes(
         .collect()
 }
 
-fn compare_changes(left: &GitDomainChange, right: &GitDomainChange) -> std::cmp::Ordering {
+fn compare_changes(left: &GitDomainChange, right: &GitDomainChange) -> Ordering {
     let left_path = left.new_path.as_ref().or(left.old_path.as_ref());
     let right_path = right.new_path.as_ref().or(right.old_path.as_ref());
     left_path

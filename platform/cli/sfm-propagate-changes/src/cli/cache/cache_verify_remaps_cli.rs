@@ -1,6 +1,8 @@
 //! Explicit expensive audit of every managed dependency remap entry.
 
 use super::cache_report_cli::checked_existing_root;
+#[cfg(windows)]
+use crate::jar_build::engine::audit_managed_remaps;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::terminal_output::stdout_line;
 use eyre::ensure;
@@ -23,6 +25,8 @@ pub struct CacheVerifyRemapsArgs {
 
 impl CacheVerifyRemapsArgs {
     /// Rehash complete outputs. Never publish a seal, repair or delete.
+    /// # Errors
+    /// Returns an error if the selected remap inventory cannot be read or verified.
     pub fn invoke(self) -> eyre::Result<()> {
         let (catalog, _) = CoreCatalog::for_project(&self.project_root)?;
         let logical = self
@@ -32,8 +36,7 @@ impl CacheVerifyRemapsArgs {
         let root = physical.join("dependency-remap-v1");
         #[cfg(windows)]
         {
-            let summary =
-                crate::jar_build::engine::audit_managed_remaps(&root, self.key.as_deref())?;
+            let summary = audit_managed_remaps(&root, self.key.as_deref())?;
             stdout_line(format!(
                 "Remap audit: {} keys, {} verified, {} incomplete, {} damaged, {} scratch roots excluded",
                 summary.keys,

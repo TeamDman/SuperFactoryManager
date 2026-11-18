@@ -11,7 +11,7 @@ use super::issue;
 use super::read_input;
 use super::sha256;
 use super::verified_test_artifact::VerifiedTestArtifact;
-
+use std::path::PathBuf;
 pub(super) fn verify_all(
     report: &mut PreflightReport,
     cache: &Path,
@@ -68,7 +68,7 @@ pub(super) fn verify_all(
     Ok(())
 }
 
-pub(super) fn cache_path(cache: &Path, coordinate: &str) -> eyre::Result<std::path::PathBuf> {
+pub(super) fn cache_path(cache: &Path, coordinate: &str) -> eyre::Result<PathBuf> {
     eyre::ensure!(
         coordinate
             .bytes()

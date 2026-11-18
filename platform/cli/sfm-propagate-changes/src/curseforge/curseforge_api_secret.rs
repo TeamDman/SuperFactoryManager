@@ -4,6 +4,7 @@ use super::load_discovery_credential;
 use crate::one_password::OnePasswordSecretReference;
 use crate::one_password::OnePasswordSecretValue;
 use facet::Facet;
+use std::env;
 use std::fmt;
 use std::ops::Deref;
 
@@ -70,7 +71,7 @@ impl CurseforgeApiSecret {
                 "--api-key".to_owned(),
             ));
         }
-        if let Ok(value) = std::env::var(CURSEFORGE_CORE_API_KEY_ENV_VAR)
+        if let Ok(value) = env::var(CURSEFORGE_CORE_API_KEY_ENV_VAR)
             && !value.trim().is_empty()
         {
             return Ok((

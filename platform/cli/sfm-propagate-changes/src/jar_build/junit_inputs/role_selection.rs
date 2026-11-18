@@ -14,6 +14,7 @@ use crate::source_projection::core_inputs::CoreSelection;
 use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
 use std::collections::BTreeSet;
+use std::str::from_utf8;
 
 #[derive(Debug)]
 pub(super) struct RoleSelection {
@@ -44,7 +45,7 @@ impl RoleSelection {
         report.bytes_read += (catalog_raw.len() + features_raw.len()) as u64;
         let raw = read_input(report, repo, CORE_METADATA_PATH, MAX_METADATA_BYTES)?;
         let metadata =
-            CoreProjectInputs::from_json(std::str::from_utf8(&raw)?, &catalog.registered_features)?;
+            CoreProjectInputs::from_json(from_utf8(&raw)?, &catalog.registered_features)?;
         Ok(Self {
             catalog,
             metadata,

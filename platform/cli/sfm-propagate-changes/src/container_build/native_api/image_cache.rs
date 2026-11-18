@@ -3,8 +3,10 @@ use super::super::context_manifest::ContextManifest;
 use super::super::image_identity::ImageIdentity;
 use super::api_image::ApiImage;
 use super::transport;
+use crate::source_projection;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::candidate_lock::checked_file;
+use std::fs::create_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
 pub(super) const LABEL: &str = "org.sfm.container.context";
@@ -26,7 +28,7 @@ fn receipt(request: &ContainerBuildRequest, report: &ContextManifest) -> eyre::R
         .parent()
         .ok_or_else(|| eyre::eyre!("image receipt parent missing"))?
         .join(".sfm-container-images");
-    std::fs::create_dir_all(&root)?;
+    create_dir_all(&root)?;
     let root = checked_directory(&root)?;
     let key = report
         .context_identity
@@ -130,7 +132,7 @@ pub(super) async fn reuse(
     if !target.exists() {
         return Ok(None);
     }
-    let bytes = crate::source_projection::core_catalog::read_bounded_input(
+    let bytes = source_projection::core_catalog::read_bounded_input(
         target
             .parent()
             .ok_or_else(|| eyre::eyre!("Image receipt has no parent directory"))?,

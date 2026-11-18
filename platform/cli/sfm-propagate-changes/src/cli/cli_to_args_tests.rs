@@ -26,7 +26,8 @@ fn typed_top_level_audit_command_roundtrips() {
     let command = Cli {
         global_args: GlobalArgs::default(),
         command: Command::Audit(AuditArgs {
-            branch: BranchSelector("popular AND >= 1.20.4".to_string()),
+            branch: Some(BranchSelector("popular AND >= 1.20.4".to_string())),
+            project_root: None,
             language: vec![SourceLanguage::Rust, SourceLanguage::Java],
             lang: Vec::new(),
             max_lines: Some(SourceLineLimit(1200)),
@@ -62,7 +63,10 @@ fn typed_top_level_audit_command_roundtrips() {
     let Command::Audit(parsed) = parsed.command else {
         panic!("expected top-level audit command");
     };
-    assert_eq!(parsed.branch.as_ref(), "popular AND >= 1.20.4");
+    assert_eq!(
+        parsed.branch.as_ref().unwrap().as_ref(),
+        "popular AND >= 1.20.4"
+    );
     assert_eq!(
         parsed.language,
         [SourceLanguage::Rust, SourceLanguage::Java]

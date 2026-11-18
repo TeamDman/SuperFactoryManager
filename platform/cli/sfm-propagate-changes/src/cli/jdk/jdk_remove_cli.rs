@@ -1,3 +1,5 @@
+use crate::jdk_preferences::JdkPreferenceRegistry;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
@@ -12,8 +14,8 @@ pub struct JdkRemoveArgs {
 impl JdkRemoveArgs {
     /// # Errors
     /// Fails if preferences are corrupt or the logical ID is absent.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let removed = crate::jdk_preferences::remove(&self.id)?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let removed = JdkPreferenceRegistry::new(app_home).remove(&self.id)?;
         stdout_line(format!(
             "Removed {} mapping; JDK files retained at {}",
             removed.id, removed.home

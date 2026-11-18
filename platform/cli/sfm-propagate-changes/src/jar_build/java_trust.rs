@@ -3,10 +3,16 @@
 //! The caller is responsible for deriving and approving the store. The SHA-256
 //! identifies those approved bytes; it does not certify their CA policy.
 
-use eyre::{Result, ensure};
-use std::fs::{self, File};
+use crate::file_identity;
+use crate::source_projection;
+use eyre::Result;
+use eyre::ensure;
+use std::env;
+use std::fs::File;
+use std::fs::{self};
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 const STORE_ENV: &str = "SFM_JAVA_TRUST_STORE";
@@ -24,7 +30,7 @@ pub(crate) struct JavaTrust {
     path: PathBuf,
     sha256: String,
     held: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
 }
 
 impl JavaTrust {
@@ -81,7 +87,7 @@ impl JavaTrust {
     }
 
     fn from_pair(store_env: &str, digest_env: &str) -> Result<Option<Self>> {
-        match (std::env::var_os(store_env), std::env::var_os(digest_env)) {
+        match (env::var_os(store_env), env::var_os(digest_env)) {
             (None, None) => Ok(None),
             (Some(path), Some(digest)) => {
                 let digest = digest
@@ -89,7 +95,9 @@ impl JavaTrust {
                     .map_err(|_non_unicode| eyre::eyre!("Java trust SHA-256 must be Unicode"))?;
                 Ok(Some(Self::capture(Path::new(&path), &digest)?))
             }
-            _ => Err(eyre::eyre!("{store_env} and {digest_env} must be set together")),
+            _ => Err(eyre::eyre!(
+                "{store_env} and {digest_env} must be set together"
+            )),
         }
     }
 
@@ -117,7 +125,7 @@ impl JavaTrust {
         let path = dunce::canonicalize(path)?;
         Self::property_path(&path)?;
         let held = File::open(&path)?;
-        let identity = crate::file_identity::file_identity(&held)?;
+        let identity = file_identity::file_identity(&held)?;
         let trust = Self {
             path,
             sha256: digest,
@@ -143,8 +151,8 @@ impl JavaTrust {
         );
         let opened = File::open(&self.path)?;
         ensure!(
-            crate::file_identity::file_identity(&self.held)? == self.identity
-                && crate::file_identity::file_identity(&opened)? == self.identity,
+            file_identity::file_identity(&self.held)? == self.identity
+                && file_identity::file_identity(&opened)? == self.identity,
             "selected Java trust store file identity changed"
         );
         let mut bytes = Vec::new();
@@ -153,12 +161,12 @@ impl JavaTrust {
             .read_to_end(&mut bytes)?;
         ensure!(
             bytes.len() as u64 <= MAX_STORE_BYTES
-                && crate::source_projection::provenance::sha256(&bytes) == self.identity(),
+                && source_projection::provenance::sha256(&bytes) == self.identity(),
             "selected Java trust store bytes changed or do not match the approved SHA-256"
         );
         let reopened = File::open(&self.path)?;
         ensure!(
-            crate::file_identity::file_identity(&reopened)? == self.identity,
+            file_identity::file_identity(&reopened)? == self.identity,
             "selected Java trust store was replaced while checking bytes"
         );
         Ok(())

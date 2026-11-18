@@ -2,8 +2,11 @@ use crate::jar_build::SourceBuildProvenance;
 use crate::jar_build::SourceGitProvenance;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::json_path::JsonPath;
+use crate::paths;
 use facet::Facet;
+use std::cmp::Ordering;
 use std::collections::BTreeSet;
+use std::mem::take;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -753,7 +756,7 @@ fn validate_restricted_maven_range(range: &str, selected: &str) -> eyre::Result<
         if !lower_inclusive || !upper_inclusive || inner.is_empty() {
             eyre::bail!("a single-version Maven range must use `[version]`");
         }
-        if compare_maven_versions(selected, inner) != std::cmp::Ordering::Equal {
+        if compare_maven_versions(selected, inner) != Ordering::Equal {
             eyre::bail!("selected version `{selected}` is outside `{range}`");
         }
         return Ok(());
@@ -766,24 +769,20 @@ fn validate_restricted_maven_range(range: &str, selected: &str) -> eyre::Result<
     }
     if !lower.is_empty() {
         let ordering = compare_maven_versions(selected, lower);
-        if ordering == std::cmp::Ordering::Less
-            || (ordering == std::cmp::Ordering::Equal && lower_exclusive)
-        {
+        if ordering == Ordering::Less || (ordering == Ordering::Equal && lower_exclusive) {
             eyre::bail!("selected version `{selected}` is below `{range}`");
         }
     }
     if !upper.is_empty() {
         let ordering = compare_maven_versions(selected, upper);
-        if ordering == std::cmp::Ordering::Greater
-            || (ordering == std::cmp::Ordering::Equal && upper_exclusive)
-        {
+        if ordering == Ordering::Greater || (ordering == Ordering::Equal && upper_exclusive) {
             eyre::bail!("selected version `{selected}` is above `{range}`");
         }
     }
     Ok(())
 }
 
-fn compare_maven_versions(left: &str, right: &str) -> std::cmp::Ordering {
+fn compare_maven_versions(left: &str, right: &str) -> Ordering {
     let left = version_tokens(left);
     let right = version_tokens(right);
     let length = left.len().max(right.len());
@@ -801,11 +800,11 @@ fn compare_maven_versions(left: &str, right: &str) -> std::cmp::Ordering {
             }
             _ => left.to_ascii_lowercase().cmp(&right.to_ascii_lowercase()),
         };
-        if ordering != std::cmp::Ordering::Equal {
+        if ordering != Ordering::Equal {
             return ordering;
         }
     }
-    std::cmp::Ordering::Equal
+    Ordering::Equal
 }
 
 fn version_tokens(version: &str) -> Vec<String> {
@@ -815,14 +814,14 @@ fn version_tokens(version: &str) -> Vec<String> {
     for character in version.chars() {
         if matches!(character, '.' | '-' | '_' | '+') {
             if !current.is_empty() {
-                tokens.push(std::mem::take(&mut current));
+                tokens.push(take(&mut current));
             }
             numeric = None;
             continue;
         }
         let next_numeric = character.is_ascii_digit();
         if numeric.is_some_and(|value| value != next_numeric) && !current.is_empty() {
-            tokens.push(std::mem::take(&mut current));
+            tokens.push(take(&mut current));
         }
         current.push(character);
         numeric = Some(next_numeric);
@@ -906,50 +905,52 @@ impl SourceProviderV3 {
                     "decompiled source tree path",
                 )?;
             }
-            Self::PlatformPipeline(provider) => {
-                require_nonempty(
-                    &provider.derived_checks.fingerprint,
-                    "platform source fingerprint",
-                )?;
-                if let Some(binding) = provider.derived_checks.source_binding_sha256.as_deref() {
-                    eyre::ensure!(
-                        binding.strip_prefix("sha256:").is_some_and(|hex| {
-                            hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
-                        }) && provider.derived_checks.source_payload_sha256.is_some(),
-                        "shared source binding requires a full digest and payload pin"
-                    );
-                }
-                validate_portable_path(
-                    &provider.derived_checks.tree_cache_path,
-                    "platform source tree path",
-                )?;
-                match (
-                    &provider.derived_checks.catalog_projection,
-                    &provider.derived_checks.source_jar_sha256,
-                    &provider.derived_checks.source_payload_sha256,
-                ) {
-                    (None, None, None) => {}
-                    (Some(projection), Some(hash), None) | (Some(projection), None, Some(hash)) => {
-                        require_nonempty(projection, "catalog platform source projection")?;
-                        eyre::ensure!(
-                            hash.strip_prefix("sha256:").is_some_and(|hex| {
-                                hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
-                            }),
-                            "catalog platform source requires a full SHA-256 source identity"
-                        );
-                        eyre::ensure!(
-                            crate::paths::portable_cache_relative(
-                                &provider.derived_checks.tree_cache_path
-                            )?
-                            .is_some(),
-                            "catalog platform source tree must live in the selected shared cache"
-                        );
-                    }
-                    _ => eyre::bail!(
-                        "catalog platform source requires projection and exactly one source identity"
-                    ),
-                }
+            Self::PlatformPipeline(provider) => provider.validate()?,
+        }
+        Ok(())
+    }
+}
+
+impl PlatformPipelineSourceProviderV3 {
+    fn validate(&self) -> eyre::Result<()> {
+        require_nonempty(
+            &self.derived_checks.fingerprint,
+            "platform source fingerprint",
+        )?;
+        if let Some(binding) = self.derived_checks.source_binding_sha256.as_deref() {
+            eyre::ensure!(
+                binding.strip_prefix("sha256:").is_some_and(|hex| {
+                    hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+                }) && self.derived_checks.source_payload_sha256.is_some(),
+                "shared source binding requires a full digest and payload pin"
+            );
+        }
+        validate_portable_path(
+            &self.derived_checks.tree_cache_path,
+            "platform source tree path",
+        )?;
+        match (
+            &self.derived_checks.catalog_projection,
+            &self.derived_checks.source_jar_sha256,
+            &self.derived_checks.source_payload_sha256,
+        ) {
+            (None, None, None) => {}
+            (Some(projection), Some(hash), None) | (Some(projection), None, Some(hash)) => {
+                require_nonempty(projection, "catalog platform source projection")?;
+                eyre::ensure!(
+                    hash.strip_prefix("sha256:").is_some_and(|hex| {
+                        hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    }),
+                    "catalog platform source requires a full SHA-256 source identity"
+                );
+                eyre::ensure!(
+                    paths::portable_cache_relative(&self.derived_checks.tree_cache_path)?.is_some(),
+                    "catalog platform source tree must live in the selected shared cache"
+                );
             }
+            _ => eyre::bail!(
+                "catalog platform source requires projection and exactly one source identity"
+            ),
         }
         Ok(())
     }
@@ -1005,7 +1006,7 @@ fn validate_portable_path(path: &Path, label: &str) -> eyre::Result<()> {
     if path.is_absolute() {
         eyre::bail!("{label} must be portable, got `{}`", path.display());
     }
-    crate::paths::portable_cache_relative(path)?;
+    paths::portable_cache_relative(path)?;
     Ok(())
 }
 

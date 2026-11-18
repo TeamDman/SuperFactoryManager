@@ -1,6 +1,7 @@
 //! Source-independent identity for the admitted dependency transformation.
 //! Input acquisition/admission remains separate; parsed JSON grants no authority.
 
+use std::env;
 #[path = "local_dependency_descriptor.rs"]
 mod local_dependency_descriptor;
 
@@ -58,8 +59,8 @@ impl LocalDependencyKey {
         let descriptor = (
             (
                 DESCRIPTOR_SCHEMA.to_owned(),
-                std::env::consts::OS.to_owned(),
-                std::env::consts::ARCH.to_owned(),
+                env::consts::OS.to_owned(),
+                env::consts::ARCH.to_owned(),
             ),
             (
                 canonical_sha256(sdk_identity)?,
@@ -119,9 +120,7 @@ impl LocalDependencyKey {
         );
         let ((schema, os, arch), identities, (transformer, receipt)) = descriptor;
         ensure!(
-            schema == DESCRIPTOR_SCHEMA
-                && os == std::env::consts::OS
-                && arch == std::env::consts::ARCH,
+            schema == DESCRIPTOR_SCHEMA && os == env::consts::OS && arch == env::consts::ARCH,
             "Local dependency platform or descriptor schema differs"
         );
         for digest in [&identities.0, &identities.1, &identities.2] {

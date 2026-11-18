@@ -1,5 +1,6 @@
 use super::HomeOpenArgs;
 use super::HomePathArgs;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -15,8 +16,8 @@ impl HomeArgs {
     /// # Errors
     ///
     /// Returns an error if the selected home command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -34,10 +35,10 @@ impl HomeCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            HomeCommand::Path(args) => args.invoke(),
-            HomeCommand::Open(args) => args.invoke(),
+            HomeCommand::Path(args) => args.invoke(app_home),
+            HomeCommand::Open(args) => args.invoke(app_home),
         }
     }
 }

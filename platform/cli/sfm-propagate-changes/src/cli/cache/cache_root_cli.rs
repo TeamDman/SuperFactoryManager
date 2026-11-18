@@ -1,15 +1,20 @@
-use crate::paths::APP_CACHE_ENV_VAR;
-use crate::paths::APP_HOME;
+use crate::cli::InvocationHomes;
+use crate::paths::AppHome;
 use crate::paths::CACHE_ROOT_FILE;
 use crate::paths::CACHE_ROOT_MARKER;
 use crate::paths::CACHE_ROOT_MARKER_CONTENT;
-use crate::paths::CacheHome;
+use crate::paths::SelectedCacheHome;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
 use eyre::bail;
 use eyre::ensure;
 use facet::Facet;
 use figue as args;
+use std::fs::OpenOptions;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::fs::remove_file;
+use std::fs::symlink_metadata;
 use std::io::Write;
 #[cfg(windows)]
 use std::os::windows::fs::MetadataExt;
@@ -25,8 +30,8 @@ pub struct CacheRootArgs {
 impl CacheRootArgs {
     /// # Errors
     /// Returns an error if the selected cache-root command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(homes)
     }
 }
 
@@ -44,11 +49,11 @@ pub enum CacheRootCommand {
 impl CacheRootCommand {
     /// # Errors
     /// Returns an error if the selected cache-root command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
-            Self::Show(args) => args.invoke(),
-            Self::Set(args) => args.invoke(),
-            Self::Unset(args) => args.invoke(),
+            Self::Show(args) => args.invoke(homes.selected_cache_home()?),
+            Self::Set(args) => args.invoke(homes.app_home()),
+            Self::Unset(args) => args.invoke(homes.app_home()),
         }
     }
 }
@@ -58,16 +63,13 @@ pub struct CacheRootShowArgs;
 
 impl CacheRootShowArgs {
     /// # Errors
-    /// Returns an error if the effective root cannot be resolved or displayed.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let source = if std::env::var_os(APP_CACHE_ENV_VAR).is_some() {
-            APP_CACHE_ENV_VAR
-        } else if APP_HOME.file_path(CACHE_ROOT_FILE).exists() {
-            "persistent setting"
-        } else {
-            "platform user cache default"
-        };
-        stdout_line(format!("{} ({source})", CacheHome::resolve()?.0.display()))
+    /// Returns an error if the selected cache root cannot be displayed.
+    pub fn invoke(self, selection: &SelectedCacheHome) -> eyre::Result<()> {
+        stdout_line(format!(
+            "{} ({})",
+            selection.home.0.display(),
+            selection.source.label()
+        ))
     }
 }
 
@@ -81,8 +83,8 @@ pub struct CacheRootSetArgs {
 impl CacheRootSetArgs {
     /// # Errors
     /// Returns an error if the requested root fails validation or cannot be persisted.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let requested_metadata = std::fs::symlink_metadata(&self.path)?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let requested_metadata = symlink_metadata(&self.path)?;
         ensure!(
             !requested_metadata.file_type().is_symlink(),
             "Cache root must not be a link: {}",
@@ -99,7 +101,7 @@ impl CacheRootSetArgs {
         validate_cache_root(&root)?;
         let marker = root.join(CACHE_ROOT_MARKER);
         if !marker.exists() {
-            let mut marker_file = std::fs::OpenOptions::new()
+            let mut marker_file = OpenOptions::new()
                 .write(true)
                 .create_new(true)
                 .open(&marker)
@@ -107,9 +109,9 @@ impl CacheRootSetArgs {
             marker_file.write_all(CACHE_ROOT_MARKER_CONTENT.as_bytes())?;
             marker_file.sync_all()?;
         }
-        APP_HOME.ensure_dir()?;
-        let config = APP_HOME.file_path(CACHE_ROOT_FILE);
-        let mut staged = tempfile::NamedTempFile::new_in(&APP_HOME.0)?;
+        app_home.ensure_dir()?;
+        let config = app_home.file_path(CACHE_ROOT_FILE);
+        let mut staged = tempfile::NamedTempFile::new_in(&app_home.0)?;
         writeln!(staged, "{}", root.display())?;
         staged.as_file_mut().sync_all()?;
         staged
@@ -129,10 +131,10 @@ pub struct CacheRootUnsetArgs;
 impl CacheRootUnsetArgs {
     /// # Errors
     /// Returns an error if the persisted setting cannot be removed or reported.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let config = APP_HOME.file_path(CACHE_ROOT_FILE);
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let config = app_home.file_path(CACHE_ROOT_FILE);
         if config.exists() {
-            std::fs::remove_file(&config)?;
+            remove_file(&config)?;
         }
         stdout_line("Persistent cache root unset; cached files retained")
     }
@@ -144,7 +146,7 @@ fn validate_cache_root(root: &Path) -> eyre::Result<()> {
         "Cache root must be an existing directory below a volume root: {}",
         root.display()
     );
-    let metadata = std::fs::symlink_metadata(root)?;
+    let metadata = symlink_metadata(root)?;
     ensure!(
         !metadata.file_type().is_symlink(),
         "Cache root must not be a link: {}",
@@ -159,11 +161,11 @@ fn validate_cache_root(root: &Path) -> eyre::Result<()> {
     let marker = root.join(CACHE_ROOT_MARKER);
     if marker.exists() {
         ensure!(
-            std::fs::read_to_string(&marker)? == CACHE_ROOT_MARKER_CONTENT,
+            read_to_string(&marker)? == CACHE_ROOT_MARKER_CONTENT,
             "Cache root has an unrecognized ownership marker: {}",
             marker.display()
         );
-    } else if std::fs::read_dir(root)?.next().is_some() {
+    } else if read_dir(root)?.next().is_some() {
         bail!(
             "Cache root is nonempty and has no SFM ownership marker: {}",
             root.display()

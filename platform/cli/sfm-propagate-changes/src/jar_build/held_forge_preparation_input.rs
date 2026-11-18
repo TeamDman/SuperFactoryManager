@@ -1,5 +1,13 @@
 //! Windows leaf authority retained through preparation production or materialization.
 
+use crate::file_identity;
+use std::io::Result as IoResult;
+use std::os::windows::io::AsRawHandle as _;
+use std::ptr::from_mut;
+use windows::Win32::Foundation::HANDLE;
+use windows::Win32::Storage::FileSystem::FILE_STANDARD_INFO;
+use windows::Win32::Storage::FileSystem::FileStandardInfo;
+use windows::Win32::Storage::FileSystem::GetFileInformationByHandleEx;
 #[path = "forge_preparation_input_hashes.rs"]
 mod hashes;
 
@@ -74,7 +82,7 @@ impl HeldForgePreparationInput {
                 "Preparation input size differs from its pin"
             );
         }
-        let identity = crate::file_identity::file_identity(&file)?;
+        let identity = file_identity::file_identity(&file)?;
         let modified = metadata.modified()?;
         let hashes = read_hashes(&file, metadata.len(), request, cancellation)?;
         for expected in &request.expected {
@@ -116,8 +124,8 @@ impl HeldForgePreparationInput {
                 && current.len() == self.bytes
                 && held.modified()? == self.modified
                 && current.modified()? == self.modified
-                && crate::file_identity::file_identity(&self.file)? == self.identity
-                && crate::file_identity::file_identity(&reopened)? == self.identity
+                && file_identity::file_identity(&self.file)? == self.identity
+                && file_identity::file_identity(&reopened)? == self.identity
                 && single_link(&self.file)?
                 && single_link(&reopened)?,
             "Held preparation input changed"
@@ -126,7 +134,7 @@ impl HeldForgePreparationInput {
     }
 }
 
-fn open_read(path: &Path) -> std::io::Result<File> {
+fn open_read(path: &Path) -> IoResult<File> {
     fs::OpenOptions::new()
         .read(true)
         .share_mode(FILE_SHARE_READ.0)
@@ -135,19 +143,14 @@ fn open_read(path: &Path) -> std::io::Result<File> {
 }
 
 fn single_link(file: &File) -> Result<bool> {
-    use std::os::windows::io::AsRawHandle as _;
-    use windows::Win32::Foundation::HANDLE;
-    use windows::Win32::Storage::FileSystem::{
-        FILE_STANDARD_INFO, FileStandardInfo, GetFileInformationByHandleEx,
-    };
     let mut information = FILE_STANDARD_INFO::default();
     // SAFETY: file owns the live handle; the output buffer is sized for this class.
     unsafe {
         GetFileInformationByHandleEx(
             HANDLE(file.as_raw_handle()),
             FileStandardInfo,
-            std::ptr::from_mut(&mut information).cast(),
-            u32::try_from(std::mem::size_of_val(&information))?,
+            from_mut(&mut information).cast(),
+            u32::try_from(size_of_val(&information))?,
         )
     }?;
     Ok(information.NumberOfLinks == 1)

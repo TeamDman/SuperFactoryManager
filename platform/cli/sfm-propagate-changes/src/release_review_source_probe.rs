@@ -1,13 +1,16 @@
 //! Bounded metadata-only source inspection, not review validation or attestation.
 
+use crate::release_review_capture;
 use crate::release_review_v1::RepositoryBindingV1;
 use crate::release_review_v1::{self};
 use eyre::eyre;
 use facet_json::RawJson;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs::File;
 use std::io::Read as _;
 use std::path::Path;
+use std::str::from_utf8;
 
 /// Read source bindings without evaluating selectors or decoding embedded documents.
 ///
@@ -15,7 +18,7 @@ use std::path::Path;
 /// Refuses oversized/changed files, unsupported schemas and invalid source authority.
 pub fn read_bindings(path: &Path) -> eyre::Result<Vec<RepositoryBindingV1>> {
     const LIMIT: u64 = 256 * 1024 * 1024;
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let before = file.metadata()?;
     if !before.is_file() || before.len() > LIMIT {
         return Err(eyre!(
@@ -31,7 +34,7 @@ pub fn read_bindings(path: &Path) -> eyre::Result<Vec<RepositoryBindingV1>> {
     {
         return Err(eyre!("review changed during freshness read"));
     }
-    parse_bindings(std::str::from_utf8(&bytes)?)
+    parse_bindings(from_utf8(&bytes)?)
 }
 
 fn parse_bindings(json: &str) -> eyre::Result<Vec<RepositoryBindingV1>> {
@@ -76,7 +79,7 @@ fn parse_bindings(json: &str) -> eyre::Result<Vec<RepositoryBindingV1>> {
             .get("working_tree_capture")
             .filter(|raw| raw.as_str() != "null")
         {
-            crate::release_review_capture::validate_wire_types(capture.as_str())?;
+            release_review_capture::validate_wire_types(capture.as_str())?;
         }
         let binding: RepositoryBindingV1 = facet_json::from_str(raw.as_str())?;
         release_review_v1::validate_repository_binding(&binding)?;

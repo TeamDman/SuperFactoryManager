@@ -2,6 +2,7 @@
 
 use super::CurseforgeProjectDefaultArgs;
 use super::CurseforgeProjectFileArgs;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -17,8 +18,8 @@ impl CurseforgeProjectArgs {
     /// # Errors
     ///
     /// Returns an error if the selected project command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -36,10 +37,10 @@ impl CurseforgeProjectCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Default(args) => args.invoke(),
-            Self::File(args) => args.invoke(),
+            Self::Default(args) => args.invoke(app_home),
+            Self::File(args) => args.invoke(app_home),
         }
     }
 }

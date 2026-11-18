@@ -1,4 +1,5 @@
 use eyre::Context;
+use std::fs::read_to_string;
 use std::io::Write;
 use std::path::Path;
 
@@ -28,7 +29,7 @@ pub(crate) fn write_lockfile_atomically(
         .sync_all()
         .wrap_err_with(|| format!("Failed to sync temporary lockfile for {}", path.display()))?;
 
-    let current = std::fs::read_to_string(path)
+    let current = read_to_string(path)
         .wrap_err_with(|| format!("Failed to re-read {} before replacement", path.display()))?;
     if current != expected_input {
         eyre::bail!(

@@ -1,7 +1,10 @@
 //! Common worktree utilities shared across commands.
 
 use crate::cli::repo_root::get_repo_root;
+use crate::paths::AppHome;
+use std::cmp::Ordering;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 /// Represents a worktree with its path and branch name
 #[derive(Debug, Clone)]
@@ -39,7 +42,7 @@ fn append_attached_worktree(
         return Ok(());
     }
     if let (Some(path), Some(name)) = (repository.workdir(), repository.head_name()?) {
-        let name = std::str::from_utf8(name.as_bstr())?;
+        let name = from_utf8(name.as_bstr())?;
         if let Some(branch) = name.strip_prefix("refs/heads/") {
             result.push(Worktree {
                 path: path.to_owned(),
@@ -79,8 +82,8 @@ pub fn sort_worktrees_by_version(worktrees: &mut [Worktree]) {
 
         match (a_version, b_version) {
             (Some(a_v), Some(b_v)) => a_v.cmp(&b_v),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
             (None, None) => a.branch.cmp(&b.branch),
         }
     });
@@ -91,8 +94,8 @@ pub fn sort_worktrees_by_version(worktrees: &mut [Worktree]) {
 /// # Errors
 ///
 /// Returns an error if getting the repo root fails or `git worktree list` fails.
-pub fn get_sorted_worktrees() -> eyre::Result<Vec<Worktree>> {
-    let repo_root = get_repo_root()?;
+pub fn get_sorted_worktrees(app_home: &AppHome) -> eyre::Result<Vec<Worktree>> {
+    let repo_root = get_repo_root(app_home)?;
     let mut worktrees = get_worktrees(&repo_root)?;
     sort_worktrees_by_version(&mut worktrees);
     Ok(worktrees)

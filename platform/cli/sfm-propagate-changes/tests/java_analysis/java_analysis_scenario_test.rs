@@ -3,8 +3,10 @@
 use eyre::Context as _;
 use eyre::bail;
 use facet::Facet;
+use gix::bstr::ByteSlice as _;
 use sfm_propagate_changes::cancellation::CancellationToken;
 use sfm_propagate_changes::cli::Cli;
+use sfm_propagate_changes::cli::InvocationHomes;
 use sfm_propagate_changes::cli::jar::BranchSelector;
 use sfm_propagate_changes::cli::output::OutputFormat;
 use sfm_propagate_changes::cli::symbol::scenario_dependency_index_inputs;
@@ -41,9 +43,11 @@ use sfm_propagate_changes::java_analysis::SymbolServerWorkspaceOutput;
 use sfm_propagate_changes::java_analysis::blake3_content_hash;
 use sfm_propagate_changes::java_analysis::scan_java_analysis_scenario_index;
 use sfm_propagate_changes::java_analysis::with_java_analysis_scenario_fixture;
+use sfm_propagate_changes::paths::AppHome;
 use sfm_propagate_changes::paths::CacheHome;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::fs;
 use std::io::Write as _;
 use std::path::Path;
@@ -53,6 +57,8 @@ const EXPECTED_FILE: &str = "output-expected.json";
 const ACTUAL_FILE: &str = "output-actual.json";
 const COMMAND_FILE: &str = "command.ps1";
 const REQUIRED_EXECUTABLE: &str = "sfm-propagate-changes.exe";
+// A literal snapshot marker, never an environment-variable expression.
+const SNAPSHOT_CACHE_HOME: &str = "SFM_TEST_CACHE_HOME";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Quote {
@@ -198,13 +204,15 @@ fn java_analysis_scenario_cache_is_thread_scoped() -> eyre::Result<()> {
                     },
                     || -> eyre::Result<()> {
                         barrier.wait();
-                        eyre::ensure!(CacheHome::resolve()?.0 == cache_path);
+                        let homes = scenario_homes(CacheHome(cache_path.clone()))?;
+                        eyre::ensure!(homes.cache_home()?.0 == cache_path);
                         let workspace = JavaSourceWorkspace::resolve(
                             BranchSelector::from("1.19.2".to_owned()),
                             &[Path::new(env!("CARGO_MANIFEST_DIR"))
                                 .join("tests/java_analysis/scenarios/definition_at_position_jdk_object/source")],
                             JavaClasspathMode::Isolated,
                             Path::new(env!("CARGO_MANIFEST_DIR")),
+                            homes.app_home(),
                         )?;
                         eyre::ensure!(workspace.context.source_roots.iter().any(|root| {
                             root.path == "$scenario-jdk/java-17"
@@ -224,13 +232,19 @@ fn java_analysis_scenario_cache_is_thread_scoped() -> eyre::Result<()> {
 
 #[test]
 fn partial_index_identity_is_stable_across_isolated_cache_locations() -> eyre::Result<()> {
-    with_partial_index_context(|branch, context, first_cache| {
+    with_partial_index_context(|branch, context, first_cache, homes| {
         let second_cache = tempfile::tempdir()?;
-        let (first, _) = scenario_dependency_index_inputs(branch, context, first_cache.clone())?;
+        let (first, _) = scenario_dependency_index_inputs(
+            branch,
+            context,
+            first_cache.clone(),
+            homes.app_home(),
+        )?;
         let (second, _) = scenario_dependency_index_inputs(
             branch,
             context,
             CacheHome(second_cache.path().to_path_buf()),
+            homes.app_home(),
         )?;
         first.validate()?;
         second.validate()?;
@@ -244,15 +258,21 @@ fn partial_index_identity_is_stable_across_isolated_cache_locations() -> eyre::R
 
 #[test]
 fn partial_index_identity_changes_when_java_release_changes() -> eyre::Result<()> {
-    with_partial_index_context(|branch, context, cache_home| {
-        let (original, _) = scenario_dependency_index_inputs(branch, context, cache_home.clone())?;
+    with_partial_index_context(|branch, context, cache_home, homes| {
+        let (original, _) = scenario_dependency_index_inputs(
+            branch,
+            context,
+            cache_home.clone(),
+            homes.app_home(),
+        )?;
         eyre::ensure!(
             context.java_release == "17",
             "the 1.19.2 fixture must use Java 17"
         );
         let mut changed = context.clone();
         changed.java_release = "21".to_owned();
-        let (other_release, _) = scenario_dependency_index_inputs(branch, &changed, cache_home)?;
+        let (other_release, _) =
+            scenario_dependency_index_inputs(branch, &changed, cache_home, homes.app_home())?;
         original.validate()?;
         other_release.validate()?;
         eyre::ensure!(
@@ -265,10 +285,11 @@ fn partial_index_identity_changes_when_java_release_changes() -> eyre::Result<()
 
 #[test]
 fn partial_index_fixture_does_not_acquire_sdk_in_empty_scoped_cache() -> eyre::Result<()> {
-    with_partial_index_context(|branch, context, cache_home| {
+    with_partial_index_context(|branch, context, cache_home, homes| {
         let sdk_cache = cache_home.0.join("minecraft-toolchain/jbrsdk");
         eyre::ensure!(!sdk_cache.exists(), "fixture must begin with no SDK cache");
-        let (identity, _) = scenario_dependency_index_inputs(branch, context, cache_home)?;
+        let (identity, _) =
+            scenario_dependency_index_inputs(branch, context, cache_home, homes.app_home())?;
         identity.validate()?;
         eyre::ensure!(
             !sdk_cache.exists(),
@@ -280,8 +301,13 @@ fn partial_index_fixture_does_not_acquire_sdk_in_empty_scoped_cache() -> eyre::R
 
 #[test]
 fn partial_index_fixture_runtime_identity_is_explicit_and_scope_restores() -> eyre::Result<()> {
-    with_partial_index_context(|branch, context, cache_home| {
-        let (original, _) = scenario_dependency_index_inputs(branch, context, cache_home.clone())?;
+    with_partial_index_context(|branch, context, cache_home, homes| {
+        let (original, _) = scenario_dependency_index_inputs(
+            branch,
+            context,
+            cache_home.clone(),
+            homes.app_home(),
+        )?;
         let fixture = |runtime: &str| JavaAnalysisScenarioFixture {
             jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("tests/java_analysis/jdk_sources"),
@@ -290,17 +316,29 @@ fn partial_index_fixture_runtime_identity_is_explicit_and_scope_restores() -> ey
         };
         let alternate = with_java_analysis_scenario_fixture(
             fixture("sfm:scenario_decompiler_runtime/alternate@1"),
-            || scenario_dependency_index_inputs(branch, context, cache_home.clone()),
+            || {
+                scenario_dependency_index_inputs(
+                    branch,
+                    context,
+                    cache_home.clone(),
+                    homes.app_home(),
+                )
+            },
         )?;
         eyre::ensure!(
             original.digest != alternate.0.digest,
             "fixture runtime omitted from identity"
         );
         let refused = with_java_analysis_scenario_fixture(fixture(""), || {
-            scenario_dependency_index_inputs(branch, context, cache_home.clone())
+            scenario_dependency_index_inputs(branch, context, cache_home.clone(), homes.app_home())
         });
         eyre::ensure!(refused.is_err(), "empty fixture identity was accepted");
-        let (restored, _) = scenario_dependency_index_inputs(branch, context, cache_home.clone())?;
+        let (restored, _) = scenario_dependency_index_inputs(
+            branch,
+            context,
+            cache_home.clone(),
+            homes.app_home(),
+        )?;
         eyre::ensure!(
             original == restored,
             "nested runtime fixture leaked into caller scope"
@@ -313,14 +351,35 @@ fn partial_index_fixture_runtime_identity_is_explicit_and_scope_restores() -> ey
     })
 }
 
+fn scenario_homes(cache_home: CacheHome) -> eyre::Result<InvocationHomes> {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .ok_or_else(|| eyre::eyre!("CLI package must be below the SFM repository root"))?;
+    let repository = dunce::canonicalize(repository)?;
+    let app_home = AppHome(cache_home.0.join("application"));
+    app_home.ensure_dir()?;
+    fs::write(
+        app_home.file_path("repo_root.txt"),
+        repository.to_string_lossy().as_bytes(),
+    )?;
+    Ok(InvocationHomes::new(app_home, Ok(cache_home)))
+}
+
 fn with_partial_index_context<T>(
-    test: impl FnOnce(&BranchSelector, &JavaAnalysisContextOutput, CacheHome) -> eyre::Result<T>,
+    test: impl FnOnce(
+        &BranchSelector,
+        &JavaAnalysisContextOutput,
+        CacheHome,
+        &InvocationHomes,
+    ) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
     let scenario = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/java_analysis/scenarios/usage_at_position_partial_index");
     let branch = BranchSelector::from("1.19.2".to_owned());
     let cache_directory = tempfile::tempdir()?;
     let cache_home = CacheHome(cache_directory.path().to_path_buf());
+    let homes = scenario_homes(cache_home.clone())?;
     let fixture = JavaAnalysisScenarioFixture {
         jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/java_analysis/jdk_sources"),
@@ -333,13 +392,47 @@ fn with_partial_index_context<T>(
             &[scenario.join("source")],
             JavaClasspathMode::Branch,
             &scenario,
+            homes.app_home(),
         )?;
-        test(&branch, &workspace.context, cache_home)
+        test(&branch, &workspace.context, cache_home, &homes)
     })
 }
 
 #[test]
 fn java_interaction_map_semantic_matrix_scenario() -> eyre::Result<()> {
+    let home_directory = tempfile::tempdir()?;
+    let cache_home = CacheHome(home_directory.path().to_path_buf());
+    let homes = scenario_homes(cache_home.clone())?;
+    let jdk_source_tree = home_directory.path().join("jdk-sources");
+    let shared_java_lang = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/java_analysis/jdk_sources/java.base/java/lang");
+    let java_lang = jdk_source_tree.join("java.base/java/lang");
+    fs::create_dir_all(&java_lang)?;
+    for name in ["Object.java", "String.java", "StringBuilder.java"] {
+        fs::copy(shared_java_lang.join(name), java_lang.join(name))?;
+    }
+    let java_io = jdk_source_tree.join("java.base/java/io");
+    fs::create_dir_all(&java_io)?;
+    for (name, declaration) in [
+        ("Serializable.java", "public interface Serializable"),
+        ("Serial.java", "public @interface Serial"),
+    ] {
+        fs::write(
+            java_io.join(name),
+            format!("package java.io;\n\n{declaration} {{\n}}\n"),
+        )?;
+    }
+    let fixture = JavaAnalysisScenarioFixture {
+        jdk_source_tree,
+        cache_home,
+        decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
+    };
+    with_java_analysis_scenario_fixture(fixture, || {
+        assert_java_interaction_map_semantic_matrix(&homes)
+    })
+}
+
+fn assert_java_interaction_map_semantic_matrix(homes: &InvocationHomes) -> eyre::Result<()> {
     let scenario = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("java_analysis")
@@ -351,6 +444,7 @@ fn java_interaction_map_semantic_matrix_scenario() -> eyre::Result<()> {
         std::slice::from_ref(&source_root),
         JavaClasspathMode::Isolated,
         &scenario,
+        homes.app_home(),
     )?;
     let expected_workspace_files = workspace
         .files
@@ -548,6 +642,7 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
     let before = scenario_files(scenario)?;
     let cache_directory = tempfile::tempdir()?;
     let cache_home = CacheHome(cache_directory.path().to_path_buf());
+    let homes = scenario_homes(cache_home.clone())?;
     let fixture = JavaAnalysisScenarioFixture {
         jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/java_analysis/jdk_sources"),
@@ -555,12 +650,37 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
         decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
     };
     let (rendered, actual_exit_code) = with_java_analysis_scenario_fixture(fixture, || {
+        let mut selected_argv = argv.clone();
         let partial_identity = if is_partial_index_scenario(scenario) {
-            Some(publish_partial_index_fixture(scenario, &cache_home)?)
+            let query_cache = CacheHome(cache_home.join("managed-query-cache"));
+            // Claim the absent cache through the same guarded public CLI boundary
+            // before publishing the fixture. Never adopt the populated temp home.
+            let claim = vec![
+                "sfm-propagate-changes".to_owned(),
+                "--output-format".to_owned(),
+                "json".to_owned(),
+                "symbol".to_owned(),
+                "index".to_owned(),
+                "--cache-root".to_owned(),
+                query_cache.0.to_string_lossy().into_owned(),
+                "show".to_owned(),
+                "--branch".to_owned(),
+                "1.19.2".to_owned(),
+            ];
+            invoke_production_cli(&claim, scenario, &homes)?;
+            selected_argv.extend([
+                "--cache-root".to_owned(),
+                query_cache.0.to_string_lossy().into_owned(),
+            ]);
+            Some(publish_partial_index_fixture(
+                scenario,
+                &query_cache,
+                homes.app_home(),
+            )?)
         } else {
             None
         };
-        let (rendered, status) = invoke_production_cli(&argv, scenario)?;
+        let (rendered, status) = invoke_production_cli(&selected_argv, scenario, &homes)?;
         assert_scenario_inputs(
             scenario,
             &rendered,
@@ -642,16 +762,25 @@ fn is_partial_index_scenario(scenario: &Path) -> bool {
         .is_some_and(|name| name == "usage_at_position_partial_index")
 }
 
-fn publish_partial_index_fixture(scenario: &Path, cache_home: &CacheHome) -> eyre::Result<String> {
+fn publish_partial_index_fixture(
+    scenario: &Path,
+    cache_home: &CacheHome,
+    app_home: &AppHome,
+) -> eyre::Result<String> {
     let branch = BranchSelector::from("1.19.2".to_owned());
     let workspace = JavaSourceWorkspace::resolve(
         branch.clone(),
         &[scenario.join("source")],
         JavaClasspathMode::Branch,
         scenario,
+        app_home,
     )?;
-    let (identity, mut source_inputs) =
-        scenario_dependency_index_inputs(&branch, &workspace.context, cache_home.clone())?;
+    let (identity, mut source_inputs) = scenario_dependency_index_inputs(
+        &branch,
+        &workspace.context,
+        cache_home.clone(),
+        app_home,
+    )?;
     let first = source_inputs
         .first_mut()
         .ok_or_else(|| eyre::eyre!("partial-index scenario has no dependency source inputs"))?;
@@ -845,19 +974,48 @@ fn assert_scenario_inputs(
             }),
             "CLI did not use the Partial payload's dependency definition"
         );
-        let Some(CanonicalJson::Array(actions)) = output.get("recovery_actions") else {
-            bail!("partial-index scenario returned no recovery actions");
-        };
-        eyre::ensure!(
-            actions.iter().any(|action| {
-                matches!(action, CanonicalJson::Object(fields)
-                    if fields.get("kind") == Some(&CanonicalJson::String("refresh-dependency-index".to_owned()))
-                        && fields.get("command") == Some(&CanonicalJson::String("sfm-propagate-changes.exe symbol index refresh --branch 1.19.2".to_owned())))
-            }),
-            "partial-index scenario omitted its refresh recovery action"
-        );
+        assert_partial_index_refresh_recovery(&output, index, cache_home)?;
     }
     assert_fixed_jdk_source_span(scenario, &output)
+}
+
+fn assert_partial_index_refresh_recovery(
+    output: &BTreeMap<String, CanonicalJson>,
+    index: &BTreeMap<String, CanonicalJson>,
+    cache_home: &CacheHome,
+) -> eyre::Result<()> {
+    let Some(CanonicalJson::String(refresh)) = index.get("refresh_command") else {
+        bail!("partial-index scenario returned no refresh command");
+    };
+    let expected = vec![
+        REQUIRED_EXECUTABLE.to_owned(),
+        "symbol".to_owned(),
+        "index".to_owned(),
+        "--cache-root".to_owned(),
+        cache_home
+            .join("managed-query-cache")
+            .to_string_lossy()
+            .into_owned(),
+        "refresh".to_owned(),
+        "--branch".to_owned(),
+        "1.19.2".to_owned(),
+    ];
+    eyre::ensure!(
+        tokenize_restricted_powershell_command(refresh)? == expected,
+        "partial-index refresh command did not retain its exact selected cache and branch: {refresh}"
+    );
+    let Some(CanonicalJson::Array(actions)) = output.get("recovery_actions") else {
+        bail!("partial-index scenario returned no recovery actions");
+    };
+    eyre::ensure!(
+        actions.iter().any(|action| {
+            matches!(action, CanonicalJson::Object(fields)
+                if fields.get("kind") == Some(&CanonicalJson::String("refresh-dependency-index".to_owned()))
+                    && fields.get("command") == Some(&CanonicalJson::String(refresh.clone())))
+        }),
+        "partial-index scenario omitted its exact refresh recovery action: {actions:?}"
+    );
+    Ok(())
 }
 
 fn assert_fixed_jdk_source_span(
@@ -940,7 +1098,11 @@ fn scenario_files(scenario: &Path) -> eyre::Result<BTreeMap<PathBuf, Vec<u8>>> {
     Ok(files)
 }
 
-fn invoke_production_cli(argv: &[String], invocation_dir: &Path) -> eyre::Result<(String, u8)> {
+fn invoke_production_cli(
+    argv: &[String],
+    invocation_dir: &Path,
+    homes: &InvocationHomes,
+) -> eyre::Result<(String, u8)> {
     let arguments = argv.iter().skip(1).map(String::as_str).collect::<Vec<_>>();
     let cli = figue::from_slice::<Cli>(&arguments)
         .into_result()
@@ -953,8 +1115,8 @@ fn invoke_production_cli(argv: &[String], invocation_dir: &Path) -> eyre::Result
 
     // Phase 0.3 integration assumption: this seam must be public because an
     // explicit Cargo integration test is a separate crate. It consumes `self`
-    // and accepts `(CancellationToken, &Path)` in that order.
-    let output = cli.invoke_in(CancellationToken::new(), invocation_dir)?;
+    // and receives explicit invocation paths and homes.
+    let output = cli.invoke_in(CancellationToken::new(), invocation_dir, homes)?;
     let exit_code = output.exit_code();
     let rendered = output
         .render(output_format, false)?
@@ -1053,8 +1215,6 @@ fn verify_snapshot_git_policy_paths(actual_path: &Path, expected_path: &Path) ->
 /// Snapshot policy belongs to this scenario run, not every CLI invocation.
 /// Load the index and gix ignore stack once for the complete batch.
 fn verify_snapshot_git_policy_batch(paths: &[(PathBuf, PathBuf)]) -> eyre::Result<()> {
-    use gix::bstr::ByteSlice as _;
-
     let Some((first, _)) = paths.first() else {
         return Ok(());
     };
@@ -1223,6 +1383,10 @@ fn normalize_dependency_index_paths(value: &mut CanonicalJson) -> eyre::Result<(
             }
         }
         CanonicalJson::Object(fields) => {
+            let original_refresh = match fields.get("dependency_index") {
+                Some(CanonicalJson::Object(index)) => index.get("refresh_command").cloned(),
+                _ => None,
+            };
             let dependency_index_paths = match (fields.get("portable_path"), fields.get("path")) {
                 (Some(CanonicalJson::String(portable_path)), Some(CanonicalJson::String(path))) => {
                     Some((portable_path.clone(), path.clone()))
@@ -1234,19 +1398,50 @@ fn normalize_dependency_index_paths(value: &mut CanonicalJson) -> eyre::Result<(
                 && suffix.starts_with("symbol-index/")
             {
                 let normalized_path = path.replace('\\', "/");
-                if normalized_path == portable_path || !normalized_path.ends_with(suffix) {
+                let concrete_suffix = format!("/minecraft-toolchain/{suffix}");
+                let Some(expected_cache) = normalized_path.strip_suffix(&concrete_suffix) else {
                     bail!(
                         "dependency-index path {path:?} is not a concrete cache path for portable identity {portable_path:?}"
                     );
+                };
+                if let Some(CanonicalJson::String(command)) = fields.get_mut("refresh_command") {
+                    let mut arguments = tokenize_restricted_powershell_command(command)?;
+                    if let Some(flag) = arguments
+                        .iter()
+                        .position(|argument| argument == "--cache-root")
+                    {
+                        let selected = arguments.get_mut(flag + 1).ok_or_else(|| {
+                            eyre::eyre!("refresh command omitted its explicit cache argument")
+                        })?;
+                        eyre::ensure!(
+                            selected.replace('\\', "/").trim_end_matches('/') == expected_cache,
+                            "refresh command selected another cache: {selected:?}; expected cache home {expected_cache:?}"
+                        );
+                        *selected = SNAPSHOT_CACHE_HOME.to_owned();
+                        *command = arguments
+                            .into_iter()
+                            .map(|argument| {
+                                if argument.chars().any(char::is_whitespace)
+                                    || argument.contains('\'')
+                                {
+                                    format!("'{}'", argument.replace('\'', "''"))
+                                } else {
+                                    argument
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                    }
                 }
                 fields.insert(
                     "path".to_owned(),
-                    CanonicalJson::String(format!("$sfm-cache-local/{suffix}")),
+                    CanonicalJson::String(format!("{SNAPSHOT_CACHE_HOME}{concrete_suffix}")),
                 );
             }
             for value in fields.values_mut() {
                 normalize_dependency_index_paths(value)?;
             }
+            normalize_refresh_recovery_actions(fields, original_refresh);
         }
         CanonicalJson::Null
         | CanonicalJson::Bool(_)
@@ -1254,6 +1449,34 @@ fn normalize_dependency_index_paths(value: &mut CanonicalJson) -> eyre::Result<(
         | CanonicalJson::String(_) => {}
     }
     Ok(())
+}
+
+fn normalize_refresh_recovery_actions(
+    fields: &mut BTreeMap<String, CanonicalJson>,
+    original_refresh: Option<CanonicalJson>,
+) {
+    let Some(original) = original_refresh else {
+        return;
+    };
+    let canonical = match fields.get("dependency_index") {
+        Some(CanonicalJson::Object(index)) => index.get("refresh_command").cloned(),
+        _ => None,
+    };
+    if let Some(canonical) = canonical
+        && let Some(CanonicalJson::Array(actions)) = fields.get_mut("recovery_actions")
+    {
+        for action in actions {
+            if let CanonicalJson::Object(action) = action
+                && action.get("kind")
+                    == Some(&CanonicalJson::String(
+                        "refresh-dependency-index".to_owned(),
+                    ))
+                && action.get("command") == Some(&original)
+            {
+                action.insert("command".to_owned(), canonical.clone());
+            }
+        }
+    }
 }
 
 fn parse_json(input: &str) -> eyre::Result<CanonicalJson> {
@@ -1365,7 +1588,6 @@ fn write_json_string(output: &mut String, value: &str) {
             '\r' => output.push_str("\\r"),
             '\t' => output.push_str("\\t"),
             character if character <= '\u{1F}' => {
-                use std::fmt::Write as _;
                 write!(output, "\\u{:04x}", character as u32)
                     .expect("writing to a String cannot fail");
             }
@@ -1673,16 +1895,27 @@ fn canonical_json_sorts_keys_and_normalizes_layout() -> eyre::Result<()> {
 #[test]
 fn canonical_json_preserves_dependency_index_path_contract_portably() -> eyre::Result<()> {
     let canonical = canonicalize_json(
-        r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\symbol-index\\v3\\abc"}}"#,
+        r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\minecraft-toolchain\\symbol-index\\v3\\abc"}}"#,
     )?;
     assert!(canonical.contains("\"portable_path\": \"$sfm-cache/symbol-index/v3/abc\""));
-    assert!(canonical.contains("\"path\": \"$sfm-cache-local/symbol-index/v3/abc\""));
+    assert!(
+        canonical
+            .contains("\"path\": \"SFM_TEST_CACHE_HOME/minecraft-toolchain/symbol-index/v3/abc\"")
+    );
+    assert_eq!(canonicalize_json(&canonical)?, canonical);
 
     let error = canonicalize_json(
-        r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\symbol-index\\v3\\wrong"}}"#,
+        r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\minecraft-toolchain\\symbol-index\\v3\\wrong"}}"#,
     )
     .expect_err("mismatched concrete path must not be hidden by snapshot normalization");
     assert!(error.to_string().contains("is not a concrete cache path"));
+    assert!(
+        canonicalize_json(
+            r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\symbol-index\\v3\\abc"}}"#,
+        )
+        .is_err(),
+        "a concrete index path cannot omit the minecraft-toolchain namespace"
+    );
     Ok(())
 }
 
@@ -1764,5 +1997,41 @@ fn scenario_file_snapshot_ignores_actual_output_but_detects_input_mutation() -> 
 
     fs::write(&source, "class Use { int changed; }")?;
     assert_ne!(before, scenario_files(directory.path())?);
+    Ok(())
+}
+
+#[test]
+fn canonical_index_refresh_keeps_the_explicit_cache_argument_and_checks_its_identity()
+-> eyre::Result<()> {
+    let input = r#"{"dependency_index":{"path":"C:/cache with spaces/minecraft-toolchain/symbol-index/v3/abc","portable_path":"$sfm-cache/symbol-index/v3/abc","refresh_command":"sfm-propagate-changes.exe symbol index --cache-root 'C:/cache with spaces' refresh --branch 1.19.2"},"recovery_actions":[{"kind":"refresh-dependency-index","command":"sfm-propagate-changes.exe symbol index --cache-root 'C:/cache with spaces' refresh --branch 1.19.2"}]}"#;
+    let mut value = parse_json(input)?;
+    let canonical = canonicalize_value(&mut value)?;
+    eyre::ensure!(
+        canonical
+            .matches("--cache-root SFM_TEST_CACHE_HOME refresh --branch 1.19.2")
+            .count()
+            == 2,
+        "index refresh and its matching recovery action must retain the selected cache"
+    );
+    eyre::ensure!(!canonical.contains("cache with spaces"));
+    eyre::ensure!(canonicalize_json(&canonical)? == canonical);
+    let mut wrong = parse_json(&input.replace(
+        "--cache-root 'C:/cache with spaces'",
+        "--cache-root 'C:/another cache'",
+    ))?;
+    eyre::ensure!(canonicalize_value(&mut wrong).is_err());
+    let mut namespace_instead_of_home = parse_json(&input.replace(
+        "--cache-root 'C:/cache with spaces'",
+        "--cache-root 'C:/cache with spaces/minecraft-toolchain'",
+    ))?;
+    eyre::ensure!(canonicalize_value(&mut namespace_instead_of_home).is_err());
+    let mut mismatched_action = parse_json(&input.replace(
+        "\"command\":\"sfm-propagate-changes.exe symbol index --cache-root 'C:/cache with spaces'",
+        "\"command\":\"sfm-propagate-changes.exe symbol index --cache-root 'C:/another cache'",
+    ))?;
+    eyre::ensure!(
+        canonicalize_value(&mut mismatched_action)?.contains("C:/another cache"),
+        "normalization must not mask a recovery action selecting another cache"
+    );
     Ok(())
 }

@@ -24,6 +24,7 @@ use std::fs;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Path;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 const FILE_NAME: &str = "oracle-comparison-cells-v4.cache";
@@ -324,7 +325,7 @@ impl ComparisonIndex {
             bytes.len() as u64 <= MAX_BYTES,
             "oracle index exceeds byte limit"
         );
-        let text = std::str::from_utf8(&bytes).wrap_err("oracle index is not UTF-8")?;
+        let text = from_utf8(&bytes).wrap_err("oracle index is not UTF-8")?;
         let (magic, rest) = text
             .split_once('\n')
             .ok_or_else(|| eyre::eyre!("truncated oracle index header"))?;

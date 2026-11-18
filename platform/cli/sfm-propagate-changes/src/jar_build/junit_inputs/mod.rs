@@ -1,8 +1,9 @@
 //! Reviewed JUnit-only inputs. Never changes the production lock or resolver.
 use crate::cancellation::CancellationToken;
+use crate::source_projection;
 use crate::source_projection::core_catalog::read_bounded_input;
 fn sha256(bytes: &[u8]) -> String {
-    crate::source_projection::provenance::sha256(bytes)
+    source_projection::provenance::sha256(bytes)
         .trim_start_matches("sha256:")
         .to_owned()
 }

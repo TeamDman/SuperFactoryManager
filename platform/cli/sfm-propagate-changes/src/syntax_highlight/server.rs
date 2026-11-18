@@ -29,10 +29,14 @@ use super::write_syntax_server_frame;
 use crate::cancellation::CancellationToken;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::io::Error as IoError;
+use std::io::ErrorKind;
 use std::io::Read;
+use std::io::Result as IoResult;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::mpsc;
+use std::thread::Builder;
 use std::time::Duration;
 
 const SYNTAX_SERVER_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(10);
@@ -315,7 +319,7 @@ fn spawn_engine_worker(
     let (commands_tx, commands_rx) = mpsc::sync_channel::<EngineCommand>(maximum_pending);
     let (startup_tx, startup_rx) = mpsc::sync_channel::<Result<(), String>>(1);
     let worker_events = events_tx.clone();
-    std::thread::Builder::new()
+    Builder::new()
         .name("sfm-syntax-highlight-engine".to_owned())
         .spawn(move || {
             let mut engine = match SyntaxHighlightEngine::new(limits) {
@@ -364,9 +368,9 @@ fn spawn_syntax_server_reader<R: Read + Send + 'static>(
     mut reader: R,
     maximum_frame_bytes: usize,
     events_tx: &mpsc::SyncSender<RuntimeEvent>,
-) -> std::io::Result<()> {
+) -> IoResult<()> {
     let reader_tx = events_tx.clone();
-    std::thread::Builder::new()
+    Builder::new()
         .name("sfm-syntax-server-reader".to_owned())
         .spawn(move || {
             loop {
@@ -946,12 +950,12 @@ impl BoundedFrameWriter {
 }
 
 impl Write for BoundedFrameWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         let payload_length = self.framed.len().saturating_sub(4);
         if payload_length.saturating_add(buf.len()) > self.maximum_payload_bytes {
             self.exceeded = true;
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::FileTooLarge,
+            return Err(IoError::new(
+                ErrorKind::FileTooLarge,
                 "syntax result frame exceeds negotiated maximum",
             ));
         }
@@ -959,7 +963,7 @@ impl Write for BoundedFrameWriter {
         Ok(buf.len())
     }
 
-    fn flush(&mut self) -> std::io::Result<()> {
+    fn flush(&mut self) -> IoResult<()> {
         Ok(())
     }
 }

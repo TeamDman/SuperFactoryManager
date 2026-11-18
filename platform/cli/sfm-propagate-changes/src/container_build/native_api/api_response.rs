@@ -1,6 +1,8 @@
+use hyper::body;
+use tokio::task;
 pub(super) struct ApiResponse {
-    pub response: hyper::Response<hyper::body::Incoming>,
-    pub driver: tokio::task::JoinHandle<Result<(), hyper::Error>>,
+    pub response: hyper::Response<body::Incoming>,
+    pub driver: task::JoinHandle<Result<(), hyper::Error>>,
 }
 impl Drop for ApiResponse {
     fn drop(&mut self) {

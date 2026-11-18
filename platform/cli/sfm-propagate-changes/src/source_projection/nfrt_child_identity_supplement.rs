@@ -10,6 +10,7 @@
 //! Pins are a separate reviewed core-owned input, not replacements for the
 //! original lockfiles. Identity approval does not enable native execution.
 
+use super::core_catalog::read_bounded_catalog_input;
 use super::development_nfrt_dependencies::DevelopmentNfrtDependencies;
 use super::prepared_dependency_inputs::PreparedDependencyInputs;
 use super::prepared_dependency_inputs::PreparedDependencyReceipt;
@@ -21,7 +22,9 @@ use facet::Facet;
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 const MANIFEST_PATH: &str =
@@ -291,7 +294,7 @@ impl NfrtChildIdentitySupplement {
     /// any caller can perform I/O. Weak original identities must already have
     /// passed the original input preparation gate; this cannot bypass it.
     pub(crate) fn from_prepared_at(
-        root: &std::path::Path,
+        root: &Path,
         original: Arc<PreparedDependencyInputs>,
         refresh: bool,
     ) -> Result<Self> {
@@ -336,7 +339,7 @@ impl NfrtChildIdentitySupplement {
     /// Bind identical reviewed tool parents to an actual development catalog.
     /// Its raw lock, profile and request identity remain development-owned.
     pub(crate) fn from_development_at(
-        root: &std::path::Path,
+        root: &Path,
         original: Arc<DevelopmentNfrtDependencies>,
         refresh: bool,
     ) -> Result<Self> {
@@ -590,7 +593,7 @@ impl NfrtChildIdentitySupplement {
     }
 }
 
-/// Direct Maven JAR paths declared by the separately pinned NeoForm child
+/// Direct Maven JAR paths declared by the separately pinned `NeoForm` child
 /// recipe. This is reachability evidence, not an acquisition or execution path.
 pub(crate) fn reviewed_producer_jar_paths(
     repo_root: &Path,
@@ -652,24 +655,18 @@ fn producer_jar_path(maven_cache: &Path, coordinate: &str) -> Result<PathBuf> {
         .join(format!("{artifact}-{version}{suffix}.jar")))
 }
 
-fn read_configuration(
-    root: &std::path::Path,
-) -> Result<(SupplementDocument, SourceLibraryDocument)> {
-    use super::core_catalog::read_bounded_catalog_input;
+fn read_configuration(root: &Path) -> Result<(SupplementDocument, SourceLibraryDocument)> {
     let manifest = read_bounded_catalog_input(root, MANIFEST_PATH)?;
     let libraries = read_bounded_catalog_input(root, SOURCE_LIBRARIES_PATH)?;
     ensure!(
         manifest.len() <= MAX_MANIFEST_BYTES && sha256(&manifest) == MANIFEST_SHA256,
         "authorized NFRT child pins changed"
     );
-    let document: SupplementDocument = facet_json::from_str(std::str::from_utf8(&manifest)?)?;
+    let document: SupplementDocument = facet_json::from_str(from_utf8(&manifest)?)?;
     // Exact authorized pin bytes already bind the historical publisher evidence.
     // Runtime verifies downloaded bytes against these pins, not a review document.
     validate_pinned_document(&document, None)?;
-    Ok((
-        document,
-        source_library_document(std::str::from_utf8(&libraries)?)?,
-    ))
+    Ok((document, source_library_document(from_utf8(&libraries)?)?))
 }
 
 #[cfg(test)]

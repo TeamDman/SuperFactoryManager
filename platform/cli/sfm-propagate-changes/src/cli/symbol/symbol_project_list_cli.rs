@@ -1,5 +1,6 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::jar_build::engine::select_project_source_cache;
 use crate::java_analysis::JavaSourceWorkspace;
 use crate::java_analysis::JavaSymbolGlob;
 use crate::java_analysis::JavaSymbolIndex;
@@ -71,11 +72,7 @@ impl SymbolProjectListArgs {
         if report.definitions.is_empty()
             && let Some(qualified_name) = exact_type
         {
-            let selected = crate::jar_build::engine::select_project_source_cache(
-                &project_root,
-                None,
-                cancellation_token,
-            )?;
+            let selected = select_project_source_cache(&project_root, None, cancellation_token)?;
             let scanned = scan_generated_dependency_type(
                 &project_root,
                 &selected.home().0,

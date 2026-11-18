@@ -1,5 +1,6 @@
 //! Portable `sfm.release-review/1` contract, query algebra, and completion kernel.
 
+use crate::release_review_capture;
 use crate::review_session_v1;
 use crate::review_session_v1::DocumentRangeV1;
 use crate::review_session_v1::DocumentRevisionV1;
@@ -14,6 +15,7 @@ use eyre::eyre;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fmt;
 use unicode_normalization::UnicodeNormalization as _;
 
 pub const SCHEMA: &str = "sfm.release-review/1";
@@ -56,7 +58,7 @@ pub struct RepositoryBindingV1 {
     pub candidate_tree: Option<String>,
     pub review_evidence_paths: Vec<String>,
     #[facet(skip_serializing_if = Option::is_none)]
-    pub working_tree_capture: Option<crate::release_review_capture::WorkingTreeCaptureV1>,
+    pub working_tree_capture: Option<release_review_capture::WorkingTreeCaptureV1>,
 }
 
 impl RepositoryBindingV1 {
@@ -665,7 +667,7 @@ impl QueryParser {
         Ok(())
     }
 
-    fn error(message: impl std::fmt::Display, token: &QueryToken) -> eyre::Report {
+    fn error(message: impl fmt::Display, token: &QueryToken) -> eyre::Report {
         eyre!("{message} at query offset {}", token.offset)
     }
 }
@@ -757,7 +759,7 @@ pub(crate) fn validate_tagged_contract_json(input: &str) -> eyre::Result<()> {
     review_session_v2::validate_tagged_contract_json(surface.review_session.as_str())?;
     for binding in surface.repository_bindings {
         if let Some(capture) = binding.working_tree_capture {
-            crate::release_review_capture::validate_wire_types(capture.as_str())?;
+            release_review_capture::validate_wire_types(capture.as_str())?;
         }
     }
     for binding in surface.selector_bindings {

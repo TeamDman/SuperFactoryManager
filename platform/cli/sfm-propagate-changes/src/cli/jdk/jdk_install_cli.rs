@@ -1,7 +1,11 @@
 //! Install only the exact SDK selected by a checked catalog project.
 use crate::cancellation::CancellationToken;
-use crate::jdk::{JdkSource, host_jbrsdk_platform, select_jdk_source};
+use crate::jdk::JdkSource;
+use crate::jdk::host_jbrsdk_platform;
+use crate::jdk::select_jdk_source;
+use crate::jdk_artifact_cache::install_verified_pinned_jbrsdk;
 use crate::jdk_install_control::InstallControl;
+use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::provenance::sha256;
@@ -9,7 +13,12 @@ use crate::toolchain_lockfile_schema::read_jdk_pins;
 use eyre::ensure;
 use facet::Facet;
 use figue as args;
-use std::path::{Component, Path, PathBuf};
+use std::fs::symlink_metadata;
+use std::io::ErrorKind;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use std::str::from_utf8;
 
 #[derive(Facet, Debug)]
 pub struct JdkInstallArgs {
@@ -68,7 +77,7 @@ impl JdkInstallArgs {
             collect_catalog_project(&catalog.repo_root, invocation_dir, &key)?.check_current()?;
         let selected = project.selected_input("sfm-toolchain.lock.json")?;
         let raw = selected.require_exact_copy()?;
-        let pins = read_jdk_pins(std::str::from_utf8(raw)?)?
+        let pins = read_jdk_pins(from_utf8(raw)?)?
             .ok_or_else(|| eyre::eyre!("selected project has no pinned SDK catalog"))?;
         let platform =
             host_jbrsdk_platform().ok_or_else(|| eyre::eyre!("unsupported SDK platform"))?;
@@ -86,13 +95,8 @@ impl JdkInstallArgs {
         let cache = self.cache_root.join("minecraft-toolchain/jbrsdk");
         external_cache(&cache, project.repo_root())?;
         project.recheck()?;
-        let mut image = crate::jdk_artifact_cache::install_verified_pinned_jbrsdk(
-            pin,
-            artifact,
-            &cache,
-            self.offline,
-            control,
-        )?;
+        let mut image =
+            install_verified_pinned_jbrsdk(pin, artifact, &cache, self.offline, control)?;
         cancel.bail_if_cancelled()?;
         image.recheck_for_controlled(&cache, pin, artifact, control)?;
         project.recheck()?;
@@ -146,23 +150,22 @@ fn external_root(root: &Path, repository: &Path) -> eyre::Result<()> {
         "SDK cache root must be outside the source repository"
     );
     for ancestor in root.ancestors() {
-        match std::fs::symlink_metadata(ancestor) {
+        match symlink_metadata(ancestor) {
             Ok(_) => {
-                let checked =
-                    crate::source_projection::candidate_lock::checked_directory(ancestor)?;
+                let checked = checked_directory(ancestor)?;
                 ensure!(
                     checked == ancestor,
                     "SDK cache root requires exact canonical spelling"
                 );
                 for marker in [".sfm-native-cache-root.json", ".sfm-jbrsdk-receipt"] {
                     ensure!(
-                        std::fs::symlink_metadata(ancestor.join(marker))
-                            .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound),
+                        symlink_metadata(ancestor.join(marker))
+                            .is_err_and(|error| error.kind() == ErrorKind::NotFound),
                         "external SDK cache cannot be inside a native build root or installed SDK"
                     );
                 }
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+            Err(error) if error.kind() == ErrorKind::NotFound => (),
             Err(error) => return Err(error.into()),
         }
     }

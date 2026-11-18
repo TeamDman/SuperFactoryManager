@@ -1,7 +1,10 @@
 use crate::cli::jar::get_jar_dir;
+use crate::paths::AppHome;
 use crate::worktree::get_sorted_worktrees;
 use eyre::Context;
 use facet::Facet;
+use std::fs::copy;
+use std::fs::create_dir_all;
 use tracing::info;
 use tracing::warn;
 
@@ -13,11 +16,11 @@ impl JarCollectArgs {
     /// # Errors
     ///
     /// Returns an error if the jar directory or worktree jars cannot be read or updated.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let jar_dir = get_jar_dir()?;
-        std::fs::create_dir_all(&jar_dir)?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let jar_dir = get_jar_dir(app_home)?;
+        create_dir_all(&jar_dir)?;
 
-        let worktrees = get_sorted_worktrees()?;
+        let worktrees = get_sorted_worktrees(app_home)?;
 
         if worktrees.is_empty() {
             info!("No worktrees found.");
@@ -83,7 +86,7 @@ impl JarCollectArgs {
 
             let destination = jar_dir.join(super::jar_shared::release_jar_file_name(&jar)?);
 
-            std::fs::copy(&jar, &destination).wrap_err_with(|| {
+            copy(&jar, &destination).wrap_err_with(|| {
                 format!(
                     "Failed to copy jar from {} to {}",
                     jar.display(),

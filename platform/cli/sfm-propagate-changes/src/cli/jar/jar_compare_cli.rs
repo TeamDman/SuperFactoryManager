@@ -4,6 +4,7 @@ use crate::jar_build::CompareCommand;
 use crate::jar_build::CompareOptions;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -41,9 +42,10 @@ pub struct JarCompareArgs {
 }
 
 impl JarCompareArgs {
-    pub(crate) fn into_options(self) -> eyre::Result<CompareOptions> {
+    pub(crate) fn into_options(self, app_home: &AppHome) -> eyre::Result<CompareOptions> {
         Ok(CompareOptions {
-            branch: self.branch.into_query()?,
+            app_home: app_home.clone(),
+            branch: self.branch.into_query(app_home)?,
             gradle_jar: self.gradle_jar,
             rust_jar: self.rust_jar,
             report_json: self.report_json,
@@ -56,7 +58,11 @@ impl JarCompareArgs {
     /// # Errors
     ///
     /// Returns an error if either jar is missing/unreadable or normalized differences are found.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        CompareCommand::new(self.into_options()?, cancellation_token).invoke()
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        app_home: &AppHome,
+    ) -> eyre::Result<()> {
+        CompareCommand::new(self.into_options(app_home)?, cancellation_token).invoke()
     }
 }

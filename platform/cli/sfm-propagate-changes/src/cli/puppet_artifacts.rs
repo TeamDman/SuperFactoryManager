@@ -1,4 +1,5 @@
 use crate::jar_build::projection_preview_artifact_root;
+use crate::jar_build::projection_selection::select_projections;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
 use facet::Facet;
@@ -75,8 +76,7 @@ fn resolve_existing_preview_artifact_root(
     selector: &str,
     repo_root: Option<&Path>,
 ) -> eyre::Result<PathBuf> {
-    let (root, keys) =
-        crate::jar_build::projection_selection::select_projections(repo_root, selector)?;
+    let (root, keys) = select_projections(repo_root, selector)?;
     eyre::ensure!(
         keys.len() == 1,
         "artifact lookup requires exactly one projection"

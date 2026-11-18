@@ -10,8 +10,10 @@ use super::nfrt_file_open::regular;
 use super::nfrt_producer_output_receipt::SealedNfrtProducerOutput;
 use super::nfrt_project_owner::NfrtProjectOwner;
 use super::provenance::sha256;
+use crate::file_identity::file_identity;
 #[cfg(windows)]
 use crate::jar_build::VerifiedLocalDependencyPublication;
+use crate::jar_build::nfrt_launch_contract;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
 use crate::jar_build::nfrt_preparation_phase::NfrtPreparationPhase;
 use eyre::Result;
@@ -19,14 +21,20 @@ use eyre::WrapErr;
 use eyre::ensure;
 use sha2::Digest;
 use sha2::Sha256;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+#[cfg(windows)]
+use std::ffi::OsStr;
+use std::fs;
 use std::fs::File;
 #[cfg(all(test, windows))]
 use std::fs::OpenOptions;
-use std::fs::{self};
+use std::io;
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use zip::write::SimpleFileOptions;
 
 const MAX_INPUTS: usize = 8192;
 const MAX_BYTES: usize = 1024 * 1024 * 1024;
@@ -36,7 +44,7 @@ pub(crate) struct NfrtInputStore {
     contract_identity: String,
     project_preparation_identity: String,
     workspaces_declared: bool,
-    generated: std::collections::BTreeMap<String, String>,
+    generated: BTreeMap<String, String>,
     // Retain file and directory sharing exclusions for the entire invocation.
     files: Vec<File>,
     owned_payloads: Vec<(PathBuf, usize, String)>,
@@ -117,7 +125,7 @@ impl NfrtInputStore {
             contract_identity: prepared.contract_identity(),
             project_preparation_identity,
             workspaces_declared: false,
-            generated: std::collections::BTreeMap::new(),
+            generated: BTreeMap::new(),
             files,
             owned_payloads,
             leases,
@@ -174,7 +182,7 @@ impl NfrtInputStore {
         let mut unique_paths = retirement_payloads
             .iter()
             .map(|(path, _, _)| path.clone())
-            .collect::<std::collections::BTreeSet<_>>();
+            .collect::<BTreeSet<_>>();
         ensure!(
             sealed_graph_outputs.len() <= 256,
             "Oversized NeoForm graph output set"
@@ -228,6 +236,7 @@ impl NfrtInputStore {
         }
         let mut total = 0_u64;
         for (path, bytes, expected) in &retirement_payloads {
+            #[cfg(windows)]
             let parent = path
                 .parent()
                 .ok_or_else(|| eyre::eyre!("owned payload has no parent"))?;
@@ -238,7 +247,7 @@ impl NfrtInputStore {
                 regular(&metadata) && metadata.len() == u64::try_from(*bytes)?,
                 "owned NeoForm payload changed type or length"
             );
-            let identity = crate::file_identity::file_identity(&file)?;
+            let identity = file_identity(&file)?;
             let mut hash = Sha256::new();
             let mut buffer = vec![0_u8; 64 * 1024];
             loop {
@@ -251,7 +260,7 @@ impl NfrtInputStore {
             ensure!(
                 format!("sha256:{:x}", hash.finalize()) == *expected
                     && file.metadata()?.len() == metadata.len()
-                    && crate::file_identity::file_identity(&file)? == identity,
+                    && file_identity(&file)? == identity,
                 "owned NeoForm payload changed before retirement"
             );
             total = total
@@ -303,7 +312,7 @@ impl NfrtInputStore {
             sources.len() == 15,
             "Incomplete embedded host source bundle"
         );
-        let mut names = std::collections::BTreeSet::new();
+        let mut names = BTreeSet::new();
         let mut total = 0_usize;
         for (name, bytes) in sources {
             let stem = name
@@ -350,7 +359,7 @@ impl NfrtInputStore {
         let mut directory = self.root.join("adapter/classes");
         for component in ["ca", "teamdman", "sfm", "toolchain", "nfrt"] {
             self.leases.prepare(&directory, "reserved-leaf")?;
-            let children = fs::read_dir(&directory)?.collect::<std::io::Result<Vec<_>>>()?;
+            let children = fs::read_dir(&directory)?.collect::<io::Result<Vec<_>>>()?;
             ensure!(
                 children.len() == 1 && children[0].file_name() == component,
                 "Host compiler emitted an unexpected package tree"
@@ -364,16 +373,16 @@ impl NfrtInputStore {
                 name.strip_suffix(".java")
                     .ok_or_else(|| eyre::eyre!("Invalid embedded source name"))
             })
-            .collect::<Result<std::collections::BTreeSet<_>>>()?;
-        let mut classes = fs::read_dir(&directory)?.collect::<std::io::Result<Vec<_>>>()?;
+            .collect::<Result<BTreeSet<_>>>()?;
+        let mut classes = fs::read_dir(&directory)?.collect::<io::Result<Vec<_>>>()?;
         ensure!(
             (15..=256).contains(&classes.len()),
             "Invalid compiled host class count"
         );
         let class_count = classes.len();
         classes.sort_by_key(fs::DirEntry::file_name);
-        let mut top_level = std::collections::BTreeSet::new();
-        let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        let mut top_level = BTreeSet::new();
+        let mut archive = zip::ZipWriter::new(io::Cursor::new(Vec::new()));
         let mut total = 0_usize;
         for class in classes {
             let name = class
@@ -400,13 +409,13 @@ impl NfrtInputStore {
                     && regular(&metadata),
                 "Compiled host class is not a bounded regular file"
             );
-            let identity = crate::file_identity::file_identity(&file)?;
+            let identity = file_identity(&file)?;
             let mut bytes = Vec::new();
             (&mut file).take(1024 * 1024 + 1).read_to_end(&mut bytes)?;
             ensure!(
                 bytes.len() as u64 == metadata.len()
                     && bytes.starts_with(&[0xca, 0xfe, 0xba, 0xbe])
-                    && crate::file_identity::file_identity(&file)? == identity
+                    && file_identity(&file)? == identity
                     && file.metadata()?.len() == metadata.len(),
                 "Compiled host class changed during sealing"
             );
@@ -419,8 +428,7 @@ impl NfrtInputStore {
             );
             archive.start_file(
                 format!("ca/teamdman/sfm/toolchain/nfrt/{name}"),
-                zip::write::SimpleFileOptions::default()
-                    .compression_method(zip::CompressionMethod::Stored),
+                SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored),
             )?;
             archive.write_all(&bytes)?;
             self.owned_payloads
@@ -431,7 +439,7 @@ impl NfrtInputStore {
             top_level
                 .iter()
                 .map(String::as_str)
-                .collect::<std::collections::BTreeSet<_>>()
+                .collect::<BTreeSet<_>>()
                 == expected,
             "Host compiler omitted an embedded top-level class"
         );
@@ -536,7 +544,7 @@ impl NfrtInputStore {
             "Generated outputs require the owned graph workspaces"
         );
         ensure!(outputs.len() <= 256, "Oversized generated consumer batch");
-        let mut batch = std::collections::BTreeMap::new();
+        let mut batch = BTreeMap::new();
         let mut total = 0_usize;
         for output in outputs {
             output.recheck()?;
@@ -621,7 +629,7 @@ impl NfrtInputStore {
             !node_ids.is_empty() && node_ids.len() <= 256,
             "Invalid workspace graph size"
         );
-        let mut names = std::collections::BTreeSet::new();
+        let mut names = BTreeSet::new();
         let mut paths = Vec::with_capacity(node_ids.len());
         for id in node_ids {
             ensure!(
@@ -646,7 +654,7 @@ impl NfrtInputStore {
             );
             let path = self.leases.prepare(&self.root, &format!("work/{id}"))?;
             match fs::symlink_metadata(&path) {
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => (),
                 Err(error) => return Err(error.into()),
                 Ok(_) => eyre::bail!("Workspace path already exists"),
             }
@@ -670,29 +678,17 @@ impl NfrtInputStore {
 const MAX_RECOMPILE_CLASSES: usize = 16_384;
 
 #[cfg(windows)]
-fn verified_recompile_classes(
-    root: &Path,
-    leases: &mut DirectoryLeases,
-    receipt: &super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt,
-) -> Result<Vec<(PathBuf, usize, String)>> {
-    use std::collections::BTreeMap;
+const MAX_CLASS_BYTES: u64 = 512 * 1024 * 1024;
 
-    const MAX_CLASS_BYTES: u64 = 512 * 1024 * 1024;
-    let classes = root.join("work/recompile/classes");
-    leases.prepare(&classes, "reserved-leaf")?;
-    let archive_path = root.join(&receipt.declaration.output_relative_path);
-    let archive_file = open_read(&archive_path)?;
-    ensure!(
-        regular(&archive_file.metadata()?)
-            && archive_file.metadata()?.len() == u64::try_from(receipt.bytes)?,
-        "Recompile archive changed before scratch retirement"
-    );
-    let mut archive = zip::ZipArchive::new(archive_file)?;
+#[cfg(windows)]
+fn read_recompile_archive_entries(
+    archive: &mut zip::ZipArchive<File>,
+) -> Result<BTreeMap<String, (u64, String)>> {
     let mut archived = BTreeMap::new();
     let mut total = 0_u64;
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
-        if !entry.name().ends_with(".class") || entry.is_dir() {
+        if Path::new(entry.name()).extension() != Some(OsStr::new("class")) || entry.is_dir() {
             continue;
         }
         super::promotion::validate_relative_path(entry.name())?;
@@ -705,7 +701,7 @@ fn verified_recompile_classes(
             .ok_or_else(|| eyre::eyre!("Recompile archive size overflow"))?;
         ensure!(total <= MAX_CLASS_BYTES, "Recompile class budget exceeded");
         let mut digest = Sha256::new();
-        let mut buffer = [0_u8; 64 * 1024];
+        let mut buffer = vec![0_u8; 64 * 1024].into_boxed_slice();
         let mut read_bytes = 0_u64;
         loop {
             let count = entry.read(&mut buffer)?;
@@ -730,8 +726,28 @@ fn verified_recompile_classes(
             "Duplicate recompile class in archive"
         );
     }
+    Ok(archived)
+}
+
+#[cfg(windows)]
+fn verified_recompile_classes(
+    root: &Path,
+    leases: &mut DirectoryLeases,
+    receipt: &super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt,
+) -> Result<Vec<(PathBuf, usize, String)>> {
+    let classes = root.join("work/recompile/classes");
+    leases.prepare(&classes, "reserved-leaf")?;
+    let archive_path = root.join(&receipt.declaration.output_relative_path);
+    let archive_file = open_read(&archive_path)?;
+    ensure!(
+        regular(&archive_file.metadata()?)
+            && archive_file.metadata()?.len() == u64::try_from(receipt.bytes)?,
+        "Recompile archive changed before scratch retirement"
+    );
+    let mut archive = zip::ZipArchive::new(archive_file)?;
+    let mut archived = read_recompile_archive_entries(&mut archive)?;
     let mut pending = vec![classes.clone()];
-    let mut leaves = Vec::new();
+    let mut members = Vec::new();
     let mut seen_bytes = 0_u64;
     while let Some(directory) = pending.pop() {
         leases.prepare(&directory, "reserved-leaf")?;
@@ -763,7 +779,7 @@ fn verified_recompile_classes(
                 .join("/");
             super::promotion::validate_relative_path(&name)?;
             ensure!(
-                name.ends_with(".class"),
+                Path::new(&name).extension() == Some(OsStr::new("class")),
                 "Unexpected recompile class-tree file"
             );
             let (bytes, expected) = archived
@@ -777,12 +793,12 @@ fn verified_recompile_classes(
                 .checked_add(bytes)
                 .ok_or_else(|| eyre::eyre!("Recompile class size overflow"))?;
             ensure!(
-                leaves.len() < MAX_RECOMPILE_CLASSES && seen_bytes <= MAX_CLASS_BYTES,
+                members.len() < MAX_RECOMPILE_CLASSES && seen_bytes <= MAX_CLASS_BYTES,
                 "Recompile class-tree budget exceeded"
             );
             let mut file = open_read(&path)?;
             let mut digest = Sha256::new();
-            let mut buffer = [0_u8; 64 * 1024];
+            let mut buffer = vec![0_u8; 64 * 1024].into_boxed_slice();
             loop {
                 let count = file.read(&mut buffer)?;
                 if count == 0 {
@@ -794,14 +810,14 @@ fn verified_recompile_classes(
                 format!("sha256:{:x}", digest.finalize()) == expected,
                 "Recompile class differs from sealed archive"
             );
-            leaves.push((path, usize::try_from(bytes)?, expected));
+            members.push((path, usize::try_from(bytes)?, expected));
         }
     }
     ensure!(
-        !leaves.is_empty() && archived.is_empty(),
+        !members.is_empty() && archived.is_empty(),
         "Recompile class tree and sealed archive differ"
     );
-    Ok(leaves)
+    Ok(members)
 }
 
 fn validate_snapshots(prepared: &PreparedNfrtInvocationInput) -> Result<()> {
@@ -816,10 +832,7 @@ fn validate_snapshots(prepared: &PreparedNfrtInvocationInput) -> Result<()> {
     for (index, (entry, bytes)) in entries.iter().zip(snapshots).enumerate() {
         ensure!(
             entry.snapshot_relative_path
-                == crate::jar_build::nfrt_launch_contract::original_snapshot_path(
-                    index,
-                    entry.coordinate.as_deref()
-                ),
+                == nfrt_launch_contract::original_snapshot_path(index, entry.coordinate.as_deref()),
             "NFRT input has a non-generated or reordered snapshot path"
         );
         ensure!(
@@ -855,7 +868,7 @@ fn create_overridden_root(derived_root: &Path, token: &str) -> Result<(PathBuf, 
     let parent = derived_root.join("nfrt");
     match fs::create_dir(&parent) {
         Ok(()) => (),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (),
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => (),
         Err(error) => return Err(error.into()),
     }
     leases.prepare(&parent, "reserved-leaf")?;
@@ -882,7 +895,7 @@ fn create_owned_root(project_root: &Path, token: &str) -> Result<(PathBuf, Direc
         let next = parent.join(component);
         match fs::create_dir(&next) {
             Ok(()) => (),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => (),
             Err(error) => return Err(error.into()),
         }
         leases.prepare(&next, "reserved-leaf")?;
@@ -957,6 +970,9 @@ fn write_and_hold(path: &Path, bytes: &[u8], expected: &str) -> Result<File> {
 
 #[cfg(all(test, windows))]
 mod tests {
+    use super::super::nfrt_producer_output_receipt::NfrtProducerDeclaration;
+    use super::super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt;
+    use super::super::nfrt_producer_output_receipt::NfrtProducerScope;
     use super::*;
 
     fn retirement_receipt(
@@ -964,9 +980,6 @@ mod tests {
         relative: &str,
         bytes: &[u8],
     ) -> super::super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt {
-        use super::super::nfrt_producer_output_receipt::NfrtProducerDeclaration;
-        use super::super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt;
-        use super::super::nfrt_producer_output_receipt::NfrtProducerScope;
         NfrtProducerOutputReceipt {
             schema: "fixture".to_owned(),
             scope: NfrtProducerScope {
@@ -1011,7 +1024,7 @@ mod tests {
             contract_identity: contract.clone(),
             project_preparation_identity: "fixture".to_owned(),
             workspaces_declared: false,
-            generated: std::collections::BTreeMap::new(),
+            generated: BTreeMap::new(),
             files: Vec::new(),
             owned_payloads: Vec::new(),
             leases,
@@ -1119,7 +1132,7 @@ mod tests {
             contract_identity: contract.clone(),
             project_preparation_identity: "fixture".to_owned(),
             workspaces_declared: false,
-            generated: std::collections::BTreeMap::new(),
+            generated: BTreeMap::new(),
             files: Vec::new(),
             owned_payloads: Vec::new(),
             leases,
@@ -1263,7 +1276,7 @@ mod tests {
                 contract_identity: format!("sha256:{}", "0".repeat(64)),
                 project_preparation_identity: format!("sha256:{}", "1".repeat(64)),
                 workspaces_declared: false,
-                generated: std::collections::BTreeMap::new(),
+                generated: BTreeMap::new(),
                 files: Vec::new(),
                 owned_payloads: Vec::new(),
                 leases,

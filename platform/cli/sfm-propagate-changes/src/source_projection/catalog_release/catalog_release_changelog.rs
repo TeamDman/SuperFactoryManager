@@ -4,6 +4,7 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use std::str::from_utf8;
 
 /// Exact release section; its digest is distinct from the whole selected file.
 #[derive(Debug, Facet)]
@@ -13,9 +14,12 @@ pub struct CatalogReleaseChangelog {
 }
 
 impl CatalogReleaseChangelog {
+    pub(crate) fn content(&self) -> &str {
+        &self.content
+    }
+
     pub(super) fn parse(bytes: &[u8], version: &CatalogReleaseVersion) -> Result<Self> {
-        let text =
-            std::str::from_utf8(bytes).wrap_err("selected release changelog is not UTF-8")?;
+        let text = from_utf8(bytes).wrap_err("selected release changelog is not UTF-8")?;
         ensure!(
             text.lines().all(|line| !line.contains('\r')),
             "release changelog must use LF or CRLF line endings"

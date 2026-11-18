@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
@@ -6,6 +7,7 @@ use crate::jar_build::ClientPuppetKeepOpen;
 use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -31,19 +33,29 @@ pub struct RunClientPuppetArgs {
 }
 
 impl RunClientPuppetArgs {
-    pub(crate) fn into_options(self, mode: BuildMode) -> eyre::Result<BuildOptions> {
-        self.options.into_options(mode)
+    pub(crate) fn into_options(
+        self,
+        mode: BuildMode,
+        app_home: &AppHome,
+    ) -> eyre::Result<BuildOptions> {
+        self.options.into_options(mode, app_home)
     }
 
     /// # Errors
     ///
     /// Returns an error if planning, building, launching, or game-test validation fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         let filter = self.filter.clone();
         let control_cli_source_root = self.control_cli_source_root.clone();
         let client_puppet_keep_open = ClientPuppetKeepOpen::from_cli(self.keep_open.clone())?;
         RunCommand::with_run_options(
-            self.into_options(BuildMode::Build)?,
+            self.into_options(BuildMode::Build, app_home)?
+                .with_cache_home(homes.available_cache_home()),
             RunKind::ClientPuppet,
             RunOptions {
                 control_cli_source_root,

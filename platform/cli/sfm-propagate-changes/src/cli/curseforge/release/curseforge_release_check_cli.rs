@@ -16,9 +16,13 @@ use crate::cli::repo_root::get_repo_root;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeGameVersionId;
 use crate::curseforge::CurseforgeHttpClient;
+use crate::paths::AppHome;
 use color_eyre::owo_colors::OwoColorize;
 use facet::Facet;
 use figue as args;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use tracing::info;
 
 /// Arguments for checking computed CurseForge release metadata.
@@ -49,13 +53,14 @@ impl CurseforgeReleaseCheckArgs {
     /// # Errors
     ///
     /// Returns an error if computed metadata does not match historical uploads.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         check_minecraft_version_metadata(
             self.branch,
             self.project,
             self.api_key,
             self.token,
             self.op_secret,
+            app_home,
         )
     }
 }
@@ -66,17 +71,18 @@ fn check_minecraft_version_metadata(
     api_key: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let branch_query = branch.into_query()?;
-    let project_id = resolve_project_id(project)?;
+    let branch_query = branch.into_query(app_home)?;
+    let project_id = resolve_project_id(project, app_home)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
 
     let token_value = CurseforgeApiSecret::resolve(token, op_secret)?;
     let upload_client = CurseforgeHttpClient::new(&token_value)?;
@@ -163,8 +169,8 @@ fn check_minecraft_version_metadata(
     Ok(())
 }
 
-impl std::fmt::Debug for CurseforgeReleaseCheckArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeReleaseCheckArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeReleaseCheckArgs")
             .finish_non_exhaustive()
     }

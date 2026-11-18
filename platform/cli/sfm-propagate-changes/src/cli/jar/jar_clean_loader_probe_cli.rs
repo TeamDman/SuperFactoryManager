@@ -4,6 +4,7 @@ use crate::jar_build::CleanLoaderProbeOptions;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
+use std::time::Duration;
 
 /// Options for proving a release JAR in a fresh production loader installation.
 #[derive(Clone, Debug, Facet)]
@@ -91,7 +92,7 @@ impl JarCleanLoaderProbeArgs {
     }
 }
 
-fn parse_positive_duration(name: &str, value: &str) -> eyre::Result<std::time::Duration> {
+fn parse_positive_duration(name: &str, value: &str) -> eyre::Result<Duration> {
     let duration = humantime::parse_duration(value)
         .map_err(|error| eyre::eyre!("Invalid {name} duration {value:?}: {error}"))?;
     if duration.is_zero() {

@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::run::invoke_game_puppet;
 use crate::cli::run::normalize_game_puppet_game_test;
@@ -11,6 +12,8 @@ use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::jar_build::png_dimensions;
 use crate::jar_build::projection_preview_artifact_root;
+use crate::jar_build::projection_selection::select_projections;
+use crate::source_projection::core_catalog::CoreCatalog;
 use crate::terminal_output::stdout_line;
 use chrono::Local;
 use eyre::Context;
@@ -19,6 +22,7 @@ use figue as args;
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
@@ -135,7 +139,11 @@ impl PuppetMatrixArgs {
     ///
     /// Returns an error if target selection, preview execution, artifact validation, or matrix
     /// publication fails. A matrix manifest is written before reporting per-target failures.
-    pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: &CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         if self.options.plan_json.is_some() {
             eyre::bail!(
                 "puppet matrix does not support --plan-json because it launches one exact projection per matrix target"
@@ -148,11 +156,9 @@ impl PuppetMatrixArgs {
         }
         validate_calibrated_parallelism(Parallelism::from_cli(self.options.parallel)?)?;
 
-        let (root, keys) = crate::jar_build::projection_selection::select_projections(
-            self.options.repo_root.as_deref(),
-            &self.options.projection,
-        )?;
-        let catalog = crate::source_projection::core_catalog::CoreCatalog::load(&root, &root)?;
+        let (root, keys) =
+            select_projections(self.options.repo_root.as_deref(), &self.options.projection)?;
+        let catalog = CoreCatalog::load(&root, &root)?;
         let targets = keys
             .into_iter()
             .map(|key| ProjectionMatrixSelection {
@@ -185,6 +191,7 @@ impl PuppetMatrixArgs {
                 expected_game_test.as_deref(),
                 self.control_cli_source_root.as_deref(),
                 cancellation_token.clone(),
+                homes,
             );
             match result {
                 Ok(matrix_target) => {
@@ -254,6 +261,7 @@ fn run_matrix_target(
     expected_game_test: Option<&str>,
     control_cli_source_root: Option<&Path>,
     cancellation_token: CancellationToken,
+    homes: &InvocationHomes,
 ) -> eyre::Result<PuppetMatrixTarget> {
     let mut target_options = template_options.clone();
     target_options.projection.clone_from(&target.projection);
@@ -272,6 +280,7 @@ fn run_matrix_target(
         control_cli_source_root.map(Path::to_path_buf),
         None,
         cancellation_token,
+        homes,
     )?;
     collect_target_preview(target, puppet_selection, expected_game_test)
 }
@@ -566,7 +575,7 @@ fn create_matrix_root(
         let candidate = matrix_parent.join(name);
         match fs::create_dir(&candidate) {
             Ok(()) => return Ok(candidate),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
             Err(error) => {
                 return Err(error)
                     .wrap_err_with(|| format!("Failed to create {}", candidate.display()));

@@ -1,7 +1,10 @@
 //! Preserve canonical launch evidence while accommodating Windows Java's `MAX_PATH` boundary.
+
+use std::collections::BTreeMap;
+use std::fs::read;
 use std::io::Write as _;
 use std::path::Path;
-
+use std::process::Child;
 pub(super) fn prepare(argfile: &Path) -> eyre::Result<Option<tempfile::NamedTempFile>> {
     if !cfg!(windows) || argfile.as_os_str().to_string_lossy().encode_utf16().count() < 260 {
         return Ok(None);
@@ -19,7 +22,7 @@ pub(super) fn prepare(argfile: &Path) -> eyre::Result<Option<tempfile::NamedTemp
             < 260,
         "Windows Java launch requires an argument-file path shorter than 260 characters; configured temporary directory is too long"
     );
-    copy.write_all(&std::fs::read(argfile)?)?;
+    copy.write_all(&read(argfile)?)?;
     copy.flush()?;
     Ok(Some(copy))
 }
@@ -29,8 +32,8 @@ pub(super) fn spawn(
     java: &Path,
     argfile: &Path,
     working_dir: &Path,
-    env: &std::collections::BTreeMap<String, String>,
-) -> eyre::Result<(std::process::Child, Option<tempfile::NamedTempFile>)> {
+    env: &BTreeMap<String, String>,
+) -> eyre::Result<(Child, Option<tempfile::NamedTempFile>)> {
     use eyre::Context as _;
     use std::process::Command;
     use std::process::Stdio;

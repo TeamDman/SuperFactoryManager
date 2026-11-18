@@ -17,6 +17,7 @@ use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -236,7 +237,7 @@ fn allocation_lock(minecraft_dir: &Path) -> Result<File> {
             "runtime slot allocation lock timed out: {}",
             path.display()
         );
-        std::thread::sleep(Duration::from_millis(10));
+        sleep(Duration::from_millis(10));
     }
     Ok(file)
 }

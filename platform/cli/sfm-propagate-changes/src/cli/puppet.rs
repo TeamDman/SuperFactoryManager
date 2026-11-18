@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::puppet_artifacts::PuppetArtifactsArgs;
 use crate::cli::puppet_matrix::PuppetMatrixArgs;
@@ -90,7 +91,12 @@ impl PuppetArgs {
     /// # Errors
     ///
     /// Returns an error if discovery, build, or preview execution fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         match self.command {
             PuppetCommand::Run(args) => invoke_game_puppet(
                 args.options,
@@ -104,9 +110,12 @@ impl PuppetArgs {
                 args.control_cli_source_root,
                 args.java_max_heap_mib,
                 cancellation_token,
+                homes,
             ),
             PuppetCommand::List(args) => SourceCatalogCommand::new(
-                args.options.into_options(BuildMode::Plan)?,
+                args.options
+                    .into_options(BuildMode::Plan, app_home)?
+                    .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Puppet,
                     action: SourceCatalogAction::List,
@@ -115,7 +124,9 @@ impl PuppetArgs {
             )
             .invoke(),
             PuppetCommand::Show(args) => SourceCatalogCommand::new(
-                args.options.into_options(BuildMode::Plan)?,
+                args.options
+                    .into_options(BuildMode::Plan, app_home)?
+                    .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Puppet,
                     action: SourceCatalogAction::Show { id: args.id },
@@ -124,7 +135,7 @@ impl PuppetArgs {
             )
             .invoke(),
             PuppetCommand::Artifacts(args) => args.invoke(),
-            PuppetCommand::Matrix(args) => args.invoke(&cancellation_token),
+            PuppetCommand::Matrix(args) => args.invoke(&cancellation_token, homes),
         }
     }
 }

@@ -10,6 +10,7 @@ use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::ErrorKind;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Path;
@@ -124,7 +125,7 @@ fn checked_match_or_seal(
             sealed.read_to_end(&mut bytes)?;
             Ok(bytes == expected.as_bytes())
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+        Err(error) if error.kind() == ErrorKind::NotFound => {
             if !seal_if_missing {
                 return Ok(true);
             }
@@ -147,7 +148,7 @@ fn checked_match_or_seal(
             temporary.as_file_mut().sync_all()?;
             match temporary.persist_noclobber(&seal) {
                 Ok(_) => Ok(true),
-                Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
+                Err(error) if error.error.kind() == ErrorKind::AlreadyExists => {
                     let existing = project_compilation_cache::open_read(&seal)?;
                     let mut bytes = Vec::new();
                     existing.take(257).read_to_end(&mut bytes)?;

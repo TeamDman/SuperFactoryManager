@@ -1,4 +1,8 @@
+#[cfg(windows)]
+use std::io::Error as IoError;
 use std::path::Path;
+#[cfg(windows)]
+use std::ptr::null_mut;
 /// Host-side admission; leaves space for archives, diagnostics and unrelated applications.
 pub(super) fn check(path: &Path, minimum: u64) -> eyre::Result<()> {
     let existing = path
@@ -32,18 +36,12 @@ fn free(path: &Path) -> eyre::Result<u64> {
         .collect::<Vec<_>>();
     let mut available = 0;
     // SAFETY: null-terminated UTF-16 path and valid writable u64; unused outputs null.
-    let ok = unsafe {
-        GetDiskFreeSpaceExW(
-            path.as_ptr(),
-            &raw mut available,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-        )
-    };
+    let ok =
+        unsafe { GetDiskFreeSpaceExW(path.as_ptr(), &raw mut available, null_mut(), null_mut()) };
     eyre::ensure!(
         ok != 0,
         "disk capacity query failed: {}",
-        std::io::Error::last_os_error()
+        IoError::last_os_error()
     );
     Ok(available)
 }

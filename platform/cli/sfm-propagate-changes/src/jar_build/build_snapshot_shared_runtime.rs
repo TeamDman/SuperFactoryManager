@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 pub(crate) struct SharedRuntimeSnapshot {
     roots: Vec<PathBuf>,
-    _capture: SnapshotSourceCapture,
+    capture: SnapshotSourceCapture,
 }
 
 impl SharedRuntimeSnapshot {
@@ -65,10 +65,7 @@ impl SharedRuntimeSnapshot {
         if !capture.hold_selected_without_hash(snapshot, selected, cancellation)? {
             return Ok(None);
         }
-        Ok(Some(Self {
-            roots,
-            _capture: capture,
-        }))
+        Ok(Some(Self { roots, capture }))
     }
 
     pub(crate) fn roots(&self) -> &[PathBuf] {
@@ -80,6 +77,10 @@ impl SharedRuntimeSnapshot {
         snapshot: &BuildSnapshotReceipt,
         cancellation: &CancellationToken,
     ) -> Result<()> {
+        ensure!(
+            self.capture.matches_names(snapshot),
+            "held shared runtime snapshot does not match its receipt"
+        );
         let Some(current) =
             SnapshotSourceCapture::prepare(&snapshot.snapshot_dir.join("project"), cancellation)?
         else {

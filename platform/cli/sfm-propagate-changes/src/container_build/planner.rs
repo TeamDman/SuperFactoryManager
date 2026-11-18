@@ -8,12 +8,15 @@ use super::linux_toolchain_lock::LinuxToolchainLock;
 use super::minecraft_asset_index::MinecraftAssetIndex;
 use super::minecraft_version::MinecraftVersion;
 use crate::cancellation::CancellationToken;
+use crate::jar_build;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::source_projection;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
 use crate::source_projection::core_catalog::read_bounded_input;
 use crate::source_projection::provenance::sha256;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
 use crate::toolchain_lockfile_schema::read_current;
@@ -22,6 +25,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
+use std::str::from_utf8;
 use std::time::Instant;
 
 /// Preparation is read-only until a fresh sibling staging directory is created.
@@ -53,7 +57,7 @@ pub(crate) fn execute(
             "no validated config seed for this projection/source lock; regenerate and review pinned defaults"
         );
     }
-    let text = std::str::from_utf8(&raw_lock)?;
+    let text = from_utf8(&raw_lock)?;
     // Existing canonical parsing/profile projection; never migrate/write or discover a POM.
     let document = parse_document(text)?;
     let mut report = ContextManifest {
@@ -127,7 +131,7 @@ pub(crate) fn execute(
             "linux-toolchain-contract",
             "No reviewed Linux toolchain lock supplied; require a local base digest, exact Linux CLI bytes/source identity, and Linux SDK/graphics/Rust prerequisites.",
         );
-        let pins = crate::toolchain_lockfile_schema::read_jdk_pins(text)?;
+        let pins = toolchain_lockfile_schema::read_jdk_pins(text)?;
         if !pins.as_ref().is_some_and(|pins| {
             pins.iter().any(|pin| {
                 pin.major == u32::from(project.receipt().java_major)
@@ -564,7 +568,7 @@ fn export_minecraft(
     let id = index
         .id
         .ok_or_else(|| eyre::eyre!("asset index has no exact id"))?;
-    crate::source_projection::promotion::validate_relative_path(&id)?;
+    source_projection::promotion::validate_relative_path(&id)?;
     ensure!(
         !id.contains('/'),
         "asset index identity must be one component"
@@ -686,7 +690,7 @@ fn export_minecraft(
         let path = artifact
             .path
             .ok_or_else(|| eyre::eyre!("authenticated library has no relative path"))?;
-        crate::source_projection::promotion::validate_relative_path(&path)?;
+        source_projection::promotion::validate_relative_path(&path)?;
         ensure!(
             Path::new(&path)
                 .extension()
@@ -771,7 +775,7 @@ pub(super) fn validate_contract(
                 .all(|byte| byte.is_ascii_alphanumeric() || b"._-+ ()".contains(&byte)),
         "unsafe Java identity"
     );
-    crate::source_projection::promotion::validate_relative_path(&contract.cli_path)?;
+    source_projection::promotion::validate_relative_path(&contract.cli_path)?;
     Ok(())
 }
 
@@ -801,10 +805,8 @@ fn export_supported_catalog_cache(
         runtime_validated: bool,
         missing: Vec<super::missing_artifact::MissingArtifact>,
     }
-    let catalog = crate::source_projection::core_catalog::CoreCatalog::load(
-        &request.repo_root,
-        &request.repo_root,
-    )?;
+    let catalog =
+        source_projection::core_catalog::CoreCatalog::load(&request.repo_root, &request.repo_root)?;
     let cache = checked_directory(&request.cache_root.join("minecraft-toolchain"))?;
     let mut rows = Vec::new();
     let mut locks = BTreeMap::<String, Vec<super::missing_artifact::MissingArtifact>>::new();
@@ -822,7 +824,7 @@ fn export_supported_catalog_cache(
         let gaps = if let Some(previous) = locks.get(&identity) {
             previous.clone()
         } else {
-            let text = std::str::from_utf8(&raw)?;
+            let text = from_utf8(&raw)?;
             let mut candidate = report.clone();
             candidate.missing.clear();
             let mut version_path = None;
@@ -978,8 +980,8 @@ fn export_source_producer(
     artifact: &Path,
     coordinate: Option<&str>,
     hash: ContentHash,
-    git: Option<&crate::jar_build::engine::SourceGitProvenance>,
-    build: Option<&crate::jar_build::engine::SourceBuildProvenance>,
+    git: Option<&jar_build::engine::SourceGitProvenance>,
+    build: Option<&jar_build::engine::SourceBuildProvenance>,
     parent: &str,
     report: &mut ContextManifest,
     request: &ContainerBuildRequest,
@@ -989,7 +991,7 @@ fn export_source_producer(
     }
     let result = (|| {
         let relative = portable_cache_path(artifact)?;
-        let artifact = crate::source_projection::candidate_lock::checked_file(cache, &relative)?;
+        let artifact = source_projection::candidate_lock::checked_file(cache, &relative)?;
         super::source_producer::verify(cache, &artifact, coordinate, hash, git, build)
     })();
     match result {

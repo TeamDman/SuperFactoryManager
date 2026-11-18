@@ -59,7 +59,10 @@ fn print_static_java_catalog_entries(
                 .filter(|entry| entry.id == *id)
                 .collect::<Vec<_>>();
             if matches.is_empty() {
-                eyre::bail!("No {} entry named {id:?}.", catalog_category_label(query.category));
+                eyre::bail!(
+                    "No {} entry named {id:?}.",
+                    catalog_category_label(query.category)
+                );
             }
             for entry in matches {
                 stdout_line(format_static_catalog_entry(&entry))?;
@@ -73,15 +76,23 @@ fn static_java_catalog_for_project(
     project_root: &Path,
     category: SourceCatalogCategory,
 ) -> eyre::Result<Vec<StaticJavaCatalogEntry>> {
-    let project_root = dunce::canonicalize(project_root)
-        .wrap_err_with(|| format!("Failed to resolve generated project root {}", project_root.display()))?;
-    let (catalog, key) = crate::source_projection::core_catalog::CoreCatalog::for_project(&project_root)?;
+    let project_root = dunce::canonicalize(project_root).wrap_err_with(|| {
+        format!(
+            "Failed to resolve generated project root {}",
+            project_root.display()
+        )
+    })?;
+    let (catalog, key) = source_projection::core_catalog::CoreCatalog::for_project(&project_root)?;
     eyre::ensure!(
         project_root.join("settings.gradle").is_file(),
         "Generated project root {} has no settings.gradle",
         project_root.display(),
     );
-    static_java_catalog(&project_root, &catalog.catalog.entry(&key)?.minecraft_version, category)
+    static_java_catalog(
+        &project_root,
+        &catalog.catalog.entry(&key)?.minecraft_version,
+        category,
+    )
 }
 
 fn validate_static_puppet_selection_for_target(
@@ -98,7 +109,11 @@ fn validate_static_puppet_selection_for_target(
         eyre::bail!("SFM game puppet selection must contain at least one nonblank selector.");
     }
     let (minecraft_dir, minecraft_version) = static_catalog_target_parts(target)?;
-    let entries = static_java_catalog(&minecraft_dir, minecraft_version, SourceCatalogCategory::Puppet)?;
+    let entries = static_java_catalog(
+        &minecraft_dir,
+        minecraft_version,
+        SourceCatalogCategory::Puppet,
+    )?;
     let matches = entries.iter().filter(|entry| {
         selectors
             .iter()
@@ -131,11 +146,17 @@ fn static_java_catalog(
     for source_path in collect_catalog_java_sources(minecraft_dir, minecraft_version, source_set)? {
         let source = fs::read_to_string(&source_path)
             .wrap_err_with(|| format!("Failed to read Java source {}", source_path.display()))?;
-        let tree = parser
-            .parse(&source, None)
-            .ok_or_else(|| eyre::eyre!("Arborium did not produce a parse tree for {}", source_path.display()))?;
+        let tree = parser.parse(&source, None).ok_or_else(|| {
+            eyre::eyre!(
+                "Arborium did not produce a parse tree for {}",
+                source_path.display()
+            )
+        })?;
         if tree.root_node().has_error() {
-            eyre::bail!("Arborium could not parse Java source {}", source_path.display());
+            eyre::bail!(
+                "Arborium could not parse Java source {}",
+                source_path.display()
+            );
         }
         let package_name = find_package_name(tree.root_node(), &source).unwrap_or_default();
         let imports = find_imports(tree.root_node(), &source);
@@ -176,12 +197,18 @@ fn validate_unique_catalog_ids(
 }
 
 fn static_catalog_target_parts(target: &WorktreeTarget) -> eyre::Result<(PathBuf, &str)> {
-    let minecraft_version = target
-        .mc_version
-        .as_ref()
-        .ok_or_else(|| eyre::eyre!("Branch {} does not declare a Minecraft version.", target.branch))?;
+    let minecraft_version = target.mc_version.as_ref().ok_or_else(|| {
+        eyre::eyre!(
+            "Branch {} does not declare a Minecraft version.",
+            target.branch
+        )
+    })?;
     Ok((
-        target.worktree_path.as_path().join("platform").join("minecraft"),
+        target
+            .worktree_path
+            .as_path()
+            .join("platform")
+            .join("minecraft"),
         minecraft_version.as_str(),
     ))
 }
@@ -192,7 +219,8 @@ fn collect_catalog_java_sources(
     source_set: &str,
 ) -> eyre::Result<Vec<PathBuf>> {
     let source_root = minecraft_dir.join("src").join(source_set).join("java");
-    let excludes = read_source_excludes_for_minecraft_dir(minecraft_dir, minecraft_version, source_set)?;
+    let excludes =
+        read_source_excludes_for_minecraft_dir(minecraft_dir, minecraft_version, source_set)?;
     let mut sources = Vec::new();
     collect_catalog_java_sources_under(&source_root, &source_root, &excludes, &mut sources)?;
     sources.sort();
@@ -208,12 +236,17 @@ fn collect_catalog_java_sources_under(
     if !current.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(current).wrap_err_with(|| format!("Failed to read {}", current.display()))? {
+    for entry in
+        fs::read_dir(current).wrap_err_with(|| format!("Failed to read {}", current.display()))?
+    {
         let entry = entry.wrap_err_with(|| format!("Failed to inspect {}", current.display()))?;
         let path = entry.path();
         if path.is_dir() {
             collect_catalog_java_sources_under(root, &path, excludes, sources)?;
-        } else if path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("java")) {
+        } else if path
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
+        {
             let relative = relative_zip_name(root, &path).unwrap_or_default();
             if !is_excluded_source(&relative, excludes) {
                 sources.push(path);
@@ -249,7 +282,12 @@ fn collect_catalog_entries(
         let annotations = declaration_annotations(node, source);
         match category {
             SourceCatalogCategory::GameTest
-                if has_annotation(&annotations, SFM_GAME_TEST_ANNOTATION, package_name, imports) =>
+                if has_annotation(
+                    &annotations,
+                    SFM_GAME_TEST_ANNOTATION,
+                    package_name,
+                    imports,
+                ) =>
             {
                 entries.insert(StaticJavaCatalogEntry {
                     category,
@@ -282,12 +320,19 @@ fn collect_catalog_entries(
                 });
             }
             SourceCatalogCategory::Puppet
-                if has_annotation(&annotations, SFM_GAME_PUPPET_ANNOTATION, package_name, imports) =>
+                if has_annotation(
+                    &annotations,
+                    SFM_GAME_PUPPET_ANNOTATION,
+                    package_name,
+                    imports,
+                ) =>
             {
                 entries.insert(StaticJavaCatalogEntry {
                     category,
                     id: qualify_sfm_id(&snake_case(
-                        simple_name.strip_suffix("GamePuppet").unwrap_or(&simple_name),
+                        simple_name
+                            .strip_suffix("GamePuppet")
+                            .unwrap_or(&simple_name),
                     )),
                     class_name: class_name.clone(),
                     method_name: None,
@@ -320,7 +365,12 @@ fn collect_catalog_entries(
                 (owner_class, declaration_name(node, source))
         {
             let annotations = declaration_annotations(node, source);
-            let dynamic = has_annotation(&annotations, "org.junit.jupiter.api.TestFactory", package_name, imports);
+            let dynamic = has_annotation(
+                &annotations,
+                "org.junit.jupiter.api.TestFactory",
+                package_name,
+                imports,
+            );
             if JUNIT_ANNOTATIONS
                 .iter()
                 .any(|annotation| has_annotation(&annotations, annotation, package_name, imports))
@@ -365,13 +415,21 @@ fn find_package_name(root: Node<'_>, source: &str) -> Option<String> {
     root.named_children(&mut cursor)
         .find(|child| child.kind() == "package_declaration")
         .and_then(|node| node_text(node, source))
-        .map(|text| text.trim_start_matches("package").trim_end_matches(';').trim().to_string())
+        .map(|text| {
+            text.trim_start_matches("package")
+                .trim_end_matches(';')
+                .trim()
+                .to_string()
+        })
 }
 
 fn find_imports(root: Node<'_>, source: &str) -> JavaImports {
     let mut imports = JavaImports::default();
     let mut cursor = root.walk();
-    for node in root.named_children(&mut cursor).filter(|node| node.kind() == "import_declaration") {
+    for node in root
+        .named_children(&mut cursor)
+        .filter(|node| node.kind() == "import_declaration")
+    {
         let Some(text) = node_text(node, source) else {
             continue;
         };
@@ -400,7 +458,9 @@ fn declaration_annotations(node: Node<'_>, source: &str) -> Vec<String> {
         }
         let mut modifier_cursor = child.walk();
         for modifier in child.named_children(&mut modifier_cursor) {
-            if modifier.kind().contains("annotation") && let Some(text) = node_text(modifier, source) {
+            if modifier.kind().contains("annotation")
+                && let Some(text) = node_text(modifier, source)
+            {
                 annotations.push(
                     text.trim()
                         .trim_start_matches('@')
@@ -423,7 +483,10 @@ fn has_annotation(
     imports: &JavaImports,
 ) -> bool {
     let expected_simple = expected.rsplit('.').next().unwrap_or(expected);
-    let expected_package = expected.strip_suffix(expected_simple).unwrap_or_default().trim_end_matches('.');
+    let expected_package = expected
+        .strip_suffix(expected_simple)
+        .unwrap_or_default()
+        .trim_end_matches('.');
     annotations.iter().any(|annotation| {
         if annotation == expected {
             return true;
@@ -441,7 +504,10 @@ fn has_annotation(
 fn is_type_declaration(kind: &str) -> bool {
     matches!(
         kind,
-        "class_declaration" | "interface_declaration" | "enum_declaration" | "annotation_type_declaration"
+        "class_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "annotation_type_declaration"
     )
 }
 
@@ -485,7 +551,8 @@ fn wildcard_matches(candidate: &str, selector: &str) -> bool {
 
     while candidate_index < candidate.len() {
         if selector_index < selector.len()
-            && (selector[selector_index] == b'?' || selector[selector_index] == candidate[candidate_index])
+            && (selector[selector_index] == b'?'
+                || selector[selector_index] == candidate[candidate_index])
         {
             candidate_index += 1;
             selector_index += 1;
@@ -555,9 +622,9 @@ fn format_static_catalog_entry(entry: &StaticJavaCatalogEntry) -> String {
 #[cfg(test)]
 mod static_java_catalog_tests {
     use super::SourceCatalogCategory;
+    use super::snake_case;
     use super::static_java_catalog;
     use super::static_java_catalog_for_project;
-    use super::snake_case;
     use super::wildcard_matches;
     use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
     use crate::source_projection::projection_catalog::CATALOG_PATH;
@@ -567,14 +634,23 @@ mod static_java_catalog_tests {
     #[test]
     fn generated_project_catalog_uses_checkout_version_and_project_sources() {
         let temporary = tempdir().expect("temporary generated project should be created");
-        let project_root = temporary.path().join("platform/minecraft/projections/example/arbitrary-name");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/example/arbitrary-name");
         let source_root = project_root.join("src/test/java/example");
         fs::create_dir_all(&source_root).expect("generated test source root should be created");
-        fs::write(project_root.join("settings.gradle"), "rootProject.name = 'sfm-1.21.0'\n")
-            .expect("generated Gradle settings should be written");
+        fs::write(
+            project_root.join("settings.gradle"),
+            "rootProject.name = 'sfm-1.21.0'\n",
+        )
+        .expect("generated Gradle settings should be written");
         let registry = temporary.path().join(FEATURE_DEFINITIONS_PATH);
         fs::create_dir_all(registry.parent().unwrap()).unwrap();
-        fs::write(registry, r#"{"example":{"supported_targets":["1.21.0"],"requires":[]}}"#).unwrap();
+        fs::write(
+            registry,
+            r#"{"example":{"supported_targets":["1.21.0"],"requires":[]}}"#,
+        )
+        .unwrap();
         fs::write(
             temporary.path().join(CATALOG_PATH),
             r#"{"example/arbitrary-name":{"minecraft_version":"1.21","environment":"release","features":[]}}"#,
@@ -590,8 +666,12 @@ mod static_java_catalog_tests {
             .expect("generated test source should be written");
         }
         let excludes_path = project_root.join("gradle/source-excludes/1.21/test-java.txt");
-        fs::create_dir_all(excludes_path.parent().expect("excludes parent should exist"))
-            .expect("generated excludes directory should be created");
+        fs::create_dir_all(
+            excludes_path
+                .parent()
+                .expect("excludes parent should exist"),
+        )
+        .expect("generated excludes directory should be created");
         fs::write(excludes_path, "example/ExcludedTests.java\n")
             .expect("generated version excludes should be written");
 
@@ -610,10 +690,22 @@ mod static_java_catalog_tests {
 
     #[test]
     fn wildcard_matching_matches_puppet_selection_grammar() {
-        assert!(wildcard_matches("sfm:move_1_stack_direct_walkthrough", "sfm:*_walkthrough"));
-        assert!(wildcard_matches("sfm:move_1_stack_direct_walkthrough", "sfm:move_?_stack_*"));
-        assert!(!wildcard_matches("sfm:move_1_stack_direct_walkthrough", "sfm:other_*"));
-        assert!(!wildcard_matches("sfm:move_1_stack_direct_walkthrough", "sfm:move_[1]_stack_*"));
+        assert!(wildcard_matches(
+            "sfm:move_1_stack_direct_walkthrough",
+            "sfm:*_walkthrough"
+        ));
+        assert!(wildcard_matches(
+            "sfm:move_1_stack_direct_walkthrough",
+            "sfm:move_?_stack_*"
+        ));
+        assert!(!wildcard_matches(
+            "sfm:move_1_stack_direct_walkthrough",
+            "sfm:other_*"
+        ));
+        assert!(!wildcard_matches(
+            "sfm:move_1_stack_direct_walkthrough",
+            "sfm:move_[1]_stack_*"
+        ));
     }
 
     #[test]
@@ -653,8 +745,12 @@ mod static_java_catalog_tests {
         )
         .expect("unannotated source should be written");
         let excludes_path = minecraft_dir.join("gradle/source-excludes/1.19.2/gametest-java.txt");
-        fs::create_dir_all(excludes_path.parent().expect("excludes parent should exist"))
-            .expect("excludes parent should be created");
+        fs::create_dir_all(
+            excludes_path
+                .parent()
+                .expect("excludes parent should exist"),
+        )
+        .expect("excludes parent should be created");
         fs::write(excludes_path, "example/ExcludedGamePuppet.java\n")
             .expect("excludes should be written");
 
@@ -696,9 +792,13 @@ mod static_java_catalog_tests {
             .expect_err("duplicate id should be rejected");
         assert!(error.to_string().contains("Duplicate static puppet id"));
 
-        fs::remove_file(source_root.join("First.java")).expect("duplicate source should be removed");
-        fs::write(source_root.join("Malformed.java"), "public class Malformed {")
-            .expect("malformed source should be written");
+        fs::remove_file(source_root.join("First.java"))
+            .expect("duplicate source should be removed");
+        fs::write(
+            source_root.join("Malformed.java"),
+            "public class Malformed {",
+        )
+        .expect("malformed source should be written");
         let error = static_java_catalog(&minecraft_dir, "1.19.2", SourceCatalogCategory::Puppet)
             .expect_err("malformed Java should be rejected");
         assert!(error.to_string().contains("could not parse Java source"));

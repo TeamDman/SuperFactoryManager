@@ -1,8 +1,13 @@
+use core::fmt::Debug;
+use core::fmt::Formatter;
+use core::fmt::Result as FmtResult;
 use eyre::Context as _;
 use facet::Facet;
 use facet_pretty::ColorMode;
 use facet_pretty::PrettyPrinter;
 use std::io::IsTerminal as _;
+use std::io::Write;
+use std::io::stdout as io_stdout;
 
 /// Supported renderings for typed command output.
 #[derive(Facet, Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -24,8 +29,8 @@ pub struct CliOutput {
     exit_code: u8,
 }
 
-impl core::fmt::Debug for CliOutput {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl Debug for CliOutput {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CliOutput")
             .field("has_value", &self.value.is_some())
             .field("exit_code", &self.exit_code)
@@ -134,8 +139,8 @@ impl CliOutput {
     ///
     /// Returns an error when rendering or writing stdout fails.
     pub fn emit(self, requested_format: Option<OutputFormat>) -> eyre::Result<()> {
-        let stdout_is_terminal = std::io::stdout().is_terminal();
-        let mut stdout = std::io::stdout().lock();
+        let stdout_is_terminal = io_stdout().is_terminal();
+        let mut stdout = io_stdout().lock();
         self.emit_to(&mut stdout, requested_format, stdout_is_terminal)
     }
 
@@ -146,7 +151,7 @@ impl CliOutput {
     /// Returns an error when rendering or writing fails.
     pub fn emit_to(
         &self,
-        writer: &mut impl std::io::Write,
+        writer: &mut impl Write,
         requested_format: Option<OutputFormat>,
         stdout_is_terminal: bool,
     ) -> eyre::Result<()> {

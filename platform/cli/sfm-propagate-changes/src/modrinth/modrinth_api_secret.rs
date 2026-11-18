@@ -1,6 +1,7 @@
 use crate::one_password::OnePasswordSecretReference;
 use crate::one_password::OnePasswordSecretValue;
 use facet::Facet;
+use std::env;
 use std::fmt;
 use std::ops::Deref;
 
@@ -55,7 +56,7 @@ impl ModrinthApiSecret {
     }
 
     fn from_environment(env_var: &str) -> eyre::Result<Option<Self>> {
-        let Ok(value) = std::env::var(env_var) else {
+        let Ok(value) = env::var(env_var) else {
             return Ok(None);
         };
 

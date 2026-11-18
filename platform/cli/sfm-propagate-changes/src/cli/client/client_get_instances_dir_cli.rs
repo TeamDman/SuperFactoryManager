@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 
 /// Arguments for showing the configured Prism Launcher instances directory.
@@ -8,7 +9,7 @@ impl ClientGetInstancesDirArgs {
     /// # Errors
     ///
     /// Returns an error if the instances directory cannot be read or stdout cannot be written.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::client_cli::get_instances_dir()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::client_cli::get_instances_dir(app_home)
     }
 }

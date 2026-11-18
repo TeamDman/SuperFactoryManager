@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -13,7 +14,7 @@ impl ServerRemoveArgs {
     /// # Errors
     ///
     /// Returns an error if server targets cannot be updated.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::server_cli::remove_servers(&self.glob)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::server_cli::remove_servers(&self.glob, app_home)
     }
 }

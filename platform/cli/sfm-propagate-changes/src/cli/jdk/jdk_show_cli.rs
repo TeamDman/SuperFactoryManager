@@ -1,3 +1,5 @@
+use crate::jdk_preferences::JdkPreferenceRegistry;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
@@ -12,8 +14,9 @@ pub struct JdkShowArgs {
 impl JdkShowArgs {
     /// # Errors
     /// Fails if preferences are corrupt or the logical ID is absent.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let record = crate::jdk_preferences::show(&self.id)?
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let record = JdkPreferenceRegistry::new(app_home)
+            .show(&self.id)?
             .ok_or_else(|| eyre::eyre!("No JDK preference named `{}`", self.id))?;
         stdout_line(format!(
             "{} -> {}\nJava {} | {} | {}\nLocator only; lockfile compatibility is checked separately.",

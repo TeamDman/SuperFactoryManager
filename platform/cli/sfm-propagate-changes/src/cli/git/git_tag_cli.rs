@@ -1,8 +1,10 @@
+use crate::paths::AppHome;
 use crate::worktree::Worktree;
 use crate::worktree::get_sorted_worktrees;
 use eyre::Context;
 use eyre::bail;
 use facet::Facet;
+use std::fs::read_to_string;
 use std::path::Path;
 use std::process::Command;
 use tracing::info;
@@ -15,9 +17,9 @@ impl GitTagArgs {
     /// # Errors
     ///
     /// Returns an error if any worktree is dirty or tagging fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         let Self = self;
-        let worktrees = get_sorted_worktrees()?;
+        let worktrees = get_sorted_worktrees(app_home)?;
 
         if worktrees.is_empty() {
             info!("No worktrees found.");
@@ -103,7 +105,7 @@ fn read_mod_version_for_first_worktree(worktree: &Worktree) -> eyre::Result<Stri
 }
 
 fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {
-    let content = std::fs::read_to_string(gradle_properties)
+    let content = read_to_string(gradle_properties)
         .wrap_err("Failed to read gradle.properties for mod_version")?;
 
     let mod_version = content

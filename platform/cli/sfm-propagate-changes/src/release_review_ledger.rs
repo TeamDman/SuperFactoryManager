@@ -3,6 +3,7 @@
 use crate::release_review_v1;
 use crate::review_session_v1;
 use crate::review_session_v1::SelectionRuleV1;
+use crate::review_session_v2;
 use eyre::eyre;
 use facet::Facet;
 use std::collections::BTreeMap;
@@ -29,8 +30,8 @@ impl ReviewLedger {
             evidence: EvidenceTable::default(),
             state: release_review_v1::ReleaseReviewDocumentV1 {
                 schema: release_review_v1::SCHEMA.into(),
-                review_session: crate::review_session_v2::ReviewSessionV2 {
-                    schema: crate::review_session_v2::SCHEMA.into(),
+                review_session: review_session_v2::ReviewSessionV2 {
+                    schema: review_session_v2::SCHEMA.into(),
                     id,
                     title,
                     coordinate_system: review_session_v1::COORDINATE_SYSTEM.into(),
@@ -183,7 +184,7 @@ pub fn validate(ledger: &ReviewLedger) -> eyre::Result<()> {
     {
         return Err(eyre!("ledger cannot contain derived browsing data"));
     }
-    crate::review_session_v2::validate(&state.review_session)?;
+    review_session_v2::validate(&state.review_session)?;
     validate_evidence(&ledger.evidence)?;
     validate_comment_evidence(ledger)
 }
@@ -211,9 +212,8 @@ fn validate_comment_evidence(ledger: &ReviewLedger) -> eyre::Result<()> {
         }
     }
     for comment in &ledger.state.review_session.comments {
-        let crate::review_session_v2::CommentTargetV2::CommittedSelection {
-            selection_rule, ..
-        } = &comment.target
+        let review_session_v2::CommentTargetV2::CommittedSelection { selection_rule, .. } =
+            &comment.target
         else {
             return Err(eyre!(
                 "durable source comment requires a committed selector"

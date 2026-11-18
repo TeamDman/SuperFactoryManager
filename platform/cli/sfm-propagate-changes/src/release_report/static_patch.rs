@@ -4,6 +4,7 @@ use crate::release_review_surface_v1::ReviewSurfaceKindV1;
 use crate::release_review_surface_v1::ReviewSurfaceLimitsV1;
 use crate::release_review_surface_v1::ReviewSurfaceRequestV1;
 use crate::release_review_surface_v1::ReviewSurfaceSourceV1;
+use crate::release_review_text_diff;
 use crate::release_review_v1::ChangeOperationV1;
 use std::fmt::Write as _;
 
@@ -36,7 +37,7 @@ pub(super) fn render(id: &str, before: &str, after: &str) -> eyre::Result<(Strin
         ReviewSurfaceKindV1::TextPatch,
         limits,
     );
-    let surface = crate::release_review_text_diff::produce_text_diff(&request, limits)?;
+    let surface = release_review_text_diff::produce_text_diff(&request, limits)?;
     let mut body = String::new();
     let mut ids = Vec::new();
     for line in surface.text.split_inclusive('\n') {

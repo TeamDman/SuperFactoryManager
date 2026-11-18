@@ -12,8 +12,11 @@ use crate::java_analysis::JavaSymbolSelector;
 use crate::java_analysis::SymbolDefinitionOutput;
 use crate::java_analysis::blake3_content_hash;
 use crate::java_analysis::definition_workspace_fingerprint;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue::{self as args};
+use std::env::current_dir;
+use std::fs::read_to_string;
 use std::path::Path;
 
 #[derive(Facet, Debug)]
@@ -52,9 +55,9 @@ impl SymbolShowDefinitionArgs {
     /// # Errors
     ///
     /// Returns an error when workspace resolution, parsing, or indexing fails.
-    pub fn invoke(self) -> eyre::Result<CliOutput> {
-        let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(&CancellationToken::new(), &invocation_dir)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<CliOutput> {
+        let invocation_dir = current_dir()?;
+        self.invoke_in(&CancellationToken::new(), &invocation_dir, app_home)
     }
 
     /// Run definition analysis against an explicit invocation directory.
@@ -71,22 +74,20 @@ impl SymbolShowDefinitionArgs {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        app_home: &AppHome,
     ) -> eyre::Result<CliOutput> {
         let input = self.input()?;
-        let resolved = self.workspace.resolve(invocation_dir)?;
+        let resolved = self.workspace.resolve(invocation_dir, app_home)?;
         let project_diagnostics = super::project_jdk_diagnostics(&resolved);
-        let project_root = resolved.project_root.clone();
-        let branch = resolved.branch;
-        let workspace = resolved.workspace;
+        let workspace = &resolved.workspace;
         match input {
             SymbolShowDefinitionInput::Selector(selector) => {
                 let result = super::build_query_index(
-                    &workspace,
-                    &branch,
-                    project_root.as_deref(),
+                    &resolved,
                     false,
                     super::DependencySymbolQuery::Definition(&selector),
                     cancellation_token,
+                    app_home,
                 )?;
                 let mut report = result.index.definition(&selector);
                 if let Some(dependency_index) = result.dependency_index {
@@ -117,7 +118,7 @@ impl SymbolShowDefinitionArgs {
                 let source_file = workspace
                     .source_file_at(source_root_id.as_deref(), &source_path)?
                     .clone();
-                let text = std::fs::read_to_string(&source_file.absolute_path)?;
+                let text = read_to_string(&source_file.absolute_path)?;
                 let content_hash = blake3_content_hash(&text);
                 let position = DefinitionTextPositionInput::from_line_column(&text, line, column)
                     .unwrap_or(DefinitionTextPositionInput {
@@ -127,10 +128,9 @@ impl SymbolShowDefinitionArgs {
                     });
                 let (dependencies, dependency_index, dependency_source_roots) =
                     super::load_definition_at_position_dependencies(
-                        &workspace,
-                        &branch,
-                        project_root.as_deref(),
+                        &resolved,
                         cancellation_token,
+                        app_home,
                     )?;
                 let dependency_index_identity = dependency_index
                     .as_ref()
@@ -168,7 +168,7 @@ impl SymbolShowDefinitionArgs {
                     position,
                 );
                 let engine = DefinitionAtPositionEngine::new_with_dependency_source_roots(
-                    workspace,
+                    resolved.workspace,
                     dependencies,
                     dependency_index,
                     dependency_source_roots,

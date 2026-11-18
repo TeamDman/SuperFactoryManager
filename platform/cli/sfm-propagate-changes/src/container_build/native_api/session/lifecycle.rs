@@ -25,6 +25,10 @@ use super::url;
 use super::write_new;
 use crate::container_build::SessionStartRequest;
 use crate::container_build::SessionStopRequest;
+use crate::source_projection;
+use std::collections::BTreeMap;
+use std::fs::create_dir;
+use std::time::Instant;
 
 #[expect(
     clippy::too_many_lines,
@@ -67,7 +71,7 @@ pub(super) async fn start(
         "invalid image context binding"
     );
     super::memory_probe::check(&target.engine_endpoint, &image, engine, cancellation).await?;
-    let labels = std::collections::BTreeMap::from([
+    let labels = BTreeMap::from([
         ("org.sfm.session.owner".into(), OWNER.into()),
         ("org.sfm.session.image".into(), image.id.clone()),
         (
@@ -101,7 +105,7 @@ pub(super) async fn start(
             nsmode: "auto".into(),
             value: Some("size=65536".into()),
         },
-        annotations: std::collections::BTreeMap::from([(
+        annotations: BTreeMap::from([(
             "io.podman.annotations.userns".into(),
             "auto:size=65536".into(),
         )]),
@@ -164,13 +168,14 @@ async fn wait_started(
     // Podman materializes the automatic user namespace during OCI initialization.
     // Admit only the exact mapped, never-started worker for init; require the full
     // private namespace policy again before executing its game entrypoint.
+
     policy::created(target).await?;
     let path = url(&["containers", &target.session, "init"])?;
     empty(&target.engine_endpoint, "POST", path.path()).await?;
     policy::owned(target).await?;
     let path = url(&["containers", &target.session, "start"])?;
     empty(&target.engine_endpoint, "POST", path.path()).await?;
-    let deadline = std::time::Instant::now() + Duration::from_secs(request.startup_seconds + 15);
+    let deadline = Instant::now() + Duration::from_secs(request.startup_seconds + 15);
     loop {
         let inspect = policy::owned(target).await?;
         let ready = operations::ready(target).await?;
@@ -184,7 +189,7 @@ async fn wait_started(
             return Ok(receipt(&request.target, &inspect, ready));
         }
         eyre::ensure!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "owned client did not become ready within startup budget"
         );
         pause(cancellation).await?;
@@ -216,10 +221,10 @@ pub(super) async fn stop(
                 }
             }
         }
-        let deadline = std::time::Instant::now() + Duration::from_secs(45);
+        let deadline = Instant::now() + Duration::from_secs(45);
         while result.response.is_some()
             && policy::owned(target).await?.state.running
-            && std::time::Instant::now() < deadline
+            && Instant::now() < deadline
         {
             pause(cancellation).await?;
         }
@@ -261,7 +266,7 @@ async fn export(
     output: &Path,
     result: &mut SessionReceipt,
 ) -> eyre::Result<()> {
-    std::fs::create_dir(output)?;
+    create_dir(output)?;
     let mut files = vec![
         (
             "/work/output/console.log".to_owned(),
@@ -318,7 +323,7 @@ async fn export(
             write_new(&path, &bytes)?;
             result.artifacts.insert(
                 path.display().to_string(),
-                crate::source_projection::provenance::sha256(&bytes),
+                source_projection::provenance::sha256(&bytes),
             );
         }
     }

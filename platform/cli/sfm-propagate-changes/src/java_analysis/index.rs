@@ -46,8 +46,16 @@ use crate::cancellation::CancellationToken;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
+use std::num::NonZeroUsize;
+use std::ops::Range;
+use std::str::from_utf8;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::TryLockError;
+use std::thread::available_parallelism;
+use std::thread::park_timeout;
+use std::time::Duration;
 use std::time::Instant;
 use tree_sitter_patched_arborium::Node;
 
@@ -153,9 +161,7 @@ impl UsageTargetCache {
 
 impl JavaUsageResolutionSurface {
     pub(crate) fn new() -> eyre::Result<Arc<Self>> {
-        let worker_count = std::thread::available_parallelism()
-            .map_or(1, std::num::NonZeroUsize::get)
-            .min(16);
+        let worker_count = available_parallelism().map_or(1, NonZeroUsize::get).min(16);
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(worker_count)
             .thread_name(|index| format!("sfm-java-usage-target-{index}"))
@@ -178,11 +184,11 @@ impl JavaUsageResolutionSurface {
         let mut targets = loop {
             match self.targets.try_lock() {
                 Ok(targets) => break targets,
-                Err(std::sync::TryLockError::WouldBlock) => {
+                Err(TryLockError::WouldBlock) => {
                     cancellation_token.bail_if_cancelled()?;
-                    std::thread::park_timeout(std::time::Duration::from_millis(2));
+                    park_timeout(Duration::from_millis(2));
                 }
-                Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                Err(TryLockError::Poisoned(poisoned)) => {
                     break poisoned.into_inner();
                 }
             }
@@ -359,7 +365,7 @@ impl UsageAtPositionScan {
     }
 
     fn retained_bytes(&self) -> usize {
-        std::mem::size_of::<Self>()
+        size_of::<Self>()
             .saturating_add(self.usages.iter().map(usage_retained_bytes).sum::<usize>())
             .saturating_add(
                 self.diagnostics
@@ -371,20 +377,20 @@ impl UsageAtPositionScan {
 }
 
 fn usage_retained_bytes(usage: &JavaSymbolUsageOutput) -> usize {
-    std::mem::size_of::<JavaSymbolUsageOutput>()
+    size_of::<JavaSymbolUsageOutput>()
         .saturating_add(symbol_retained_bytes(&usage.target))
         .saturating_add(span_retained_bytes(&usage.span))
 }
 
 fn diagnostic_retained_bytes(diagnostic: &JavaAnalysisDiagnosticOutput) -> usize {
-    std::mem::size_of::<JavaAnalysisDiagnosticOutput>()
+    size_of::<JavaAnalysisDiagnosticOutput>()
         .saturating_add(diagnostic.code.capacity())
         .saturating_add(diagnostic.message.capacity())
         .saturating_add(diagnostic.span.as_ref().map_or(0, span_retained_bytes))
 }
 
 fn symbol_retained_bytes(symbol: &JavaSymbolIdentityOutput) -> usize {
-    std::mem::size_of::<JavaSymbolIdentityOutput>()
+    size_of::<JavaSymbolIdentityOutput>()
         .saturating_add(symbol.owner.capacity())
         .saturating_add(symbol.name.capacity())
         .saturating_add(symbol.descriptor.as_ref().map_or(0, String::capacity))
@@ -392,7 +398,7 @@ fn symbol_retained_bytes(symbol: &JavaSymbolIdentityOutput) -> usize {
 }
 
 fn span_retained_bytes(span: &JavaSourceSpanOutput) -> usize {
-    std::mem::size_of::<JavaSourceSpanOutput>()
+    size_of::<JavaSourceSpanOutput>()
         .saturating_add(span.path.capacity())
         .saturating_add(span.source_set.capacity())
         .saturating_add(span.source_hash.capacity())
@@ -1013,7 +1019,7 @@ impl JavaSymbolIndex {
             .collect::<eyre::Result<Vec<_>>>()?;
         let mut jdk_files = workspace
             .jdk_sources
-            .syntax_files_for_project(&parsed, &crate::cancellation::CancellationToken::new())?;
+            .syntax_files_for_project(&parsed, &CancellationToken::new())?;
         parsed.append(&mut jdk_files);
 
         let source_sets = parsed
@@ -1695,7 +1701,7 @@ fn verified_source_sha256(
     if let Some(source) = file.source_override.as_deref() {
         return sha256_witness_for_blake3(&span.source_hash, source);
     }
-    let source = std::fs::read_to_string(&file.absolute_path).ok()?;
+    let source = fs::read_to_string(&file.absolute_path).ok()?;
     sha256_witness_for_blake3(&span.source_hash, &source)
 }
 
@@ -2176,7 +2182,7 @@ fn decode_descriptor_type(bytes: &[u8], cursor: &mut usize, allow_void: bool) ->
                 .iter()
                 .position(|byte| *byte == b';')?;
             let end = *cursor + relative_end;
-            let name = std::str::from_utf8(bytes.get(*cursor..end)?).ok()?;
+            let name = from_utf8(bytes.get(*cursor..end)?).ok()?;
             *cursor = end + 1;
             Some(name.replace('/', "."))
         }
@@ -2279,8 +2285,8 @@ impl TypeLookup {
 #[derive(Clone, Debug)]
 struct RawFieldDeclaration {
     owner: String,
-    name_node_range: std::ops::Range<usize>,
-    declaration_range: std::ops::Range<usize>,
+    name_node_range: Range<usize>,
+    declaration_range: Range<usize>,
     raw_type: String,
     file_index: usize,
 }
@@ -2289,8 +2295,8 @@ struct RawFieldDeclaration {
 struct RawMethodDeclaration {
     owner: String,
     name: String,
-    name_node_range: std::ops::Range<usize>,
-    declaration_range: std::ops::Range<usize>,
+    name_node_range: Range<usize>,
+    declaration_range: Range<usize>,
     raw_parameter_types: Vec<String>,
     raw_return_type: String,
     kind: JavaSymbolKind,

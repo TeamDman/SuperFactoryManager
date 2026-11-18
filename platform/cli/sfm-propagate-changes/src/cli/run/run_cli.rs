@@ -4,6 +4,7 @@ use super::RunDataArgs;
 use super::RunHotswapArgs;
 use super::RunServerArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
 
@@ -19,8 +20,12 @@ impl RunArgs {
     /// # Errors
     ///
     /// Returns an error if the selected run command fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        self.command.invoke(cancellation_token)
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        self.command.invoke(cancellation_token, homes)
     }
 }
 
@@ -44,13 +49,17 @@ impl RunCommand {
     /// # Errors
     ///
     /// This function will return an error if planning, building, or launching fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         match self {
-            RunCommand::Compile(args) => args.invoke(cancellation_token),
-            RunCommand::Client(args) => args.invoke(cancellation_token),
-            RunCommand::Server(args) => args.invoke(cancellation_token),
-            RunCommand::Data(args) => args.invoke(cancellation_token),
-            RunCommand::Hotswap(args) => args.invoke(cancellation_token),
+            RunCommand::Compile(args) => args.invoke(cancellation_token, homes),
+            RunCommand::Client(args) => args.invoke(cancellation_token, homes),
+            RunCommand::Server(args) => args.invoke(cancellation_token, homes),
+            RunCommand::Data(args) => args.invoke(cancellation_token, homes),
+            RunCommand::Hotswap(args) => args.invoke(cancellation_token, homes),
         }
     }
 }

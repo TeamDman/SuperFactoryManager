@@ -17,16 +17,23 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use gix::index::entry::Stage;
+use gix::open::Options;
 use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read as _;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Component;
+use std::path::MAIN_SEPARATOR;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::result::Result as StdResult;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 const LOCK_SCHEMA: &str = "sfm:source_candidate_lock@1";
@@ -294,7 +301,7 @@ impl SourceCandidateLock {
     fn verify_repository_inputs(&self, root: &Path) -> Result<SourceProjectionManifest> {
         let mut repository = gix::open_opts(
             root,
-            gix::open::Options::isolated()
+            Options::isolated()
                 .strict_config(true)
                 .config_overrides(["gitoxide.objects.noReplace=true"]),
         )?;
@@ -318,7 +325,7 @@ impl SourceCandidateLock {
             git_file_at_commit(&repository, &self.source_commit, SOURCE_MANIFEST)? == source_bytes,
             "source commit does not contain the locked source-projection definition"
         );
-        let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&source_bytes)?)?;
+        let manifest = SourceProjectionManifest::from_json(from_utf8(&source_bytes)?)?;
         let root_properties = read_regular(root, ROOT_GRADLE_PROPERTIES)?;
         ensure_committed_current_file(&repository, ROOT_GRADLE_PROPERTIES, &root_properties)?;
         ensure!(
@@ -331,7 +338,7 @@ impl SourceCandidateLock {
             .release_mod_version
         {
             Some(version) => version.as_str(),
-            None => gradle_property(std::str::from_utf8(&root_properties)?, "mod_version")?,
+            None => gradle_property(from_utf8(&root_properties)?, "mod_version")?,
         };
         ensure!(
             release_version == self.mod_version,
@@ -362,7 +369,7 @@ fn verify_target(
         "candidate manifest hash mismatch for '{}'",
         target.target_id
     );
-    let manifest = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
+    let manifest = ProjectionProvenance::from_json(from_utf8(&manifest_bytes)?)?;
     manifest.require_legacy_owner()?;
     ensure!(
         manifest.to_json()?.as_bytes() == manifest_bytes,
@@ -402,8 +409,7 @@ fn verify_target(
     ensure_closed_candidate_inputs(root, &manifest.files)?;
     verify_profiled_production_task(root, &manifest, target)?;
     let properties = read_regular(root, "gradle.properties")?;
-    let properties =
-        std::str::from_utf8(&properties).wrap_err("Gradle properties are not UTF-8")?;
+    let properties = from_utf8(&properties).wrap_err("Gradle properties are not UTF-8")?;
     ensure!(
         gradle_property(properties, "minecraft_version")? == target.minecraft_version
             && gradle_property(properties, "mod_version")? == lock.mod_version
@@ -442,7 +448,7 @@ fn verify_profiled_production_task(
         "profiled 1.19.2 candidate must own its toolchain lockfile"
     );
     let bytes = read_regular(root, "sfm-toolchain.lock.json")?;
-    let document = parse_document(std::str::from_utf8(&bytes)?)?;
+    let document = parse_document(from_utf8(&bytes)?)?;
     let ToolchainLockfileDocument::V4(lockfile) = document else {
         eyre::bail!("profiled 1.19.2 candidate requires a v4 toolchain lockfile");
     };
@@ -559,7 +565,7 @@ fn ensure_authored_checkout(
     manifest: &SourceProjectionManifest,
     preset_id: &str,
 ) -> Result<()> {
-    let repository = gix::open_opts(root, gix::open::Options::isolated())?;
+    let repository = gix::open_opts(root, Options::isolated())?;
     let head = repository.head_commit()?.id.to_string();
     ensure!(
         head == source_commit,
@@ -588,7 +594,7 @@ fn ensure_authored_checkout(
         .map(|entry| entry.path(&index))
         .filter(|path| path.starts_with(b"platform/minecraft/"))
         .map(|path| String::from_utf8(path.to_vec()))
-        .collect::<std::result::Result<BTreeSet<_>, _>>()?;
+        .collect::<StdResult<BTreeSet<_>, _>>()?;
     let preset = manifest.preset(preset_id)?;
     let mut selected_roots = BTreeSet::from([
         "platform/minecraft/src".to_owned(),
@@ -704,7 +710,7 @@ fn ensure_committed_current_file(
         .lookup_entry_by_path(path)?
         .ok_or_else(|| eyre::eyre!("candidate-lock input '{path}' is absent from HEAD"))?;
     let index = repository.index()?;
-    let entry = index.entry_by_path_and_stage(path.into(), gix::index::entry::Stage::Unconflicted);
+    let entry = index.entry_by_path_and_stage(path.into(), Stage::Unconflicted);
     ensure!(
         entry.is_some_and(|entry| entry.id == head_entry.object_id()
             && entry.mode.bits() == u32::from(head_entry.mode().value())),
@@ -837,7 +843,6 @@ pub(crate) fn is_reparse(metadata: &fs::Metadata) -> bool {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x0000_0400 != 0
     }
     #[cfg(not(windows))]
@@ -850,17 +855,20 @@ pub(crate) fn is_reparse(metadata: &fs::Metadata) -> bool {
 pub(crate) fn is_within(path: &Path, parent: &Path) -> bool {
     let path = path.to_string_lossy().to_lowercase();
     let parent = parent.to_string_lossy().to_lowercase();
-    path == parent || path.starts_with(&format!("{parent}{}", std::path::MAIN_SEPARATOR))
+    path == parent || path.starts_with(&format!("{parent}{MAIN_SEPARATOR}"))
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
     use crate::cancellation::CancellationToken;
+    use crate::cli::InvocationHomes;
     use crate::cli::source::CandidateVerifyArgs;
     use crate::cli::source::LegacySourceArgs;
     use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceProjectArgs;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
     use crate::source_projection::manifest::SCHEMA_VERSION;
@@ -1229,6 +1237,10 @@ pub(crate) mod tests {
             git(&repo, &["commit", "-qm", "reviewed source"]);
             let source_commit = git(&repo, &["rev-parse", "HEAD"]);
             let source_commit = source_commit.trim().to_owned();
+            let homes = InvocationHomes::new(
+                AppHome(temp.path().join("application")),
+                Ok(CacheHome(temp.path().join("cache"))),
+            );
             let mut roots = BTreeMap::new();
             let mut targets = Vec::new();
             for (id, minecraft_version, loader, java_major) in TARGETS {
@@ -1250,7 +1262,7 @@ pub(crate) mod tests {
                         }],
                     }),
                 }
-                .invoke_in(&CancellationToken::new(), &repo)
+                .invoke_in(&CancellationToken::new(), &repo, &homes)
                 .unwrap();
                 fs::create_dir_all(root.join("build/libs")).unwrap();
                 let jar_name = format!("SFM-MC{minecraft_version}-{mod_version}.jar");
@@ -1460,6 +1472,10 @@ pub(crate) mod tests {
         }
 
         fn verify_release(&self) -> Result<()> {
+            let homes = InvocationHomes::new(
+                AppHome(self._temp.path().join("application")),
+                Ok(CacheHome(self._temp.path().join("cache"))),
+            );
             let lock_path = self._temp.path().join("portable-candidate-lock.json");
             fs::write(&lock_path, facet_json::to_string(&self.lock)?)?;
             let candidate_root = self
@@ -1474,7 +1490,7 @@ pub(crate) mod tests {
                     candidate_root,
                 }),
             }
-            .invoke_in(&CancellationToken::new(), &self.repo)?;
+            .invoke_in(&CancellationToken::new(), &self.repo, &homes)?;
             Ok(())
         }
     }

@@ -1,7 +1,9 @@
 use eyre::WrapErr;
 use facet::Facet;
 use std::path::PathBuf;
-
+use std::process::id as process_id;
+#[cfg(windows)]
+use windows::Win32;
 /// An observed process identity; a PID alone cannot establish runtime ownership.
 #[derive(Debug, Clone, PartialEq, Eq, Facet)]
 #[facet(deny_unknown_fields)]
@@ -23,7 +25,7 @@ impl RuntimeOwnerIdentity {
     }
 
     pub(crate) fn current() -> eyre::Result<Self> {
-        Self::capture(std::process::id())
+        Self::capture(process_id())
             .wrap_err("cannot inspect current runtime owner")?
             .ok_or_else(|| eyre::eyre!("current runtime owner disappeared during identity capture"))
     }
@@ -68,7 +70,7 @@ fn capture_platform(pid: u32) -> eyre::Result<Option<RuntimeOwnerIdentity>> {
 }
 
 #[cfg(windows)]
-fn process_times(handle: windows::Win32::Foundation::HANDLE, pid: u32) -> eyre::Result<(u64, u64)> {
+fn process_times(handle: Win32::Foundation::HANDLE, pid: u32) -> eyre::Result<(u64, u64)> {
     use windows::Win32::Foundation::FILETIME;
     use windows::Win32::System::Threading::GetProcessTimes;
 
@@ -93,10 +95,7 @@ fn process_times(handle: windows::Win32::Foundation::HANDLE, pid: u32) -> eyre::
 }
 
 #[cfg(windows)]
-fn process_executable(
-    handle: windows::Win32::Foundation::HANDLE,
-    pid: u32,
-) -> eyre::Result<PathBuf> {
+fn process_executable(handle: Win32::Foundation::HANDLE, pid: u32) -> eyre::Result<PathBuf> {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
     use windows::Win32::System::Threading::PROCESS_NAME_WIN32;

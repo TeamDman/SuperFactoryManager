@@ -1,9 +1,12 @@
 use crate::branch_targets::WorktreeTarget;
+use crate::jdk;
+use crate::paths::CacheHome;
 use crate::prism::meta::PrismLoaderSelection;
 use crate::prism::meta::resolve_loader_component;
 use crate::prism::meta::resolve_lwjgl_component;
 use eyre::Context;
 use facet::Facet;
+use std::fs::read_to_string;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -78,6 +81,7 @@ pub fn instance_plan_for_target(
     target: &WorktreeTarget,
     loader_selection: PrismLoaderSelection,
     java_home: Option<&Path>,
+    cache_home: &CacheHome,
 ) -> eyre::Result<PrismInstancePlan> {
     let plan = read_last_build_plan(target.worktree_path.as_path())?;
     let loader = resolve_loader_component(
@@ -86,7 +90,7 @@ pub fn instance_plan_for_target(
         loader_selection,
     )?;
     let lwjgl = resolve_lwjgl_component(&plan.minecraft_version)?;
-    let runtime_java = crate::jdk::resolve_exact_java_for_minecraft_dir(
+    let runtime_java = jdk::resolve_exact_java_for_minecraft_dir(
         &target
             .worktree_path
             .as_path()
@@ -94,6 +98,7 @@ pub fn instance_plan_for_target(
             .join("minecraft"),
         plan.java_release,
         java_home,
+        cache_home,
     )?;
     Ok(PrismInstancePlan {
         branch: plan.branch_name,
@@ -117,8 +122,9 @@ pub fn instance_plan_for_target(
 pub fn loader_report_for_target(
     target: &WorktreeTarget,
     loader_selection: PrismLoaderSelection,
+    cache_home: &CacheHome,
 ) -> eyre::Result<PrismLoaderReport> {
-    let plan = instance_plan_for_target(target, loader_selection, None)?;
+    let plan = instance_plan_for_target(target, loader_selection, None, cache_home)?;
     Ok(PrismLoaderReport {
         branch: plan.branch,
         minecraft_version: plan.minecraft_version,
@@ -141,7 +147,7 @@ fn read_last_build_plan(worktree_path: &Path) -> eyre::Result<LastBuildPlan> {
         .join("sfm-toolchain")
         .join("state")
         .join("last-plan.json");
-    let content = std::fs::read_to_string(&plan_path)
+    let content = read_to_string(&plan_path)
         .wrap_err_with(|| format!("Failed to read build plan: {}", plan_path.display()))?;
     facet_json::from_str(&content)
         .wrap_err_with(|| format!("Failed to parse build plan: {}", plan_path.display()))

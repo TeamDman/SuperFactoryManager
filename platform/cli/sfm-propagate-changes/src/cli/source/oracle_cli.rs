@@ -5,6 +5,7 @@
 //! --apply records them; --refresh makes replacement of existing pins clear.
 
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::output::CliOutput;
 use crate::source_projection::oracle;
 use crate::source_projection::oracle_draft;
@@ -161,6 +162,7 @@ impl SourceOracleArgs {
         self,
         cancellation: &CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> Result<CliOutput> {
         cancellation.bail_if_cancelled()?;
         Ok(match self.command {
@@ -190,6 +192,7 @@ impl SourceOracleArgs {
                     invocation_dir,
                     cancellation,
                     args.rebuild_index,
+                    homes.cache_home()?,
                 );
                 command_output("next", report, oracle::OracleNext::exit_code)
             }
@@ -247,6 +250,15 @@ mod tests {
     use crate::cli::output::OutputFormat;
     use crate::cli::source::SourceArgs;
     use crate::cli::source::SourceCommand;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
+
+    fn test_homes(root: &Path) -> InvocationHomes {
+        InvocationHomes::new(
+            AppHome(root.join("settings")),
+            Ok(CacheHome(root.join("cache"))),
+        )
+    }
 
     fn parse(arguments: &[&str]) -> SourceOracleCommand {
         let cli = figue::from_slice::<Cli>(arguments)
@@ -318,7 +330,11 @@ mod tests {
             ),
         ] {
             let output = SourceOracleArgs { command }
-                .invoke_in(&CancellationToken::new(), directory.path())
+                .invoke_in(
+                    &CancellationToken::new(),
+                    directory.path(),
+                    &test_homes(directory.path()),
+                )
                 .expect("service errors must produce typed command output");
             assert_eq!(output.exit_code(), 2);
             let json = output
@@ -350,7 +366,7 @@ mod tests {
                 rebuild_index: false,
             }),
         }
-        .invoke_in(&cancellation, Path::new("."));
+        .invoke_in(&cancellation, Path::new("."), &test_homes(Path::new(".")));
         assert!(result.is_err());
     }
 

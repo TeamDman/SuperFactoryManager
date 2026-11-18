@@ -19,7 +19,7 @@ unsafe extern "system" {
 #[cfg(windows)]
 pub(super) fn available() -> eyre::Result<u64> {
     let mut status = MemoryStatus {
-        length: u32::try_from(std::mem::size_of::<MemoryStatus>())?,
+        length: u32::try_from(size_of::<MemoryStatus>())?,
         load: 0,
         total: 0,
         available: 0,

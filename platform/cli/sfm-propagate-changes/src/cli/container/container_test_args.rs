@@ -1,3 +1,4 @@
+use crate::container_build::ContainerTestRequest;
 use facet::Facet;
 use figue as args;
 use std::path::Path;
@@ -21,10 +22,7 @@ pub struct ContainerTestArgs {
     pub timeout_seconds: u64,
 }
 impl ContainerTestArgs {
-    pub(crate) fn into_request(
-        self,
-        invocation: &Path,
-    ) -> eyre::Result<crate::container_build::ContainerTestRequest> {
+    pub(crate) fn into_request(self, invocation: &Path) -> eyre::Result<ContainerTestRequest> {
         let absolute = |p: PathBuf| {
             if p.is_absolute() {
                 p
@@ -32,7 +30,7 @@ impl ContainerTestArgs {
                 invocation.join(p)
             }
         };
-        let request = crate::container_build::ContainerTestRequest {
+        let request = ContainerTestRequest {
             engine_endpoint: self.engine_endpoint,
             image: self.image,
             projection: self.projection,

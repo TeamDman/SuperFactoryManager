@@ -19,13 +19,22 @@ use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
 use figue as args;
+use gix::hash::ObjectId;
+use gix::index::entry::Flags;
+use gix::index::entry::Stage;
+use gix::open::Options;
+use gix::refs::FullNameRef;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::env::vars_os;
 use std::fs;
+use std::io::ErrorKind;
+use std::iter::once;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
+use std::str::from_utf8;
 
 const REPORT_SCHEMA: &str = "sfm:source_release_tag_preflight@1";
 const REPORT_SCOPE: &str = "read-only local preflight for one verified package target; no credentials, remote checks, tag creation, upload or publication";
@@ -203,7 +212,7 @@ fn ensure_reviewed_release_checkout(
     let common_dir = repository.common_dir();
     ensure!(
         fs::symlink_metadata(common_dir.join("info/grafts"))
-            .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound),
+            .is_err_and(|error| error.kind() == ErrorKind::NotFound),
         "repository-local Git grafts are unsupported for release ancestry"
     );
     ensure!(
@@ -261,12 +270,10 @@ fn commit_is_ancestor(
 }
 
 fn ensure_unconcealed_index(root: &Path) -> Result<()> {
-    use gix::index::entry::Flags;
-    use gix::index::entry::Stage;
     let repository = preflight_repository(root)?;
     let index = repository.index()?;
     for entry in index.entries() {
-        let relative = std::str::from_utf8(entry.path(&index))?;
+        let relative = from_utf8(entry.path(&index))?;
         ensure!(
             entry.stage() == Stage::Unconflicted
                 && !entry
@@ -281,7 +288,7 @@ fn ensure_unconcealed_index(root: &Path) -> Result<()> {
 fn preflight_repository(root: &Path) -> Result<gix::Repository> {
     let mut repository = gix::open_opts(
         root,
-        gix::open::Options::isolated().config_overrides([
+        Options::isolated().config_overrides([
             "gitoxide.objects.noReplace=true",
             "gitoxide.objects.allocLimit=67108864",
         ]),
@@ -309,7 +316,7 @@ fn ensure_selected_promoted_root(
     // after this read-only inspection, including concealed index flags.
     // Per-path staged/unstaged Git diffs repeat that work without making the
     // snapshot atomic. Exact committed bytes and modes are checked below.
-    let definition = SourceProjectionManifest::from_json(std::str::from_utf8(&definition)?)?;
+    let definition = SourceProjectionManifest::from_json(from_utf8(&definition)?)?;
     let declared = definition.target(&target.target_id)?;
     let project_dir = format!("{GENERATED_ROOTS}/{}", target.target_id);
     validate_relative_path(&project_dir)?;
@@ -327,7 +334,7 @@ fn ensure_selected_promoted_root(
             && manifest_bytes == git_revision_file(&git, head, &manifest_relative)?,
         "selected checked-in provenance differs from package or reviewed release HEAD"
     );
-    let provenance = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
+    let provenance = ProjectionProvenance::from_json(from_utf8(&manifest_bytes)?)?;
     provenance.require_legacy_owner()?;
     ensure!(
         provenance.target_id == target.target_id
@@ -358,7 +365,7 @@ fn ensure_committed_owned_root(
     provenance: &ProjectionProvenance,
     cancellation: &CancellationToken,
 ) -> Result<()> {
-    let expected = std::iter::once(MANIFEST_FILE.to_owned())
+    let expected = once(MANIFEST_FILE.to_owned())
         .chain(provenance.files.keys().cloned())
         .collect::<BTreeSet<_>>();
     // One tree walk reads immutable blobs directly; do not start one Git
@@ -388,7 +395,7 @@ fn ensure_committed_owned_root(
 }
 fn inspect_local_tag(root: &Path, local_tag: &str, head: &str) -> Result<(String, Option<String>)> {
     let tag_ref = format!("refs/tags/{local_tag}");
-    let _: &gix::refs::FullNameRef = tag_ref
+    let _: &FullNameRef = tag_ref
         .as_str()
         .try_into()
         .wrap_err("derived local tag has an invalid Git ref name")?;
@@ -422,7 +429,7 @@ fn inspect_captured_local_tag(
 ) -> Result<(String, Option<String>)> {
     ensure_commit(&object, "local tag object")?;
     let peeled = preflight_repository(root)?
-        .find_object(gix::hash::ObjectId::from_hex(object.as_bytes())?)?
+        .find_object(ObjectId::from_hex(object.as_bytes())?)?
         .peel_to_commit()?
         .id
         .to_string();
@@ -548,7 +555,7 @@ fn sanitized_git_command(root: &Path, injected_git_env: &[(&str, &str)]) -> Comm
     for (name, value) in injected_git_env {
         command.env(name, value);
     }
-    for (name, _) in std::env::vars_os() {
+    for (name, _) in vars_os() {
         if name
             .to_string_lossy()
             .to_ascii_uppercase()
@@ -584,6 +591,8 @@ mod tests {
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
     use crate::source_projection::candidate_lock::tests::Fixture;
+    use crate::source_projection::candidate_lock::tests::FixtureSeed;
+    use gix::objs::tree::EntryKind;
 
     fn git(repo: &Path, args: &[&str]) -> String {
         let output = git_output(repo, args).unwrap();
@@ -635,7 +644,6 @@ mod tests {
 
     #[test]
     fn committed_tree_comparison_excludes_only_the_generated_subtree() {
-        use gix::objs::tree::EntryKind;
         let temp = tempfile::tempdir().unwrap();
         let repo = gix::init_bare(temp.path()).unwrap();
         let a = repo.write_blob(b"a").unwrap().detach();
@@ -682,7 +690,6 @@ mod tests {
     }
 
     fn packaged_candidate() -> (Fixture, ReleaseTagPreflightArgs) {
-        use crate::source_projection::candidate_lock::tests::FixtureSeed;
         static SEED: std::sync::OnceLock<(FixtureSeed, ReleaseTagPreflightArgs)> =
             std::sync::OnceLock::new();
         let (seed, args) = SEED.get_or_init(|| {

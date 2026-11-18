@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use crate::worktree::get_sorted_worktrees;
 use eyre::Context;
 use eyre::bail;
@@ -19,12 +20,12 @@ impl GitAddArgs {
     /// # Errors
     ///
     /// Returns an error if no pathspecs are provided or if `git add` fails in any worktree.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         if self.paths.is_empty() {
             bail!("At least one pathspec is required");
         }
 
-        let worktrees = get_sorted_worktrees()?;
+        let worktrees = get_sorted_worktrees(app_home)?;
 
         if worktrees.is_empty() {
             info!("No worktrees found.");

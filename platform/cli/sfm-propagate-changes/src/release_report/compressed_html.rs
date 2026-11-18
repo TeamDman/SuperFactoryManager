@@ -1,9 +1,12 @@
 //! Lossless bounded HTML compression using the existing ZIP deflate dependency.
+use crate::source_projection;
 use base64::Engine as _;
+use base64::engine;
 use eyre::Result;
 use eyre::ensure;
 use std::io::Cursor;
 use std::io::Write as _;
+use zip::write;
 
 pub(super) fn render(html: &str) -> Result<String> {
     ensure!(
@@ -14,7 +17,7 @@ pub(super) fn render(html: &str) -> Result<String> {
     let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
     writer.start_file(
         "explorer.html",
-        zip::write::SimpleFileOptions::default()
+        write::SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated)
             .compression_level(Some(9)),
     )?;
@@ -29,8 +32,8 @@ pub(super) fn render(html: &str) -> Result<String> {
     let compressed = bytes
         .get(start..end)
         .ok_or_else(|| eyre::eyre!("invalid compressed explorer range"))?;
-    let data = base64::engine::general_purpose::STANDARD.encode(compressed);
-    let digest = crate::source_projection::provenance::sha256(html.as_bytes());
+    let data = engine::general_purpose::STANDARD.encode(compressed);
+    let digest = source_projection::provenance::sha256(html.as_bytes());
     Ok(format!(
         "<template id=\"class-payload\" data-size=\"{}\" data-sha256=\"{digest}\">{data}</template>",
         html.len()

@@ -7,10 +7,12 @@ use crate::dependency_sources::SourceProviderFilter;
 use crate::dependency_sources::acquire_selected_sources;
 use crate::dependency_sources::acquisition_targets;
 use crate::jar_build::Parallelism;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
+use std::path::PathBuf;
 
 #[derive(Facet, Debug)]
 pub struct DependencySourceAcquireArgs {
@@ -34,10 +36,10 @@ pub struct DependencySourceAcquireArgs {
     pub branch: Option<BranchSelector>,
     /// Exact catalogued generated projection root.
     #[facet(default, args::named)]
-    pub project_root: Option<std::path::PathBuf>,
+    pub project_root: Option<PathBuf>,
     /// Exact JDK for catalog-owned platform source production.
     #[facet(default, args::named)]
-    pub java_home: Option<std::path::PathBuf>,
+    pub java_home: Option<PathBuf>,
 }
 
 impl DependencySourceAcquireArgs {
@@ -45,6 +47,7 @@ impl DependencySourceAcquireArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         let Self {
             target,
@@ -67,7 +70,7 @@ impl DependencySourceAcquireArgs {
         } else {
             let branch = selected_branch
                 .ok_or_else(|| eyre::eyre!("Source acquisition requires a selected branch"))?;
-            let inventory = load_inventory(branch.clone(), cache_home)?;
+            let inventory = load_inventory(branch.clone(), cache_home, app_home)?;
             (branch, inventory)
         };
         let filter = SourceProviderFilter::new(provider, provider_id)?;
@@ -80,6 +83,7 @@ impl DependencySourceAcquireArgs {
             parallelism,
             java_home.as_deref(),
             cancellation_token,
+            app_home,
         )?;
         for target in &targets {
             for root in target.searchable_roots(&inventory)? {

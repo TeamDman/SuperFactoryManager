@@ -4,22 +4,30 @@
 //! verifies the complete BLAKE3 inventory before atomically selecting latest.
 //! Normal reuse trusts that completed tool-owned snapshot; explicit recheck
 //! remains the full external-corruption audit path.
+use crate::file_identity;
+use std::io;
+use std::process::id as process_id;
+#[cfg(windows)]
+use std::thread::sleep;
+#[cfg(windows)]
+use std::time::Duration;
+#[path = "build_snapshot_publication_request.rs"]
+mod publication_request;
 use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
+pub(crate) use publication_request::BuildSnapshotPublicationRequest;
 
 #[cfg(test)]
 #[path = "build_snapshot_source_owner_tests.rs"]
 mod source_owner_tests;
 
 #[cfg(windows)]
-#[path = "build_snapshot_source_capture.rs"]
-mod source_capture;
-#[cfg(windows)]
 #[path = "build_snapshot_shared_runtime.rs"]
 mod shared_runtime;
 #[cfg(windows)]
-pub(crate) use shared_runtime::SharedRuntimeSnapshot;
+#[path = "build_snapshot_source_capture.rs"]
+mod source_capture;
 use crate::cancellation::CancellationToken;
 use crate::jdk::ResolvedJava;
 use crate::source_projection::candidate_lock::is_reparse;
@@ -27,6 +35,8 @@ use eyre::Result;
 use eyre::WrapErr as _;
 use eyre::ensure;
 use facet::Facet;
+#[cfg(windows)]
+pub(crate) use shared_runtime::SharedRuntimeSnapshot;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
@@ -100,6 +110,7 @@ impl BuildSnapshotReceipt {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn publish_cancellable(
         minecraft_dir: &Path,
         cache_dir: &Path,
@@ -110,13 +121,15 @@ impl BuildSnapshotReceipt {
         cancellation_token: &CancellationToken,
     ) -> Result<Self> {
         Self::publish_from_source_cache_cancellable(
-            minecraft_dir,
-            cache_dir,
-            cache_dir,
-            minecraft_version,
-            java,
-            project_dir,
-            identities,
+            BuildSnapshotPublicationRequest {
+                minecraft_dir,
+                cache_dir,
+                source_cache_dir: cache_dir,
+                minecraft_version,
+                java,
+                project_dir,
+                identities,
+            },
             cancellation_token,
         )
     }
@@ -126,17 +139,19 @@ impl BuildSnapshotReceipt {
     /// The caller must retain that source root's reader capability through this
     /// copy; the receipt itself contains only independently verified bytes.
     pub(crate) fn publish_from_source_cache_cancellable(
-        minecraft_dir: &Path,
-        cache_dir: &Path,
-        source_cache_dir: &Path,
-        minecraft_version: &str,
-        java: &ResolvedJava,
-        project_dir: &Path,
-        identities: (&str, &str),
+        request: BuildSnapshotPublicationRequest<'_>,
         cancellation_token: &CancellationToken,
     ) -> Result<Self> {
+        let BuildSnapshotPublicationRequest {
+            minecraft_dir,
+            cache_dir,
+            source_cache_dir,
+            minecraft_version,
+            java,
+            project_dir,
+            identities,
+        } = request;
         cancellation_token.bail_if_cancelled()?;
-        let (sdk_identity, runtime_contract) = identities;
         let minecraft_dir = canonical_directory(minecraft_dir)?;
         let cache_dir = canonical_directory(cache_dir)?;
         let source_cache_dir = canonical_directory(source_cache_dir)?;
@@ -171,30 +186,14 @@ impl BuildSnapshotReceipt {
             .prefix("snapshot-")
             .tempdir_in(&snapshots)?;
         let snapshot_dir = canonical_directory(staging.path())?;
-        let snapshot_id = snapshot_dir
-            .file_name()
-            .and_then(|name| name.to_str())
-            .ok_or_else(|| eyre::eyre!("snapshot name is not UTF-8"))?
-            .to_owned();
-        let mut receipt = Self {
-            schema: SCHEMA.to_owned(),
+        let mut receipt = Self::start_publication(
             snapshot_dir,
             minecraft_dir,
             cache_dir,
-            snapshot_id,
-            minecraft_version: minecraft_version.to_owned(),
-            java_major: java.major_version,
-            sdk_identity: sdk_identity.to_owned(),
-            runtime_contract: runtime_contract.to_owned(),
-            java_executable: java.executable.clone(),
-            java_home: java.home.clone(),
-            java_version_output: java.version_output.clone(),
-            java_selection: java.selection.clone(),
-            java_pin_url: java.pin_url.clone(),
-            java_pin_sha512: java.pin_sha512.clone(),
-            files: BTreeMap::new(),
-            directories: BTreeSet::from(["project".to_owned()]),
-        };
+            minecraft_version,
+            java,
+            identities,
+        )?;
         ensure_owned_directory(&receipt.snapshot_dir, &receipt.snapshot_dir.join("project"))?;
         let mut total = 0;
         let mut capture_phase = NfrtPreparationPhase::start("snapshot.capture_and_copy");
@@ -205,7 +204,7 @@ impl BuildSnapshotReceipt {
         tracing::info!(
             phase = "snapshot.source_capture",
             retained_source = source_capture.is_some(),
-            rust_pid = std::process::id(),
+            rust_pid = process_id(),
             "snapshot.source_capture"
         );
         #[cfg(windows)]
@@ -225,22 +224,67 @@ impl BuildSnapshotReceipt {
         capture_phase.work(u64::try_from(receipt.files.len())?, total);
         capture_phase.success();
         drop(capture_phase);
-        receipt.validate()?;
-        let raw = receipt.json_bytes()?;
+        receipt.finish_publication(staging, cancellation_token)?;
+        // Captured Windows source objects stay held through final publication.
+        #[cfg(windows)]
+        drop(source_capture);
+        Ok(receipt)
+    }
+
+    fn start_publication(
+        snapshot_dir: PathBuf,
+        minecraft_dir: PathBuf,
+        cache_dir: PathBuf,
+        minecraft_version: &str,
+        java: &ResolvedJava,
+        identities: (&str, &str),
+    ) -> Result<Self> {
+        let (sdk_identity, runtime_contract) = identities;
+        let snapshot_id = snapshot_dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| eyre::eyre!("snapshot name is not UTF-8"))?
+            .to_owned();
+        let receipt = Self {
+            schema: SCHEMA.to_owned(),
+            snapshot_dir,
+            minecraft_dir,
+            cache_dir,
+            snapshot_id,
+            minecraft_version: minecraft_version.to_owned(),
+            java_major: java.major_version,
+            sdk_identity: sdk_identity.to_owned(),
+            runtime_contract: runtime_contract.to_owned(),
+            java_executable: java.executable.clone(),
+            java_home: java.home.clone(),
+            java_version_output: java.version_output.clone(),
+            java_selection: java.selection.clone(),
+            java_pin_url: java.pin_url.clone(),
+            java_pin_sha512: java.pin_sha512.clone(),
+            files: BTreeMap::new(),
+            directories: BTreeSet::from(["project".to_owned()]),
+        };
+        Ok(receipt)
+    }
+
+    fn finish_publication(
+        &self,
+        staging: tempfile::TempDir,
+        cancellation_token: &CancellationToken,
+    ) -> Result<()> {
+        self.validate()?;
+        let raw = self.json_bytes()?;
         cancellation_token.bail_if_cancelled()?;
-        write_new(&receipt.receipt_path(), &raw)?;
-        NfrtPreparationPhase::run("snapshot.destination_verification", || receipt.recheck())?;
+        write_new(&self.receipt_path(), &raw)?;
+        NfrtPreparationPhase::run("snapshot.destination_verification", || self.recheck())?;
         // Keep the complete snapshot before making it discoverable. Failure to
         // replace latest leaves the previous success intact and an unused copy.
         cancellation_token.bail_if_cancelled()?;
         let _snapshot_dir = staging.keep();
         NfrtPreparationPhase::run("snapshot.publish_latest", || {
-            receipt.publish_latest(&raw, cancellation_token)
+            self.publish_latest(&raw, cancellation_token)
         })?;
-        // Captured Windows source objects stay held through final publication.
-        #[cfg(windows)]
-        drop(source_capture);
-        Ok(receipt)
+        Ok(())
     }
 
     #[cfg(windows)]
@@ -255,7 +299,7 @@ impl BuildSnapshotReceipt {
     ) -> Result<Option<Self>> {
         let latest = cache_dir.join("state/latest-successful-build.json");
         match fs::symlink_metadata(&latest) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(error.into()),
             Ok(_) => {}
         }
@@ -269,7 +313,11 @@ impl BuildSnapshotReceipt {
                 return Ok(None);
             }
         };
-        tracing::info!(phase = "warm_snapshot_receipt_load", elapsed_ms = load_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_snapshot_receipt_load",
+            elapsed_ms = load_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         if previous.cache_dir != cache_dir
             || previous.minecraft_version != minecraft_version
             || previous.sdk_identity != identities.0
@@ -296,7 +344,11 @@ impl BuildSnapshotReceipt {
         if !source.matches_snapshot(&previous, cancellation_token)? {
             return Ok(None);
         }
-        tracing::info!(phase = "warm_snapshot_source_match", elapsed_ms = source_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_snapshot_source_match",
+            elapsed_ms = source_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         let final_started = Instant::now();
         // Source edits were checked above. The completed snapshot was fully
         // verified before its latest pointer was published; SFM never mutates
@@ -305,7 +357,11 @@ impl BuildSnapshotReceipt {
             tracing::debug!(%error, "previous build snapshot cannot be reused");
             return Ok(None);
         }
-        tracing::info!(phase = "warm_snapshot_final_recheck", elapsed_ms = final_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_snapshot_final_recheck",
+            elapsed_ms = final_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         tracing::info!(snapshot = %previous.snapshot_dir.display(),
             "Reusing checked successful-build snapshot for identical compiler outputs");
         Ok(Some(previous))
@@ -424,7 +480,11 @@ impl BuildSnapshotReceipt {
     pub(crate) fn materialize_roots(&self, destination: &Path, root_names: &[&str]) -> Result<()> {
         let precheck_started = Instant::now();
         self.managed_recheck()?;
-        tracing::info!(phase = "warm_session_snapshot_precheck", elapsed_ms = precheck_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_session_snapshot_precheck",
+            elapsed_ms = precheck_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         ensure!(!root_names.is_empty(), "runtime snapshot roots are empty");
         for root in root_names {
             ensure!(
@@ -443,10 +503,18 @@ impl BuildSnapshotReceipt {
         for root in root_names {
             self.materialize_root(&destination, root, &mut expected, &mut expected_directories)?;
         }
-        tracing::info!(phase = "warm_session_copy_roots", elapsed_ms = copy_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_session_copy_roots",
+            elapsed_ms = copy_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         let destination_started = Instant::now();
         let (files, directories) = inventory(&destination, false, None)?;
-        tracing::info!(phase = "warm_session_destination_check", elapsed_ms = destination_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_session_destination_check",
+            elapsed_ms = destination_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         ensure!(
             files == expected,
             "materialized session file inventory changed"
@@ -586,7 +654,7 @@ impl BuildSnapshotReceipt {
         let source_owner = canonical_directory(project)?;
         let source = source_owner.join(root);
         match fs::symlink_metadata(&source) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
             result => {
                 let metadata = result?;
                 ensure!(
@@ -690,7 +758,7 @@ impl BuildSnapshotReceipt {
         };
         let latest = state.join("latest-successful-build.json");
         match fs::symlink_metadata(&latest) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
             result => {
                 let metadata = result?;
                 ensure!(
@@ -714,7 +782,7 @@ impl BuildSnapshotReceipt {
                 cancellation_token.bail_if_cancelled()?;
                 ensure_owned_directory(&self.cache_dir, &state)?;
                 match fs::symlink_metadata(&latest) {
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) if error.kind() == io::ErrorKind::NotFound => {}
                     result => {
                         let metadata = result?;
                         ensure!(
@@ -730,7 +798,7 @@ impl BuildSnapshotReceipt {
                             return Err(error.error.into());
                         }
                         pending = error.file;
-                        std::thread::sleep(std::time::Duration::from_millis(2));
+                        sleep(Duration::from_millis(2));
                     }
                 }
             }
@@ -749,10 +817,10 @@ pub(crate) fn ensure_owned_directory(owner: &Path, path: &Path) -> Result<()> {
     for part in relative.components() {
         current.push(part);
         match fs::symlink_metadata(&current) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 match fs::create_dir(&current) {
                     Ok(()) => {}
-                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
                     Err(error) => return Err(error.into()),
                 }
             }
@@ -796,9 +864,9 @@ fn read_bounded_impl(path: &Path, limit: u64, latest: bool) -> Result<Vec<u8>> {
         "snapshot input is not a regular non-reparse file"
     );
     ensure!(metadata.len() <= limit, "snapshot input exceeds byte limit");
-    let identity = crate::file_identity::file_identity(&file)?;
+    let identity = file_identity::file_identity(&file)?;
     let mut raw = Vec::new();
-    std::io::Read::by_ref(&mut file)
+    io::Read::by_ref(&mut file)
         .take(
             limit
                 .checked_add(1)
@@ -823,7 +891,7 @@ fn read_bounded_impl(path: &Path, limit: u64, latest: bool) -> Result<Vec<u8>> {
         open_read(&path)?
     };
     ensure!(
-        crate::file_identity::file_identity(&reopened)? == identity,
+        file_identity::file_identity(&reopened)? == identity,
         "snapshot input path was replaced while reading"
     );
     Ok(raw)
@@ -877,9 +945,15 @@ fn inventory(
             total = total
                 .checked_add(metadata.len())
                 .ok_or_else(|| eyre::eyre!("snapshot byte count overflow"))?;
-            ensure!(total <= MAX_TOTAL_BYTES, "snapshot total exceeds byte limit");
+            ensure!(
+                total <= MAX_TOTAL_BYTES,
+                "snapshot total exceeds byte limit"
+            );
             pending.push((relative, entry.path().to_path_buf(), metadata.len()));
-            ensure!(pending.len() <= MAX_FILES, "snapshot file count exceeds limit");
+            ensure!(
+                pending.len() <= MAX_FILES,
+                "snapshot file count exceeds limit"
+            );
         }
     }
     // The directory shape and bounds are admitted before parallel payload reads.
@@ -1252,13 +1326,15 @@ mod tests {
         let snapshot_cache = minecraft.join("build/sfm-runtime-native");
         ensure_owned_directory(&minecraft, &snapshot_cache)?;
         let receipt = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-            &minecraft,
-            &snapshot_cache,
-            &source_cache,
-            "1.19.2",
-            &java(&minecraft),
-            &source_project,
-            ("sdk-fixture", "fixture-runtime-contract"),
+            BuildSnapshotPublicationRequest {
+                minecraft_dir: &minecraft,
+                cache_dir: &snapshot_cache,
+                source_cache_dir: &source_cache,
+                minecraft_version: "1.19.2",
+                java: &java(&minecraft),
+                project_dir: &source_project,
+                identities: ("sdk-fixture", "fixture-runtime-contract"),
+            },
             &CancellationToken::new(),
         )?;
         assert_eq!(receipt.cache_dir, canonical_directory(&snapshot_cache)?);
@@ -1275,13 +1351,15 @@ mod tests {
         );
         receipt.recheck()?;
         let reused = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-            &minecraft,
-            &snapshot_cache,
-            &source_cache,
-            "1.19.2",
-            &java(&minecraft),
-            &source_project,
-            ("sdk-fixture", "fixture-runtime-contract"),
+            BuildSnapshotPublicationRequest {
+                minecraft_dir: &minecraft,
+                cache_dir: &snapshot_cache,
+                source_cache_dir: &source_cache,
+                minecraft_version: "1.19.2",
+                java: &java(&minecraft),
+                project_dir: &source_project,
+                identities: ("sdk-fixture", "fixture-runtime-contract"),
+            },
             &CancellationToken::new(),
         )?;
         // Reuse is currently a Windows held-source optimization. Other
@@ -1303,13 +1381,15 @@ mod tests {
             b"changed class",
         )?;
         let changed = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-            &minecraft,
-            &snapshot_cache,
-            &source_cache,
-            "1.19.2",
-            &java(&minecraft),
-            &source_project,
-            ("sdk-fixture", "fixture-runtime-contract"),
+            BuildSnapshotPublicationRequest {
+                minecraft_dir: &minecraft,
+                cache_dir: &snapshot_cache,
+                source_cache_dir: &source_cache,
+                minecraft_version: "1.19.2",
+                java: &java(&minecraft),
+                project_dir: &source_project,
+                identities: ("sdk-fixture", "fixture-runtime-contract"),
+            },
             &CancellationToken::new(),
         )?;
         assert_ne!(changed.snapshot_dir, receipt.snapshot_dir);
@@ -1325,13 +1405,15 @@ mod tests {
         )?;
         assert!(changed.recheck().is_err());
         let trusted = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-            &minecraft,
-            &snapshot_cache,
-            &source_cache,
-            "1.19.2",
-            &java(&minecraft),
-            &source_project,
-            ("sdk-fixture", "fixture-runtime-contract"),
+            BuildSnapshotPublicationRequest {
+                minecraft_dir: &minecraft,
+                cache_dir: &snapshot_cache,
+                source_cache_dir: &source_cache,
+                minecraft_version: "1.19.2",
+                java: &java(&minecraft),
+                project_dir: &source_project,
+                identities: ("sdk-fixture", "fixture-runtime-contract"),
+            },
             &CancellationToken::new(),
         )?;
         if cfg!(windows) {
@@ -1340,7 +1422,8 @@ mod tests {
             assert_ne!(trusted.snapshot_dir, changed.snapshot_dir);
             trusted.recheck()?;
             trusted.materialize_roots(
-                &snapshot_cache.join("sessions/fresh/mod-root"), &["classes"],
+                &snapshot_cache.join("sessions/fresh/mod-root"),
+                &["classes"],
             )?;
         }
         let session = snapshot_cache.join("sessions/damaged/mod-root");
@@ -1350,13 +1433,15 @@ mod tests {
             b"newer class",
         )?;
         let rebuilt = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-            &minecraft,
-            &snapshot_cache,
-            &source_cache,
-            "1.19.2",
-            &java(&minecraft),
-            &source_project,
-            ("sdk-fixture", "fixture-runtime-contract"),
+            BuildSnapshotPublicationRequest {
+                minecraft_dir: &minecraft,
+                cache_dir: &snapshot_cache,
+                source_cache_dir: &source_cache,
+                minecraft_version: "1.19.2",
+                java: &java(&minecraft),
+                project_dir: &source_project,
+                identities: ("sdk-fixture", "fixture-runtime-contract"),
+            },
             &CancellationToken::new(),
         )?;
         assert_ne!(rebuilt.snapshot_dir, changed.snapshot_dir);
@@ -1367,14 +1452,16 @@ mod tests {
         );
         assert!(
             BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-                &minecraft,
-                &snapshot_cache,
-                &source_cache,
-                "1.19.2",
-                &java(&minecraft),
-                &original_cache.join("project"),
-                ("sdk-fixture", "fixture-runtime-contract"),
-                &CancellationToken::new(),
+                BuildSnapshotPublicationRequest {
+                    minecraft_dir: &minecraft,
+                    cache_dir: &snapshot_cache,
+                    source_cache_dir: &source_cache,
+                    minecraft_version: "1.19.2",
+                    java: &java(&minecraft),
+                    project_dir: &original_cache.join("project"),
+                    identities: ("sdk-fixture", "fixture-runtime-contract")
+                },
+                &CancellationToken::new()
             )
             .is_err()
         );
@@ -1589,8 +1676,7 @@ mod tests {
             trusted.materialize_roots(&cache.join("sessions/fresh/mod-root"), &["classes"])?;
         }
         assert!(
-            old
-                .materialize_roots(&cache.join("sessions/damaged/mod-root"), &["classes"])
+            old.materialize_roots(&cache.join("sessions/damaged/mod-root"), &["classes"])
                 .is_err()
         );
         fs::write(

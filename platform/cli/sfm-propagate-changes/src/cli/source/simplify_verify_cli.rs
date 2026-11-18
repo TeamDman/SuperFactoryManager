@@ -9,6 +9,7 @@ use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_METADATA_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
 use crate::source_projection::core_inputs::CoreProjectInputs;
+use crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES;
 use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::oracle::ORACLES_PATH;
 use crate::source_projection::oracle::OracleBindings;
@@ -30,6 +31,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 #[derive(Debug, Facet)]
@@ -258,19 +260,17 @@ fn verify(
     let metadata_bytes = super::simplify_cli::read(
         &catalog.repo_root,
         CORE_METADATA_PATH,
-        usize::try_from(crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES)?,
+        usize::try_from(MAX_CORE_METADATA_BYTES)?,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &catalog.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
     let git = OracleGitRepository::open(&catalog.repo_root)?;
     let (bindings, oracle_bindings_sha256) = if let Some(commit) = &args.baseline_commit {
         git.resolve_commit(commit)?;
         (None, None)
     } else {
         let bytes = read_bounded_catalog_input(&catalog.repo_root, ORACLES_PATH)?;
-        let bindings: OracleBindings = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+        let bindings: OracleBindings = facet_json::from_str(from_utf8(&bytes)?)?;
         ensure!(
             bindings.schema == "sfm:projection_oracles@1"
                 && bindings.scope == "sfm:minecraft_project_inputs@1",
@@ -325,9 +325,9 @@ fn verify(
             let bytes = &sources[&template_path];
             row.template_path = Some(template_path);
             row.template_sha256 = Some(sha256(bytes));
-            let rendered = render_java_source(std::str::from_utf8(bytes)?, &context)?;
+            let rendered = render_java_source(from_utf8(bytes)?, &context)?;
             row.rendered_sha256 = Some(sha256(rendered.as_bytes()));
-            let oracle_text = std::str::from_utf8(&oracle.bytes)?;
+            let oracle_text = from_utf8(&oracle.bytes)?;
             let oracle_text = if args.baseline_commit.is_some() {
                 without_banner(oracle_text)
             } else {
@@ -409,14 +409,12 @@ fn oracle_location(
         let registry = git
             .file_at_commit(commit, FEATURE_DEFINITIONS_PATH)?
             .ok_or_else(|| eyre::eyre!("pinned commit has no feature definitions"))?;
-        let registry = CoreFeatureDefinitions::from_json(std::str::from_utf8(&registry.bytes)?)?;
+        let registry = CoreFeatureDefinitions::from_json(from_utf8(&registry.bytes)?)?;
         let pinned = git
             .file_at_commit(commit, CATALOG_PATH)?
             .ok_or_else(|| eyre::eyre!("pinned commit has no projections catalog"))?;
-        let pinned = ProjectionCatalog::from_json(
-            std::str::from_utf8(&pinned.bytes)?,
-            &registry.registered_names(),
-        )?;
+        let pinned =
+            ProjectionCatalog::from_json(from_utf8(&pinned.bytes)?, &registry.registered_names())?;
         registry.validate_entry(pinned.entry(key)?)?;
         ensure!(
             pinned.context_identity(key)? == catalog.catalog.context_identity(key)?,

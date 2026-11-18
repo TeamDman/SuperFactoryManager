@@ -1,12 +1,13 @@
+use std::fmt;
 use std::path::Path;
 
-pub trait TerminalTextExt: std::fmt::Display + Sized {
+pub trait TerminalTextExt: fmt::Display + Sized {
     fn hyperlink(self, uri: &str) -> String {
         format!("\x1b]8;;{uri}\x1b\\{self}\x1b]8;;\x1b\\")
     }
 }
 
-impl<T> TerminalTextExt for T where T: std::fmt::Display + Sized {}
+impl<T> TerminalTextExt for T where T: fmt::Display + Sized {}
 
 #[must_use]
 pub fn vscode_file_uri_for_path(path: &Path, line: usize, column: usize) -> String {

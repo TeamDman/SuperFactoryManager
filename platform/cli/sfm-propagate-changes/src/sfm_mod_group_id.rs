@@ -1,3 +1,4 @@
+use crate::java_identifier;
 use crate::mod_group_id::ModGroupId;
 use eyre::Result;
 use eyre::ensure;
@@ -31,7 +32,7 @@ impl TryFrom<&ModGroupId> for SfmModGroupId {
                 .package_name()
                 .segments()
                 .iter()
-                .map(crate::java_identifier::JavaIdentifier::as_str)
+                .map(java_identifier::JavaIdentifier::as_str)
                 .eq(Self::VALUE.split('.')),
             "selected mod_group_id must be ca.teamdman.sfm"
         );
@@ -54,7 +55,8 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModGroupId>(), 0);
-        let value: ModGroupId = SfmModGroupId.try_into()?;
+        let value: Result<ModGroupId> = SfmModGroupId.try_into();
+        let value = value?;
         assert_eq!(value.to_string(), SfmModGroupId::VALUE);
         assert_eq!(SfmModGroupId::try_from(&value)?, SfmModGroupId);
         assert_eq!(SfmModGroupId::try_from(value)?, SfmModGroupId);

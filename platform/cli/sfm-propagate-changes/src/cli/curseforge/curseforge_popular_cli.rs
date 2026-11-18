@@ -4,18 +4,24 @@ use super::curseforge_cli::POPULAR_DOWNLOAD_THRESHOLD;
 use super::curseforge_cli::fetch_project_files;
 use super::curseforge_cli::latest_two_release_files_for_mc;
 use super::curseforge_cli::resolve_project_id;
+use crate::branch_targets::BranchQuery;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::discover_worktree_targets;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeProjectFileId;
 use crate::curseforge::CurseforgeProjectId;
-use crate::paths::APP_HOME;
+use crate::paths::AppHome;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
 use reqwest::blocking::Client;
 use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+use std::fs::read_to_string;
+use std::fs::write;
 use std::path::PathBuf;
 use std::time::Duration;
 use tracing::info;
@@ -36,8 +42,8 @@ impl CurseforgePopularArgs {
     /// # Errors
     ///
     /// Returns an error if the selected popularity command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -59,12 +65,12 @@ impl CurseforgePopularCommand {
     /// # Errors
     ///
     /// Returns an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Add(args) => args.invoke(),
-            Self::Remove(args) => args.invoke(),
-            Self::List(args) => args.invoke(),
-            Self::Sync(args) => args.invoke(),
+            Self::Add(args) => args.invoke(app_home),
+            Self::Remove(args) => args.invoke(app_home),
+            Self::List(args) => args.invoke(app_home),
+            Self::Sync(args) => args.invoke(app_home),
         }
     }
 }
@@ -81,10 +87,10 @@ impl CurseforgePopularAddArgs {
     /// # Errors
     ///
     /// Returns an error if the cache cannot be updated.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let mut versions = read_popular_minecraft_versions()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let mut versions = read_popular_minecraft_versions(app_home)?;
         versions.insert(MinecraftVersion::parse(&self.minecraft_version)?);
-        write_popular_minecraft_versions(&versions)?;
+        write_popular_minecraft_versions(&versions, app_home)?;
         info!("Popular Minecraft versions:");
         print_popular_versions(&versions);
         Ok(())
@@ -103,10 +109,10 @@ impl CurseforgePopularRemoveArgs {
     /// # Errors
     ///
     /// Returns an error if the cache cannot be updated.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let mut versions = read_popular_minecraft_versions()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let mut versions = read_popular_minecraft_versions(app_home)?;
         versions.remove(&MinecraftVersion::parse(&self.minecraft_version)?);
-        write_popular_minecraft_versions(&versions)?;
+        write_popular_minecraft_versions(&versions, app_home)?;
         info!("Popular Minecraft versions:");
         print_popular_versions(&versions);
         Ok(())
@@ -121,8 +127,8 @@ impl CurseforgePopularListArgs {
     /// # Errors
     ///
     /// Returns an error if the cache cannot be read.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let versions = read_popular_minecraft_versions()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let versions = read_popular_minecraft_versions(app_home)?;
         if versions.is_empty() {
             info!(
                 "No popular Minecraft versions cached. Use `sfm-propagate-changes curseforge popular add <version>` or `sync`."
@@ -163,35 +169,37 @@ impl CurseforgePopularSyncArgs {
     /// # Errors
     ///
     /// Returns an error if CurseForge cannot be queried or the cache cannot be updated.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         sync_popular_minecraft_versions(
             self.project,
             self.api_key,
             self.token,
             self.op_secret,
             self.threshold,
+            app_home,
         )
     }
 }
 
-pub(crate) fn resolve_cached_popular_branch_query()
--> eyre::Result<crate::branch_targets::BranchQuery> {
-    let versions = read_popular_minecraft_versions()?;
+pub(crate) fn resolve_cached_popular_branch_query(app_home: &AppHome) -> eyre::Result<BranchQuery> {
+    let versions = read_popular_minecraft_versions(app_home)?;
     if versions.is_empty() {
         eyre::bail!(
             "No popular Minecraft versions cached. Use `sfm-propagate-changes curseforge popular add <version>` or `sfm-propagate-changes curseforge popular sync` first."
         );
     }
     let predicates = versions.iter().map(ToString::to_string).collect::<Vec<_>>();
-    crate::branch_targets::BranchQuery::parse(&predicates.join(" OR "))
+    BranchQuery::parse(&predicates.join(" OR "))
 }
 
-pub(crate) fn read_popular_minecraft_versions() -> eyre::Result<BTreeSet<MinecraftVersion>> {
-    let path = popular_versions_path();
+pub(crate) fn read_popular_minecraft_versions(
+    app_home: &AppHome,
+) -> eyre::Result<BTreeSet<MinecraftVersion>> {
+    let path = popular_versions_path(app_home);
     if !path.is_file() {
         return Ok(BTreeSet::new());
     }
-    let content = std::fs::read_to_string(&path)
+    let content = read_to_string(&path)
         .wrap_err_with(|| format!("Failed to read popular cache: {}", path.display()))?;
     content
         .lines()
@@ -201,9 +209,12 @@ pub(crate) fn read_popular_minecraft_versions() -> eyre::Result<BTreeSet<Minecra
         .collect()
 }
 
-fn write_popular_minecraft_versions(versions: &BTreeSet<MinecraftVersion>) -> eyre::Result<()> {
-    APP_HOME.ensure_dir()?;
-    let path = popular_versions_path();
+fn write_popular_minecraft_versions(
+    versions: &BTreeSet<MinecraftVersion>,
+    app_home: &AppHome,
+) -> eyre::Result<()> {
+    app_home.ensure_dir()?;
+    let path = popular_versions_path(app_home);
     let mut content = String::new();
     content.push_str("# Managed by `sfm-propagate-changes curseforge popular`.\n");
     content.push_str("# One Minecraft version per line.\n");
@@ -211,12 +222,12 @@ fn write_popular_minecraft_versions(versions: &BTreeSet<MinecraftVersion>) -> ey
         content.push_str(version.as_str());
         content.push('\n');
     }
-    std::fs::write(&path, content)
+    write(&path, content)
         .wrap_err_with(|| format!("Failed to write popular cache: {}", path.display()))
 }
 
-fn popular_versions_path() -> PathBuf {
-    APP_HOME.file_path(CURSEFORGE_POPULAR_BRANCHES_FILE)
+fn popular_versions_path(app_home: &AppHome) -> PathBuf {
+    app_home.file_path(CURSEFORGE_POPULAR_BRANCHES_FILE)
 }
 
 fn sync_popular_minecraft_versions(
@@ -225,8 +236,9 @@ fn sync_popular_minecraft_versions(
     token: Option<String>,
     op_secret: Option<String>,
     threshold: u64,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let project_id = resolve_project_id(project)?;
+    let project_id = resolve_project_id(project, app_home)?;
     let (key, credential_source) = CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
     let core_client = CurseforgeHttpClient::new_core_api(key)?;
     let public_client = Client::builder()
@@ -234,7 +246,7 @@ fn sync_popular_minecraft_versions(
         .build()
         .wrap_err("Failed to build CurseForge public API HTTP client")?;
     let files = fetch_project_files(&core_client, project_id, &credential_source)?;
-    let target_versions = discover_worktree_targets()?
+    let target_versions = discover_worktree_targets(app_home)?
         .into_iter()
         .filter_map(|target| target.mc_version)
         .collect::<BTreeSet<_>>();
@@ -267,7 +279,7 @@ fn sync_popular_minecraft_versions(
         }
     }
 
-    write_popular_minecraft_versions(&popular_versions)?;
+    write_popular_minecraft_versions(&popular_versions, app_home)?;
     info!("Synced popular Minecraft versions with threshold {threshold}:");
     print_popular_versions(&popular_versions);
     Ok(())
@@ -312,8 +324,8 @@ struct CurseforgePublicFile {
     total_downloads: u64,
 }
 
-impl std::fmt::Debug for CurseforgePopularSyncArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgePopularSyncArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgePopularSyncArgs")
             .finish_non_exhaustive()
     }

@@ -10,6 +10,7 @@ use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::iter::once;
 use std::path::PathBuf;
 
 pub const CATALOG_PATH: &str = "platform/minecraft/projections.json";
@@ -294,7 +295,7 @@ fn is_windows_device_name(component: &str) -> bool {
 fn key_prefixes(key: &str) -> Vec<&str> {
     key.match_indices('/')
         .map(|(index, _)| &key[..index])
-        .chain(std::iter::once(key))
+        .chain(once(key))
         .collect()
 }
 

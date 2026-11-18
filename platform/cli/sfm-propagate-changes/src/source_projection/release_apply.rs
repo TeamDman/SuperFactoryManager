@@ -28,6 +28,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
+use std::str::from_utf8;
 
 const REPORT_SCHEMA: &str = "sfm:release-baseline-comparison@1";
 const SOURCE_ROOT: &str = "platform/minecraft/src";
@@ -796,7 +797,7 @@ fn read_pinned_report(
         "release import manifest '{}' differs from the pinned SHA-256",
         binding.import_manifest
     );
-    let json = std::str::from_utf8(&bytes).wrap_err("release import manifest is not UTF-8")?;
+    let json = from_utf8(&bytes).wrap_err("release import manifest is not UTF-8")?;
     let report: ReleaseBaselineReport =
         facet_json::from_str(json).wrap_err("cannot parse release import manifest")?;
     validate_report_schema(binding.kind, &report)?;

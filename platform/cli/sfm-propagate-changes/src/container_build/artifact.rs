@@ -2,6 +2,7 @@ use super::context_file::ContextFile;
 use super::context_manifest::ContextManifest;
 use super::missing_artifact::MissingArtifact;
 use crate::cancellation::CancellationToken;
+use crate::file_identity;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::source_projection::candidate_lock::checked_file;
@@ -111,7 +112,7 @@ pub(super) fn copy_cached(
         cancellation.bail_if_cancelled()?;
         let path = checked_file(root, relative)?;
         let mut input = fs::File::open(&path)?;
-        let identity = crate::file_identity::file_identity(&input)?;
+        let identity = file_identity::file_identity(&input)?;
         let metadata = input.metadata()?;
         ensure!(
             metadata.is_file() && !is_reparse(&metadata),
@@ -167,7 +168,7 @@ pub(super) fn copy_cached(
         );
         let rechecked = fs::File::open(checked_file(root, relative)?)?;
         ensure!(
-            crate::file_identity::file_identity(&rechecked)? == identity,
+            file_identity::file_identity(&rechecked)? == identity,
             "artifact replaced during export"
         );
         let digest = format!("sha256:{:x}", sha256.finalize());

@@ -1,5 +1,7 @@
 //! Explicit expensive audit of a selected projection's managed JBRSDK cache.
 
+use crate::jdk::host_jbrsdk_platform;
+use crate::jdk_artifact_cache::audit_pinned_jbrsdk_zip;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::read_jdk_pins;
@@ -21,6 +23,8 @@ pub struct CacheVerifyJdkArgs {
 
 impl CacheVerifyJdkArgs {
     /// Rehash the archive and compare every installed file. This never repairs or deletes.
+    /// # Errors
+    /// Returns an error if the selected SDK inventory cannot be read or verified.
     pub fn invoke(self) -> eyre::Result<()> {
         let (catalog, selected_key) = CoreCatalog::for_project(&self.project_root)?;
         let project = catalog
@@ -35,7 +39,7 @@ impl CacheVerifyJdkArgs {
             .cache_root
             .unwrap_or_else(|| catalog.repo_root.join("sfm-toolchain-data"));
         let sdk_cache = root.join("minecraft-toolchain").join("jbrsdk");
-        let platform = crate::jdk::host_jbrsdk_platform()
+        let platform = host_jbrsdk_platform()
             .ok_or_else(|| eyre::eyre!("No pinned JBRSDK platform mapping for this host"))?;
         let mut count = 0usize;
         for pin in &pins {
@@ -44,10 +48,9 @@ impl CacheVerifyJdkArgs {
                 .iter()
                 .filter(|artifact| artifact.platform == platform)
             {
-                crate::jdk_artifact_cache::audit_pinned_jbrsdk_zip(pin, artifact, &sdk_cache)
-                    .wrap_err_with(|| {
-                        format!("JBRSDK audit failed for {} {}", pin.version, platform)
-                    })?;
+                audit_pinned_jbrsdk_zip(pin, artifact, &sdk_cache).wrap_err_with(|| {
+                    format!("JBRSDK audit failed for {} {}", pin.version, platform)
+                })?;
                 count += 1;
             }
         }

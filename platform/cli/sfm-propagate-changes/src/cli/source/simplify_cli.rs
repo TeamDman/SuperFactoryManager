@@ -2,6 +2,7 @@
 
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::java_analysis::syntax::JAVA_PARSER_FINGERPRINT;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::promotion::validate_relative_path;
@@ -19,6 +20,7 @@ use std::fs;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::result::Result as StdResult;
 use std::sync::Arc;
 
 #[derive(Debug, Facet)]
@@ -172,7 +174,7 @@ fn scan(
     invocation_dir: &Path,
 ) -> Result<ScanReport> {
     let (catalog, unique) = selected_catalog(args, invocation_dir)?;
-    let mut cache: BTreeMap<String, std::result::Result<Arc<ParsedJava>, String>> = BTreeMap::new();
+    let mut cache: BTreeMap<String, StdResult<Arc<ParsedJava>, String>> = BTreeMap::new();
     let mut inputs = Vec::new();
     let mut parsed = Vec::new();
     for key in unique {
@@ -244,7 +246,7 @@ fn scan(
     Ok(ScanReport {
         schema: "sfm:source_simplify_scan@2".into(),
         algorithm: simplify::ALGORITHM.into(),
-        parser: crate::java_analysis::syntax::JAVA_PARSER_FINGERPRINT.into(),
+        parser: JAVA_PARSER_FINGERPRINT.into(),
         scope: "manifested_java_candidates_not_rewrite_or_semantic_or_oracle_proof".into(),
         file: args.file.clone(),
         catalog_sha256: catalog.catalog_sha256,
@@ -264,7 +266,7 @@ fn scan(
 fn load_java(
     catalog: &CoreCatalog,
     input: &mut ProjectionInput,
-    cache: &mut BTreeMap<String, std::result::Result<Arc<ParsedJava>, String>>,
+    cache: &mut BTreeMap<String, StdResult<Arc<ParsedJava>, String>>,
 ) -> Result<Arc<ParsedJava>> {
     let bytes = read(&catalog.repo_root, &input.path, simplify::MAX_SOURCE_BYTES)?;
     let hash = sha256(&bytes);

@@ -9,16 +9,24 @@ use super::JdkSourceDomainState;
 use super::is_excluded_java_source;
 use super::read_version_source_excludes;
 use crate::branch_targets::select_single_worktree_target;
+use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::jar_build::engine::select_project_source_cache;
 use crate::java_source_catalog::CatalogJavaSourceRootKind;
 use crate::java_source_catalog::JAVA_SOURCE_CATALOG;
 use crate::java_source_catalog::JavaSourceCatalog;
 use crate::java_source_catalog::JavaSourceRootDeclaration;
+use crate::paths::AppHome;
+use crate::source_projection::context::ProjectionContext;
+use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::projection_catalog::CATALOG_PATH;
 use crate::toolchain_lockfile_schema::read_current;
 use crate::toolchain_lockfile_schema::read_profile_source_excludes;
 use eyre::Context as _;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
+use std::mem::take;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -74,8 +82,9 @@ impl JavaSourceWorkspace {
         source_roots: &[PathBuf],
         classpath_mode: JavaClasspathMode,
         invocation_dir: &Path,
+        app_home: &AppHome,
     ) -> eyre::Result<Self> {
-        let target = select_single_worktree_target(&branch.into_query()?)?;
+        let target = select_single_worktree_target(&branch.into_query(app_home)?, app_home)?;
         let resolved_branch = target.branch.to_string();
         let minecraft_version = target
             .mc_version
@@ -85,6 +94,7 @@ impl JavaSourceWorkspace {
             .to_owned();
         let worktree = target.worktree_path.as_path();
         let minecraft_dir = worktree.join("platform").join("minecraft");
+        ensure_legacy_analysis_worktree(worktree)?;
         let java_release = read_java_release(&minecraft_dir, &minecraft_version)?;
 
         let (classpath_entries, classpath_fingerprint) = match classpath_mode {
@@ -93,7 +103,7 @@ impl JavaSourceWorkspace {
         };
 
         let mut workspace = if source_roots.is_empty() {
-            collect_branch_workspace(
+            collect_branch_workspace_with_catalog(
                 &resolved_branch,
                 worktree,
                 &minecraft_dir,
@@ -102,6 +112,7 @@ impl JavaSourceWorkspace {
                 classpath_mode,
                 classpath_entries,
                 classpath_fingerprint,
+                JAVA_SOURCE_CATALOG,
             )?
         } else {
             collect_custom_workspace(
@@ -158,11 +169,7 @@ impl JavaSourceWorkspace {
             "Failed to resolve generated project root {}",
             project_root.display()
         );
-        let selected = crate::jar_build::engine::select_project_source_cache(
-            project_root,
-            None,
-            &crate::cancellation::CancellationToken::new(),
-        )?;
+        let selected = select_project_source_cache(project_root, None, &CancellationToken::new())?;
         let source_cache_root = &selected.home().0;
         let jdk_cache_root = source_cache_root.join("minecraft-toolchain").join("jbrsdk");
         Self::resolve_generated_project_with_cache(
@@ -185,8 +192,7 @@ impl JavaSourceWorkspace {
                 project_root.display()
             )
         })?;
-        let (catalog_context, key) =
-            crate::source_projection::core_catalog::CoreCatalog::for_project(&project_root)?;
+        let (catalog_context, key) = CoreCatalog::for_project(&project_root)?;
         let projection = catalog_context.context(&key)?;
         eyre::ensure!(
             project_root.join("settings.gradle").is_file(),
@@ -437,31 +443,15 @@ impl JavaSourceWorkspace {
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "branch resolution passes one explicit immutable analysis context"
-)]
-fn collect_branch_workspace(
-    branch: &str,
-    worktree: &Path,
-    minecraft_dir: &Path,
-    minecraft_version: &str,
-    java_release: &str,
-    classpath_mode: JavaClasspathMode,
-    classpath_entries: Vec<String>,
-    classpath_fingerprint: String,
-) -> eyre::Result<JavaSourceWorkspace> {
-    collect_branch_workspace_with_catalog(
-        branch,
-        worktree,
-        minecraft_dir,
-        minecraft_version,
-        java_release,
-        classpath_mode,
-        classpath_entries,
-        classpath_fingerprint,
-        JAVA_SOURCE_CATALOG,
-    )
+/// Branch selection is reserved for historical worktrees. Current catalog
+/// checkouts require an exact generated projection, never the adjacent flat tree.
+fn ensure_legacy_analysis_worktree(worktree: &Path) -> eyre::Result<()> {
+    let catalog = worktree.join(CATALOG_PATH);
+    eyre::ensure!(
+        !catalog.try_exists()?,
+        "branch Java analysis cannot read a catalog checkout's legacy source tree; select an exact projection with --project-root"
+    );
+    Ok(())
 }
 
 #[expect(
@@ -481,7 +471,7 @@ fn collect_branch_workspace_with_catalog(
 ) -> eyre::Result<JavaSourceWorkspace> {
     catalog.validate()?;
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
-    let lockfile_text = std::fs::read_to_string(&lockfile_path)
+    let lockfile_text = fs::read_to_string(&lockfile_path)
         .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
     let feature_excludes = read_profile_source_excludes(&lockfile_text, "rust-toolchain")?;
     let mut feature_excludes_by_set = BTreeMap::<String, Vec<String>>::new();
@@ -794,7 +784,7 @@ fn context(
 // directory name or inferred branch, supplies this read-only identity.
 fn apply_named_projection_identity(
     context: &mut JavaAnalysisContextOutput,
-    projection: &crate::source_projection::context::ProjectionContext,
+    projection: &ProjectionContext,
 ) -> eyre::Result<()> {
     let identity = facet_json::to_string(projection)?;
     context.branch = format!("project:{}", projection.projection_key);
@@ -823,7 +813,7 @@ fn declared_source_set_outputs(catalog: JavaSourceCatalog) -> Vec<JavaSourceSetO
 
 fn branch_classpath_context(minecraft_dir: &Path) -> eyre::Result<(Vec<String>, String)> {
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
-    let input = std::fs::read_to_string(&lockfile_path)
+    let input = fs::read_to_string(&lockfile_path)
         .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
     let lockfile = read_current(&input)?;
     let mut entries = lockfile
@@ -907,7 +897,7 @@ fn collect_files_with_prefix(
 
 fn deduplicate_files(files: &mut Vec<JavaSourceFile>) -> eyre::Result<()> {
     let mut unique = BTreeMap::<PathBuf, JavaSourceFile>::new();
-    for file in std::mem::take(files) {
+    for file in take(files) {
         match unique.get_mut(&file.absolute_path) {
             Some(existing) if existing.source_set != file.source_set => eyre::bail!(
                 "Java source {} was assigned to conflicting source sets `{}` and `{}`",
@@ -980,8 +970,8 @@ fn read_java_release(minecraft_dir: &Path, minecraft_version: &str) -> eyre::Res
         .join("java-toolchain")
         .join(minecraft_version)
         .join("java-toolchain.gradle");
-    let input = std::fs::read_to_string(&path)
-        .wrap_err_with(|| format!("Failed to read {}", path.display()))?;
+    let input =
+        fs::read_to_string(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
     let marker = "JavaLanguageVersion.of(";
     let start = input
         .find(marker)
@@ -1061,6 +1051,9 @@ mod tests {
     use super::*;
     use crate::java_analysis::JavaSymbolGlob;
     use crate::java_analysis::JavaSymbolIndex;
+    use crate::java_source_catalog::JavaBuildSourceGroup;
+    use crate::java_source_catalog::JavaSourceSetDeclaration;
+    use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
     use crate::source_projection::projection_catalog::ProjectionCatalog;
     use crate::source_projection::projection_catalog::ProjectionEntry;
     use crate::source_projection::projection_catalog::ProjectionEnvironment;
@@ -1183,8 +1176,6 @@ mod tests {
         environment: ProjectionEnvironment,
         feature: bool,
     ) -> eyre::Result<()> {
-        use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-        use crate::source_projection::projection_catalog::CATALOG_PATH;
         let registry = repo.join(FEATURE_DEFINITIONS_PATH);
         std::fs::create_dir_all(registry.parent().unwrap())?;
         std::fs::write(
@@ -1675,10 +1666,6 @@ mod tests {
 
     #[test]
     fn java_analysis_workspace_discovers_new_catalog_roots_deterministically() {
-        use crate::java_source_catalog::JavaBuildSourceGroup;
-        use crate::java_source_catalog::JavaSourceRootDeclaration;
-        use crate::java_source_catalog::JavaSourceSetDeclaration;
-
         const SOURCE_SETS: &[JavaSourceSetDeclaration] = &[JavaSourceSetDeclaration {
             id: "main",
             visible_source_sets: &["main"],
@@ -1841,5 +1828,17 @@ mod tests {
                 .windows(2)
                 .all(|pair| pair[0].report_path <= pair[1].report_path)
         );
+    }
+    #[test]
+    fn branch_analysis_refuses_catalog_worktree_even_with_a_flat_source_tree() -> eyre::Result<()> {
+        let directory = tempfile::tempdir()?;
+        let catalog = directory.path().join(CATALOG_PATH);
+        std::fs::create_dir_all(catalog.parent().unwrap())?;
+        std::fs::create_dir_all(directory.path().join("platform/minecraft/src/main/java"))?;
+        ensure_legacy_analysis_worktree(directory.path())?;
+        std::fs::write(catalog, "malformed catalog still marks current ownership")?;
+        let error = ensure_legacy_analysis_worktree(directory.path()).unwrap_err();
+        assert!(error.to_string().contains("--project-root"));
+        Ok(())
     }
 }

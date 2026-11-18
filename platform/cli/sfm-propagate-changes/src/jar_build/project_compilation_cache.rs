@@ -2,6 +2,22 @@
 //! This detects stale/edited/missing/extra output bytes; a writable receipt does
 //! not authenticate production against a writer replacing receipt and payload.
 //! Callers hold the project producer lock. Interrupted manifest writes are misses.
+
+use crate::file_identity;
+use std::collections::BTreeMap;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle as _;
+#[cfg(windows)]
+use std::ptr::from_mut;
+use std::time::Instant;
+#[cfg(windows)]
+use windows::Win32::Foundation::HANDLE;
+#[cfg(windows)]
+use windows::Win32::Storage::FileSystem::FILE_STANDARD_INFO;
+#[cfg(windows)]
+use windows::Win32::Storage::FileSystem::FileStandardInfo;
+#[cfg(windows)]
+use windows::Win32::Storage::FileSystem::GetFileInformationByHandleEx;
 #[path = "compilation_output_entry.rs"]
 mod compilation_output_entry;
 #[path = "compilation_output_manifest.rs"]
@@ -252,11 +268,6 @@ pub(super) fn open_read(path: &Path) -> Result<fs::File> {
 
 #[cfg(windows)]
 fn single_link(file: &fs::File) -> Result<()> {
-    use std::os::windows::io::AsRawHandle as _;
-    use windows::Win32::Foundation::HANDLE;
-    use windows::Win32::Storage::FileSystem::{
-        FILE_STANDARD_INFO, FileStandardInfo, GetFileInformationByHandleEx,
-    };
     let mut information = FILE_STANDARD_INFO::default();
     // SAFETY: the live file owns this handle and the initialized output
     // buffer has exactly the FILE_STANDARD_INFO size requested here.
@@ -264,8 +275,8 @@ fn single_link(file: &fs::File) -> Result<()> {
         GetFileInformationByHandleEx(
             HANDLE(file.as_raw_handle()),
             FileStandardInfo,
-            std::ptr::from_mut(&mut information).cast(),
-            u32::try_from(std::mem::size_of_val(&information))?,
+            from_mut(&mut information).cast(),
+            u32::try_from(size_of_val(&information))?,
         )
     }?;
     ensure!(
@@ -296,8 +307,8 @@ fn inventory(
     files: &[(&str, &Path)],
     check: &impl Fn() -> Result<()>,
 ) -> Result<Vec<CompilationOutputEntry>> {
-    let started = std::time::Instant::now();
-    let mut paths = std::collections::BTreeMap::new();
+    let started = Instant::now();
+    let mut paths = BTreeMap::new();
     let mut visited = 0_usize;
     for (name, root) in roots {
         ensure!(
@@ -334,7 +345,7 @@ fn inventory(
         check()?;
         let mut file = open_read(&path)?;
         let metadata = file.metadata()?;
-        let identity = crate::file_identity::file_identity(&file)?;
+        let identity = file_identity::file_identity(&file)?;
         ensure!(
             regular(&metadata) && metadata.len() <= MAX_FILE_BYTES,
             "Unsafe or oversized compilation output"
@@ -366,7 +377,7 @@ fn inventory(
         );
         let reopened = open_read(&path)?;
         ensure!(
-            crate::file_identity::file_identity(&reopened)? == identity
+            file_identity::file_identity(&reopened)? == identity
                 && reopened.metadata()?.len() == bytes,
             "compilation output pathname changed during inventory"
         );
@@ -396,7 +407,7 @@ fn collect(
     root: &Path,
     directory: &Path,
     label: &str,
-    paths: &mut std::collections::BTreeMap<String, PathBuf>,
+    paths: &mut BTreeMap<String, PathBuf>,
     visited: &mut usize,
     check: &impl Fn() -> Result<()>,
 ) -> Result<()> {

@@ -3,7 +3,6 @@ use crate::branch_targets::BranchName;
 use crate::branch_targets::WorktreePath;
 use crate::branch_targets::WorktreeTarget;
 use crate::curseforge::CurseforgeMod;
-use crate::curseforge::CurseforgeProjectFileItem;
 use crate::curseforge::CurseforgeSortableGameVersion;
 use crate::toolchain_lockfile_schema::read_current;
 

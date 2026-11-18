@@ -1,4 +1,5 @@
-pub fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
+use std::any;
+pub fn panic_message(panic: &(dyn any::Any + Send)) -> String {
     if let Some(message) = panic.downcast_ref::<&str>() {
         return (*message).to_string();
     }

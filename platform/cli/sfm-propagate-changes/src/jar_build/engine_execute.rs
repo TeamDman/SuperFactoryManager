@@ -46,7 +46,7 @@ struct NodeOutputState {
     sha1: Option<ContentHash>,
 }
 
-fn java_tool_argfile_argument(argfile: &Path) -> eyre::Result<std::ffi::OsString> {
+fn java_tool_argfile_argument(argfile: &Path) -> eyre::Result<OsString> {
     #[cfg(windows)]
     use std::os::windows::ffi::OsStrExt as _;
 
@@ -59,14 +59,14 @@ fn java_tool_argfile_argument(argfile: &Path) -> eyre::Result<std::ffi::OsString
         argfile.as_os_str().encode_wide().count() < 260
             && !matches!(
                 argfile.components().next(),
-                Some(std::path::Component::Prefix(prefix))
-                    if matches!(prefix.kind(), std::path::Prefix::Verbatim(_)
-                        | std::path::Prefix::VerbatimDisk(_)
-                        | std::path::Prefix::VerbatimUNC(_, _))
+                Some(Component::Prefix(prefix))
+                    if matches!(prefix.kind(), Prefix::Verbatim(_)
+                        | Prefix::VerbatimDisk(_)
+                        | Prefix::VerbatimUNC(_, _))
             ),
         "Java tool transport path must use a normal Windows spelling below 260 UTF-16 units"
     );
-    let mut argument = std::ffi::OsString::from("@");
+    let mut argument = OsString::from("@");
     argument.push(argfile);
     Ok(argument)
 }
@@ -346,8 +346,8 @@ impl<'a> ExecutionContext<'a> {
         .entered();
         let started_at_unix_ms = {
             let _span = tracing::debug_span!("write_node_state_timestamp").entered();
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
                 .map_or(0, |duration| duration.as_millis())
         };
         let output_states = {
@@ -504,7 +504,7 @@ impl<'a> ExecutionContext<'a> {
         fs::create_dir_all(work_dir)?;
         let main_class = read_main_class(&tool.cache_path)?;
         let classpath = dedup_paths_preserve_order(
-            std::iter::once(tool.cache_path.clone())
+            once(tool.cache_path.clone())
                 .chain(extra_classpath.iter().cloned())
                 .collect(),
         );
@@ -635,7 +635,7 @@ mod forge_preparation_cache;
 
 #[cfg(windows)]
 pub(crate) fn audit_managed_remaps(
-    root: &std::path::Path,
+    root: &Path,
     key: Option<&str>,
 ) -> eyre::Result<forge_preparation_cache::RemapAuditSummary> {
     forge_preparation_cache::audit_managed_remaps(root, key)
@@ -1002,8 +1002,7 @@ fn execute_dependency_deobf(
     let (mapping_hash, member_mappings) = if let Some(owner) = &remap_authority {
         tracing::info!(outcome = "admitted", "dependency_remap_shared_authority");
         let raw = owner.mapping_bytes()?;
-        let mapping_text =
-            std::str::from_utf8(raw).wrap_err("Captured remap mapping is not UTF-8")?;
+        let mapping_text = from_utf8(raw).wrap_err("Captured remap mapping is not UTF-8")?;
         (
             ContentHash::from_bytes(raw, ContentHashAlgorithm::Blake3),
             parse_unique_srg_member_mappings(mapping_text),
@@ -1310,7 +1309,7 @@ fn verify_complete_dependency_jar(path: &Path) -> eyre::Result<()> {
                 path.display()
             )
         })?;
-        std::io::copy(&mut entry, &mut std::io::sink()).wrap_err_with(|| {
+        io::copy(&mut entry, &mut io::sink()).wrap_err_with(|| {
             format!(
                 "corrupt dependency remap JAR entry #{index}: {}",
                 path.display()
@@ -1585,7 +1584,7 @@ fn rewrite_class_srg_member_constants(
                     eyre::bail!("Utf8 constant extends past end of class file");
                 }
                 let content = &bytes[content_start..content_end];
-                if let Ok(text) = std::str::from_utf8(content)
+                if let Ok(text) = from_utf8(content)
                     && let Some(replacement) = member_mappings.get(text)
                 {
                     let replacement_bytes = replacement.as_bytes();
@@ -1653,7 +1652,7 @@ fn remove_stale_dependency_outputs(output: &Path) -> eyre::Result<()> {
         }
         let file_name = path
             .file_name()
-            .and_then(std::ffi::OsStr::to_str)
+            .and_then(OsStr::to_str)
             .map_or("", |name| name);
         if !file_name.contains("-named-mixin-") {
             fs::remove_file(&path).wrap_err_with(|| {
@@ -2190,7 +2189,7 @@ fn verified_java_cache_matches(
 
 fn requires_forge_dependency_deobf(dependency: &DependencyPlan) -> bool {
     dependency.artifact_treatment
-        == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+        == toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
 }
 
 fn required_main_class_output(classes_dir: &Path) -> PathBuf {
@@ -2384,7 +2383,7 @@ fn compile_optional_java_source_set(
         )
         .entered();
         dedup_paths_preserve_order(
-            std::iter::once(main_classes_dir.to_path_buf())
+            once(main_classes_dir.to_path_buf())
                 .chain(base_classpath.iter().cloned())
                 .collect(),
         )
@@ -2747,9 +2746,10 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
                 "expanded resources",
                 "reobfuscation mappings",
             ],
-            std::slice::from_ref(&context.plan.rust_output_jar),
+            from_ref(&context.plan.rust_output_jar),
             "cached",
         )?;
+        publish_catalog_release_receipt(context, named_admission.as_ref(), &package_fingerprint)?;
         return Ok(());
     }
 
@@ -2802,6 +2802,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
             "complete",
         )?;
         write_package_cache_state(context, &package_state_path, &package_fingerprint)?;
+        publish_catalog_release_receipt(context, named_admission.as_ref(), &package_fingerprint)?;
         tracing::info!(
             "package-and-reobfuscate-jar: done in {} ms",
             started.elapsed().as_millis()
@@ -2876,7 +2877,8 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
             context.plan.rust_output_jar.clone(),
         ],
         "complete",
-    )
+    )?;
+    publish_catalog_release_receipt(context, named_admission.as_ref(), &package_fingerprint)
 }
 
 fn package_cache_matches(
@@ -3138,7 +3140,7 @@ fn stage_resource_root(
             name.as_str(),
             "META-INF/mods.toml" | "META-INF/neoforge.mods.toml" | "pack.mcmeta"
         ) {
-            let template_text = std::str::from_utf8(&raw)
+            let template_text = from_utf8(&raw)
                 .wrap_err_with(|| format!("Failed to read resource {}", path.display()))?;
             expand_gradle_resource_template(template_text, &context.plan.properties)?.into_bytes()
         } else {
@@ -3614,7 +3616,7 @@ fn collect_files_under(root: &Path) -> eyre::Result<Vec<PathBuf>> {
         .wrap_err_with(|| format!("Failed to read {}", root.display()))?
         .collect::<Result<Vec<_>, _>>()
         .wrap_err_with(|| format!("Failed to read {}", root.display()))?;
-    entries.sort_by_key(std::fs::DirEntry::path);
+    entries.sort_by_key(fs::DirEntry::path);
     for entry in entries {
         let path = entry.path();
         if path.is_dir() {
@@ -3639,7 +3641,7 @@ fn collect_files_under_cancellable(
         .wrap_err_with(|| format!("Failed to read {}", root.display()))?
         .collect::<Result<Vec<_>, _>>()
         .wrap_err_with(|| format!("Failed to read {}", root.display()))?;
-    entries.sort_by_key(std::fs::DirEntry::path);
+    entries.sort_by_key(fs::DirEntry::path);
     for entry in entries {
         context.bail_if_cancelled()?;
         let path = entry.path();

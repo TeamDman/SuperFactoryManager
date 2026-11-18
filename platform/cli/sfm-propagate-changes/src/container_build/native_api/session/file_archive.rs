@@ -1,5 +1,6 @@
 use http_body_util::BodyExt as _;
 use std::path::Path;
+use std::str::from_utf8;
 
 pub(super) async fn fetch(
     endpoint: &Path,
@@ -43,7 +44,7 @@ pub(super) async fn fetch(
     Ok(Some(single_file(&raw, name, budget)?))
 }
 fn text(bytes: &[u8]) -> eyre::Result<&str> {
-    Ok(std::str::from_utf8(
+    Ok(from_utf8(
         bytes.split(|b| *b == 0).next().unwrap_or_default(),
     )?)
 }
@@ -62,12 +63,12 @@ fn pax(bytes: &[u8], expected: &str) -> eyre::Result<()> {
             .iter()
             .position(|b| *b == b' ')
             .ok_or_else(|| eyre::eyre!("invalid PAX length"))?;
-        let length = std::str::from_utf8(&rest[..space])?.parse::<usize>()?;
+        let length = from_utf8(&rest[..space])?.parse::<usize>()?;
         eyre::ensure!(
             length > space + 1 && length <= rest.len() && rest[length - 1] == b'\n',
             "invalid PAX record"
         );
-        let record = std::str::from_utf8(&rest[space + 1..length - 1])?;
+        let record = from_utf8(&rest[space + 1..length - 1])?;
         let (key, value) = record
             .split_once('=')
             .ok_or_else(|| eyre::eyre!("invalid PAX record"))?;

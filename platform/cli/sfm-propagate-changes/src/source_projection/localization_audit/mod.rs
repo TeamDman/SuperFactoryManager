@@ -16,8 +16,11 @@ use format_signature::FormatSignature;
 use java_token::JavaToken;
 use java_token::tokens;
 use key_inventory::KeyInventory;
+use liquid::model::ValueView;
 use locale_report::LocaleReport;
 use std::collections::BTreeMap;
+use std::path::Path;
+use std::str::from_utf8;
 
 fn argument_end(tokens: &[JavaToken], start: usize) -> usize {
     let mut depth = 0;
@@ -33,7 +36,6 @@ fn argument_end(tokens: &[JavaToken], start: usize) -> usize {
 }
 
 fn resolve_typed_description(expression: &[JavaToken], inventory: &KeyInventory) -> Option<String> {
-    use liquid::model::ValueView;
     if expression.len() < 11 {
         return None;
     }
@@ -285,7 +287,7 @@ pub fn audit(
         {
             languages.insert(
                 locale.into(),
-                facet_json::from_str(std::str::from_utf8(&artifact.output_bytes)?)?,
+                facet_json::from_str(from_utf8(&artifact.output_bytes)?)?,
             );
         }
     }
@@ -295,24 +297,20 @@ pub fn audit(
     let mut inventory = KeyInventory { coverage: "Audited typed item slice plus bounded literal registry and localization-call discovery. Java suppliers, arbitrary runtime composition/control flow and custom description overrides require review; dynamic candidates are not exhaustive.".into(), ..KeyInventory::default() };
     for (path, artifact) in artifacts {
         if path.starts_with("src/main/java/")
-            && std::path::Path::new(path)
+            && Path::new(path)
                 .extension()
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
         {
-            inspect_registry(
-                &mut inventory,
-                path,
-                std::str::from_utf8(&artifact.output_bytes)?,
-            );
+            inspect_registry(&mut inventory, path, from_utf8(&artifact.output_bytes)?);
         }
     }
     for (path, artifact) in artifacts {
         if path.starts_with("src/main/java/")
-            && std::path::Path::new(path)
+            && Path::new(path)
                 .extension()
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
         {
-            let source = std::str::from_utf8(&artifact.output_bytes)?;
+            let source = from_utf8(&artifact.output_bytes)?;
             inspect_java(&mut inventory, path, source, english);
         }
     }
@@ -379,7 +377,6 @@ mod release_selection_tests {
     use super::super::core_inputs::discover_core_source_files;
     use super::super::core_inputs::select_core_inputs;
     use super::*;
-    use std::path::Path;
 
     #[test]
     fn every_baseline_keeps_original_locale_bytes_and_release_preserves_valid_portuguese() {

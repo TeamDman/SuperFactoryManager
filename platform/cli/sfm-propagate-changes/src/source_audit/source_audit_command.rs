@@ -3,28 +3,38 @@ use super::AuditWarningReport;
 use super::AuditedSourceFile;
 use super::BranchSourceAuditReport;
 use super::JavaSourceTypeIndex;
-use super::SourceAuditOptions;
 use super::SourceAuditReport;
 use super::SourceLanguage;
 use super::SourceLineCount;
+use super::SourceLineLimit;
 use super::SourceProblem;
 use super::VersionSurfaceAuditReport;
 use super::audit_java_font_render_surface_with_index;
 use super::audit_version_surfaces;
+use crate::branch_targets::BranchQuery;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::discover_worktree_targets;
 use crate::branch_targets::select_required_worktree_targets;
 use crate::logging::TerminalTextExt;
 use crate::logging::vscode_file_uri_for_path;
+use crate::paths::AppHome;
+use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
+use crate::source_projection::catalog_owned_project::collect_catalog_project;
+use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::projection_catalog::CATALOG_PATH;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use facet_pretty::FacetPretty as _;
 use gix::bstr::ByteSlice;
+use gix::index::entry::Stage;
 use std::collections::BTreeMap;
+use std::fs::read_to_string;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const SFM_PRODUCTION_JAVA_PREFIX: &str = "platform/minecraft/src/main/java/ca/teamdman/sfm/";
 const SFM_AUDIT_RULES_PATH: &str = "platform/minecraft/sfm.audit_rules";
@@ -37,20 +47,39 @@ struct FontAuditSource {
 
 #[derive(Debug)]
 pub struct SourceAuditCommand {
-    options: SourceAuditOptions,
+    languages: Vec<SourceLanguage>,
+    max_lines: Option<SourceLineLimit>,
+    font_render_surface: bool,
 }
 
 impl SourceAuditCommand {
     #[must_use]
-    pub fn new(options: SourceAuditOptions) -> Self {
-        Self { options }
+    pub fn new(
+        languages: Vec<SourceLanguage>,
+        max_lines: Option<SourceLineLimit>,
+        font_render_surface: bool,
+    ) -> Self {
+        Self {
+            languages,
+            max_lines,
+            font_render_surface,
+        }
+    }
+
+    fn includes_language(&self, language: SourceLanguage) -> bool {
+        self.languages.is_empty() || self.languages.contains(&language)
     }
 
     /// # Errors
     ///
     /// Returns an error if worktree selection, index loading, source reading, or output writing fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let targets = select_required_worktree_targets(&self.options.branch)?;
+    pub fn invoke_branch(
+        &self,
+        branch: &BranchQuery,
+        version_surfaces: bool,
+        app_home: &AppHome,
+    ) -> eyre::Result<()> {
+        let targets = select_required_worktree_targets(branch, app_home)?;
         let worktree_paths = targets
             .iter()
             .map(|target| {
@@ -77,8 +106,8 @@ impl SourceAuditCommand {
         stdout_line(report.final_summary_line())?;
         emit_audit_warning_summary(&report, &worktree_paths)?;
 
-        if self.options.version_surfaces {
-            let version_targets = include_version_surface_baseline(targets)?;
+        if version_surfaces {
+            let version_targets = include_version_surface_baseline(targets, app_home)?;
             let version_report = audit_version_surfaces(&version_targets)?;
             emit_version_surface_report(&version_report)?;
         }
@@ -86,9 +115,112 @@ impl SourceAuditCommand {
         Ok(())
     }
 
+    /// # Errors
+    ///
+    /// Returns an error if the project root is relative, catalog ownership cannot be verified,
+    /// or auditing or output fails.
+    pub fn invoke_catalog_project(&self, project_root: &Path) -> eyre::Result<()> {
+        eyre::ensure!(
+            project_root.is_absolute(),
+            "source audit project root must be absolute; resolve relative paths at the invocation boundary"
+        );
+        let (catalog, key) = CoreCatalog::for_project(project_root)?;
+        let project = collect_catalog_project(&catalog.repo_root, &catalog.repo_root, &key)?
+            .check_current()?;
+        let label = format!("project:{key}");
+        let report = self.audit_catalog_project(&project, &label)?;
+        project.recheck()?;
+        let mut summary = SourceAuditReport::default();
+        stdout_line(report.summary_line())?;
+        summary.push_branch(report);
+        stdout_line(summary.final_summary_line())?;
+        emit_audit_warning_summary(
+            &summary,
+            &BTreeMap::from([(label, project.repo_root().to_path_buf())]),
+        )
+    }
+
+    fn audit_catalog_project(
+        &self,
+        project: &CatalogOwnedProject,
+        label: &str,
+    ) -> eyre::Result<BranchSourceAuditReport> {
+        let mut report = BranchSourceAuditReport::new(label);
+        let rules = if self.font_render_surface
+            && project.receipt().files.contains_key("sfm.audit_rules")
+        {
+            Some(
+                AuditRules::parse(from_utf8(
+                    project.selected_input("sfm.audit_rules")?.output_bytes(),
+                )?)
+                .map_err(eyre::Report::msg)?,
+            )
+        } else {
+            None
+        };
+        let mut font_sources = Vec::new();
+        for input in project.retained_selected_inputs()? {
+            let output = input.output_path();
+            let Some(language) = SourceLanguage::from_repo_path(output) else {
+                continue;
+            };
+            if !self.includes_language(language) {
+                continue;
+            }
+            let content = from_utf8(input.output_bytes())?;
+            let path = format!("{}/{output}", project.receipt().project_dir);
+            let lines = SourceLineCount::from_text(content);
+            report.push_file(AuditedSourceFile::new(&path, language, lines));
+            if let Some(limit) = self.max_lines
+                && limit.is_exceeded_by(lines)
+            {
+                report.push_problem(SourceProblem::large_file(
+                    label, &path, language, lines, limit,
+                ));
+            }
+            if language == SourceLanguage::Java
+                && output.starts_with("src/main/java/ca/teamdman/sfm/")
+            {
+                audit_direct_mod_event_annotations(&mut report, label, &path, lines, content);
+            }
+            if language == SourceLanguage::Java
+                && output.starts_with("src/")
+                && output.contains("/java/ca/teamdman/sfm/")
+                && rules.is_some()
+            {
+                font_sources.push(FontAuditSource {
+                    repo_path: path,
+                    line_count: lines,
+                    content: content.to_owned(),
+                });
+            }
+        }
+        if let Some(rules) = &rules {
+            let types = JavaSourceTypeIndex::build(
+                font_sources.iter().map(|source| source.content.as_str()),
+            )?;
+            for source in font_sources {
+                audit_java_font_render_surface_with_index(
+                    &mut report,
+                    label,
+                    &source.repo_path,
+                    source.line_count,
+                    &source.content,
+                    rules,
+                    &types,
+                )?;
+            }
+        }
+        Ok(report)
+    }
+
     fn audit_target(&self, target: &WorktreeTarget) -> eyre::Result<BranchSourceAuditReport> {
         let branch = target.branch.as_str();
         let worktree_path = target.worktree_path.as_path();
+        eyre::ensure!(
+            !worktree_path.join(CATALOG_PATH).try_exists()?,
+            "branch source audit cannot read a catalog checkout; select --project-root"
+        );
         let repo = gix::discover(worktree_path).wrap_err_with(|| {
             format!(
                 "Failed to discover git repository at {}",
@@ -104,27 +236,26 @@ impl SourceAuditCommand {
 
         let mut report = BranchSourceAuditReport::new(branch);
         let font_rules = self
-            .options
             .font_render_surface
             .then(|| AuditRules::load(&worktree_path.join(SFM_AUDIT_RULES_PATH)))
             .transpose()?;
         let mut font_audit_sources = Vec::new();
         for entry in index.entries() {
-            if entry.stage() != gix::index::entry::Stage::Unconflicted {
+            if entry.stage() != Stage::Unconflicted {
                 continue;
             }
             let repo_path = entry.path(&index).to_str_lossy().into_owned();
             let Some(language) = SourceLanguage::from_repo_path(&repo_path) else {
                 continue;
             };
-            if !self.options.includes_language(language) {
+            if !self.includes_language(language) {
                 continue;
             }
 
             let fs_path = repo_path_to_filesystem_path(worktree_path, &repo_path);
-            let content = match std::fs::read_to_string(&fs_path) {
+            let content = match read_to_string(&fs_path) {
                 Ok(content) => content,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                Err(error) if error.kind() == ErrorKind::NotFound => {
                     tracing::debug!(path = %fs_path.display(), "skipping tracked source deleted from working tree");
                     continue;
                 }
@@ -137,7 +268,7 @@ impl SourceAuditCommand {
             let line_count = SourceLineCount::from_text(&content);
             report.push_file(AuditedSourceFile::new(&repo_path, language, line_count));
 
-            if let Some(max_lines) = self.options.max_lines
+            if let Some(max_lines) = self.max_lines
                 && max_lines.is_exceeded_by(line_count)
             {
                 report.push_problem(SourceProblem::large_file(
@@ -381,6 +512,7 @@ fn direct_mod_event_annotation_name(line: &str) -> Option<&'static str> {
 
 fn include_version_surface_baseline(
     mut targets: Vec<WorktreeTarget>,
+    app_home: &AppHome,
 ) -> eyre::Result<Vec<WorktreeTarget>> {
     if targets
         .iter()
@@ -389,7 +521,7 @@ fn include_version_surface_baseline(
         return Ok(targets);
     }
 
-    let baseline = discover_worktree_targets()?
+    let baseline = discover_worktree_targets(app_home)?
         .into_iter()
         .find(|target| target.branch.as_str() == "1.19.2")
         .ok_or_else(|| eyre::eyre!("Version-surface audit requires the 1.19.2 worktree."))?;
@@ -460,7 +592,6 @@ mod tests {
     use super::java_call_frame_lines;
     use super::render_warning_location;
     use crate::branch_targets::BranchName;
-    use crate::branch_targets::BranchQuery;
     use crate::branch_targets::WorktreePath;
     use crate::branch_targets::WorktreeTarget;
     use crate::source_audit::AuditWarning;
@@ -468,13 +599,14 @@ mod tests {
     use crate::source_audit::AuditWarningDetail;
     use crate::source_audit::DetectedSourceLocation;
     use crate::source_audit::JavaCallSite;
-    use crate::source_audit::SourceAuditOptions;
     use crate::source_audit::SourceLanguage;
     use crate::source_audit::SourceLineLimit;
+    use crate::source_projection::catalog_owned_project::tests::Fixture;
     use color_eyre::owo_colors::OwoColorize;
     use eyre::Context;
     use std::collections::BTreeMap;
     use std::fs;
+    use std::path::Path;
     use std::path::PathBuf;
     use std::process::Command;
 
@@ -559,13 +691,7 @@ mod tests {
         run_git(root, &["init"])?;
         run_git(root, &["add", "tracked.rs"])?;
 
-        let command = SourceAuditCommand::new(SourceAuditOptions {
-            branch: BranchQuery::parse("*")?,
-            languages: Vec::new(),
-            max_lines: Some(SourceLineLimit(1)),
-            version_surfaces: false,
-            font_render_surface: false,
-        });
+        let command = SourceAuditCommand::new(Vec::new(), Some(SourceLineLimit(1)), false);
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
             WorktreePath::from(root.to_path_buf()),
@@ -592,13 +718,7 @@ mod tests {
         run_git(root, &["add", "deleted.rs"])?;
         fs::remove_file(deleted_path)?;
 
-        let command = SourceAuditCommand::new(SourceAuditOptions {
-            branch: BranchQuery::parse("*")?,
-            languages: Vec::new(),
-            max_lines: None,
-            version_surfaces: false,
-            font_render_surface: false,
-        });
+        let command = SourceAuditCommand::new(Vec::new(), None, false);
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
             WorktreePath::from(root.to_path_buf()),
@@ -621,24 +741,12 @@ mod tests {
             WorktreePath::from(root.to_path_buf()),
         )?;
 
-        let no_limit_report = SourceAuditCommand::new(SourceAuditOptions {
-            branch: BranchQuery::parse("*")?,
-            languages: Vec::new(),
-            max_lines: None,
-            version_surfaces: false,
-            font_render_surface: false,
-        })
-        .audit_target(&target)?;
+        let no_limit_report =
+            SourceAuditCommand::new(Vec::new(), None, false).audit_target(&target)?;
         assert!(no_limit_report.problems.is_empty());
 
-        let limited_report = SourceAuditCommand::new(SourceAuditOptions {
-            branch: BranchQuery::parse("*")?,
-            languages: Vec::new(),
-            max_lines: Some(SourceLineLimit(1)),
-            version_surfaces: false,
-            font_render_surface: false,
-        })
-        .audit_target(&target)?;
+        let limited_report = SourceAuditCommand::new(Vec::new(), Some(SourceLineLimit(1)), false)
+            .audit_target(&target)?;
         assert_eq!(limited_report.problems.len(), 1);
         assert!(matches!(
             limited_report.problems[0].audit_warning().detail,
@@ -681,13 +789,7 @@ mod tests {
         run_git(root, &["init"])?;
         run_git(root, &["add", "platform"])?;
 
-        let command = SourceAuditCommand::new(SourceAuditOptions {
-            branch: BranchQuery::parse("*")?,
-            languages: Vec::new(),
-            max_lines: None,
-            version_surfaces: false,
-            font_render_surface: false,
-        });
+        let command = SourceAuditCommand::new(Vec::new(), None, false);
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
             WorktreePath::from(root.to_path_buf()),
@@ -748,13 +850,7 @@ mod tests {
         run_git(root, &["init"])?;
         run_git(root, &["add", "platform"])?;
 
-        let command = SourceAuditCommand::new(SourceAuditOptions {
-            branch: BranchQuery::parse("*")?,
-            languages: Vec::new(),
-            max_lines: None,
-            version_surfaces: false,
-            font_render_surface: true,
-        });
+        let command = SourceAuditCommand::new(Vec::new(), None, true);
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
             WorktreePath::from(root.to_path_buf()),
@@ -772,7 +868,7 @@ mod tests {
         Ok(())
     }
 
-    fn run_git(cwd: &std::path::Path, args: &[&str]) -> eyre::Result<()> {
+    fn run_git(cwd: &Path, args: &[&str]) -> eyre::Result<()> {
         let output = Command::new("git")
             .args(args)
             .current_dir(cwd)
@@ -785,6 +881,52 @@ mod tests {
                 String::from_utf8_lossy(&output.stderr)
             );
         }
+        Ok(())
+    }
+    #[test]
+    fn direct_catalog_audit_rejects_unresolved_relative_project_path() {
+        let command = SourceAuditCommand::new(Vec::new(), None, true);
+        let error = command
+            .invoke_catalog_project(Path::new("selected-projection"))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("project root must be absolute"), "{error}");
+    }
+
+    #[test]
+    fn catalog_audit_uses_only_current_selected_projection_sources() -> eyre::Result<()> {
+        let fixture = Fixture::new_for_target("1.19.2");
+        let key = Fixture::key(0, "dev");
+        let project = fixture.collect(&key)?.prepare_development()?;
+        let legacy = fixture
+            .repository()
+            .join("platform/minecraft/src/main/java/Legacy.java");
+        fs::create_dir_all(legacy.parent().unwrap())?;
+        fs::write(&legacy, "class Legacy {}\n".repeat(100))?;
+        let command =
+            SourceAuditCommand::new(vec![SourceLanguage::Java], Some(SourceLineLimit(1)), true);
+        let report = command.audit_catalog_project(&project, "project:proof")?;
+        assert!(!report.audited_files.is_empty());
+        assert!(report.audited_files.iter().all(|file| {
+            file.repo_path
+                .starts_with(&format!("{}/", project.receipt().project_dir))
+                && !file.repo_path.contains("Legacy.java")
+        }));
+        assert!(
+            report
+                .audited_files
+                .iter()
+                .any(|file| file.repo_path.ends_with("Shared.java"))
+        );
+        fs::write(
+            project.project_root().join("src/main/java/Shared.java"),
+            "class Changed {}",
+        )?;
+        assert!(
+            command
+                .invoke_catalog_project(project.project_root())
+                .is_err()
+        );
         Ok(())
     }
 }

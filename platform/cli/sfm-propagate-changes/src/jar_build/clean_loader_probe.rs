@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::git_read;
 use crate::jdk::resolve_java;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
@@ -7,7 +8,9 @@ use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::env;
 use std::fs;
+use std::io;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Read;
@@ -19,6 +22,7 @@ use std::process::Child;
 use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use std::sync;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -105,9 +109,9 @@ impl CleanLoaderProbeCommand {
             schema_version: 2,
             cli_source_revision: env!("GIT_REVISION").to_string(),
             source_commit,
-            invocation: std::env::args().collect(),
-            operating_system: std::env::consts::OS.to_string(),
-            architecture: std::env::consts::ARCH.to_string(),
+            invocation: env::args().collect(),
+            operating_system: env::consts::OS.to_string(),
+            architecture: env::consts::ARCH.to_string(),
             status: CleanLoaderProbeStatus::Planned,
             release_jar: release_jar.display().to_string(),
             expected_release_sha256: normalize_sha256(&options.expected_release_sha256)?,
@@ -372,7 +376,7 @@ fn java_environment_values() -> Vec<EnvironmentValue> {
     JAVA_ENVIRONMENT_VARIABLES
         .iter()
         .filter_map(|name| {
-            std::env::var(name).ok().and_then(|value| {
+            env::var(name).ok().and_then(|value| {
                 (!value.is_empty()).then(|| EnvironmentValue {
                     name: (*name).to_string(),
                     value,
@@ -578,7 +582,7 @@ fn inspect_release_jar(
             .wrap_err_with(|| format!("Metadata references missing nested entry {}", entry.path))?
             .read_to_end(&mut nested_bytes)
             .wrap_err_with(|| format!("Failed to read nested entry {}", entry.path))?;
-        let cursor = std::io::Cursor::new(&nested_bytes);
+        let cursor = io::Cursor::new(&nested_bytes);
         let mut nested_archive = ZipArchive::new(cursor)
             .wrap_err_with(|| format!("Nested entry is not a valid JAR: {}", entry.path))?;
         validate_zip_archive(&mut nested_archive, &format!("nested JAR {}", entry.path))?;
@@ -970,7 +974,7 @@ fn run_captured(
         .map_err(|_panic_payload| eyre::eyre!("stderr capture thread panicked"))??;
     let output = lines
         .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .unwrap_or_else(sync::PoisonError::into_inner)
         .join("\n");
     fs::write(log_path, format!("{output}\n"))
         .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
@@ -1000,7 +1004,7 @@ fn capture_stream(
             }
             lines
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .unwrap_or_else(sync::PoisonError::into_inner)
                 .push(format!("[{label}] {line}"));
         }
         Ok(())
@@ -1109,7 +1113,7 @@ fn absolute_path(path: &Path) -> eyre::Result<PathBuf> {
     if path.is_absolute() {
         return Ok(path.to_path_buf());
     }
-    Ok(std::env::current_dir()
+    Ok(env::current_dir()
         .wrap_err("Failed to resolve current directory")?
         .join(path))
 }
@@ -1170,8 +1174,8 @@ fn write_report_and_manifest(
 
 fn source_commit() -> eyre::Result<String> {
     let source_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let value = crate::git_read::head_revision(source_dir)
-        .unwrap_or_else(|_| env!("GIT_REVISION").to_string());
+    let value =
+        git_read::head_revision(source_dir).unwrap_or_else(|_| env!("GIT_REVISION").to_string());
     if !(7..=64).contains(&value.len())
         || !value
             .bytes()

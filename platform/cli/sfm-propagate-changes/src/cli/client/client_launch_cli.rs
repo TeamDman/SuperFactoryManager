@@ -1,4 +1,5 @@
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -14,7 +15,7 @@ impl ClientLaunchArgs {
     /// # Errors
     ///
     /// Returns an error if selected tracked clients cannot be launched.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::client_cli::launch_clients(self.branch)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::client_cli::launch_clients(self.branch, app_home)
     }
 }

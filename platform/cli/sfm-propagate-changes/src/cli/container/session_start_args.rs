@@ -1,7 +1,9 @@
 use super::session_target_args::SessionTargetArgs;
 use crate::container_build::SessionRequest;
+use crate::container_build::SessionStartRequest;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 #[derive(Debug, Facet)]
 pub struct SessionStartArgs {
     #[facet(flatten)]
@@ -20,20 +22,15 @@ pub struct SessionStartArgs {
     pub startup_seconds: u64,
 }
 impl SessionStartArgs {
-    pub(crate) fn into_request(
-        self,
-        _invocation: &std::path::Path,
-    ) -> eyre::Result<SessionRequest> {
-        Ok(SessionRequest::Start(
-            crate::container_build::SessionStartRequest {
-                target: self.target.into_request()?,
-                image: self.image,
-                projection: self.projection,
-                game_test: self.game_test,
-                java_max_heap_mib: self.java_max_heap_mib,
-                session_seconds: self.session_seconds,
-                startup_seconds: self.startup_seconds,
-            },
-        ))
+    pub(crate) fn into_request(self, _invocation: &Path) -> eyre::Result<SessionRequest> {
+        Ok(SessionRequest::Start(SessionStartRequest {
+            target: self.target.into_request()?,
+            image: self.image,
+            projection: self.projection,
+            game_test: self.game_test,
+            java_max_heap_mib: self.java_max_heap_mib,
+            session_seconds: self.session_seconds,
+            startup_seconds: self.startup_seconds,
+        }))
     }
 }

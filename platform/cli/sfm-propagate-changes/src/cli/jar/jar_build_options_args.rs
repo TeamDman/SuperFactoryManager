@@ -3,6 +3,7 @@ use crate::jar_build::BuildOptions;
 use crate::jar_build::BuildSelection;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -76,8 +77,14 @@ pub struct JarBuildOptionsArgs {
 }
 
 impl JarBuildOptionsArgs {
-    pub(crate) fn into_options(self, mode: BuildMode) -> eyre::Result<BuildOptions> {
+    pub(crate) fn into_options(
+        self,
+        mode: BuildMode,
+        app_home: &AppHome,
+    ) -> eyre::Result<BuildOptions> {
         Ok(BuildOptions {
+            app_home: app_home.clone(),
+            cache_home: None,
             selection: BuildSelection::Projection {
                 selector: self.projection,
                 repo_root: self.repo_root,
@@ -106,10 +113,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn projection_options_preserve_explicit_override_for_catalog_root_selection() -> eyre::Result<()> {
+    fn projection_options_preserve_explicit_override_for_catalog_root_selection() -> eyre::Result<()>
+    {
+        let app_home = AppHome(PathBuf::from("fixture-app-home"));
         let base = ["--projection", "sfm-4.35.0-extended/mc-1.19.2"];
         let default = figue::from_slice::<JarBuildOptionsArgs>(&base).unwrap();
-        assert!(default.into_options(BuildMode::Build)?.cache_root.is_none());
+        assert!(
+            default
+                .into_options(BuildMode::Build, &app_home)?
+                .cache_root
+                .is_none()
+        );
 
         let parsed = figue::from_slice::<JarBuildOptionsArgs>(&[
             "--projection",
@@ -120,7 +134,7 @@ mod tests {
             "D:/repo/sfm-toolchain-data",
         ])
         .unwrap();
-        let options = parsed.into_options(BuildMode::Build)?;
+        let options = parsed.into_options(BuildMode::Build, &app_home)?;
         assert_eq!(
             options.cache_root.as_deref(),
             Some(std::path::Path::new("D:/repo/sfm-toolchain-data"))

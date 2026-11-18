@@ -48,6 +48,23 @@ impl CatalogReleaseFixture {
             "mod_id=sfm\nmod_version=4.35.0\nminecraft_version={}\n",
             fixture.upstream,
         ))?;
+        let loader_metadata = if matches!(target, "1.21.0" | "1.21.1" | "26.1.2") {
+            "neoforge.mods.toml"
+        } else {
+            "mods.toml"
+        };
+        // Resources belong to the fixture's existing src/... source rule;
+        // project_files is reserved for non-source build inputs.
+        let loader_metadata = fixture
+            .repository()
+            .join(CORE_ROOT)
+            .join("src/main/resources/META-INF")
+            .join(loader_metadata);
+        fs::create_dir_all(loader_metadata.parent().unwrap())?;
+        fs::write(
+            loader_metadata,
+            b"modLoader=\"javafml\"\n[[mods]]\nmodId=\"${mod_id}\"\nversion=\"${mod_version}\"\n",
+        )?;
         let changelog = fixture.repository().join(CORE_ROOT).join(CHANGELOG);
         fs::create_dir_all(changelog.parent().unwrap())?;
         fs::write(

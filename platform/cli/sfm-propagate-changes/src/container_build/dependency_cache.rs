@@ -5,6 +5,7 @@ use super::dependency_layer::DependencyLayer;
 use crate::cancellation::CancellationToken;
 use crate::source_projection::provenance::sha256;
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::Path;
 use std::time::Duration;
 pub(super) fn prepare(
@@ -39,7 +40,7 @@ pub(super) fn prepare(
     let directory = tempfile::Builder::new()
         .prefix(".sfm-dependency-context-")
         .tempdir_in(parent)?;
-    std::fs::rename(stage.join("cache"), directory.path().join("cache"))?;
+    fs::rename(stage.join("cache"), directory.path().join("cache"))?;
     super::artifact::put_bytes(
         directory.path(),
         "Dockerfile",
@@ -50,7 +51,7 @@ pub(super) fn prepare(
     )?;
     dependency.context_prepared = true;
     dependency.context_identity = Some(sha256(facet_json::to_string(&dependency)?.as_bytes()));
-    std::fs::write(
+    fs::write(
         directory.path().join("context-manifest.json"),
         facet_json::to_string_pretty(&dependency)?,
     )?;
@@ -67,7 +68,7 @@ pub(super) fn prepare(
     let reference = format!("localhost/sfm-dependencies@{}", image.manifest_digest);
     let progress = directory.path().join("build-progress.log");
     if progress.exists() {
-        std::fs::copy(
+        fs::copy(
             progress,
             parent.join(format!("dependency-{}-progress.log", &identity[7..23])),
         )?;

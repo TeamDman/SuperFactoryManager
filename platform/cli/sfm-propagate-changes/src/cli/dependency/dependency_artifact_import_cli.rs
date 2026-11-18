@@ -2,11 +2,16 @@
 use crate::artifact_lock::ArtifactLock;
 use crate::cancellation::CancellationToken;
 use crate::dependency_inventory::DependencyInventory;
+use crate::jar_build::engine::select_project_source_cache;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::source_build_receipt;
+use crate::payload_fetcher::write_payload_atomically;
+use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
+use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::core_inputs::CORE_ROOT;
 use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
@@ -18,7 +23,9 @@ use eyre::ensure;
 use facet::Facet;
 use figue as args;
 use sha2::Digest as _;
+use std::ffi::OsStr;
 use std::fs;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -52,7 +59,7 @@ impl DependencyArtifactImportArgs {
     /// Refuses unknown identity, changed pins, bad producer evidence, path collisions or I/O failures.
     pub fn invoke(self, cancellation: &CancellationToken) -> eyre::Result<()> {
         cancellation.bail_if_cancelled()?;
-        let selected = crate::jar_build::engine::select_project_source_cache(
+        let selected = select_project_source_cache(
             &self.project_root,
             self.cache_root.as_deref(),
             cancellation,
@@ -69,7 +76,7 @@ impl DependencyArtifactImportArgs {
         } else {
             "Lock bytes unchanged; manual input and producer receipt remain prerequisites for rebuilding an empty cache."
         };
-        crate::terminal_output::stdout_line(format!(
+        stdout_line(format!(
             "Admitted source-built {}/{} ({}) to {}. {outcome}",
             report.dependency,
             report.component,
@@ -101,16 +108,11 @@ struct ManualAdmissionRecord {
     method: String,
 }
 
-/// Publish a new source-built generation before changing its authored pin.
-/// A crash before the final lock write leaves an unreferenced managed entry;
-/// a crash after the write is repaired by the ordinary source sync.
-fn repin_source_build(
+fn checked_development_lock(
     inventory: &DependencyInventory,
-    args: &DependencyArtifactImportArgs,
-    cancellation: &CancellationToken,
-) -> eyre::Result<AdmissionReport> {
-    let (catalog, key) =
-        crate::source_projection::core_catalog::CoreCatalog::for_project(&args.project_root)?;
+    project_root: &Path,
+) -> eyre::Result<CatalogOwnedProject> {
+    let (catalog, key) = CoreCatalog::for_project(project_root)?;
     let project =
         collect_catalog_project(&catalog.repo_root, &catalog.repo_root, &key)?.check_current()?;
     ensure!(
@@ -139,6 +141,19 @@ fn repin_source_build(
         projected.overlay.is_none(),
         "manual pin update requires the primary checked authored lock"
     );
+    Ok(project)
+}
+
+/// Publish a new source-built generation before changing its authored pin.
+/// A crash before the final lock write leaves an unreferenced managed entry;
+/// a crash after the write is repaired by the ordinary source sync.
+fn repin_source_build(
+    inventory: &DependencyInventory,
+    args: &DependencyArtifactImportArgs,
+    cancellation: &CancellationToken,
+) -> eyre::Result<AdmissionReport> {
+    let project = checked_development_lock(inventory, &args.project_root)?;
+    let selected = project.selected_input("sfm-toolchain.lock.json")?;
     let authored = project.repo_root().join(selected.source_path());
     let original_authored = fs::read_to_string(&authored)?;
     ensure!(
@@ -188,9 +203,9 @@ fn repin_source_build(
     let new_path = PathBuf::from(format!(
         "$sfm-cache/producer-outputs/{receipt_pin}/{filename}"
     ));
-    let mut updated_document = match parse_document(&original_authored)? {
-        ToolchainLockfileDocument::V4(document) => document,
-        _ => eyre::bail!("development authored lock update requires schema 4"),
+    let ToolchainLockfileDocument::V4(mut updated_document) = parse_document(&original_authored)?
+    else {
+        eyre::bail!("development authored lock update requires schema 4");
     };
     update_source_build_entry(
         &mut updated_document.dependencies,
@@ -290,7 +305,10 @@ fn dedicated_development_lock(source_path: &str) -> bool {
     Path::new(source_path)
         .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.starts_with("schema-4-dev-") && name.ends_with(".json"))
+        .is_some_and(|name| {
+            name.starts_with("schema-4-dev-")
+                && Path::new(name).extension() == Some(OsStr::new("json"))
+        })
 }
 
 fn admit_exact_source_build(
@@ -346,7 +364,7 @@ fn admit_exact_source_build(
             && artifact
                 .cache_path
                 .components()
-                .all(|part| matches!(part, std::path::Component::Normal(_)))
+                .all(|part| matches!(part, Component::Normal(_)))
             && component.derived_checks.cache_path == artifact.cache_path,
         "manual source-build destination is not the exact locked producer output"
     );
@@ -516,7 +534,7 @@ fn publish_exact(destination: &Path, bytes: &[u8]) -> eyre::Result<()> {
         );
         return Ok(());
     }
-    crate::payload_fetcher::write_payload_atomically(destination, bytes)?;
+    write_payload_atomically(destination, bytes)?;
     ensure!(
         fs::read(destination)? == bytes,
         "admitted bytes changed after publication"

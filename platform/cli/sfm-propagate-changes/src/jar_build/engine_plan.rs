@@ -1,20 +1,22 @@
 fn resolve_build_targets(options: &BuildOptions) -> eyre::Result<Vec<WorktreeTarget>> {
-    select_required_worktree_targets(options.worktree_query()?)
+    select_required_worktree_targets(options.worktree_query()?, &options.app_home)
 }
 
-fn common_toolchain_cache_dir() -> eyre::Result<PathBuf> {
-    Ok(CacheHome::current()?.0.join("minecraft-toolchain"))
+fn common_toolchain_cache_dir(cache_home: &CacheHome) -> PathBuf {
+    cache_home.0.join("minecraft-toolchain")
 }
 
 // A selected native root owns both immutable downloads and derived outputs.
-// Branch-worktree adapters still use the legacy global cache selection;
+// Branch-worktree adapters use the invocation-selected default cache;
 // catalog entry points select their checkout root before reaching this planner.
 fn selected_common_toolchain_cache_dir(
     root: Option<&native_cache_root::NativeCacheRoot>,
+    cache_home: Option<&CacheHome>,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<PathBuf> {
     let Some(root) = root else {
-        return common_toolchain_cache_dir();
+        let cache_home = cache_home.ok_or(CacheHomeRequired)?;
+        return Ok(common_toolchain_cache_dir(cache_home));
     };
     for relative in [
         "minecraft-toolchain/maven",
@@ -56,7 +58,7 @@ mod selected_common_cache_tests {
             &java,
             &cancellation,
         )?;
-        let common = selected_common_toolchain_cache_dir(Some(&owner), &cancellation)?;
+        let common = selected_common_toolchain_cache_dir(Some(&owner), None, &cancellation)?;
         assert_eq!(common, logical.join("minecraft-toolchain"));
         assert!(common.join("maven").is_dir());
         assert!(common.join("minecraft/versions").is_dir());
@@ -69,7 +71,8 @@ mod selected_common_cache_tests {
             &java,
             &cancellation,
         )?;
-        let other_common = selected_common_toolchain_cache_dir(Some(&other_owner), &cancellation)?;
+        let other_common =
+            selected_common_toolchain_cache_dir(Some(&other_owner), None, &cancellation)?;
         assert_eq!(other_common, common);
         let shared = common.join("maven/org/example/fixture.jar");
         let bytes = b"one checked fixture artifact";
@@ -159,10 +162,12 @@ mod selected_common_cache_tests {
             owner.prepare_directory("projects/dev", &cancellation)?,
             other_owner.prepare_directory("projects/extended", &cancellation)?
         );
+        let cache_home = CacheHome(fixture.path().join("application-cache"));
         assert_eq!(
-            selected_common_toolchain_cache_dir(None, &cancellation)?,
-            common_toolchain_cache_dir()?
+            selected_common_toolchain_cache_dir(None, Some(&cache_home), &cancellation)?,
+            common_toolchain_cache_dir(&cache_home)
         );
+        assert!(selected_common_toolchain_cache_dir(None, None, &cancellation).is_err());
         Ok(())
     }
 }
@@ -311,6 +316,7 @@ fn create_plan_for_project(
         };
         let common_cache_dir = selected_common_toolchain_cache_dir(
             options.derived_cache_root.as_deref(),
+            options.cache_home.as_ref(),
             cancellation_token,
         )?;
         let state_dir = cache_dir.join("state");
@@ -362,15 +368,15 @@ fn create_plan_for_project(
             let (v3_lockfile, jdk_pins) = {
                 let input = fs::read_to_string(&lockfile_path)
                     .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-                let dependencies = crate::toolchain_lockfile_schema::read_current(&input)
-                    .wrap_err_with(|| {
+                let dependencies =
+                    toolchain_lockfile_schema::read_current(&input).wrap_err_with(|| {
                         format!(
                             "Failed to load schema v3 lockfile {}",
                             lockfile_path.display()
                         )
                     })?;
-                let jdk_pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)
-                    .wrap_err_with(|| {
+                let jdk_pins =
+                    toolchain_lockfile_schema::read_jdk_pins(&input).wrap_err_with(|| {
                         format!("Failed to read JDK pins from {}", lockfile_path.display())
                     })?;
                 (dependencies, jdk_pins)
@@ -498,7 +504,7 @@ fn create_plan_for_project(
         let java = {
             let jdk_resolution = if target.is_catalog_owned() {
                 let discovered = if options.java_home.is_none() {
-                    crate::jdk::resolve_java_for_lockfile(
+                    jdk::resolve_java_for_lockfile(
                         None,
                         jdk_pins.as_deref(),
                         required_java,
@@ -520,7 +526,7 @@ fn create_plan_for_project(
                     home,
                     cancellation_token,
                     |launch_home| {
-                        crate::jdk::resolve_java_for_lockfile(
+                        jdk::resolve_java_for_lockfile(
                             Some(launch_home),
                             jdk_pins.as_deref(),
                             required_java,
@@ -530,7 +536,7 @@ fn create_plan_for_project(
                     },
                 )?
             } else {
-                crate::jdk::resolve_java_for_lockfile(
+                jdk::resolve_java_for_lockfile(
                     options.java_home.as_deref(),
                     jdk_pins.as_deref(),
                     required_java,
@@ -545,7 +551,7 @@ fn create_plan_for_project(
                         && jdk_resolution.major_version == selected.pin.major,
                     "Planned Java does not match the held exact JBRSDK pin"
                 );
-                jdk_resolution.selection = "lockfile-pin".to_owned();
+                "lockfile-pin".clone_into(&mut jdk_resolution.selection);
                 jdk_resolution.pin_url = Some(selected.artifact.url.clone());
                 jdk_resolution.pin_sha512 = Some(selected.artifact.sha512.to_ascii_lowercase());
             }
@@ -593,7 +599,7 @@ fn create_plan_for_project(
                 cancellation_token,
             )?;
         } else {
-            let key = crate::source_projection::provenance::sha256(
+            let key = source_projection::provenance::sha256(
                 format!(
                     "{}\n{sdk_identity}",
                     project.receipt().preparation_identity()?
@@ -603,7 +609,7 @@ fn create_plan_for_project(
             cache_dir = minecraft_dir
                 .join("build/sfm-toolchain/native-project")
                 .join(key.trim_start_matches("sha256:"));
-            crate::source_projection::native_project_target::inspect_cache_ancestors(
+            source_projection::native_project_target::inspect_cache_ancestors(
                 &minecraft_dir,
                 &cache_dir
                     .strip_prefix(&minecraft_dir)?
@@ -635,7 +641,7 @@ fn create_plan_for_project(
                 cancellation_token,
             )?;
         } else {
-            let key = crate::source_projection::provenance::sha256(
+            let key = source_projection::provenance::sha256(
                 format!("{}\n{sdk_identity}", development.cache_identity).as_bytes(),
             );
             let key = development_forge_preparation_key(
@@ -647,7 +653,7 @@ fn create_plan_for_project(
             cache_dir = minecraft_dir
                 .join("build/sfm-toolchain/native-project")
                 .join(key.trim_start_matches("sha256:"));
-            crate::source_projection::native_project_target::inspect_cache_ancestors(
+            source_projection::native_project_target::inspect_cache_ancestors(
                 &minecraft_dir,
                 &cache_dir
                     .strip_prefix(&minecraft_dir)?
@@ -1118,7 +1124,7 @@ fn core_coordinates(
     userdev: &ForgeUserdevPlan,
     mcp_config: Option<&McpConfigPlan>,
     dependencies: &[ParsedDependency],
-    named_project: Option<&crate::source_projection::frozen_recipe_project::FrozenRecipeProject>,
+    named_project: Option<&source_projection::frozen_recipe_project::FrozenRecipeProject>,
 ) -> eyre::Result<Vec<(ArtifactId, MavenCoordinate, ArtifactPurpose)>> {
     let mut coordinates = Vec::new();
 
@@ -1312,7 +1318,7 @@ fn add_transitive_runtime_dependency_plans(
         .filter(|dependency| {
             is_runtime_transitive_root(&dependency.configuration)
                 && dependency.artifact_treatment
-                    != crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+                    != toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
         })
         .filter_map(|dependency| MavenCoordinate::parse(&dependency.resolved_notation).ok())
         .collect::<Vec<_>>();
@@ -1757,20 +1763,20 @@ fn read_mcp_config(artifact: &ArtifactPlan) -> eyre::Result<McpConfigPlan> {
 struct ParsedDependency {
     configuration: String,
     coordinate: MavenCoordinate,
-    bundle: Option<crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
-    artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
-    data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
+    bundle: Option<toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
+    artifact_treatment: toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
+    data_run_policy: toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
 }
 
 impl ParsedDependency {
     fn loader_managed(&self) -> bool {
         self.artifact_treatment
-            == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+            == toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
     }
 }
 
 fn project_v3_dependencies(
-    lockfile: &crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+    lockfile: &toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
 ) -> eyre::Result<Vec<ParsedDependency>> {
     let mut projected = Vec::new();
     for dependency in &lockfile.dependencies {
@@ -1832,7 +1838,7 @@ fn project_v3_dependencies(
 fn read_projected_dependencies(lockfile_path: &Path) -> eyre::Result<Vec<ParsedDependency>> {
     let input = fs::read_to_string(lockfile_path)
         .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-    let lockfile = crate::toolchain_lockfile_schema::read_current(&input).wrap_err_with(|| {
+    let lockfile = toolchain_lockfile_schema::read_current(&input).wrap_err_with(|| {
         format!(
             "Failed to load schema v3 lockfile {}",
             lockfile_path.display()
@@ -1844,9 +1850,8 @@ fn read_projected_dependencies(lockfile_path: &Path) -> eyre::Result<Vec<ParsedD
 /// Native transfer roles from the actual effective development profile.
 #[cfg(any(windows, target_os = "linux"))]
 pub(super) fn development_nfrt_dependency_rows(
-    lock: &crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
-) -> eyre::Result<Vec<crate::source_projection::released_native_inputs::ReleasedPreparedDependency>>
-{
+    lock: &toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+) -> eyre::Result<Vec<source_projection::released_native_inputs::ReleasedPreparedDependency>> {
     use crate::source_projection::released_native_inputs::ReleasedBundlePolicy;
     use crate::source_projection::released_native_inputs::ReleasedPreparedDependency;
     use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
@@ -1898,7 +1903,7 @@ pub(super) fn development_nfrt_dependency_rows(
 }
 
 fn project_v3_artifact_lockfile(
-    lockfile: &crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+    lockfile: &toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
     minecraft_version: &str,
     maven_cache_dir: &Path,
 ) -> eyre::Result<ArtifactLockfile> {
@@ -1986,7 +1991,7 @@ fn project_v3_artifact_lockfile(
 }
 
 fn projected_configurations(
-    scopes: &[crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3],
+    scopes: &[toolchain_lockfile_schema::version::v3::DependencyScopeV3],
     coordinate: &MavenCoordinate,
 ) -> Vec<&'static str> {
     use crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3;
@@ -2039,9 +2044,9 @@ fn projected_configurations(
 }
 
 fn project_scope_pair(
-    scopes: &BTreeSet<crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3>,
-    compile_scope: crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3,
-    runtime_scope: crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3,
+    scopes: &BTreeSet<toolchain_lockfile_schema::version::v3::DependencyScopeV3>,
+    compile_scope: toolchain_lockfile_schema::version::v3::DependencyScopeV3,
+    runtime_scope: toolchain_lockfile_schema::version::v3::DependencyScopeV3,
     compile_only: &'static str,
     runtime_only: &'static str,
     combined: &'static str,
@@ -2212,7 +2217,7 @@ fn stable_overridden_project_namespace(
         (projection, recipe, lock),
         sdk,
     );
-    Ok(crate::source_projection::provenance::sha256(
+    Ok(source_projection::provenance::sha256(
         facet_json::to_string(&descriptor)?.as_bytes(),
     ))
 }
@@ -2229,7 +2234,7 @@ fn isolated_project_cache_key(base: &str, label: Option<&str>) -> eyre::Result<S
                 .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_')),
         "isolated project cache label must be 1-64 ASCII letters, digits, '-' or '_'"
     );
-    Ok(crate::source_projection::provenance::sha256(
+    Ok(source_projection::provenance::sha256(
         format!("sfm:isolated_project_cache@1\n{base}\n{label}\n").as_bytes(),
     ))
 }
@@ -2411,7 +2416,7 @@ fn forge_preparation_project_key(
         && *loader == LoaderToolchainKind::ForgeGradleForge
         && minecraft_version == "1.19.2"
     {
-        crate::source_projection::provenance::sha256(
+        source_projection::provenance::sha256(
             format!("sfm:development_forge_preparation_namespace@2\n{legacy_key}").as_bytes(),
         )
     } else {

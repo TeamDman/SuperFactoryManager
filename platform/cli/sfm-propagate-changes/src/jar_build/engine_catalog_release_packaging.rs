@@ -8,7 +8,7 @@ struct CatalogReleasePackagingPolicy {
 }
 
 fn catalog_release_packaging_policy_for_receipt(
-    receipt: &crate::source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
+    receipt: &source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
     properties: &BTreeMap<String, String>,
 ) -> eyre::Result<Option<CatalogReleasePackagingPolicy>> {
     use crate::source_projection::projection_catalog::ProjectionEnvironment;

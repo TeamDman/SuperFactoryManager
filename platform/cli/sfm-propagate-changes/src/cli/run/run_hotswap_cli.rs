@@ -1,13 +1,16 @@
 use super::hotswap_cache_plan::HotswapCachePlan;
 use crate::artifact_lock::ArtifactLock;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::RunTestAction;
 use crate::jar_build::RunTestCommand as JarBuildRunTestCommand;
 use crate::jar_build::RunTestOptions;
 use crate::jar_build::build_snapshot_receipt::BuildSnapshotReceipt;
+use crate::jar_build::projection_selection::select_projections;
 use crate::jar_build::runtime_session_receipt::RuntimeSessionReceipt;
+use crate::jdk::ResolvedJava;
 use eyre::Context;
 use eyre::ensure;
 use facet::Facet;
@@ -54,14 +57,17 @@ impl RunHotswapArgs {
         clippy::needless_pass_by_value,
         reason = "Run commands retain the owning cancellation-token dispatcher interface."
     )]
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        let (root, keys) = crate::jar_build::projection_selection::select_projections(
-            self.options.repo_root.as_deref(),
-            &self.options.projection,
-        )?;
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let (root, keys) =
+            select_projections(self.options.repo_root.as_deref(), &self.options.projection)?;
         ensure!(keys.len() == 1, "hotswap requires exactly one projection");
         let minecraft_dir = root.join("platform/minecraft/projections").join(&keys[0]);
-        let Some(snapshot) = self.prepare_snapshot(&minecraft_dir, cancellation_token.clone())?
+        let Some(snapshot) =
+            self.prepare_snapshot(&minecraft_dir, cancellation_token.clone(), homes)?
         else {
             return Ok(());
         };
@@ -111,7 +117,9 @@ impl RunHotswapArgs {
         &self,
         minecraft_dir: &Path,
         cancellation: CancellationToken,
+        homes: &InvocationHomes,
     ) -> eyre::Result<Option<BuildSnapshotReceipt>> {
+        let app_home = homes.app_home();
         if let Some(receipt) = &self.build_snapshot {
             let snapshot = BuildSnapshotReceipt::load(receipt, minecraft_dir)?;
             if self.options.dry_run {
@@ -122,7 +130,11 @@ impl RunHotswapArgs {
         }
         // Legacy explicit `run hotswap` still prepares first. Ordinary compile
         // and checks only publish a snapshot and never reach this apply path.
-        let mut options = self.options.clone().into_options(BuildMode::Build)?;
+        let mut options = self
+            .options
+            .clone()
+            .into_options(BuildMode::Build, app_home)?
+            .with_cache_home(homes.available_cache_home());
         let temporary = tempfile::tempdir()?;
         let plan_path = options
             .plan_json
@@ -248,10 +260,7 @@ fn ensure_apply_contract(
     Ok(())
 }
 
-fn compile_hotswap_helper(
-    java: &crate::jdk::ResolvedJava,
-    helper_classes_dir: &Path,
-) -> eyre::Result<()> {
+fn compile_hotswap_helper(java: &ResolvedJava, helper_classes_dir: &Path) -> eyre::Result<()> {
     let helper_root = helper_classes_dir
         .parent()
         .ok_or_else(|| eyre::eyre!("Invalid hotswap helper output path"))?;
@@ -293,7 +302,7 @@ fn compile_hotswap_helper(
 }
 
 fn run_hotswap_helper(
-    java: &crate::jdk::ResolvedJava,
+    java: &ResolvedJava,
     helper_classes_dir: &Path,
     port: u16,
     session: &RuntimeSessionReceipt,
@@ -429,7 +438,7 @@ mod tests {
     }
 }
 
-fn javac_executable(java: &crate::jdk::ResolvedJava) -> PathBuf {
+fn javac_executable(java: &ResolvedJava) -> PathBuf {
     java.home.as_ref().map_or_else(
         || PathBuf::from(if cfg!(windows) { "javac.exe" } else { "javac" }),
         |home| {

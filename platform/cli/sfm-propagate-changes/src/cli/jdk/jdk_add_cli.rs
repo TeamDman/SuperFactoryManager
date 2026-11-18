@@ -1,3 +1,5 @@
+use crate::jdk_preferences::JdkPreferenceRegistry;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
@@ -17,8 +19,8 @@ pub struct JdkAddArgs {
 impl JdkAddArgs {
     /// # Errors
     /// Fails if the JDK cannot be inspected or the name conflicts.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let record = crate::jdk_preferences::add(&self.id, &self.home)?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let record = JdkPreferenceRegistry::new(app_home).add(&self.id, &self.home)?;
         stdout_line(format!(
             "{} -> {} ({} {} {}; locator only, not a lockfile pin)",
             record.id, record.home, record.vendor, record.version, record.build

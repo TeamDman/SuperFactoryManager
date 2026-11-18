@@ -1,3 +1,10 @@
+#[path = "run_launch_policy.rs"]
+mod run_launch_policy;
+#[path = "run_launch_state.rs"]
+mod run_launch_state;
+use run_launch_policy::RunLaunchPolicy;
+use run_launch_state::RunLaunchState;
+
 fn ensure_forge_gradle_execution_supported(plan: &BuildPlan) -> eyre::Result<()> {
     if plan.forge_userdev.is_none() || plan.mcp_config.is_none() {
         eyre::bail!(
@@ -45,8 +52,8 @@ type SelectedDependencyRemap = ();
 #[derive(Default)]
 struct ForgeBuildHolds {
     _dev: ForgeDevHold,
-    _mcp: McpHold,
-    _forge_mappings: McpHold,
+    mcp: McpHold,
+    forge_mappings: McpHold,
     mcp_inputs: ForgeInputHold,
     forge_inputs: ForgeInputHold,
 }
@@ -55,8 +62,8 @@ impl ForgeBuildHolds {
     fn recheck_shared_preparation(&self, context: &ExecutionContext<'_>) -> eyre::Result<bool> {
         #[cfg(windows)]
         if let (Some(_), Some(_), Some(mcp), Some(forge)) = (
-            &self._mcp,
-            &self._forge_mappings,
+            &self.mcp,
+            &self.forge_mappings,
             &self.mcp_inputs,
             &self.forge_inputs,
         ) {
@@ -77,24 +84,31 @@ impl ForgeBuildHolds {
         #[cfg(target_os = "linux")]
         context.recheck_compiler_image()?;
         #[cfg(windows)]
-        {
-            if let Some(owner) = &self.mcp_inputs {
-                owner.recheck(context)?;
-            }
-            if let Some(owner) = &self.forge_inputs {
-                owner.recheck(context)?;
-            }
-            // After output selection, no later stage may use a path-only
-            // library cache without recapturing its authenticated bytes.
-            *context
-                .minecraft_libraries_cache
-                .lock()
-                .map_err(|_| eyre::eyre!("Minecraft library cache lock poisoned"))? = None;
-            self.mcp_inputs = None;
-            self.forge_inputs = None;
-        }
+        self.release_windows_prelaunch_input_owners(context)?;
         #[cfg(not(windows))]
         let _ = context;
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    fn release_windows_prelaunch_input_owners(
+        &mut self,
+        context: &ExecutionContext<'_>,
+    ) -> eyre::Result<()> {
+        if let Some(owner) = &self.mcp_inputs {
+            owner.recheck(context)?;
+        }
+        if let Some(owner) = &self.forge_inputs {
+            owner.recheck(context)?;
+        }
+        // After output selection, no later stage may use a path-only
+        // library cache without recapturing its authenticated bytes.
+        *context
+            .minecraft_libraries_cache
+            .lock()
+            .map_err(|error| eyre::eyre!("Minecraft library cache lock poisoned: {error}"))? = None;
+        self.mcp_inputs = None;
+        self.forge_inputs = None;
         Ok(())
     }
 }
@@ -141,31 +155,7 @@ fn execute_build_with_context(
         }
     }
 
-    tracing::info!("Build node resolve-project-config: recording plan state");
-    context.bail_if_cancelled()?;
-    context.write_node_state(
-        "resolve-project-config",
-        &["gradle.properties", "versioned Gradle fragments"],
-        &[plan.state_dir.join("last-plan.json")],
-        "complete",
-    )?;
-    tracing::info!("Build node resolve-maven-and-minecraft-inputs: recording resolved artifacts");
-    context.bail_if_cancelled()?;
-    context.write_node_state(
-        "resolve-maven-and-minecraft-inputs",
-        &[
-            "Maven repositories",
-            VERSION_MANIFEST_URL,
-            "sfm-toolchain.lock.json",
-        ],
-        &[
-            plan.maven_cache_dir.clone(),
-            plan.minecraft_version_cache_dir.clone(),
-            plan.minecraft_libraries_dir.clone(),
-            plan.minecraft_assets_dir.clone(),
-        ],
-        "complete",
-    )?;
+    record_build_input_resolution(context)?;
 
     if plan.identity.is_catalog_owned()
         && plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
@@ -187,7 +177,7 @@ fn execute_build_with_context(
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
         context.bail_if_cancelled()?;
-        execute_neoform_userdev(&context)?;
+        execute_neoform_userdev(context)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-neoform-userdev: done in {} ms",
@@ -223,8 +213,8 @@ fn execute_build_with_context(
         );
         return Ok(ForgeBuildHolds {
             _dev: held_forge_dev_jar,
-            _mcp: held_mcp,
-            _forge_mappings: held_forge_mappings,
+            mcp: held_mcp,
+            forge_mappings: held_forge_mappings,
             mcp_inputs,
             forge_inputs,
         });
@@ -232,11 +222,41 @@ fn execute_build_with_context(
     execute_project_build(context, target, total_started)?;
     Ok(ForgeBuildHolds {
         _dev: held_forge_dev_jar,
-        _mcp: held_mcp,
-        _forge_mappings: held_forge_mappings,
+        mcp: held_mcp,
+        forge_mappings: held_forge_mappings,
         mcp_inputs,
         forge_inputs,
     })
+}
+
+fn record_build_input_resolution(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let plan = context.plan;
+    tracing::info!("Build node resolve-project-config: recording plan state");
+    context.bail_if_cancelled()?;
+    context.write_node_state(
+        "resolve-project-config",
+        &["gradle.properties", "versioned Gradle fragments"],
+        &[plan.state_dir.join("last-plan.json")],
+        "complete",
+    )?;
+    tracing::info!("Build node resolve-maven-and-minecraft-inputs: recording resolved artifacts");
+    context.bail_if_cancelled()?;
+    context.write_node_state(
+        "resolve-maven-and-minecraft-inputs",
+        &[
+            "Maven repositories",
+            VERSION_MANIFEST_URL,
+            "sfm-toolchain.lock.json",
+        ],
+        &[
+            plan.maven_cache_dir.clone(),
+            plan.minecraft_version_cache_dir.clone(),
+            plan.minecraft_libraries_dir.clone(),
+            plan.minecraft_assets_dir.clone(),
+        ],
+        "complete",
+    )?;
+    Ok(())
 }
 
 fn execute_project_build(
@@ -400,7 +420,7 @@ impl RunKind {
 fn game_puppet_launch_timeout(run_options: &RunOptions) -> Option<Duration> {
     if matches!(
         run_options.game_puppet_keep_open,
-        crate::jar_build::GamePuppetKeepOpen::Forever
+        jar_build::GamePuppetKeepOpen::Forever
     ) {
         return None;
     }
@@ -782,9 +802,11 @@ fn execute_run(
         kind,
         run_options,
         dry_run,
-        build_cache_lock,
-        &mut owned_log,
-        None,
+        RunLaunchState {
+            build_cache_lock,
+            owned_console_log: &mut owned_log,
+            build_holds: None,
+        },
     )?;
     Ok(owned_log)
 }
@@ -799,10 +821,13 @@ fn execute_run_with_context(
     kind: RunKind,
     run_options: &RunOptions,
     dry_run: bool,
-    build_cache_lock: &mut Option<ArtifactLock>,
-    owned_console_log: &mut Option<PathBuf>,
-    mut build_holds: Option<&mut ForgeBuildHolds>,
+    state: RunLaunchState<'_>,
 ) -> eyre::Result<()> {
+    let RunLaunchState {
+        build_cache_lock,
+        owned_console_log,
+        build_holds,
+    } = state;
     *owned_console_log = None;
     eyre::ensure!(
         run_options.diagnostic_launch_gate.is_none()
@@ -1007,7 +1032,7 @@ fn execute_run_with_context(
         .held_dependency_remaps
         .iter()
         .map(|held| held.path().to_path_buf())
-        .collect::<std::collections::BTreeSet<_>>();
+        .collect::<BTreeSet<_>>();
     #[cfg(target_os = "linux")]
     let held_remap_paths = context
         .linux_forge
@@ -1140,7 +1165,7 @@ fn execute_run_with_context(
     apply_game_puppet_game_test_property(&mut properties, kind, run_options);
     apply_game_puppet_viewport_selection_property(&mut properties, kind, run_options);
     apply_game_puppet_control_cli_property(&mut properties, kind, game_puppet_control_cli.as_ref());
-    if let Some(seconds) = std::env::var_os("SFM_CONTAINER_SESSION_SECONDS") {
+    if let Some(seconds) = env::var_os("SFM_CONTAINER_SESSION_SECONDS") {
         eyre::ensure!(
             super::container_control_cli::selected()?.is_some(),
             "container session lifetime requires a pinned container control artifact"
@@ -1169,7 +1194,7 @@ fn execute_run_with_context(
     apply_client_projection_key_property(&mut properties, kind, projection_key.as_deref());
     apply_client_title_screen_property(&mut properties, kind, run_options);
     if matches!(kind, RunKind::Client) || run_options.inspection_workspace.is_some() {
-        let executable = std::env::current_exe()?.to_string_lossy().into_owned();
+        let executable = env::current_exe()?.to_string_lossy().into_owned();
         properties.insert("sfm.inspection.executable".into(), executable.clone());
         properties.insert(
             "sfm.inspection.classProducer".into(),
@@ -1351,7 +1376,7 @@ fn execute_run_with_context(
     );
     let launch_log = run_state_dir.join("console.log");
     *owned_console_log = Some(launch_log.clone());
-    if let Some(holds) = build_holds.as_deref_mut() {
+    if let Some(holds) = build_holds {
         let release_started = Instant::now();
         holds.release_prelaunch_input_owners(context)?;
         tracing::info!(
@@ -1409,8 +1434,10 @@ fn execute_run_with_context(
             &working_dir,
             &env,
             &launch_log,
-            launch_timeout,
-            run_options.diagnostic_launch_gate.as_deref(),
+            RunLaunchPolicy {
+                timeout: launch_timeout,
+                diagnostic_launch_gate: run_options.diagnostic_launch_gate.as_deref(),
+            },
         )
         .wrap_err_with(|| {
             format!(
@@ -2382,7 +2409,7 @@ fn process_junit_event_output(
     let stderr = String::from_utf8_lossy(&output.stderr);
     report
         .child_stderr
-        .extend(stderr.lines().map(std::string::ToString::to_string));
+        .extend(stderr.lines().map(ToString::to_string));
 
     if test_options.no_capture || !output.status.success() {
         for line in &report.non_protocol_stdout {
@@ -3096,7 +3123,7 @@ fn game_puppet_control_cli_paths(worktree_path: &Path) -> (PathBuf, PathBuf, Pat
     let target_dir = crate_dir.join("target");
     let executable = target_dir
         .join("debug")
-        .join(format!("sfm{}", std::env::consts::EXE_SUFFIX));
+        .join(format!("sfm{}", env::consts::EXE_SUFFIX));
     (manifest, target_dir, executable)
 }
 
@@ -3309,14 +3336,13 @@ fn run_game_test_bisect_attempt(
         kind,
         &attempt_options,
         false,
-        build_cache_lock,
-        &mut owned_log,
-        None,
+        RunLaunchState {
+            build_cache_lock,
+            owned_console_log: &mut owned_log,
+            build_holds: None,
+        },
     );
-    let launch_error = launch_result
-        .as_ref()
-        .err()
-        .map(std::string::ToString::to_string);
+    let launch_error = launch_result.as_ref().err().map(ToString::to_string);
     if let Some(error) = launch_error.as_deref() {
         tracing::debug!("Game-test bisect run #{run_number} launch returned error: {error}");
     }
@@ -3423,7 +3449,7 @@ fn initial_game_test_bisect_selection(target: &str, filter: Option<&str>) -> Opt
 }
 
 fn exact_game_test_selection(target: &str, companion_tests: &[String]) -> String {
-    std::iter::once(qualify_sfm_game_test_name(target))
+    once(qualify_sfm_game_test_name(target))
         .chain(
             companion_tests
                 .iter()
@@ -3603,7 +3629,7 @@ fn clean_gametest_server_world(session_dir: &Path, working_dir: &Path) -> eyre::
     if world_dir.exists() {
         let metadata = fs::symlink_metadata(&world_dir)?;
         eyre::ensure!(
-            metadata.is_dir() && !crate::source_projection::candidate_lock::is_reparse(&metadata),
+            metadata.is_dir() && !source_projection::candidate_lock::is_reparse(&metadata),
             "Refusing to clean linked or non-directory game-test world: {}",
             world_dir.display()
         );
@@ -3712,7 +3738,7 @@ fn prepare_client_automation_options(
     let options_path = working_dir.join("options.txt");
     let existing = match fs::read_to_string(&options_path) {
         Ok(content) => content,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => String::new(),
         Err(err) => {
             return Err(err).wrap_err_with(|| format!("Failed to read {}", options_path.display()));
         }
@@ -3773,7 +3799,7 @@ fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
         argfile = %argfile.display(),
         working_dir = %working_dir.display(),
         env_vars = env.len(),
-        timeout_seconds = timeout.map_or(0, |timeout| timeout.as_secs()),
+        timeout_seconds = policy.timeout.map_or(0, |timeout| timeout.as_secs()),
     )
 )]
 #[expect(
@@ -3787,9 +3813,12 @@ fn run_launch_command(
     working_dir: &Path,
     env: &BTreeMap<String, String>,
     log_path: &Path,
-    timeout: Option<Duration>,
-    diagnostic_launch_gate: Option<&Path>,
+    policy: RunLaunchPolicy<'_>,
 ) -> eyre::Result<LaunchOutput> {
+    let RunLaunchPolicy {
+        timeout,
+        diagnostic_launch_gate,
+    } = policy;
     let plan = context.plan;
     let cancellation_token = &context.cancellation_token;
     plan.recheck_named_inputs()?;
@@ -3935,7 +3964,7 @@ fn spawn_owned_session_child(
     argfile: &Path,
     working_dir: &Path,
     env: &BTreeMap<String, String>,
-) -> eyre::Result<(std::process::Child, Option<tempfile::NamedTempFile>)> {
+) -> eyre::Result<(Child, Option<tempfile::NamedTempFile>)> {
     session.slot.record_spawn_pending()?;
     let (mut child, launch_argfile_copy) =
         match super::launch_argument_file::spawn(java, argfile, working_dir, env) {
@@ -3963,7 +3992,7 @@ fn spawn_owned_session_child(
 }
 
 fn launch_output_mode() -> LaunchOutputMode {
-    if std::io::stdout().is_terminal() {
+    if io::stdout().is_terminal() {
         LaunchOutputMode::Terminal
     } else {
         LaunchOutputMode::LogFile
@@ -4050,7 +4079,7 @@ fn read_launch_stream<R>(
     stream_name: &'static str,
     output_mode: LaunchOutputMode,
     launch_log: Option<Arc<Mutex<File>>>,
-) -> std::io::Result<String>
+) -> io::Result<String>
 where
     R: Read,
 {
@@ -4081,16 +4110,16 @@ where
     Ok(captured)
 }
 
-fn write_launch_log_line(launch_log: &Arc<Mutex<File>>, line: &str) -> std::io::Result<()> {
+fn write_launch_log_line(launch_log: &Arc<Mutex<File>>, line: &str) -> io::Result<()> {
     let mut log = launch_log
         .lock()
-        .map_err(|_poisoned| std::io::Error::other("launch log file lock was poisoned"))?;
+        .map_err(|_poisoned| io::Error::other("launch log file lock was poisoned"))?;
     writeln!(log, "{line}")?;
     Ok(())
 }
 
 fn join_launch_stream(
-    handle: thread::JoinHandle<std::io::Result<String>>,
+    handle: thread::JoinHandle<io::Result<String>>,
     name: &str,
 ) -> eyre::Result<String> {
     handle
@@ -4107,10 +4136,10 @@ struct ProcessSpawnReport {
 }
 
 fn observe_process_spawn_result<T>(
-    result: std::io::Result<T>,
+    result: io::Result<T>,
     child_pid: impl FnOnce(&T) -> u32,
     observer: impl FnOnce(&ProcessSpawnReport),
-) -> std::io::Result<T> {
+) -> io::Result<T> {
     let report = match &result {
         Ok(child) => ProcessSpawnReport {
             child_pid: Some(child_pid(child)),
@@ -4143,9 +4172,8 @@ fn run_command_capture_output_observing_spawn(
 ) -> eyre::Result<CancellableOutput> {
     cancellation_token.bail_if_cancelled()?;
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child =
-        observe_process_spawn_result(command.spawn(), std::process::Child::id, observer)
-            .wrap_err_with(|| format!("Failed to spawn {process_name}"))?;
+    let mut child = observe_process_spawn_result(command.spawn(), Child::id, observer)
+        .wrap_err_with(|| format!("Failed to spawn {process_name}"))?;
     let stdout = child
         .stdout
         .take()
@@ -4185,20 +4213,17 @@ fn run_command_capture_output_observing_spawn(
     })
 }
 
-fn kill_child_for_cancellation(
-    child: &mut std::process::Child,
-    process_name: &str,
-) -> eyre::Result<()> {
+fn kill_child_for_cancellation(child: &mut Child, process_name: &str) -> eyre::Result<()> {
     match child.kill() {
         Ok(()) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::InvalidInput => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::InvalidInput => Ok(()),
         Err(error) => {
             Err(error).wrap_err_with(|| format!("Failed to kill cancelled {process_name}"))
         }
     }
 }
 
-fn read_stream_bytes<R>(mut stream: R) -> std::io::Result<Vec<u8>>
+fn read_stream_bytes<R>(mut stream: R) -> io::Result<Vec<u8>>
 where
     R: Read,
 {
@@ -4208,7 +4233,7 @@ where
 }
 
 fn join_output_stream(
-    handle: thread::JoinHandle<std::io::Result<Vec<u8>>>,
+    handle: thread::JoinHandle<io::Result<Vec<u8>>>,
     process_name: &str,
     stream_name: &str,
 ) -> eyre::Result<Vec<u8>> {
@@ -4611,7 +4636,7 @@ fn resolve_neogradle_run_classpath(
 fn validate_game_puppet_completion(
     output: &str,
     launch_log: &Path,
-    keep_open: crate::jar_build::GamePuppetKeepOpen,
+    keep_open: jar_build::GamePuppetKeepOpen,
 ) -> eyre::Result<()> {
     if output.contains("SFM_GAME_PUPPET_FAILED") {
         eyre::bail!(
@@ -4624,7 +4649,7 @@ fn validate_game_puppet_completion(
         && completions[0].get("failed") == Some(&"0")
         && completions[0]
             .get("total")
-            .is_some_and(|total| total.parse::<std::num::NonZeroU32>().is_ok());
+            .is_some_and(|total| total.parse::<NonZeroU32>().is_ok());
     if !successful_completion {
         eyre::bail!(
             "runGameTestPreview exited successfully but did not report successful puppet completion. See {}",
@@ -4664,11 +4689,8 @@ fn puppet_marker_fields<'a>(output: &'a str, marker: &str) -> Vec<BTreeMap<&'a s
         .collect()
 }
 
-fn valid_retained_puppet_viewport(
-    output: &str,
-    keep_open: crate::jar_build::GamePuppetKeepOpen,
-) -> bool {
-    if matches!(keep_open, crate::jar_build::GamePuppetKeepOpen::None) {
+fn valid_retained_puppet_viewport(output: &str, keep_open: jar_build::GamePuppetKeepOpen) -> bool {
+    if matches!(keep_open, jar_build::GamePuppetKeepOpen::None) {
         return false;
     }
     let retained = puppet_marker_fields(output, "SFM_GAME_PUPPET_VIEWPORT_RETAINED");
@@ -4952,7 +4974,7 @@ fn publish_game_puppet_preview_artifacts(
             entry
                 .file_type()
                 .ok()
-                .filter(std::fs::FileType::is_file)
+                .filter(fs::FileType::is_file)
                 .map(|_| entry.path())
         })
         .collect::<Vec<_>>();
@@ -5204,7 +5226,7 @@ fn allocate_game_puppet_preview_run_root(
         let candidate = run_parent.join(&run_id);
         match fs::create_dir(&candidate) {
             Ok(()) => return Ok((run_id, candidate)),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
             Err(error) => {
                 return Err(error)
                     .wrap_err_with(|| format!("Failed to create {}", candidate.display()));
@@ -5488,7 +5510,7 @@ fn validate_game_puppet_data_artifact_payload(
             metadata.reported_bytes
         );
     }
-    let text = std::str::from_utf8(bytes).wrap_err_with(|| {
+    let text = from_utf8(bytes).wrap_err_with(|| {
         format!(
             "Game puppet artifact was not valid UTF-8: {}",
             metadata.file_name
@@ -5547,7 +5569,7 @@ fn is_safe_variant_id(value: &str) -> bool {
     value.split_once('@').is_some_and(|(size, scale)| {
         size.split_once('x').is_some_and(|(width, height)| {
             width.parse::<u16>().is_ok() && height.parse::<u16>().is_ok()
-        }) && (scale == "auto" || scale.parse::<std::num::NonZeroU16>().is_ok())
+        }) && (scale == "auto" || scale.parse::<NonZeroU16>().is_ok())
     })
 }
 
@@ -5742,7 +5764,7 @@ fn game_puppet_preview_source_identity(
 ) -> eyre::Result<GamePuppetPreviewSourceIdentity> {
     plan.recheck_named_inputs()?;
     let worktree = plan.repository_root().display().to_string();
-    let git_revision = crate::git_read::head_revision(plan.repository_root())
+    let git_revision = git_read::head_revision(plan.repository_root())
         .unwrap_or_else(|_| "unavailable".to_string());
     let working_tree_dirty = Command::new("git")
         .args([
@@ -5757,8 +5779,7 @@ fn game_puppet_preview_source_identity(
         .filter(|output| output.status.success())
         .is_none_or(|output| !output.stdout.is_empty());
 
-    let source_inputs = [
-        plan.repository_root().join("platform/minecraft/src"),
+    let mut source_inputs = vec![
         plan.repository_root().join("platform/cli/sfm/src"),
         plan.repository_root().join("platform/cli/sfm/Cargo.toml"),
         plan.repository_root().join("platform/cli/sfm/Cargo.lock"),
@@ -5770,6 +5791,23 @@ fn game_puppet_preview_source_identity(
             .join("platform/cli/sfm-propagate-changes/Cargo.lock"),
         plan.lockfile_path.clone(),
     ];
+    let mut fingerprint_input = b"sfm-game-puppet-source-identity-v2\n".to_vec();
+    let selected_project = match &plan.identity {
+        BuildProjectIdentity::Worktree { root, .. } => {
+            source_inputs.push(root.join("platform/minecraft/src"));
+            None
+        }
+        BuildProjectIdentity::Catalog { frozen } => Some(frozen.project()),
+        BuildProjectIdentity::CatalogAdmitted { inputs } => Some(inputs.project().project()),
+        BuildProjectIdentity::Development { project, .. } => Some(project.as_ref()),
+    };
+    if let Some(project) = selected_project {
+        // The checked receipt binds selected authored and rendered bytes to this
+        // projection's context. Unselected templates and the retired flat tree
+        // cannot become evidence for a catalog runtime.
+        fingerprint_input.extend_from_slice(project.ownership_identity()?.as_bytes());
+        fingerprint_input.push(b'\n');
+    }
     let mut files = Vec::new();
     for input in source_inputs {
         if input.is_file() {
@@ -5780,7 +5818,6 @@ fn game_puppet_preview_source_identity(
     }
     files.sort();
     files.dedup();
-    let mut fingerprint_input = b"sfm-game-puppet-source-identity-v1\n".to_vec();
     for file in files {
         let relative = game_puppet_preview_relative_source_path(plan.repository_root(), &file)?;
         fingerprint_input
@@ -6641,7 +6678,7 @@ fn run_jar_current(output: &Path, input_state: &str, refresh: bool) -> eyre::Res
     }
     let recorded_input = match fs::read_to_string(output.with_extension("inputs.sha1")) {
         Ok(value) => value,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
         Err(error) => return Err(error.into()),
     };
     if recorded_input != input_state {
@@ -6649,7 +6686,7 @@ fn run_jar_current(output: &Path, input_state: &str, refresh: bool) -> eyre::Res
     }
     let expected = match fs::read_to_string(output.with_extension("output.blake3")) {
         Ok(value) => value,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
         Err(error) => return Err(error.into()),
     };
     let actual = ContentHash::from_path(output, ContentHashAlgorithm::Blake3)?;
@@ -6670,8 +6707,8 @@ fn run_jar_platform_identity(context: &ExecutionContext<'_>) -> String {
         context.plan.loader_toolchain.kind,
         context.plan.loader_toolchain.userdev_coordinate,
         context.plan.java.version_output,
-        std::env::consts::OS,
-        std::env::consts::ARCH
+        env::consts::OS,
+        env::consts::ARCH
     )
 }
 
@@ -7009,7 +7046,7 @@ fn resolve_run_deobf_dependencies(
     let mut selected = Vec::new();
     for dependency in context.plan.dependencies.iter().filter(|dependency| {
         dependency.artifact_treatment
-            == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+            == toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
             && dependency_selected_for_run(
                 &dependency.configuration,
                 dependency.data_run_policy,
@@ -7068,18 +7105,18 @@ fn resolve_run_deobf_dependencies(
             &coordinate,
         );
         #[cfg(windows)]
-        if let Some(owner) = &remap_authority {
-            if let Some(held) = dependency_remap_cache::hold_for_runtime(
+        if let Some(owner) = &remap_authority
+            && let Some(held) = dependency_remap_cache::hold_for_runtime(
                 context,
                 &artifact,
                 &coordinate.to_string(),
                 owner.fingerprint(),
-            )? {
-                context.assert_allowed_input(held.path())?;
-                output.push(held.path().to_path_buf());
-                held_remaps.push(held);
-                continue;
-            }
+            )?
+        {
+            context.assert_allowed_input(held.path())?;
+            output.push(held.path().to_path_buf());
+            held_remaps.push(held);
+            continue;
         }
         if !remapped.is_file() {
             eyre::bail!(
@@ -7110,7 +7147,7 @@ fn resolve_neogradle_run_dependencies(
     let mut output = Vec::new();
     for dependency in context.plan.dependencies.iter().filter(|dependency| {
         (dependency.artifact_treatment
-            == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
+            == toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
             == loader_managed_mods
             && dependency_selected_for_run(
                 &dependency.configuration,
@@ -7207,12 +7244,11 @@ fn run_source_roots(
 
 fn dependency_selected_for_run(
     configuration: &str,
-    data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
+    data_run_policy: toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
     kind: RunKind,
 ) -> bool {
     if matches!(kind, RunKind::Data) {
-        return data_run_policy
-            == crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include
+        return data_run_policy == toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include
             && matches!(
                 configuration,
                 "implementation" | "compileOnly" | "runtimeOnly" | "jarJar"
@@ -7260,10 +7296,10 @@ fn checked_launch_input(path: &Path) -> eyre::Result<PathBuf> {
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("launch input has no parent"))?;
-    crate::source_projection::candidate_lock::checked_directory(parent)?;
+    source_projection::candidate_lock::checked_directory(parent)?;
     let metadata = fs::symlink_metadata(path)?;
     eyre::ensure!(
-        !crate::source_projection::candidate_lock::is_reparse(&metadata)
+        !source_projection::candidate_lock::is_reparse(&metadata)
             && (metadata.is_dir() || metadata.is_file()),
         "launch input is a link or nonregular path"
     );
@@ -7382,7 +7418,7 @@ fn open_launch_input(source: &Path) -> eyre::Result<File> {
     let file = options.open(source)?;
     let metadata = file.metadata()?;
     eyre::ensure!(
-        metadata.is_file() && !crate::source_projection::candidate_lock::is_reparse(&metadata),
+        metadata.is_file() && !source_projection::candidate_lock::is_reparse(&metadata),
         "launch input is not a regular non-reparse file"
     );
     Ok(file)
@@ -7396,7 +7432,7 @@ fn copy_launch_file(
 ) -> eyre::Result<()> {
     let mut input = open_launch_input(source)?;
     let before = input.metadata()?;
-    let identity = crate::file_identity::file_identity(&input)?;
+    let identity = file_identity::file_identity(&input)?;
     eyre::ensure!(
         before.len() <= 1024 * 1024 * 1024,
         "launch file exceeds byte limit"
@@ -7419,8 +7455,8 @@ fn copy_launch_file(
         options.mode(before.permissions().mode() & 0o777);
     };
     let mut output = options.open(target)?;
-    let copied = std::io::copy(
-        &mut std::io::Read::by_ref(&mut input).take(before.len() + 1),
+    let copied = io::copy(
+        &mut Read::by_ref(&mut input).take(before.len() + 1),
         &mut output,
     )?;
     eyre::ensure!(
@@ -7437,7 +7473,7 @@ fn copy_launch_file(
         "launch input changed during capture"
     );
     eyre::ensure!(
-        crate::file_identity::file_identity(&open_launch_input(&checked_launch_input(source)?)?)?
+        file_identity::file_identity(&open_launch_input(&checked_launch_input(source)?)?)?
             == identity,
         "launch input path was replaced during capture"
     );
@@ -7502,7 +7538,7 @@ fn launch_path_spellings(path: &Path) -> Vec<String> {
             }
         }
     }
-    spellings.sort_by_key(|spelling| std::cmp::Reverse(spelling.len()));
+    spellings.sort_by_key(|spelling| Reverse(spelling.len()));
     spellings.dedup();
     spellings
 }
@@ -7534,7 +7570,7 @@ fn launch_authority_matches(source: &Path, matched: &str) -> bool {
 
 fn rewrite_captured_launch_value(value: &str, captured: &BTreeMap<PathBuf, PathBuf>) -> String {
     let mut pairs = captured.iter().collect::<Vec<_>>();
-    pairs.sort_by_key(|(source, _)| std::cmp::Reverse(source.as_os_str().len()));
+    pairs.sort_by_key(|(source, _)| Reverse(source.as_os_str().len()));
     pairs
         .into_iter()
         .fold(value.to_owned(), |value, (source, target)| {
@@ -7578,7 +7614,7 @@ fn launch_path_matches(
             }
         }
     }
-    matches.sort_unstable_by_key(|(start, end)| (*start, std::cmp::Reverse(*end)));
+    matches.sort_unstable_by_key(|(start, end)| (*start, Reverse(*end)));
     matches.dedup();
     matches
 }
@@ -7764,7 +7800,7 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         sha1: index_sha1,
         size: index_size,
     } = asset_index;
-    crate::source_projection::promotion::validate_relative_path(&index_id)?;
+    source_projection::promotion::validate_relative_path(&index_id)?;
     eyre::ensure!(
         !index_id.contains('/'),
         "Asset index id must be one component"

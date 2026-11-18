@@ -1,6 +1,8 @@
 use super::dependency_context::load_inventory;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::dependency_inventory::DependencyInventory;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::payload_fetcher::http_fetcher;
 use crate::source_decompile::configure_decompile_sources;
@@ -9,7 +11,9 @@ use crate::source_git::validate_requested_git_revision;
 use crate::source_maven::configure_maven_sources;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyV3;
 use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceDerivedChecksV3;
 use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3;
@@ -66,10 +70,11 @@ impl DependencySourceConfigureArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         let target = self.target.clone();
         let configuration = SourceConfiguration::from_args(self)?;
-        let mut inventory = load_inventory(configuration.branch(), cache_home)?;
+        let mut inventory = load_inventory(configuration.branch(), cache_home, app_home)?;
         let selected = select_configured_component(&inventory, &target)?;
         let prefer = configuration.prefer();
         let provider =
@@ -210,7 +215,7 @@ struct ConfiguredComponent {
 }
 
 fn select_configured_component(
-    inventory: &crate::dependency_inventory::DependencyInventory,
+    inventory: &DependencyInventory,
     target: &str,
 ) -> eyre::Result<ConfiguredComponent> {
     let (dependency_id, component_id) = split_target(target)?;
@@ -232,7 +237,7 @@ fn select_configured_component(
 }
 
 fn configure_source_provider(
-    inventory: &crate::dependency_inventory::DependencyInventory,
+    inventory: &DependencyInventory,
     selected: ConfiguredComponent,
     configuration: SourceConfiguration,
     cancellation_token: &CancellationToken,
@@ -281,7 +286,7 @@ fn configure_source_provider(
 }
 
 fn configure_platform_pipeline_sources(
-    inventory: &crate::dependency_inventory::DependencyInventory,
+    inventory: &DependencyInventory,
     selected: ConfiguredComponent,
     roots: Vec<String>,
 ) -> eyre::Result<SourceProviderV3> {
@@ -346,7 +351,7 @@ fn configure_platform_pipeline_sources(
 }
 
 fn platform_requested_version(
-    dependency: &crate::toolchain_lockfile_schema::version::v3::DependencyV3,
+    dependency: &DependencyV3,
     expected_kind: ToolchainComponentKindV3,
 ) -> eyre::Result<&str> {
     dependency
@@ -371,7 +376,7 @@ fn platform_requested_version(
 }
 
 fn replace_source_provider(
-    inventory: &mut crate::dependency_inventory::DependencyInventory,
+    inventory: &mut DependencyInventory,
     selected: ConfiguredComponent,
     provider: SourceProviderV3,
     prefer: bool,
@@ -434,7 +439,7 @@ fn split_target(target: &str) -> eyre::Result<(&str, Option<&str>)> {
 }
 
 fn select_component_index(
-    components: &[crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3],
+    components: &[DependencyComponentV3],
     dependency_id: &str,
     component_id: Option<&str>,
 ) -> eyre::Result<usize> {

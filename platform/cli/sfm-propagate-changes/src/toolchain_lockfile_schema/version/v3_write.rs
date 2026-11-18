@@ -1,6 +1,7 @@
 use crate::jar_build::ArtifactLockEntry;
 use crate::jar_build::ArtifactLockfile;
 use crate::jar_build::ArtifactSource;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactPurposeV3;
@@ -120,7 +121,7 @@ impl ArtifactLockfileV3 {
                 source_git: artifact.source_git.clone(),
                 source_build: artifact.source_build.clone(),
                 weak: artifact.weak.as_ref().map(|weak| {
-                    crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
+                    toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
                         metadata_path: weak.metadata_path.clone(),
                         mod_id: weak.mod_id.clone(),
                         version: weak.version.clone(),
@@ -204,7 +205,7 @@ fn refresh_artifact_evidence(artifact: &mut ArtifactV3, resolved: &ArtifactLockE
     artifact.source_git.clone_from(&resolved.source_git);
     artifact.source_build.clone_from(&resolved.source_build);
     artifact.weak = resolved.weak.as_ref().map(|weak| {
-        crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
+        toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
             metadata_path: weak.metadata_path.clone(),
             mod_id: weak.mod_id.clone(),
             version: weak.version.clone(),

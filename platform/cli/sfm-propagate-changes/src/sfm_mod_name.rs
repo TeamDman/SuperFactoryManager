@@ -14,6 +14,14 @@ impl SfmModName {
     pub const VALUE: &'static str = "Super Factory Manager (SFM)";
 }
 
+impl TryFrom<SfmModName> for ModName {
+    type Error = eyre::Report;
+
+    fn try_from(_: SfmModName) -> Result<Self> {
+        Self::parse(SfmModName::VALUE)
+    }
+}
+
 impl TryFrom<&ModName> for SfmModName {
     type Error = eyre::Report;
 
@@ -41,7 +49,8 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModName>(), 0);
-        let value: ModName = SfmModName.into();
+        let value: Result<ModName> = SfmModName.try_into();
+        let value = value?;
         assert_eq!(value.as_str(), SfmModName::VALUE);
         assert_eq!(value, ModName::parse(SfmModName::VALUE)?);
         assert_eq!(SfmModName::try_from(&value)?, SfmModName);

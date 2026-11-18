@@ -78,64 +78,20 @@ pub(super) fn execute(
     check()?;
     let outputs = output_paths(producer);
     let consumer_outputs = selected_consumer_outputs(&outputs);
-    let cancellation = || context.bail_if_cancelled();
-    let held_reuse = if context.plan.refresh {
-        None
-    } else {
-        NfrtPreparationPhase::run("dependency_remap.lookup", || {
-            // Unsealed entries can scan every archive chunk on first admission.
-            // The original artifact is checked there, while the held
-            // common mapping/tool/SDK authority is checked at both ends of the
-            // lookup, before any result may reach a compiler or launch.
-            held_lookup_with_common_authority(&key_root, fingerprint, shared_check, &|| {
-                inputs.recheck(context)
-            })
-        })?
-    };
-    check()?;
-    if let Some((entry, held)) = held_reuse {
-        observe(
-            producer,
-            key,
-            &key_root,
-            Some(&entry),
-            "reused",
-            true,
-            "held_shared",
-        );
-        // Rayon may return only Send data. The coordinator opens this exact
-        // entry again before any compile/package classpath can consume it.
-        drop(held);
-        return Ok(Some(SelectedDependencyRemapEntry {
-            entry,
-            fingerprint: fingerprint.to_owned(),
-        }));
+    if let Some(selected) =
+        reuse_held_entry(context, producer, key, &key_root, &inputs, shared_check)?
+    {
+        return Ok(Some(selected));
     }
-    let reused = if context.plan.refresh {
-        None
-    } else {
-        NfrtPreparationPhase::run("dependency_remap.lookup", || {
-            forge_preparation_cache::restore_entry(
-                &key_root,
-                fingerprint,
-                &context.plan.cache_dir,
-                &consumer_outputs,
-                cancellation,
-                "dependency_remap.materialize",
-            )
-        })?
-    };
-    check()?;
-    if let Some((entry, current)) = reused {
-        observe(
-            producer,
-            key,
-            &key_root,
-            Some(&entry),
-            "reused",
-            true,
-            if current { "already_current" } else { "copied" },
-        );
+    if restore_reused_entry(
+        context,
+        producer,
+        key,
+        &key_root,
+        fingerprint,
+        &consumer_outputs,
+        &check,
+    )? {
         return Ok(None);
     }
     let Some(attempt) = DependencyRemapAttempt::create(&base, key)? else {
@@ -176,6 +132,93 @@ pub(super) fn execute(
     } else {
         None
     })
+}
+
+// The caller retains store/key directory leases and the producer lock through
+// this lookup, any subsequent materialization and fresh publication.
+fn reuse_held_entry(
+    context: &ExecutionContext<'_>,
+    producer: &DependencyDeobfProducer,
+    key: &str,
+    key_root: &Path,
+    inputs: &DependencyRemapArtifactInputs,
+    shared_check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<Option<SelectedDependencyRemapEntry>> {
+    let fingerprint = inputs.fingerprint();
+    let held_reuse = if context.plan.refresh {
+        None
+    } else {
+        NfrtPreparationPhase::run("dependency_remap.lookup", || {
+            // Unsealed entries can scan every archive chunk on first admission.
+            // The original artifact is checked there, while the held
+            // common mapping/tool/SDK authority is checked at both ends of the
+            // lookup, before any result may reach a compiler or launch.
+            held_lookup_with_common_authority(key_root, fingerprint, shared_check, &|| {
+                inputs.recheck(context)
+            })
+        })?
+    };
+    shared_check()?;
+    inputs.recheck(context)?;
+    if let Some((entry, held)) = held_reuse {
+        observe(
+            producer,
+            key,
+            key_root,
+            Some(&entry),
+            "reused",
+            true,
+            "held_shared",
+        );
+        // Rayon may return only Send data. The coordinator opens this exact
+        // entry again before any compile/package classpath can consume it.
+        drop(held);
+        return Ok(Some(SelectedDependencyRemapEntry {
+            entry,
+            fingerprint: fingerprint.to_owned(),
+        }));
+    }
+    Ok(None)
+}
+
+fn restore_reused_entry(
+    context: &ExecutionContext<'_>,
+    producer: &DependencyDeobfProducer,
+    key: &str,
+    key_root: &Path,
+    fingerprint: &str,
+    consumer_outputs: &[(&str, PathBuf)],
+    check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<bool> {
+    let cancellation = || context.bail_if_cancelled();
+    let reused = if context.plan.refresh {
+        None
+    } else {
+        NfrtPreparationPhase::run("dependency_remap.lookup", || {
+            forge_preparation_cache::restore_entry(
+                key_root,
+                fingerprint,
+                &context.plan.cache_dir,
+                consumer_outputs,
+                cancellation,
+                "dependency_remap.materialize",
+            )
+        })?
+    };
+    check()?;
+    if let Some((entry, current)) = reused {
+        observe(
+            producer,
+            key,
+            key_root,
+            Some(&entry),
+            "reused",
+            true,
+            if current { "already_current" } else { "copied" },
+        );
+        return Ok(true);
+    }
+    Ok(false)
 }
 
 pub(super) fn rehold_for_build(
@@ -279,14 +322,13 @@ fn finish(
         forge_preparation_cache::publish_entry(key_root, fingerprint, produced, cancellation)
     })?;
     check()?;
-    if let Some(entry) = &entry {
-        if let Some(held) =
+    if let Some(entry) = &entry
+        && let Some(held) =
             forge_preparation_cache::hold_dependency_remap_entry(entry, fingerprint, check)?
-        {
-            check()?;
-            drop(held);
-            return Ok((Some(entry.clone()), true, true));
-        }
+    {
+        check()?;
+        drop(held);
+        return Ok((Some(entry.clone()), true, true));
     }
     let current = if let Some(entry) = &entry {
         forge_preparation_cache::restore_completed(
@@ -445,8 +487,8 @@ mod selective_tests {
     use super::*;
     use eyre::Result;
     use std::cell::Cell;
-    use std::fs;
-
+    use std::fs::read;
+    use std::fs::write;
     #[test]
     fn held_lookup_checks_common_authority_at_boundaries_and_artifact_inside() -> Result<()> {
         let root = tempfile::tempdir()?;
@@ -455,8 +497,8 @@ mod selective_tests {
             ("specialsource.jar", producer.join("specialsource.jar")),
             ("remapped.jar", producer.join("remapped.jar")),
         ];
-        fs::write(&outputs[0].1, b"intermediate-only")?;
-        fs::write(&outputs[1].1, b"compiled-consumer")?;
+        write(&outputs[0].1, b"intermediate-only")?;
+        write(&outputs[1].1, b"compiled-consumer")?;
         let key = fixture_dir(&root.path().join("key"))?;
         forge_preparation_cache::publish_entry(&key, "pair-fixture", &outputs, || Ok(()))?
             .ok_or_else(|| eyre::eyre!("fixture publication unavailable"))?;
@@ -509,8 +551,8 @@ mod selective_tests {
             ("specialsource.jar", producer.join("specialsource.jar")),
             ("remapped.jar", producer.join("remapped.jar")),
         ];
-        fs::write(&produced[0].1, b"intermediate-only")?;
-        fs::write(&produced[1].1, b"compiled-consumer")?;
+        write(&produced[0].1, b"intermediate-only")?;
+        write(&produced[1].1, b"compiled-consumer")?;
         let key = fixture_dir(&root.path().join("key"))?;
         let entry =
             forge_preparation_cache::publish_entry(&key, "pair-fixture", &produced, || Ok(()))?
@@ -535,11 +577,11 @@ mod selective_tests {
             Some(false)
         );
         assert!(!destinations[0].1.exists());
-        assert_eq!(fs::read(&destinations[1].1)?, b"compiled-consumer");
+        assert_eq!(read(&destinations[1].1)?, b"compiled-consumer");
 
         // A partial selection must still reject corruption in the omitted
         // stored intermediate, before trusting the remapped output.
-        fs::write(entry.join("payload/specialsource.jar"), b"corrupt")?;
+        write(entry.join("payload/specialsource.jar"), b"corrupt")?;
         let second = fixture_dir(&root.path().join("second"))?;
         let second_outputs = vec![
             ("specialsource.jar", second.join("specialsource.jar")),
@@ -569,8 +611,8 @@ mod selective_tests {
             ("specialsource.jar", producer.join("specialsource.jar")),
             ("remapped.jar", producer.join("remapped.jar")),
         ];
-        fs::write(&produced[0].1, b"intermediate-only")?;
-        fs::write(&produced[1].1, b"compiled-consumer")?;
+        write(&produced[0].1, b"intermediate-only")?;
+        write(&produced[1].1, b"compiled-consumer")?;
         let destinations = vec![
             ("specialsource.jar", project.join("specialsource.jar")),
             ("remapped.jar", project.join("remapped.jar")),
@@ -586,7 +628,7 @@ mod selective_tests {
             Some(false)
         );
         assert!(!destinations[0].1.exists());
-        assert_eq!(fs::read(&destinations[1].1)?, b"compiled-consumer");
+        assert_eq!(read(&destinations[1].1)?, b"compiled-consumer");
         Ok(())
     }
 }

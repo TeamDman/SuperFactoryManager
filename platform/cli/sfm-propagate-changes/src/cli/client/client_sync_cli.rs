@@ -1,4 +1,6 @@
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use crate::prism::PrismLoaderSelection;
 use facet::Facet;
 use figue as args;
@@ -24,8 +26,14 @@ impl ClientSyncArgs {
     /// # Errors
     ///
     /// Returns an error if configured instances cannot be created, tracked, or updated.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::client_cli::sync_clients(self.branch, self.loader, self.java_home.as_deref())
+    pub fn invoke(self, app_home: &AppHome, cache_home: &CacheHome) -> eyre::Result<()> {
+        super::client_cli::sync_clients(
+            self.branch,
+            self.loader,
+            self.java_home.as_deref(),
+            app_home,
+            cache_home,
+        )
     }
 }
 

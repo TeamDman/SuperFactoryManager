@@ -1,4 +1,5 @@
 use crate::cli::jar::get_jar_dir;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use std::ffi::OsStr;
@@ -11,8 +12,8 @@ impl JarListArgs {
     /// # Errors
     ///
     /// Returns an error if the jar directory cannot be read or stdout cannot be written.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let jar_dir = get_jar_dir()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let jar_dir = get_jar_dir(app_home)?;
         let jars = super::jar_dir_cli::list_jar_files_sorted(&jar_dir)?;
 
         if jars.is_empty() {

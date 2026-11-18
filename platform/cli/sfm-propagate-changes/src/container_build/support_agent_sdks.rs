@@ -1,8 +1,10 @@
 //! Official Linux SDK pins. Acquisition is separate; the exporter is cache-only.
+
 use super::ContainerBuildRequest;
 use super::context_manifest::ContextManifest;
 use crate::source_projection::core_catalog::read_bounded_input;
 use crate::source_projection::provenance::sha256;
+use std::path::Path;
 pub(super) const PINS: &[(u32, &str, u64, &str)] = &[
     (
         21,
@@ -19,7 +21,7 @@ pub(super) const PINS: &[(u32, &str, u64, &str)] = &[
 ];
 pub(super) fn export(
     request: &ContainerBuildRequest,
-    stage: &std::path::Path,
+    stage: &Path,
     report: &mut ContextManifest,
 ) -> eyre::Result<()> {
     for &(major, hash, size, url) in PINS {

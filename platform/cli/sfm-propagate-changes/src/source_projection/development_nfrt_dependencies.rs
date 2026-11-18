@@ -18,6 +18,7 @@ use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
+use std::str::from_utf8;
 
 const MAX_ARTIFACT_BYTES: usize = 512 * 1024 * 1024;
 
@@ -73,8 +74,7 @@ impl DevelopmentNfrtDependencies {
         // returning this request catalog.
         let selected = owner.project().selected_input("sfm-toolchain.lock.json")?;
         let raw_lock = selected.output_bytes().to_vec();
-        let ToolchainLockfileDocument::V4(lock) = parse_document(std::str::from_utf8(&raw_lock)?)?
-        else {
+        let ToolchainLockfileDocument::V4(lock) = parse_document(from_utf8(&raw_lock)?)? else {
             eyre::bail!("development NeoForm requests require their actual schema-4 lock");
         };
         let target = &owner.target().receipt;

@@ -1,10 +1,28 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
+use crate::cli::curseforge::CurseforgeArgs;
+use crate::cli::curseforge::CurseforgeCommand;
+use crate::cli::git::GitArgs;
+use crate::cli::git::GitCommand;
+use crate::cli::github::GithubArgs;
+use crate::cli::github::GithubCommand;
 use crate::cli::global_args::GlobalArgs;
+use crate::cli::jar::JarArgs;
+use crate::cli::jar::JarCommand;
+use crate::cli::legacy_release_admission::LegacyReleaseAdmission;
+use crate::cli::modrinth::ModrinthArgs;
+use crate::cli::modrinth::ModrinthCommand;
 use crate::cli::output::CliOutput;
+use crate::cli::source::LegacySourceArgs;
+use crate::cli::source::LegacySourceCommand;
+use crate::cli::source::SourceArgs;
+use crate::cli::source::SourceCommand;
 use crate::logging::LoggingConfig;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue::FigueBuiltins;
 use figue::{self as args};
+use std::env::current_dir;
 use std::path::Path;
 
 /// A tool for propagating git changes across Minecraft version worktrees.
@@ -30,11 +48,12 @@ impl Cli {
     /// # Errors
     ///
     /// This function will return an error if the log filter string is invalid.
-    pub fn logging_config(&self) -> eyre::Result<LoggingConfig> {
+    pub fn logging_config(&self, app_home: &AppHome) -> eyre::Result<LoggingConfig> {
         if self.defers_file_logging() {
-            self.global_args.logging_config_with_default_file(false)
+            self.global_args
+                .logging_config_with_default_file(app_home, false)
         } else {
-            self.global_args.logging_config()
+            self.global_args.logging_config(app_home)
         }
     }
 
@@ -42,12 +61,10 @@ impl Cli {
     pub(crate) fn defers_file_logging(&self) -> bool {
         matches!(
             &self.command,
-            Command::Source(crate::cli::source::SourceArgs {
-                command: crate::cli::source::SourceCommand::Legacy(
-                    crate::cli::source::LegacySourceArgs {
-                        command: crate::cli::source::LegacySourceCommand::FrozenPresetStage(_),
-                    }
-                ),
+            Command::Source(SourceArgs {
+                command: SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::FrozenPresetStage(_),
+                }),
             })
         )
     }
@@ -55,9 +72,13 @@ impl Cli {
     /// # Errors
     ///
     /// This function will return an error if the command fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<CliOutput> {
-        let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(cancellation_token, &invocation_dir)
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<CliOutput> {
+        let invocation_dir = current_dir()?;
+        self.invoke_in(cancellation_token, &invocation_dir, homes)
     }
 
     /// Invoke with an explicit base directory for relative command arguments.
@@ -72,8 +93,10 @@ impl Cli {
         self,
         cancellation_token: CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> eyre::Result<CliOutput> {
-        self.command.invoke_in(cancellation_token, invocation_dir)
+        self.command
+            .invoke_in(cancellation_token, invocation_dir, homes)
     }
 }
 
@@ -101,7 +124,7 @@ pub enum Command {
     Server(super::server::ServerArgs),
     /// Git operation commands across all worktrees
     Git(super::git::GitArgs),
-    /// GitHub release commands
+    /// Legacy GitHub releases; catalog preparation uses `source release plan`.
     Github(super::github::GithubArgs),
     /// Home directory related commands
     Home(super::home::HomeArgs),
@@ -115,7 +138,7 @@ pub enum Command {
     Jdk(super::jdk::JdkArgs),
     /// Prism loader metadata commands
     Loader(super::loader::LoaderArgs),
-    /// Modrinth release related commands
+    /// Legacy Modrinth releases; catalog preparation uses `source release plan`.
     Modrinth(super::modrinth::ModrinthArgs),
     /// Jar directory and release artifact related commands
     Jar(super::jar::JarArgs),
@@ -147,9 +170,13 @@ impl Command {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<CliOutput> {
-        let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(cancellation_token, &invocation_dir)
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<CliOutput> {
+        let invocation_dir = current_dir()?;
+        self.invoke_in(cancellation_token, &invocation_dir, homes)
     }
 
     /// Invoke with an explicit base directory for relative command arguments.
@@ -161,43 +188,73 @@ impl Command {
         self,
         cancellation_token: CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> eyre::Result<CliOutput> {
-        match self {
-            Command::Audit(args) => legacy_output(args.invoke()),
-            Command::CheckEverything(args) => args.invoke_in(&cancellation_token, invocation_dir),
+        let _legacy_release_admission = if self.requires_legacy_release_admission() {
+            Some(LegacyReleaseAdmission::new(
+                invocation_dir,
+                homes.app_home(),
+            )?)
+        } else {
+            None
+        };
+        let result = match self {
+            Command::Audit(args) => legacy_output(args.invoke_in(invocation_dir, homes.app_home())),
+            Command::CheckEverything(args) | Command::Matrix(args) => {
+                args.invoke_in(&cancellation_token, invocation_dir)
+            }
             Command::Sync(args) => args.invoke_sync_in(&cancellation_token, invocation_dir),
             Command::Build(args) => args.invoke_build_in(&cancellation_token, invocation_dir),
-            Command::Matrix(args) => args.invoke_in(&cancellation_token, invocation_dir),
-            Command::Gradle(args) => legacy_output(args.invoke()),
-            Command::Client(args) => legacy_output(args.invoke()),
-            Command::Container(args) => args.invoke_in(&cancellation_token, invocation_dir),
-            Command::Server(args) => legacy_output(args.invoke()),
-            Command::Git(args) => legacy_output(args.invoke()),
-            Command::Github(args) => legacy_output(args.invoke()),
-            Command::Home(args) => legacy_output(args.invoke()),
-            Command::Cache(args) => legacy_output(args.invoke()),
-            Command::Curseforge(args) => legacy_output(args.invoke()),
-            Command::Dependency(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Jdk(args) => args.invoke_in(&cancellation_token, invocation_dir),
-            Command::Loader(args) => legacy_output(args.invoke()),
-            Command::Modrinth(args) => legacy_output(args.invoke()),
-            Command::Jar(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Run(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::GameTest(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Puppet(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Test(args) => args.invoke(cancellation_token),
+            Command::Gradle(args) => legacy_output(args.invoke(homes)),
+            Command::Client(args) => legacy_output(args.invoke(homes)),
+            Command::Container(args) => args.invoke_in(&cancellation_token, invocation_dir, homes),
+            Command::Server(args) => legacy_output(args.invoke(homes.app_home())),
+            Command::Git(args) => legacy_output(args.invoke(homes.app_home())),
+            Command::Github(args) => legacy_output(args.invoke(homes.app_home())),
+            Command::Home(args) => legacy_output(args.invoke(homes.app_home())),
+            Command::Cache(args) => legacy_output(args.invoke(homes)),
+            Command::Curseforge(args) => legacy_output(args.invoke(homes.app_home())),
+            Command::Dependency(args) => legacy_output(args.invoke(cancellation_token, homes)),
+            Command::Jdk(args) => args.invoke_in(&cancellation_token, invocation_dir, homes),
+            Command::Loader(args) => {
+                legacy_output(args.invoke(homes.app_home(), homes.cache_home()?))
+            }
+            Command::Modrinth(args) => legacy_output(args.invoke(homes.app_home())),
+            Command::Jar(args) => legacy_output(args.invoke(cancellation_token, homes)),
+            Command::Run(args) => legacy_output(args.invoke(cancellation_token, homes)),
+            Command::GameTest(args) => legacy_output(args.invoke(cancellation_token, homes)),
+            Command::Puppet(args) => legacy_output(args.invoke(cancellation_token, homes)),
+            Command::Test(args) => args.invoke(cancellation_token, homes),
             Command::ProjectCatalog(args) => {
                 legacy_output(args.invoke(cancellation_token, invocation_dir))
             }
-            Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
+            Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir, homes),
             Command::Hash(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Syntax(args) => args.invoke(&cancellation_token),
-            Command::Source(args) => args.invoke_in(&cancellation_token, invocation_dir),
+            Command::Source(args) => args.invoke_in(&cancellation_token, invocation_dir, homes),
             Command::Review(args) => {
                 args.invoke_with_cancellation(invocation_dir, &cancellation_token)
             }
-            Command::RepoRoot(args) => legacy_output(args.invoke()),
-        }
+            Command::RepoRoot(args) => legacy_output(args.invoke(homes.app_home())),
+        };
+        result.map_err(|error| homes.explain_cache_error(error))
+    }
+
+    fn requires_legacy_release_admission(&self) -> bool {
+        matches!(
+            self,
+            Command::Github(GithubArgs {
+                command: GithubCommand::Release(_),
+            }) | Command::Curseforge(CurseforgeArgs {
+                command: CurseforgeCommand::Release(_),
+            }) | Command::Modrinth(ModrinthArgs {
+                command: ModrinthCommand::Release(_),
+            }) | Command::Jar(JarArgs {
+                command: JarCommand::Collect(_),
+            }) | Command::Git(GitArgs {
+                command: GitCommand::Tag(_),
+            })
+        )
     }
 }
 
@@ -223,10 +280,22 @@ mod tests {
     use crate::jar_build::ClientPuppetKeepOpen;
     use crate::jar_build::ErrorAction;
     use crate::jar_build::Parallelism;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use crate::source_audit::SourceLanguage;
     use facet::Facet;
     use figue as args;
+    use std::env::temp_dir;
+    use std::path::PathBuf;
     use tracing::level_filters::LevelFilter;
+
+    fn test_app_home() -> AppHome {
+        AppHome(PathBuf::from("fixture-app-home"))
+    }
+
+    fn test_cache_home() -> CacheHome {
+        CacheHome(PathBuf::from("fixture-cache-home"))
+    }
 
     #[test]
     fn parses_global_output_format() {
@@ -408,7 +477,7 @@ mod tests {
         let Command::Audit(args) = cli.command else {
             panic!("expected audit command");
         };
-        assert_eq!(args.branch.as_ref(), "*");
+        assert_eq!(args.branch.as_ref().map(AsRef::as_ref), Some("*"));
         assert!(args.language.is_empty());
         assert!(args.lang.is_empty());
         assert_eq!(args.max_lines, None);
@@ -435,7 +504,7 @@ mod tests {
         let Command::Audit(args) = cli.command else {
             panic!("expected audit command");
         };
-        assert_eq!(args.branch.as_ref(), ">=1.19.2");
+        assert_eq!(args.branch.as_ref().map(AsRef::as_ref), Some(">=1.19.2"));
         assert_eq!(args.language, vec![SourceLanguage::Rust]);
         assert_eq!(args.lang, vec![SourceLanguage::Java]);
         assert_eq!(args.max_lines.map(|limit| limit.0), Some(1200));
@@ -789,8 +858,12 @@ mod tests {
                 panic!("expected Jar command");
             };
             let options = match command {
-                JarCommand::Build(command) => command.into_options(BuildMode::Build),
-                JarCommand::Plan(command) => command.into_options(BuildMode::Plan),
+                JarCommand::Build(command) => {
+                    command.into_options(BuildMode::Build, &test_app_home())
+                }
+                JarCommand::Plan(command) => {
+                    command.into_options(BuildMode::Plan, &test_app_home())
+                }
                 other => panic!("unexpected Jar command {other:?}"),
             }
             .expect("fresh Jar options should normalize");
@@ -844,7 +917,7 @@ mod tests {
                 command: JarCommand::Build(command),
             }) => {
                 let options = command
-                    .into_options(BuildMode::Build)
+                    .into_options(BuildMode::Build, &test_app_home())
                     .expect("branch query should parse");
                 assert!(options.dry_run);
                 assert!(options.output_name.is_none());
@@ -888,13 +961,15 @@ mod tests {
                 let options = match cli.command {
                     Command::Jar(crate::cli::jar::JarArgs {
                         command: JarCommand::Build(command),
-                    }) => command.into_options(BuildMode::Build),
+                    }) => command.into_options(BuildMode::Build, &test_app_home()),
                     Command::Run(crate::cli::run::RunArgs {
                         command: RunCommand::Compile(command),
-                    }) => command.options.into_options(BuildMode::Build),
+                    }) => command
+                        .options
+                        .into_options(BuildMode::Build, &test_app_home()),
                     Command::GameTest(crate::cli::game_test::GameTestArgs {
                         command: crate::cli::game_test::GameTestCommand::RunServer(command),
-                    }) => command.into_options(BuildMode::Build),
+                    }) => command.into_options(BuildMode::Build, &test_app_home()),
                     command => panic!("expected shared build options, got {command:?}"),
                 }
                 .expect("shared build options should normalize");
@@ -940,7 +1015,7 @@ mod tests {
                 command: JarCommand::Build(command),
             }) => {
                 let options = command
-                    .into_options(BuildMode::Build)
+                    .into_options(BuildMode::Build, &test_app_home())
                     .expect("parallel value should parse");
                 assert_eq!(options.parallelism, Parallelism::Parallel { limit: 4 });
             }
@@ -966,7 +1041,7 @@ mod tests {
                 command: crate::cli::game_test::GameTestCommand::RunServer(command),
             }) => {
                 let options = command
-                    .into_options(BuildMode::Build)
+                    .into_options(BuildMode::Build, &test_app_home())
                     .expect("bare parallel should parse");
                 assert_eq!(
                     options.parallelism,
@@ -997,7 +1072,7 @@ mod tests {
             }) => {
                 let options = command
                     .options
-                    .into_options(BuildMode::Build)
+                    .into_options(BuildMode::Build, &test_app_home())
                     .expect("compile options should parse");
                 assert!(options.wait_for_build_lock);
             }
@@ -1025,7 +1100,7 @@ mod tests {
                 command: JarCommand::Compare(command),
             }) => {
                 let options = command
-                    .into_options()
+                    .into_options(&test_app_home())
                     .expect("compare parallel value should parse");
                 assert_eq!(options.parallelism, Parallelism::Parallel { limit: 3 });
                 assert_eq!(options.error_action, ErrorAction::Continue);
@@ -1055,7 +1130,7 @@ mod tests {
                 command: JarCommand::AuditArtifacts(command),
             }) => {
                 let options = command
-                    .into_options()
+                    .into_options(&test_app_home(), &test_cache_home())
                     .expect("artifact audit options should parse");
                 assert_eq!(options.branch.to_string(), "core");
                 assert_eq!(options.parallelism, Parallelism::Parallel { limit: 5 });
@@ -1122,7 +1197,7 @@ mod tests {
                 command: JarCommand::Compare(command),
             }) => {
                 let options = command
-                    .into_options()
+                    .into_options(&test_app_home())
                     .expect("bare compare parallel should parse");
                 assert_eq!(
                     options.parallelism,
@@ -1147,7 +1222,7 @@ mod tests {
                 command: JarCommand::AuditArtifacts(command),
             }) => {
                 let options = command
-                    .into_options()
+                    .into_options(&test_app_home(), &test_cache_home())
                     .expect("bare artifact audit parallel should parse");
                 assert_eq!(
                     options.parallelism,
@@ -1172,7 +1247,7 @@ mod tests {
                 command: JarCommand::Build(command),
             }) => {
                 let error = command
-                    .into_options(BuildMode::Build)
+                    .into_options(BuildMode::Build, &test_app_home())
                     .expect_err("zero parallelism should be rejected");
                 assert!(error.to_string().contains("--parallel"));
             }
@@ -1198,7 +1273,7 @@ mod tests {
                 command: JarCommand::Build(command),
             }) => {
                 let options = command
-                    .into_options(BuildMode::Build)
+                    .into_options(BuildMode::Build, &test_app_home())
                     .expect("error action should parse");
                 assert_eq!(options.error_action, ErrorAction::Continue);
             }
@@ -1223,7 +1298,9 @@ mod tests {
             Command::Jar(crate::cli::jar::JarArgs {
                 command: JarCommand::Compare(command),
             }) => {
-                let options = command.into_options().expect("branch query should parse");
+                let options = command
+                    .into_options(&test_app_home())
+                    .expect("branch query should parse");
                 assert_eq!(options.branch.to_string(), "core");
                 assert_eq!(options.error_action, ErrorAction::Continue);
             }
@@ -1259,7 +1336,7 @@ mod tests {
             }) => {
                 let query = command
                     .branch
-                    .into_query()
+                    .into_query(&test_app_home())
                     .expect("branch query should parse");
                 assert_eq!(query.to_string(), "core>=1.21.0");
                 assert_eq!(command.tasks, ["runData"]);
@@ -1825,7 +1902,7 @@ mod tests {
     }
 
     #[test]
-    fn branch_is_required_for_commands_that_accept_branch() {
+    fn historical_commands_require_branch() {
         let commands = [
             &["client", "launch"][..],
             &["jar", "compare"],
@@ -1835,7 +1912,6 @@ mod tests {
             &["dependency", "show", "cc-tweaked"],
             &["gradle", "run", "runData"],
             &["loader", "list"],
-            &["audit"],
             &["server", "list"],
             &["server", "launch"],
             &["github", "release", "now"],
@@ -1857,6 +1933,39 @@ mod tests {
                 "expected {command:?} to require --branch"
             );
         }
+    }
+
+    #[test]
+    fn audit_requires_exactly_one_branch_or_project_selector() -> eyre::Result<()> {
+        let cases: &[(&[&str], bool)] = &[
+            (&["audit"], false),
+            (&["audit", "--branch", "1.19.2"], true),
+            (&["audit", "--project-root", "selected-projection"], true),
+            (
+                &[
+                    "audit",
+                    "--branch",
+                    "1.19.2",
+                    "--project-root",
+                    "selected-projection",
+                ],
+                false,
+            ),
+        ];
+        for (arguments, accepted) in cases {
+            let cli = figue::from_slice::<Cli>(arguments)
+                .into_result()?
+                .get_silent();
+            let Command::Audit(args) = cli.command else {
+                panic!("expected audit command");
+            };
+            assert_eq!(
+                args.validate_selection().is_ok(),
+                *accepted,
+                "{arguments:?}"
+            );
+        }
+        Ok(())
     }
 
     #[test]
@@ -2065,7 +2174,9 @@ mod tests {
             .into_result()
             .expect("jdk list should parse")
             .get_silent();
-        let logging = cli.logging_config().expect("logging config should build");
+        let logging = cli
+            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .expect("logging config should build");
         assert!(logging.read_env_filter);
     }
 
@@ -2075,7 +2186,9 @@ mod tests {
             .into_result()
             .expect("jdk list should parse")
             .get_silent();
-        let logging = cli.logging_config().expect("logging config should build");
+        let logging = cli
+            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .expect("logging config should build");
         assert!(!logging.read_env_filter);
         assert_eq!(logging.default_directive, LevelFilter::INFO.into());
     }
@@ -2086,7 +2199,9 @@ mod tests {
             .into_result()
             .expect("jdk list should parse")
             .get_silent();
-        let logging = cli.logging_config().expect("logging config should build");
+        let logging = cli
+            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .expect("logging config should build");
         assert!(!logging.read_env_filter);
         assert_eq!(logging.default_directive, LevelFilter::DEBUG.into());
     }
@@ -2098,7 +2213,9 @@ mod tests {
                 .into_result()
                 .expect("jdk list should parse")
                 .get_silent();
-        let logging = cli.logging_config().expect("logging config should build");
+        let logging = cli
+            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .expect("logging config should build");
         assert_eq!(
             logging.stop_after.as_deref(),
             Some("create_plan_for_target")
@@ -2119,7 +2236,9 @@ mod tests {
         .into_result()
         .expect("jar build with stop-after should parse")
         .get_silent();
-        let logging = cli.logging_config().expect("logging config should build");
+        let logging = cli
+            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .expect("logging config should build");
         assert_eq!(
             logging.stop_after.as_deref(),
             Some("create_plan_for_project")

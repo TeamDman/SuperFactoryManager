@@ -4,6 +4,7 @@ use eyre::Context;
 use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
+use std::io;
 use std::io::Cursor;
 use std::io::Read;
 use std::io::Write;
@@ -64,7 +65,7 @@ pub(super) fn remap_source_jar_identifiers(
             let remapped = replace_java_identifiers(&source, &replacements);
             writer.write_all(remapped.as_bytes())?;
         } else {
-            std::io::copy(&mut entry, &mut writer)?;
+            io::copy(&mut entry, &mut writer)?;
         }
     }
 

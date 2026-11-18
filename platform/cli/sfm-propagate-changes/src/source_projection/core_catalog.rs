@@ -10,6 +10,10 @@ use super::core_features::CoreFeatureDefinitions;
 use super::core_features::FEATURE_DEFINITIONS_PATH;
 use super::projection_catalog::CATALOG_PATH;
 use super::projection_catalog::ProjectionCatalog;
+#[cfg(test)]
+use super::projection_catalog::ProjectionEntry;
+#[cfg(test)]
+use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::SUPPORTED_TARGETS;
 use super::provenance::sha256;
 use eyre::Result;
@@ -21,6 +25,7 @@ use std::fs;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 pub const MAX_CATALOG_INPUT_BYTES: u64 = 1024 * 1024;
 
@@ -76,13 +81,13 @@ impl CoreCatalog {
         };
         let repo_root = checked_directory(&candidate).wrap_err("invalid source repository root")?;
         let registry_bytes = read_bounded_catalog_input(&repo_root, FEATURE_DEFINITIONS_PATH)?;
-        let registry_text = std::str::from_utf8(&registry_bytes)
-            .wrap_err("core feature definitions are not UTF-8")?;
+        let registry_text =
+            from_utf8(&registry_bytes).wrap_err("core feature definitions are not UTF-8")?;
         let definitions = CoreFeatureDefinitions::from_json(registry_text)?;
         let registered_features = definitions.registered_names();
         let catalog_bytes = read_bounded_catalog_input(&repo_root, CATALOG_PATH)?;
         let catalog_text =
-            std::str::from_utf8(&catalog_bytes).wrap_err("projections catalog is not UTF-8")?;
+            from_utf8(&catalog_bytes).wrap_err("projections catalog is not UTF-8")?;
         let catalog = ProjectionCatalog::from_json(catalog_text, &registered_features)?;
         for (key, entry) in &catalog.0 {
             definitions
@@ -161,8 +166,6 @@ pub(crate) fn write_project_catalog_fixture(
     key: &str,
     version: &str,
 ) -> Result<PathBuf> {
-    use super::projection_catalog::ProjectionEntry;
-    use super::projection_catalog::ProjectionEnvironment;
     let registry = repo.join(FEATURE_DEFINITIONS_PATH);
     fs::create_dir_all(registry.parent().unwrap())?;
     fs::write(registry, "{}")?;

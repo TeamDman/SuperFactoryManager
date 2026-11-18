@@ -197,6 +197,7 @@ pub(super) mod tests {
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
     use crate::source_projection::candidate_lock::tests::Fixture;
+    use crate::source_projection::candidate_lock::tests::FixtureSeed;
     use crate::source_projection::provenance::ProjectionProvenance;
     use crate::source_projection::sync::MANIFEST_FILE;
     use std::fs;
@@ -246,7 +247,6 @@ pub(super) mod tests {
     }
 
     pub(in crate::cli::source) fn packaged_candidate() -> (Fixture, ReleaseTargetPlanArgs) {
-        use crate::source_projection::candidate_lock::tests::FixtureSeed;
         static SEED: std::sync::OnceLock<(FixtureSeed, ReleaseTargetPlanArgs)> =
             std::sync::OnceLock::new();
         let (seed, args) = SEED.get_or_init(|| {

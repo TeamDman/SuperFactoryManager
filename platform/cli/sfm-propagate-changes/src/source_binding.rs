@@ -2,14 +2,18 @@
 //! The emitted dependency lock remains the binary authority. This binding is
 //! selected only after its exact lock and project keys have been checked.
 
+use crate::source_projection;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
 use crate::toolchain_lockfile_schema::version::v3::ToolchainComponentKindV3;
 use eyre::Context;
 use eyre::ensure;
 use facet::Facet;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const BINDING_PATH: &str =
     "platform/minecraft/core-liquid-template/build/supplements/neoform-1211-shared-source.json";
@@ -39,12 +43,12 @@ fn selected_project(key: &str) -> bool {
 
 pub(crate) fn still_matches(repo_root: &Path, expected: &str) -> bool {
     let path = repo_root.join(BINDING_PATH);
-    if !std::fs::symlink_metadata(&path)
+    if !fs::symlink_metadata(&path)
         .is_ok_and(|metadata| metadata.is_file() && !metadata.file_type().is_symlink())
     {
         return false;
     }
-    std::fs::read_to_string(path).is_ok_and(|input| {
+    fs::read_to_string(path).is_ok_and(|input| {
         let Ok(binding) = facet_json::from_str::<SharedPlatformSourceBinding>(&input) else {
             return false;
         };
@@ -54,7 +58,8 @@ pub(crate) fn still_matches(repo_root: &Path, expected: &str) -> bool {
 
 fn binding_digest(binding: &SharedPlatformSourceBinding) -> eyre::Result<String> {
     // Checkout newline/whitespace differences must not change a shared key.
-    Ok(crate::source_projection::provenance::sha256(
+
+    Ok(source_projection::provenance::sha256(
         facet_json::to_string(binding)?.as_bytes(),
     ))
 }
@@ -75,13 +80,13 @@ fn checked_binding(
 ) -> eyre::Result<(SharedPlatformSourceBinding, String)> {
     let path = root.join(BINDING_PATH);
     ensure!(
-        std::fs::symlink_metadata(&path)
+        fs::symlink_metadata(&path)
             .is_ok_and(|metadata| metadata.is_file() && !metadata.file_type().is_symlink()),
         "tracked source binding must be a regular file"
     );
-    let bytes = std::fs::read(&path)
+    let bytes = fs::read(&path)
         .wrap_err_with(|| format!("missing tracked source binding {}", path.display()))?;
-    let binding: SharedPlatformSourceBinding = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+    let binding: SharedPlatformSourceBinding = facet_json::from_str(from_utf8(&bytes)?)?;
     ensure!(
         binding.schema == "sfm.shared-platform-source-binding/1",
         "unsupported shared source binding schema"
@@ -101,8 +106,7 @@ fn checked_binding(
         "invalid source binding base lock digest"
     );
     ensure!(
-        binding.base_lock_sha256
-            == crate::source_projection::provenance::sha256(lock_text.as_bytes()),
+        binding.base_lock_sha256 == source_projection::provenance::sha256(lock_text.as_bytes()),
         "shared source binding does not match the selected emitted lock"
     );
     ensure!(
@@ -143,9 +147,8 @@ fn selected_provider<'a>(
     component_id: &str,
     provider_id: &str,
     kind: ToolchainComponentKindV3,
-) -> eyre::Result<
-    &'a mut crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3,
-> {
+) -> eyre::Result<&'a mut toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3>
+{
     let dependency = lockfile
         .dependencies
         .iter_mut()

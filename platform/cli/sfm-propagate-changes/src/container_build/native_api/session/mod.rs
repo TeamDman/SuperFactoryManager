@@ -1,4 +1,13 @@
 //! Fixed sandbox lifecycle and typed file requests for one disposable client/world.
+use crate::container_build;
+use crate::source_projection;
+use std::collections::BTreeMap;
+use std::f64;
+use std::fs::OpenOptions;
+use std::fs::symlink_metadata;
+use std::path::PathBuf;
+use tokio::runtime::Builder as RuntimeBuilder;
+use tokio::time;
 mod build_capacity;
 pub(super) use build_capacity::check as check_build_capacity;
 mod controller_receipt;
@@ -55,11 +64,11 @@ pub(crate) fn execute(
         r.command()?;
     }
     if let SessionRequest::RunTest(r) = request {
-        crate::container_build::session_request::bare_test(&r.game_test)?;
+        container_build::session_request::bare_test(&r.game_test)?;
     }
     if let SessionRequest::Capture(r) = request {
         eyre::ensure!(
-            r.angle.is_finite() && r.angle.abs() <= std::f64::consts::TAU && !r.output.exists(),
+            r.angle.is_finite() && r.angle.abs() <= f64::consts::TAU && !r.output.exists(),
             "invalid angle or existing capture output"
         );
     }
@@ -80,11 +89,10 @@ pub(crate) fn execute(
         SessionRequest::Stop(_) => 240,
         _ => 150,
     };
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
+    let runtime = RuntimeBuilder::new_current_thread().enable_all().build()?;
     runtime.block_on(async {
-        tokio::time::timeout(
+
+time::timeout(
             Duration::from_secs(timeout),
             execute_async(request, cancellation),
         )
@@ -121,7 +129,7 @@ async fn execute_async(
                 Some(operations::perform(target, "reset", None, None, cancellation).await?);
         }
         SessionRequest::RunTest(r) => {
-            let test = crate::container_build::session_request::bare_test(&r.game_test)?;
+            let test = container_build::session_request::bare_test(&r.game_test)?;
             receipt.response = Some(
                 operations::perform(
                     target,
@@ -135,7 +143,7 @@ async fn execute_async(
         }
         SessionRequest::Capture(r) => {
             eyre::ensure!(
-                r.angle.is_finite() && r.angle.abs() <= std::f64::consts::TAU,
+                r.angle.is_finite() && r.angle.abs() <= f64::consts::TAU,
                 "camera angle must be finite and within one orbit"
             );
             eyre::ensure!(
@@ -160,7 +168,7 @@ async fn execute_async(
             write_new(&r.output, &bytes)?;
             receipt.artifacts.insert(
                 r.output.display().to_string(),
-                crate::source_projection::provenance::sha256(&bytes),
+                source_projection::provenance::sha256(&bytes),
             );
             receipt.response = Some(response);
         }
@@ -185,7 +193,7 @@ fn receipt(
         oom_killed: inspect.state.oom_killed,
         ready,
         response: None,
-        artifacts: std::collections::BTreeMap::new(),
+        artifacts: BTreeMap::new(),
         removed: false,
     }
 }
@@ -236,7 +244,7 @@ async fn empty(endpoint: &Path, method: &str, path: &str) -> eyre::Result<()> {
 }
 async fn pause(cancellation: &CancellationToken) -> eyre::Result<()> {
     cancellation.bail_if_cancelled()?;
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    time::sleep(Duration::from_millis(500)).await;
     cancellation.bail_if_cancelled()
 }
 fn write_new(path: &Path, bytes: &[u8]) -> eyre::Result<()> {
@@ -245,20 +253,15 @@ fn write_new(path: &Path, bytes: &[u8]) -> eyre::Result<()> {
         .parent()
         .ok_or_else(|| eyre::eyre!("artifact output needs a parent directory"))?;
     eyre::ensure!(parent.is_dir(), "artifact output parent does not exist");
-    let mut current = std::path::PathBuf::new();
+    let mut current = PathBuf::new();
     for component in parent.components() {
         current.push(component);
         eyre::ensure!(
-            !std::fs::symlink_metadata(&current)?
-                .file_type()
-                .is_symlink(),
+            !symlink_metadata(&current)?.file_type().is_symlink(),
             "artifact output symlink parent refused"
         );
     }
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)?;
+    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(bytes)?;
     file.sync_all()?;
     Ok(())

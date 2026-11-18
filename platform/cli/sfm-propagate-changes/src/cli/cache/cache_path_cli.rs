@@ -10,7 +10,7 @@ impl CachePathArgs {
     /// # Errors
     ///
     /// Returns an error if cache selection or writing stdout fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        stdout_line(CacheHome::current()?.0.display())
+    pub fn invoke(self, cache_home: &CacheHome) -> eyre::Result<()> {
+        stdout_line(cache_home.0.display())
     }
 }

@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 
 /// Arguments for showing summary counts only.
@@ -8,7 +9,7 @@ impl StatusSummaryArgs {
     /// # Errors
     ///
     /// Returns an error if getting worktree status fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::git_status_cli::run_summary()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::git_status_cli::run_summary(app_home)
     }
 }

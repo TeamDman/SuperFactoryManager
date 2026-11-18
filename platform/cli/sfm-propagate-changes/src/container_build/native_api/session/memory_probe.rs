@@ -4,6 +4,8 @@ use super::Path;
 use super::SessionTarget;
 use super::sandbox_role::SandboxRole;
 use super::session_inspection_phase::SessionInspectionPhase;
+use std::collections::BTreeMap;
+use std::time::Instant;
 const OWNER: &str = "sfm-live-memory-probe-v1";
 const SCRIPT: &str = "import pathlib,json,os,signal; signal.alarm(10); raw=pathlib.Path('/proc/meminfo').read_bytes(); assert len(raw)<=32768; fields=dict(line.split(':',1) for line in raw.decode().splitlines() if ':' in line); parse=lambda name:int(fields[name].split()[0])*1024 if fields[name].split()[1:]==['kB'] else -1; total=parse('MemTotal'); available=parse('MemAvailable'); assert 0<=available<=total; status=dict(line.split(':',1) for line in pathlib.Path('/proc/self/status').read_text().splitlines() if ':' in line); result={'schema':'sfm:memory_probe@1','total':total,'available':available,'uid':os.geteuid(),'no_new_privileges':int(status['NoNewPrivs']),'effective_caps':status['CapEff'].strip(),'seccomp':int(status['Seccomp'])}; pathlib.Path('/tmp/sfm-memory.json').write_text(json.dumps(result))";
 fn entrypoint() -> Vec<String> {
@@ -62,7 +64,7 @@ fn create(name: &str, image: &str) -> super::session_create::SessionCreate {
         entrypoint: Some(entrypoint()),
         command: command(),
         user: "10001:10001".into(),
-        labels: std::collections::BTreeMap::from([
+        labels: BTreeMap::from([
             ("org.sfm.memory.owner".into(), OWNER.into()),
             ("org.sfm.memory.image".into(), image.into()),
         ]),
@@ -72,7 +74,7 @@ fn create(name: &str, image: &str) -> super::session_create::SessionCreate {
         privileged: false,
         http_proxy: false,
         env_host: false,
-        annotations: std::collections::BTreeMap::from([(
+        annotations: BTreeMap::from([(
             "io.podman.annotations.userns".into(),
             "auto:size=65536".into(),
         )]),
@@ -177,7 +179,7 @@ async fn run(
     );
     let path = super::url(&["containers", &target.session, "start"])?;
     super::empty(&target.engine_endpoint, "POST", path.path()).await?;
-    let deadline = std::time::Instant::now() + super::Duration::from_secs(15);
+    let deadline = Instant::now() + super::Duration::from_secs(15);
     loop {
         let value = inspected(target, image).await?;
         if !value.state.running {
@@ -187,7 +189,7 @@ async fn run(
             );
             break;
         }
-        eyre::ensure!(std::time::Instant::now() < deadline, "memory probe timeout");
+        eyre::ensure!(Instant::now() < deadline, "memory probe timeout");
         super::pause(cancellation).await?;
     }
     let bytes = super::file_archive::fetch(

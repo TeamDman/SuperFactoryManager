@@ -40,10 +40,17 @@ use crate::cancellation::CancellationToken;
 use facet::Facet;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
+use std::error::Error as StdError;
 use std::fmt;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::sync::PoisonError;
+use std::sync::TryLockError;
+use std::thread::park_timeout;
+use std::time::Duration;
 use std::time::Instant;
 
 pub const DEFAULT_DEFINITION_ENGINE_MAX_FACT_ENTRIES: usize = 4_096;
@@ -95,7 +102,7 @@ impl fmt::Display for DefinitionAtPositionEngineConfigurationError {
     }
 }
 
-impl std::error::Error for DefinitionAtPositionEngineConfigurationError {}
+impl StdError for DefinitionAtPositionEngineConfigurationError {}
 
 /// Content-free retained-state evidence suitable for logs and provider diagnostics.
 #[derive(Facet, Clone, Debug, Eq, PartialEq)]
@@ -494,12 +501,12 @@ impl DefinitionAtPositionEngine {
         let replaced = self
             .cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .replace_generation(generation)?;
         if replaced {
             self.resolution_cache
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .unwrap_or_else(PoisonError::into_inner)
                 .clear();
         }
         Ok(replaced)
@@ -509,7 +516,7 @@ impl DefinitionAtPositionEngine {
     pub fn cache_snapshot(&self) -> DefinitionAtPositionEngineCacheSnapshot {
         self.cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .snapshot()
     }
 
@@ -517,12 +524,12 @@ impl DefinitionAtPositionEngine {
         let replaced = self
             .cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .prepare_generation(generation)?;
         if replaced {
             self.resolution_cache
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .unwrap_or_else(PoisonError::into_inner)
                 .clear();
         }
         Ok(())
@@ -532,22 +539,22 @@ impl DefinitionAtPositionEngine {
         let cache = self
             .resolution_cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+            .unwrap_or_else(PoisonError::into_inner);
         (cache.hits, cache.misses)
     }
 
     fn lock_resolution_build<'engine>(
         &'engine self,
         cancellation_token: &CancellationToken,
-    ) -> eyre::Result<std::sync::MutexGuard<'engine, ()>> {
+    ) -> eyre::Result<MutexGuard<'engine, ()>> {
         loop {
             match self.resolution_build.try_lock() {
                 Ok(guard) => return Ok(guard),
-                Err(std::sync::TryLockError::WouldBlock) => {
+                Err(TryLockError::WouldBlock) => {
                     cancellation_token.bail_if_cancelled()?;
-                    std::thread::park_timeout(std::time::Duration::from_millis(2));
+                    park_timeout(Duration::from_millis(2));
                 }
-                Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                Err(TryLockError::Poisoned(poisoned)) => {
                     return Ok(poisoned.into_inner());
                 }
             }
@@ -592,7 +599,7 @@ impl DefinitionAtPositionEngine {
         if let Some((surface, usage_slot)) = self
             .resolution_cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .get(&surface_key)
         {
             return Ok(AcquiredResolutionSurface {
@@ -623,7 +630,7 @@ impl DefinitionAtPositionEngine {
         let usage_slot = Arc::new(Mutex::new(None));
         self.resolution_cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .insert(surface_key, Arc::clone(&surface), Arc::clone(&usage_slot));
         Ok(AcquiredResolutionSurface {
             surface,
@@ -675,7 +682,7 @@ impl DefinitionAtPositionEngine {
         let resolution_cache_entries = self
             .resolution_cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .entries
             .len()
             .try_into()
@@ -758,9 +765,7 @@ impl DefinitionAtPositionEngine {
             // Definition requests never acquire this lock, while concurrent
             // usage requests share one completed index instead of multiplying
             // the workspace parse and its retained allocator pressure.
-            let mut slot = usage_slot
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let mut slot = usage_slot.lock().unwrap_or_else(PoisonError::into_inner);
             if let Some(cached) = slot.as_ref() {
                 (Arc::clone(cached), 0_u64, 0_u64)
             } else {
@@ -787,7 +792,7 @@ impl DefinitionAtPositionEngine {
         let resolution_cache_entries = self
             .resolution_cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .entries
             .len()
             .try_into()
@@ -928,7 +933,7 @@ impl DefinitionAtPositionEngine {
         let resolution_cache_entries = self
             .resolution_cache
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .unwrap_or_else(PoisonError::into_inner)
             .entries
             .len()
             .try_into()
@@ -1242,7 +1247,7 @@ impl DefinitionAtPositionEngine {
         let Some(expected_disk_hash) = request.document.disk_content_hash.as_deref() else {
             return Ok(None);
         };
-        let Ok(disk_source) = std::fs::read_to_string(&target.absolute_path) else {
+        let Ok(disk_source) = fs::read_to_string(&target.absolute_path) else {
             return Ok(Some(DefinitionAtPositionResult::stale_document(
                 request,
                 self.workspace.context.clone(),
@@ -1317,7 +1322,7 @@ impl DefinitionAtPositionEngine {
             if let Some(cached) = self
                 .cache
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .unwrap_or_else(PoisonError::into_inner)
                 .get(key)
             {
                 facts.push(cached);
@@ -1333,7 +1338,7 @@ impl DefinitionAtPositionEngine {
                 .saturating_add(facet_json::to_string(&parsed).map_or(0, |encoded| encoded.len()));
             self.cache
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .unwrap_or_else(PoisonError::into_inner)
                 .insert(key.clone(), parsed.clone(), retained_bytes, self.limits);
             facts.push(parsed);
         }
@@ -1558,7 +1563,7 @@ impl DefinitionAtPositionEngine {
             for segment in relative.split('/') {
                 native.push(segment);
             }
-            let Ok(source) = std::fs::read_to_string(&native) else {
+            let Ok(source) = fs::read_to_string(&native) else {
                 continue;
             };
             if blake3_content_hash(&source) != span.source_hash {
@@ -1657,7 +1662,7 @@ impl DefinitionAtPositionEngine {
         if let Some(source) = &file.source_override {
             return Ok(source.clone());
         }
-        std::fs::read_to_string(&file.absolute_path).map_err(|error| {
+        fs::read_to_string(&file.absolute_path).map_err(|error| {
             eyre::eyre!(
                 "failed to read Java source `{}` for definition analysis: {error}",
                 file.report_path
@@ -1740,15 +1745,14 @@ impl DefinitionAtPositionEngine {
         // prefix when a path is short enough, but retains it for paths beyond
         // MAX_PATH. Comparing such mixed spellings made a legitimate long
         // dependency document appear to escape its own root.
-        let canonical_root =
-            std::fs::canonicalize(&root.canonical_absolute_path).map_err(|error| {
-                eyre::eyre!(
-                    "failed to resolve acquired dependency source authority `{}`: {error}",
-                    root.root_id
-                )
-            })?;
+        let canonical_root = fs::canonicalize(&root.canonical_absolute_path).map_err(|error| {
+            eyre::eyre!(
+                "failed to resolve acquired dependency source authority `{}`: {error}",
+                root.root_id
+            )
+        })?;
         let candidate = canonical_root.join(&request.document.root_relative_path);
-        let absolute_path = std::fs::canonicalize(&candidate).map_err(|error| {
+        let absolute_path = fs::canonicalize(&candidate).map_err(|error| {
             eyre::eyre!(
                 "failed to resolve addressed dependency source `{}`:`{}`: {error}",
                 request.document.root_id,
@@ -1804,7 +1808,7 @@ impl DefinitionAtPositionEngine {
             resolution_cache_entries: self
                 .resolution_cache
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .unwrap_or_else(PoisonError::into_inner)
                 .entries
                 .len()
                 .try_into()
@@ -1873,7 +1877,7 @@ fn java_wire_generation(bytes: [u8; 8]) -> u64 {
     u64::from_le_bytes(bytes) & (i64::MAX as u64)
 }
 
-fn duration_micros(duration: std::time::Duration) -> u64 {
+fn duration_micros(duration: Duration) -> u64 {
     duration.as_micros().try_into().unwrap_or(u64::MAX)
 }
 

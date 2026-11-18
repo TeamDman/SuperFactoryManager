@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::os::windows::ffi::OsStrExt as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::ptr::from_mut;
 use windows::Win32::Foundation::ERROR_ACCESS_DENIED;
 use windows::Win32::Foundation::ERROR_SHARING_VIOLATION;
 use windows::Win32::Foundation::HANDLE;
@@ -27,6 +28,7 @@ use windows::Win32::Storage::FileSystem::FILE_SHARE_READ;
 use windows::Win32::Storage::FileSystem::FileAttributeTagInfo;
 use windows::Win32::Storage::FileSystem::GetFileInformationByHandleEx;
 use windows::Win32::Storage::FileSystem::OPEN_EXISTING;
+use windows::core::HRESULT;
 use windows::core::Owned;
 use windows::core::PCWSTR;
 
@@ -134,7 +136,7 @@ impl DirectoryLeases {
                 if optional
                     && [ERROR_ACCESS_DENIED.0, ERROR_SHARING_VIOLATION.0]
                         .into_iter()
-                        .any(|code| error.code() == windows::core::HRESULT::from_win32(code)) =>
+                        .any(|code| error.code() == HRESULT::from_win32(code)) =>
             {
                 // Only opening this additional LIST/share capability may decline.
                 // Attribute/type/reparse validation below never becomes a fallback.
@@ -164,8 +166,8 @@ fn validate_directory(handle: &Owned<HANDLE>) -> Result<()> {
         GetFileInformationByHandleEx(
             **handle,
             FileAttributeTagInfo,
-            std::ptr::from_mut(&mut information).cast(),
-            u32::try_from(std::mem::size_of_val(&information))?,
+            from_mut(&mut information).cast(),
+            u32::try_from(size_of_val(&information))?,
         )
     }
     .wrap_err("cannot validate leased core directory")?;
@@ -181,6 +183,12 @@ fn validate_directory(handle: &Owned<HANDLE>) -> Result<()> {
 mod tests {
     use super::*;
     use std::fs;
+    use std::os::windows::fs::OpenOptionsExt as _;
+    use std::os::windows::process::CommandExt as _;
+    use windows::Win32::Storage::FileSystem::FILE_SHARE_DELETE;
+    use windows::Win32::Storage::FileSystem::FILE_SHARE_WRITE;
+    use windows::Win32::Storage::FileSystem::FILE_WRITE_DATA;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
 
     #[test]
     fn held_ancestors_block_rename_and_release_on_drop_without_blocking_file_edits() {
@@ -198,10 +206,6 @@ mod tests {
         assert!(fs::rename(&directory, root.join("moved")).is_err());
         assert!(fs::rename(&root, fixture.path().join("moved-root")).is_err());
         let write_directory = || {
-            use std::os::windows::fs::OpenOptionsExt as _;
-            use windows::Win32::Storage::FileSystem::FILE_SHARE_DELETE;
-            use windows::Win32::Storage::FileSystem::FILE_SHARE_WRITE;
-            use windows::Win32::Storage::FileSystem::FILE_WRITE_DATA;
             fs::OpenOptions::new()
                 .access_mode(FILE_WRITE_DATA.0)
                 .share_mode((FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE).0)
@@ -246,8 +250,6 @@ mod tests {
 
     #[test]
     fn junction_ancestors_and_leaf_reparse_points_are_rejected() {
-        use std::os::windows::process::CommandExt as _;
-        use windows::Win32::System::Threading::CREATE_NO_WINDOW;
         let fixture = tempfile::tempdir().unwrap();
         let root = fixture.path().join(super::super::core_inputs::CORE_ROOT);
         let outside = fixture.path().join("outside");

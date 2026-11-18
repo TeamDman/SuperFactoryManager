@@ -49,7 +49,8 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModIssueTracker>(), 0);
-        let value: ModIssueTracker = SfmModIssueTracker.try_into()?;
+        let value: Result<ModIssueTracker> = SfmModIssueTracker.try_into();
+        let value = value?;
         assert_eq!(value.as_str(), SfmModIssueTracker::VALUE);
         assert_eq!(SfmModIssueTracker::try_from(&value)?, SfmModIssueTracker);
         assert_eq!(SfmModIssueTracker::try_from(value)?, SfmModIssueTracker);

@@ -13,6 +13,7 @@ use reqwest::blocking::Client;
 use reqwest::blocking::Request;
 use reqwest::blocking::multipart;
 use std::fmt;
+use std::path::Path;
 use tracing::debug;
 
 pub(crate) const MODRINTH_API_ROOT: &str = "https://api.modrinth.com/v2";
@@ -73,7 +74,7 @@ impl fmt::Debug for ModrinthVersionUpload {
 fn validate_file_name(file_name: &str) -> Result<()> {
     ensure!(
         !file_name.is_empty()
-            && std::path::Path::new(file_name)
+            && Path::new(file_name)
                 .extension()
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("jar"))
             && !file_name.contains(['/', '\\', ':'])

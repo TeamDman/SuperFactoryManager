@@ -1,4 +1,7 @@
 //! Private control flow for expected all-hit cache misses. Errors stay errors.
+
+use std::error::Error as StdError;
+use std::fmt;
 #[derive(Debug)]
 pub(super) struct AllHitCacheMiss {
     reason: &'static str,
@@ -10,8 +13,8 @@ impl AllHitCacheMiss {
     }
 }
 
-impl std::fmt::Display for AllHitCacheMiss {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for AllHitCacheMiss {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "all-hit compile requires strict execution: {}",
@@ -20,7 +23,7 @@ impl std::fmt::Display for AllHitCacheMiss {
     }
 }
 
-impl std::error::Error for AllHitCacheMiss {}
+impl StdError for AllHitCacheMiss {}
 
 /// All parallel work has completed before this aggregation. A cache miss must
 /// not hide another item's authority/cancellation error and authorize retry.

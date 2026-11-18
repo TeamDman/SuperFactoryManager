@@ -1,6 +1,7 @@
 use super::dependency_context::load_inventory;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
@@ -21,9 +22,10 @@ impl DependencySourceProviderListArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let inventory = load_inventory(self.branch, cache_home)?;
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
         let mut rows = 0;
         for dependency in inventory.dependencies() {
             for component in &dependency.components {

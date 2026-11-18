@@ -8,6 +8,7 @@ use crate::jar_build::ArtifactLockfile;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::mem::take;
 use std::path::Path;
 
 pub(crate) const SCHEMA_VERSION: u32 = 4;
@@ -371,8 +372,8 @@ impl ArtifactLockfileV4 {
     }
 
     fn canonicalize(&mut self) {
-        let dependencies = std::mem::take(&mut self.dependencies);
-        let artifacts = std::mem::take(&mut self.artifacts);
+        let dependencies = take(&mut self.dependencies);
+        let artifacts = take(&mut self.artifacts);
         let mut base = self.as_v3(dependencies, artifacts);
         base.canonicalize();
         self.dependencies = base.dependencies;

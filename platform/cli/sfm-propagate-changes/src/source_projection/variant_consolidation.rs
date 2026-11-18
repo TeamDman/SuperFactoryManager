@@ -11,9 +11,12 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use gix::diff::blob;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::collections::btree_map;
 use std::fmt::Write as _;
+use std::str::from_utf8;
 
 const MAX_WITNESSES: usize = 256;
 const MAX_TOTAL_SOURCE_BYTES: usize = 128 * 1024 * 1024;
@@ -357,10 +360,10 @@ fn validate_and_order<'a>(
             variant.id
         );
         match by_selector.entry(selector(variant)) {
-            std::collections::btree_map::Entry::Vacant(entry) => {
+            btree_map::Entry::Vacant(entry) => {
                 entry.insert(variant);
             }
-            std::collections::btree_map::Entry::Occupied(mut entry) => {
+            btree_map::Entry::Occupied(mut entry) => {
                 let existing = entry.get();
                 ensure!(
                     existing.source == variant.source,
@@ -553,7 +556,7 @@ fn factor_sources<'a>(
         variants
             .iter()
             .map(|variant| {
-                std::str::from_utf8(variant.source.as_deref().ok_or_else(|| {
+                from_utf8(variant.source.as_deref().ok_or_else(|| {
                     eyre::eyre!("source witness {} has no source bytes", variant.id)
                 })?)
                 .wrap_err_with(|| format!("source witness '{}' is not UTF-8", variant.id))
@@ -651,11 +654,10 @@ fn choose_reference(sources: &[&str]) -> Result<usize> {
 }
 
 fn shared_line_map(before: &[&str], after: &[&str]) -> Vec<Option<usize>> {
-    let mut input = gix::diff::blob::InternedInput::<&str>::default();
+    let mut input = blob::InternedInput::<&str>::default();
     input.update_before(before.iter().copied());
     input.update_after(after.iter().copied());
-    let diff =
-        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Histogram, &input);
+    let diff = blob::diff_with_slider_heuristics(blob::Algorithm::Histogram, &input);
     let mut map = vec![None; before.len()];
     let mut before_cursor = 0;
     let mut after_cursor = 0;

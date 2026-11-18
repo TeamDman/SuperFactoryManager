@@ -3,6 +3,7 @@ use super::identity::InputIdentity;
 use super::input::ComparisonInput;
 use super::snapshot::ComparisonSnapshot;
 use crate::cancellation::CancellationToken;
+use crate::source_projection;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::candidate_lock::is_reparse;
@@ -21,8 +22,10 @@ use eyre::WrapErr;
 use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
 use std::io::Read as _;
 use std::path::Path;
+use std::str::from_utf8;
 const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: usize = 512 * 1024 * 1024;
 const MAX_FILES: usize = 100_000;
@@ -185,8 +188,8 @@ pub(super) fn seal(
     })
 }
 
-fn read_regular(path: &Path) -> Result<std::fs::File> {
-    let mut options = std::fs::OpenOptions::new();
+fn read_regular(path: &Path) -> Result<fs::File> {
+    let mut options = fs::OpenOptions::new();
     options.read(true);
     #[cfg(windows)]
     {
@@ -230,7 +233,7 @@ fn directory_files(
         cancellation.bail_if_cancelled()?;
         let entry = entry?;
         ensure!(
-            !is_reparse(&std::fs::symlink_metadata(entry.path())?),
+            !is_reparse(&fs::symlink_metadata(entry.path())?),
             "comparison directory contains a link/reparse point"
         );
         ensure!(
@@ -293,12 +296,10 @@ fn projection_files(
     let metadata_bytes = read_bounded_input(
         &catalog.repo_root,
         CORE_METADATA_PATH,
-        crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES,
+        source_projection::core_inputs::MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &catalog.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
     let core = catalog
         .repo_root
         .join("platform/minecraft/core-liquid-template");

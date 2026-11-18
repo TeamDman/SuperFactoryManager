@@ -20,7 +20,7 @@ use figue::{self as args};
 use sha2::Digest as _;
 use sha2::Sha256;
 use std::fs::File;
-use std::io::Read as _;
+use std::io::Read;
 use std::path::Path;
 
 const REPORT_SCHEMA: &str = "sfm:source_release_modrinth@1";
@@ -136,7 +136,7 @@ fn read_selected_jar(
 }
 
 fn read_owned_bytes(
-    reader: &mut impl std::io::Read,
+    reader: &mut impl Read,
     expected_sha256: &str,
     limit: u64,
     cancellation: &CancellationToken,
@@ -195,7 +195,6 @@ mod tests {
     use std::cell::Cell;
     use std::fs;
     use std::io::Cursor;
-    use std::io::Read;
 
     fn reviewed_args(target_plan: ReleaseTargetPlanArgs) -> ReleaseModrinthArgs {
         let report = target_plan

@@ -1,10 +1,12 @@
 use crate::branch_targets::BranchQuery;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
+use crate::paths::AppHome;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 pub struct CompareOptions {
+    pub app_home: AppHome,
     pub branch: BranchQuery,
     pub gradle_jar: Option<PathBuf>,
     pub rust_jar: Option<PathBuf>,

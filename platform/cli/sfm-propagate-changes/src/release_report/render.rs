@@ -2,12 +2,15 @@ use super::document::ReleaseReportDocument;
 use super::receipt::ReleaseReportReceipt;
 use super::request::ReleaseReportRequest;
 use crate::cancellation::CancellationToken;
+use crate::jar_build;
 use crate::source_projection::provenance::sha256;
 use base64::Engine as _;
+use base64::engine;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use liquid::model::Value;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs::OpenOptions;
 use std::fs::{self};
@@ -15,6 +18,7 @@ use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Component;
 use std::path::Path;
+use std::path::PathBuf;
 
 const MAX_MANIFEST: u64 = 32 * 1024 * 1024;
 const MAX_PNG: u64 = 8 * 1024 * 1024;
@@ -72,7 +76,7 @@ fn unique_id(id: &str, ids: &mut BTreeSet<String>) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn asset_path(root: &Path, relative: &str) -> Result<std::path::PathBuf> {
+pub(super) fn asset_path(root: &Path, relative: &str) -> Result<PathBuf> {
     let path = Path::new(relative);
     ensure!(
         !relative.contains('\\')
@@ -283,7 +287,7 @@ pub(super) fn render_diffs(
     cancellation: &CancellationToken,
 ) -> Result<(String, String)> {
     let mut diffs = String::new();
-    let mut originals = std::collections::BTreeMap::new();
+    let mut originals = BTreeMap::new();
     for item in &manifest.diffs {
         cancellation.bail_if_cancelled()?;
         unique_id(&item.id, ids)?;
@@ -386,7 +390,7 @@ fn render_images(
             "image SHA256 mismatch: {}",
             item.id
         );
-        let encoded = base64::engine::general_purpose::STANDARD.encode(data);
+        let encoded = engine::general_purpose::STANDARD.encode(data);
         let html = fragment(
             include_str!("templates/image.liquid"),
             &[
@@ -421,7 +425,7 @@ fn render_jars(
     for item in &manifest.jars {
         cancellation.bail_if_cancelled()?;
         unique_id(&item.id, ids)?;
-        let comparison = crate::jar_build::engine::release_jar_comparison_json(
+        let comparison = jar_build::engine::release_jar_comparison_json(
             Path::new(&item.baseline_path),
             Path::new(&item.candidate_path),
         )?;

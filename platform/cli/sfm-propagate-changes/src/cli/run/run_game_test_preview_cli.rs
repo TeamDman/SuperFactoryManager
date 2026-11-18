@@ -1,12 +1,15 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::GamePuppetKeepOpen;
+use crate::jar_build::JavaMaxHeapMib;
 use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
 use facet::Facet;
 use figue as args;
+use std::num::NonZeroU16;
 use std::path::PathBuf;
 
 /// Arguments for launching the Forge client and running selected SFM game puppet definitions.
@@ -56,7 +59,11 @@ impl RunGameTestPreviewArgs {
     /// # Errors
     ///
     /// Returns an error if planning, building, launching, or puppet validation fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         invoke_game_puppet(
             self.options,
             &self.puppet,
@@ -69,6 +76,7 @@ impl RunGameTestPreviewArgs {
             self.control_cli_source_root,
             self.java_max_heap_mib,
             cancellation_token,
+            homes,
         )
     }
 }
@@ -95,6 +103,7 @@ pub(crate) fn invoke_game_puppet(
     control_cli_source_root: Option<PathBuf>,
     java_max_heap_mib: Option<u32>,
     cancellation_token: CancellationToken,
+    homes: &InvocationHomes,
 ) -> eyre::Result<()> {
     invoke_game_puppet_with_hotswap(
         options,
@@ -109,6 +118,7 @@ pub(crate) fn invoke_game_puppet(
         control_cli_source_root,
         java_max_heap_mib,
         cancellation_token,
+        homes,
     )
 }
 
@@ -131,10 +141,10 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
     control_cli_source_root: Option<PathBuf>,
     java_max_heap_mib: Option<u32>,
     cancellation_token: CancellationToken,
+    homes: &InvocationHomes,
 ) -> eyre::Result<()> {
-    let java_max_heap_mib = java_max_heap_mib
-        .map(crate::jar_build::JavaMaxHeapMib::new)
-        .transpose()?;
+    let app_home = homes.app_home();
+    let java_max_heap_mib = java_max_heap_mib.map(JavaMaxHeapMib::new).transpose()?;
     let puppet_filter = puppet.trim();
     if puppet_filter.is_empty() {
         eyre::bail!("puppet selector must not be empty");
@@ -144,7 +154,9 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
     let viewport_selection = normalize_viewport_selection(variant)?;
     let game_puppet_keep_open = GamePuppetKeepOpen::from_cli(keep_open)?;
     RunCommand::with_run_options(
-        options.into_options(BuildMode::Build)?,
+        options
+            .into_options(BuildMode::Build, app_home)?
+            .with_cache_home(homes.available_cache_home()),
         RunKind::GameTestPreview,
         RunOptions {
             java_max_heap_mib,
@@ -182,7 +194,7 @@ pub(crate) fn normalize_viewport_selection(input: &str) -> eyre::Result<String> 
         .parse::<u16>()
         .map_err(|error| eyre::eyre!("invalid --variant height: {error}"))?;
     validate_viewport(Some(width), Some(height))?;
-    if scale != "auto" && scale.parse::<std::num::NonZeroU16>().is_err() {
+    if scale != "auto" && scale.parse::<NonZeroU16>().is_err() {
         eyre::bail!("--variant GUI scale must be auto or a positive integer");
     }
     Ok(format!("{width}x{height}@{scale}"))

@@ -4,12 +4,17 @@
 
 use super::nfrt_launch_contract::NfrtInputSnapshotExport;
 use super::nfrt_launch_contract::PreparedNfrtInvocationInput;
+use crate::source_projection;
 use crate::source_projection::promotion::validate_relative_path;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
+use std::env;
+use std::fs::read;
+use std::iter::once;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Facet)]
@@ -166,7 +171,7 @@ pub(crate) fn prepare_child_command(
         classpath.push(Path::new("../..").join(relative));
     }
     let expected_jvm = if (23..26).contains(&prepared.receipt().tool_sdk.major) {
-        std::iter::once("--sun-misc-unsafe-memory-access=allow".to_owned())
+        once("--sun-misc-unsafe-memory-access=allow".to_owned())
             .chain(config.jvm_args.iter().cloned())
             .collect::<Vec<_>>()
     } else {
@@ -240,7 +245,7 @@ pub(crate) fn prepare_child_command(
         );
         command
             .arg("-cp")
-            .arg(std::env::join_paths(&classpath)?)
+            .arg(env::join_paths(&classpath)?)
             .arg(main);
     } else {
         ensure!(
@@ -349,10 +354,10 @@ fn validate_patch_configuration(
         prepared.source_pin_origin(),
         node,
     )?;
-    let bytes = std::fs::read(root.join(&parent.snapshot_relative_path))?;
+    let bytes = read(root.join(&parent.snapshot_relative_path))?;
     ensure!(
         bytes.len() == parent.bytes
-            && crate::source_projection::provenance::sha256(&bytes) == parent.full_sha256,
+            && source_projection::provenance::sha256(&bytes) == parent.full_sha256,
         "Held patch parent changed"
     );
     let config_bytes = super::nfrt_launch_contract::bounded_source_config(&bytes)?;
@@ -694,7 +699,7 @@ fn validate_transform_templates(
         let value = templates
             .get(cursor)
             .ok_or_else(|| eyre::eyre!("Missing parser classpath"))?;
-        let paths = std::env::split_paths(value).collect::<Vec<_>>();
+        let paths = env::split_paths(value).collect::<Vec<_>>();
         ensure!(
             paths.len() == transform.parser_bindings.len(),
             "Parser classpath cardinality changed"
@@ -818,7 +823,7 @@ fn coordinate_artifact_path(coordinate: &str) -> Result<String> {
     let parts = coordinate.split(':').collect::<Vec<_>>();
     ensure!(
         (3..=4).contains(&parts.len())
-            && parts.iter().chain(std::iter::once(&extension)).all(|part| {
+            && parts.iter().chain(once(&extension)).all(|part| {
                 !part.is_empty()
                     && *part != "."
                     && *part != ".."
@@ -1067,7 +1072,7 @@ fn expect_owned_path(
     Ok(())
 }
 
-fn owned_argument_path(root: &Path, node: &str, argument: &str) -> Result<std::path::PathBuf> {
+fn owned_argument_path(root: &Path, node: &str, argument: &str) -> Result<PathBuf> {
     use std::path::Component;
     ensure!(
         !argument.is_empty() && !argument.contains('{') && !argument.contains('}'),
@@ -1088,7 +1093,7 @@ fn owned_argument_path(root: &Path, node: &str, argument: &str) -> Result<std::p
     } else {
         root.join("work").join(node).join(path)
     };
-    let mut normalized = std::path::PathBuf::new();
+    let mut normalized = PathBuf::new();
     for component in absolute.components() {
         match component {
             Component::CurDir => (),

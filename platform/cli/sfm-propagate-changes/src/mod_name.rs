@@ -1,4 +1,3 @@
-use crate::sfm_mod_name::SfmModName;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
@@ -33,12 +32,6 @@ impl ModName {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
-    }
-}
-
-impl From<SfmModName> for ModName {
-    fn from(_: SfmModName) -> Self {
-        Self(SfmModName::VALUE.to_owned())
     }
 }
 

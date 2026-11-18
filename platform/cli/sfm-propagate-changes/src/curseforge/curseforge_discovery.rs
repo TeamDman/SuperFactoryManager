@@ -1,3 +1,4 @@
+use crate::curseforge;
 use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeProjectFileItem;
 use crate::curseforge::CurseforgeProjectId;
@@ -131,7 +132,7 @@ pub trait CurseforgeProjectMetadata {
     fn fetch_project_file(
         &self,
         project_id: CurseforgeProjectId,
-        file_id: crate::curseforge::CurseforgeProjectFileId,
+        file_id: curseforge::CurseforgeProjectFileId,
     ) -> eyre::Result<CurseforgeProjectFileItem>;
 }
 
@@ -143,7 +144,7 @@ impl CurseforgeProjectMetadata for CurseforgeHttpClient {
     fn fetch_project_file(
         &self,
         project_id: CurseforgeProjectId,
-        file_id: crate::curseforge::CurseforgeProjectFileId,
+        file_id: curseforge::CurseforgeProjectFileId,
     ) -> eyre::Result<CurseforgeProjectFileItem> {
         fetch_project_file(self, project_id, file_id)
     }
@@ -265,7 +266,7 @@ pub fn file_supported_loaders(file: &CurseforgeProjectFileItem) -> Vec<Curseforg
 pub fn fetch_project_file(
     client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
-    file_id: crate::curseforge::CurseforgeProjectFileId,
+    file_id: curseforge::CurseforgeProjectFileId,
 ) -> eyre::Result<CurseforgeProjectFileItem> {
     fetch_project_file_at(client, CURSEFORGE_CORE_API_ROOT, project_id, file_id)
 }
@@ -274,7 +275,7 @@ fn fetch_project_file_at(
     client: &CurseforgeHttpClient,
     api_root: &str,
     project_id: CurseforgeProjectId,
-    file_id: crate::curseforge::CurseforgeProjectFileId,
+    file_id: curseforge::CurseforgeProjectFileId,
 ) -> eyre::Result<CurseforgeProjectFileItem> {
     let endpoint = format!("{api_root}/mods/{project_id}/files/{file_id}");
     let body = get_core_response(client, &endpoint, &[])?;

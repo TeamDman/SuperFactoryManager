@@ -2,7 +2,17 @@ use crate::cancellation::CancellationToken;
 use eyre::Context;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
+use std::fs;
+use std::io;
+#[cfg(windows)]
+use std::io::Error as IoError;
+#[cfg(windows)]
+use std::io::ErrorKind;
+#[cfg(windows)]
+use std::io::Result as IoResult;
 use std::path::Path;
+#[cfg(windows)]
+use std::ptr::copy_nonoverlapping;
 
 pub(crate) trait PayloadFetcher {
     fn fetch(
@@ -49,7 +59,7 @@ pub(crate) fn write_payload_atomically(path: &Path, bytes: &[u8]) -> eyre::Resul
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("Payload cache path has no parent: {}", path.display()))?;
-    std::fs::create_dir_all(parent)
+    fs::create_dir_all(parent)
         .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
     let mut builder = tempfile::Builder::new();
     builder.prefix(".sfm-payload.").suffix(".tmp");
@@ -63,7 +73,7 @@ pub(crate) fn write_payload_atomically(path: &Path, bytes: &[u8]) -> eyre::Resul
         // Normal staging avoids publishing FILE_ATTRIBUTE_TEMPORARY. Request
         // DELETE on our new file so the same synced handle can rename it.
         builder.make_in(parent, |staging_path| {
-            std::fs::OpenOptions::new()
+            fs::OpenOptions::new()
                 .read(true)
                 .write(true)
                 .create_new(true)
@@ -73,7 +83,7 @@ pub(crate) fn write_payload_atomically(path: &Path, bytes: &[u8]) -> eyre::Resul
     };
     #[cfg(not(windows))]
     let mut temporary = builder.tempfile_in(parent)?;
-    std::io::Write::write_all(&mut temporary, bytes)?;
+    io::Write::write_all(&mut temporary, bytes)?;
     temporary.as_file_mut().sync_all()?;
     #[cfg(windows)]
     let publication = publish_payload_windows(path, &temporary);
@@ -87,10 +97,7 @@ pub(crate) fn write_payload_atomically(path: &Path, bytes: &[u8]) -> eyre::Resul
 }
 
 #[cfg(windows)]
-fn publish_payload_windows(
-    path: &Path,
-    temporary: &tempfile::NamedTempFile,
-) -> std::io::Result<()> {
+fn publish_payload_windows(path: &Path, temporary: &tempfile::NamedTempFile) -> IoResult<()> {
     use std::os::windows::ffi::OsStrExt as _;
     use std::os::windows::fs::MetadataExt as _;
     use std::os::windows::io::AsRawHandle as _;
@@ -104,46 +111,38 @@ fn publish_payload_windows(
     // sidecar's longer filename crosses it. Canonicalize the existing parent
     // with std (which retains Windows' verbatim spelling), then append the
     // not-yet-existing destination leaf for both the check and handle rename.
-    let parent = path.parent().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Payload path has no parent",
-        )
-    })?;
-    let leaf = path.file_name().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Payload path has no filename",
-        )
-    })?;
-    let destination = std::fs::canonicalize(parent)?.join(leaf);
-    match std::fs::symlink_metadata(&destination) {
+    let parent = path
+        .parent()
+        .ok_or_else(|| IoError::new(ErrorKind::InvalidInput, "Payload path has no parent"))?;
+    let leaf = path
+        .file_name()
+        .ok_or_else(|| IoError::new(ErrorKind::InvalidInput, "Payload path has no filename"))?;
+    let destination = fs::canonicalize(parent)?.join(leaf);
+    match fs::symlink_metadata(&destination) {
         Ok(metadata)
             if metadata.is_file()
                 && metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0 => {}
         Ok(_) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
+            return Err(IoError::new(
+                ErrorKind::InvalidInput,
                 "Payload destination must be a regular non-reparse file",
             ));
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
         Err(error) => return Err(error),
     }
     let filename: Vec<u16> = destination.as_os_str().encode_wide().collect();
-    let filename_bytes = std::mem::size_of_val(filename.as_slice());
-    let buffer_bytes = std::mem::size_of::<FILE_RENAME_INFO>() + filename_bytes;
+    let filename_bytes = size_of_val(filename.as_slice());
+    let buffer_bytes = size_of::<FILE_RENAME_INFO>() + filename_bytes;
     // Use the API's own type for allocation alignment; the variable-length
     // filename continues beyond its one-element trailing FileName field.
-    let mut buffer = vec![
-        FILE_RENAME_INFO::default();
-        buffer_bytes.div_ceil(std::mem::size_of::<FILE_RENAME_INFO>())
-    ];
+    let mut buffer =
+        vec![FILE_RENAME_INFO::default(); buffer_bytes.div_ceil(size_of::<FILE_RENAME_INFO>())];
     // FILE_RENAME_REPLACE_IF_EXISTS | FILE_RENAME_POSIX_SEMANTICS retains old
     // handles while fresh opens see the complete replacement in one rename.
     buffer[0].Anonymous.Flags = 0x1 | 0x2;
     buffer[0].FileNameLength = u32::try_from(filename_bytes)
-        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidInput, error))?;
+        .map_err(|error| IoError::new(ErrorKind::InvalidInput, error))?;
     let filename_destination = buffer
         .as_mut_ptr()
         .wrapping_byte_add(std::mem::offset_of!(FILE_RENAME_INFO, FileName))
@@ -151,10 +150,10 @@ fn publish_payload_windows(
     // SAFETY: the aligned allocation includes the complete UTF-16 name plus
     // header, and the source Vec does not overlap it. Both remain live below.
     unsafe {
-        std::ptr::copy_nonoverlapping(filename.as_ptr(), filename_destination, filename.len());
+        copy_nonoverlapping(filename.as_ptr(), filename_destination, filename.len());
     };
     let buffer_bytes = u32::try_from(buffer_bytes)
-        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidInput, error))?;
+        .map_err(|error| IoError::new(ErrorKind::InvalidInput, error))?;
     // SAFETY: the live synced staging handle has DELETE access. The buffer uses
     // the API layout and sufficient alignment/length for the entire filename.
     // Unsupported flags and denied deletion propagate without another fallback.
@@ -167,7 +166,7 @@ fn publish_payload_windows(
         )
     }
     // This BOOL-based Win32 API reports GetLastError as HRESULT_FROM_WIN32.
-    .map_err(|error| std::io::Error::from_raw_os_error(error.code().0 & 0xffff))
+    .map_err(|error| IoError::from_raw_os_error(error.code().0 & 0xffff))
 }
 
 #[cfg(all(test, windows))]

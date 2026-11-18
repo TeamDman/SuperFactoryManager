@@ -5,6 +5,9 @@ use super::DependencySourceProviderArgs;
 use super::DependencySourceSearchArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::jar_build::engine::select_branch_source_cache;
+use crate::jar_build::engine::select_project_source_cache;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -34,14 +37,18 @@ pub enum DependencySourceCommand {
 }
 
 impl DependencySourceArgs {
-    pub(crate) fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<()> {
+    pub(crate) fn invoke(
+        self,
+        cancellation_token: &CancellationToken,
+        app_home: &AppHome,
+    ) -> eyre::Result<()> {
         let selected = if let DependencySourceCommand::Acquire(args) = &self.command {
             if let Some(project_root) = &args.project_root {
                 eyre::ensure!(
                     args.branch.is_none(),
                     "select either --branch or --project-root"
                 );
-                crate::jar_build::engine::select_project_source_cache(
+                select_project_source_cache(
                     project_root,
                     self.cache_root.as_deref(),
                     cancellation_token,
@@ -50,28 +57,40 @@ impl DependencySourceArgs {
                 let branch = args.branch.as_ref().ok_or_else(|| {
                     eyre::eyre!("source acquire requires --branch or --project-root")
                 })?;
-                crate::jar_build::engine::select_branch_source_cache(
+                select_branch_source_cache(
                     branch,
                     self.cache_root.as_deref(),
                     cancellation_token,
+                    app_home,
                 )?
             }
         } else {
-            crate::jar_build::engine::select_branch_source_cache(
+            select_branch_source_cache(
                 self.command
                     .branch()
                     .ok_or_else(|| eyre::eyre!("Source command requires a branch"))?,
                 self.cache_root.as_deref(),
                 cancellation_token,
+                app_home,
             )?
         };
         let cache_home = selected.home();
         match self.command {
-            DependencySourceCommand::Acquire(args) => args.invoke(cancellation_token, cache_home),
-            DependencySourceCommand::Configure(args) => args.invoke(cancellation_token, cache_home),
-            DependencySourceCommand::Search(args) => args.invoke(cancellation_token, cache_home),
-            DependencySourceCommand::Provider(args) => args.invoke(cancellation_token, cache_home),
-            DependencySourceCommand::Cache(args) => args.invoke(cancellation_token, cache_home),
+            DependencySourceCommand::Acquire(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
+            DependencySourceCommand::Configure(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
+            DependencySourceCommand::Search(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
+            DependencySourceCommand::Provider(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
+            DependencySourceCommand::Cache(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
         }
     }
 }

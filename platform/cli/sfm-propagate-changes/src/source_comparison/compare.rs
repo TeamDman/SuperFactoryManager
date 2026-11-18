@@ -11,6 +11,7 @@ use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::str::from_utf8;
 
 /// Compare captured inputs in deterministic path order, retaining original evidence.
 ///
@@ -137,7 +138,7 @@ fn compare_pair(
     };
     let (view_a, view_b) = comparison_inputs(path, a, b, policy);
     let text = |bytes: &[u8]| {
-        std::str::from_utf8(bytes)
+        from_utf8(bytes)
             .ok()
             .filter(|text| {
                 !text

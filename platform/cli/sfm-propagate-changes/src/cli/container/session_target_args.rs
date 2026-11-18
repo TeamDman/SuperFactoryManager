@@ -1,3 +1,4 @@
+use crate::container_build::SessionTarget;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -11,8 +12,8 @@ pub struct SessionTargetArgs {
     pub session: String,
 }
 impl SessionTargetArgs {
-    pub(crate) fn into_request(self) -> eyre::Result<crate::container_build::SessionTarget> {
-        let target = crate::container_build::SessionTarget {
+    pub(crate) fn into_request(self) -> eyre::Result<SessionTarget> {
+        let target = SessionTarget {
             engine_endpoint: self.engine_endpoint,
             session: self.session,
         };

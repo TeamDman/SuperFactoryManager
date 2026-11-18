@@ -1,7 +1,10 @@
 use super::SyntaxHighlightRequest;
 use super::SyntaxHighlightResult;
 use facet::Facet;
+use std::error::Error as StdError;
 use std::fmt;
+use std::io::Error as IoError;
+use std::io::ErrorKind;
 use std::io::Read;
 use std::io::Write;
 
@@ -287,7 +290,7 @@ fn validate_schema(actual: &str, expected: &'static str) -> Result<(), SyntaxSer
 
 #[derive(Debug)]
 pub enum SyntaxServerProtocolError {
-    Io(std::io::Error),
+    Io(IoError),
     TruncatedHeader {
         received: usize,
     },
@@ -342,8 +345,8 @@ impl fmt::Display for SyntaxServerProtocolError {
     }
 }
 
-impl std::error::Error for SyntaxServerProtocolError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl StdError for SyntaxServerProtocolError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Io(error) => Some(error),
             _ => None,
@@ -351,8 +354,8 @@ impl std::error::Error for SyntaxServerProtocolError {
     }
 }
 
-impl From<std::io::Error> for SyntaxServerProtocolError {
-    fn from(error: std::io::Error) -> Self {
+impl From<IoError> for SyntaxServerProtocolError {
+    fn from(error: IoError) -> Self {
         Self::Io(error)
     }
 }
@@ -511,7 +514,7 @@ fn read_until_full(
         match reader.read(&mut buffer[received..]) {
             Ok(0) => break,
             Ok(count) => received += count,
-            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
             Err(error) => return Err(SyntaxServerProtocolError::Io(error)),
         }
     }

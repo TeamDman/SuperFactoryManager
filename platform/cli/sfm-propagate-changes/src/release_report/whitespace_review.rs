@@ -1,18 +1,19 @@
 //! Conservative review partition; raw bytes and comparison policy remain intact.
+use crate::source_projection;
+use std::path::Path;
 pub(crate) fn basis(path: &str, before: &str, after: &str) -> Option<String> {
     if before == after
-        || !std::path::Path::new(path)
+        || !Path::new(path)
             .extension()
             .is_some_and(|ext| ext.eq_ignore_ascii_case("java"))
     {
         return None;
     }
-    let left = crate::source_projection::simplify::parse(before.to_owned()).ok()?;
-    let right = crate::source_projection::simplify::parse(after.to_owned()).ok()?;
-    let result = crate::source_projection::simplify::compare(&left, &right);
-    (result.classification
-        == crate::source_projection::simplify::ComparisonClassification::WhitespaceOnly)
-        .then(|| crate::source_projection::simplify::ALGORITHM.to_owned())
+    let left = source_projection::simplify::parse(before.to_owned()).ok()?;
+    let right = source_projection::simplify::parse(after.to_owned()).ok()?;
+    let result = source_projection::simplify::compare(&left, &right);
+    (result.classification == source_projection::simplify::ComparisonClassification::WhitespaceOnly)
+        .then(|| source_projection::simplify::ALGORITHM.to_owned())
 }
 #[cfg(test)]
 mod tests {

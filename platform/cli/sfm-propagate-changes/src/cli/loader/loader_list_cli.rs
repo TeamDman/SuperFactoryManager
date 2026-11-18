@@ -1,6 +1,9 @@
 use crate::branch_targets::select_required_worktree_targets;
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use crate::prism::PrismLoaderSelection;
+use crate::prism::loader_report_for_target;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
@@ -21,12 +24,12 @@ impl LoaderListArgs {
     /// # Errors
     ///
     /// Returns an error if build plans or Prism metadata cannot be read.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let query = self.branch.into_query()?;
-        let targets = select_required_worktree_targets(&query)?;
+    pub fn invoke(self, app_home: &AppHome, cache_home: &CacheHome) -> eyre::Result<()> {
+        let query = self.branch.into_query(app_home)?;
+        let targets = select_required_worktree_targets(&query, app_home)?;
         stdout_line("branch\tmc\tloader\tpinned\trecommended\tlatest\tselected\tjava\tjava_path")?;
         for target in targets {
-            let report = crate::prism::loader_report_for_target(&target, self.loader)?;
+            let report = loader_report_for_target(&target, self.loader, cache_home)?;
             stdout_line(format!(
                 "{}\t{}\t{} ({})\t{}\t{}\t{}\t{}\t{}\t{}",
                 report.branch,

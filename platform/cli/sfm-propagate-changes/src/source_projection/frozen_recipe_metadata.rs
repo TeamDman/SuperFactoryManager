@@ -2,11 +2,12 @@
 //! This module has no filesystem, process, cache, or dependency capabilities.
 
 use std::ops::Range;
+use std::str::from_utf8;
 
 /// Read the single literal version value used by authored property inputs.
 pub(super) fn mod_version(properties: &[u8]) -> Result<&str, String> {
     let span = mod_version_span(properties)?;
-    std::str::from_utf8(&properties[span]).map_err(|error| error.to_string())
+    from_utf8(&properties[span]).map_err(|error| error.to_string())
 }
 
 fn mod_version_span(properties: &[u8]) -> Result<Range<usize>, String> {

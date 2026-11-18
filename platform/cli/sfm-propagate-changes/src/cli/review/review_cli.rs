@@ -1,8 +1,18 @@
+use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::release_review_capture::WorkingTreeCaptureV1;
+use crate::release_review_capture_io::CaptureBudget;
 use crate::release_review_git;
 use crate::release_review_java_diff::produce_java_structured_diff;
+use crate::release_review_ledger::ReviewLedger;
+use crate::release_review_ledger::SCHEMA;
+use crate::release_review_ledger::TargetLane;
+use crate::release_review_ledger::parse;
+use crate::release_review_ledger::to_json;
+use crate::release_review_ledger_resolve::Resolution;
+use crate::release_review_ledger_resolve::resolve;
 use crate::release_review_materialize;
+use crate::release_review_source_probe::read_bindings;
 use crate::release_review_surface_v1::ReviewSurfaceKindV1;
 use crate::release_review_surface_v1::ReviewSurfaceLimitsV1;
 use crate::release_review_surface_v1::parse_request;
@@ -10,12 +20,29 @@ use crate::release_review_text_diff::produce_text_diff;
 use crate::release_review_v1;
 use crate::release_review_v1::CompletionReportV1;
 use crate::release_review_v1::CompletionStatusV1;
+use crate::release_review_working_tree::WorkingTreeReviewConfig;
+use crate::release_review_working_tree::capture;
+use crate::release_review_working_tree::scope_matches;
+use crate::release_review_working_tree_materialize::materialize;
+use crate::review_session_v1::sha256;
 use eyre::Context as _;
 use facet::Facet;
 use figue::{self as args};
+use std::collections::BTreeMap;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+use std::fs::canonicalize;
+use std::fs::create_dir_all;
+use std::fs::read;
+use std::fs::read_to_string;
 use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::id as process_id;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 const REVIEW_NOT_COMPLETE_EXIT_CODE: u8 = 5;
 
@@ -33,7 +60,7 @@ impl ReviewArgs {
     pub fn invoke_with_cancellation(
         self,
         invocation_dir: &Path,
-        cancellation: &crate::cancellation::CancellationToken,
+        cancellation: &CancellationToken,
     ) -> eyre::Result<CliOutput> {
         match self.command {
             ReviewCommand::Session(ReviewSessionArgs {
@@ -101,7 +128,7 @@ pub struct ReviewSurfaceGenerateArgs {
 impl ReviewSurfaceGenerateArgs {
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
         let request_path = resolve_path(invocation_dir, &self.request_file);
-        let request_text = std::fs::read_to_string(&request_path).wrap_err_with(|| {
+        let request_text = read_to_string(&request_path).wrap_err_with(|| {
             format!(
                 "could not read review-surface request {}",
                 request_path.display()
@@ -145,10 +172,7 @@ impl ReviewSessionArgs {
                         "freshness-of requires --request-file with observed source bindings"
                     )
                 })?;
-                let bindings = crate::release_review_source_probe::read_bindings(&resolve_path(
-                    invocation_dir,
-                    &request,
-                ))?;
+                let bindings = read_bindings(&resolve_path(invocation_dir, &request))?;
                 Ok(CliOutput::facet(ReviewSessionFreshnessOutput {
                     schema: "sfm.release-review-freshness/1".into(),
                     repository_relationships: inspect_repository_relationships(
@@ -164,11 +188,11 @@ impl ReviewSessionArgs {
                     .request_file
                     .as_ref()
                     .map_or_else(|| path.clone(), |p| resolve_path(invocation_dir, p));
-                let input = std::fs::read_to_string(input_path)?;
+                let input = read_to_string(input_path)?;
                 let resolution = resolve_ledger_at(&path, &input)?;
                 Ok(CliOutput::facet(ReviewSessionResolveOutput {
                     schema: "sfm.release-review-resolve/3".into(),
-                    authority_sha256: crate::review_session_v1::sha256(input.as_bytes()),
+                    authority_sha256: sha256(input.as_bytes()),
                     resolution,
                 }))
             }
@@ -211,7 +235,7 @@ pub struct ReviewSessionResolveArgs {
 pub struct ReviewSessionResolveOutput {
     pub schema: String,
     pub authority_sha256: String,
-    pub resolution: crate::release_review_ledger_resolve::Resolution,
+    pub resolution: Resolution,
 }
 
 #[derive(Facet)]
@@ -357,18 +381,15 @@ impl ReviewSessionCreateArgs {
             || invocation_dir.to_owned(),
             |p| resolve_path(invocation_dir, p),
         );
-        let cancellation = crate::cancellation::CancellationToken::new();
-        let budget = crate::release_review_capture_io::CaptureBudget::with_timeout(
-            &cancellation,
-            std::time::Duration::from_secs(10),
-        );
+        let cancellation = CancellationToken::new();
+        let budget = CaptureBudget::with_timeout(&cancellation, Duration::from_secs(10));
         let top = budget.git(
             &requested,
             &["rev-parse", "--show-toplevel"],
             None,
             64 * 1024,
         )?;
-        let root = std::fs::canonicalize(String::from_utf8(top)?.trim_end_matches(['\r', '\n']))?;
+        let root = canonicalize(String::from_utf8(top)?.trim_end_matches(['\r', '\n']))?;
         let resolve_commit = |revision: &str| -> eyre::Result<String> {
             let object = format!("{revision}^{{commit}}");
             let bytes = budget.git(
@@ -398,21 +419,19 @@ impl ReviewSessionCreateArgs {
             "git"
         }
         .to_owned();
-        let created = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_nanos();
+        let created = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
         let id = format!(
             "release-review:{}",
-            crate::review_session_v1::sha256(
+            sha256(
                 format!(
                     "sfm.release-review/3:new\0{}\0{created}\0{}",
                     output.display(),
-                    std::process::id()
+                    process_id()
                 )
                 .as_bytes()
             )
         );
-        let ledger = crate::release_review_ledger::ReviewLedger::new(
+        let ledger = ReviewLedger::new(
             id.clone(),
             format!(
                 "Release review · {} · {} → {}",
@@ -420,7 +439,7 @@ impl ReviewSessionCreateArgs {
                 before,
                 after.as_deref().unwrap_or("live working tree")
             ),
-            vec![crate::release_review_ledger::TargetLane {
+            vec![TargetLane {
                 id: self.branch,
                 repository_id: "sfm".into(),
                 root_hint: ".".into(),
@@ -436,7 +455,7 @@ impl ReviewSessionCreateArgs {
                 include_untracked: !self.tracked_only,
             }],
         );
-        let encoded = crate::release_review_ledger::to_json(&ledger)?;
+        let encoded = to_json(&ledger)?;
         write_new_atomically(&output, encoded.as_bytes())?;
         Ok(CliOutput::facet(ReviewLedgerCreateOutput {
             schema: "sfm.release-review-create/3".into(),
@@ -448,16 +467,13 @@ impl ReviewSessionCreateArgs {
     }
 
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
-        self.invoke_with_cancellation(
-            invocation_dir,
-            &crate::cancellation::CancellationToken::new(),
-        )
+        self.invoke_with_cancellation(invocation_dir, &CancellationToken::new())
     }
 
     fn invoke_with_cancellation(
         self,
         invocation_dir: &Path,
-        cancellation: &crate::cancellation::CancellationToken,
+        cancellation: &CancellationToken,
     ) -> eyre::Result<CliOutput> {
         if self.working_tree == self.candidate.is_some() {
             return Err(eyre::eyre!(
@@ -479,7 +495,7 @@ impl ReviewSessionCreateArgs {
             || invocation_dir.to_owned(),
             |path| resolve_path(invocation_dir, path),
         );
-        let repository_root = std::fs::canonicalize(&requested_root).wrap_err_with(|| {
+        let repository_root = canonicalize(&requested_root).wrap_err_with(|| {
             format!(
                 "could not resolve Git repository root {}",
                 requested_root.display()
@@ -560,9 +576,9 @@ impl ReviewSessionCreateArgs {
         repository_root: PathBuf,
         output: &Path,
         evidence: String,
-        cancellation: &crate::cancellation::CancellationToken,
+        cancellation: &CancellationToken,
     ) -> eyre::Result<CliOutput> {
-        let config = crate::release_review_working_tree::WorkingTreeReviewConfig {
+        let config = WorkingTreeReviewConfig {
             repository_root,
             lane_id: self.branch.clone(),
             repository_id: "sfm".into(),
@@ -572,13 +588,13 @@ impl ReviewSessionCreateArgs {
             include_untracked: !self.tracked_only,
             review_evidence_path: evidence,
         };
-        let input = crate::release_review_working_tree::capture(&config, cancellation)?;
+        let input = capture(&config, cancellation)?;
         let capture_id = input.capture.id.clone();
         let head = input.capture.observed_head_commit.clone();
         let captured_at = input.capture.captured_at_unix_ms;
         let scopes = input.capture.scope_paths.clone();
         let exclusions = input.capture.excluded_paths.clone();
-        let document = crate::release_review_working_tree_materialize::materialize(&config, input)?;
+        let document = materialize(&config, input)?;
         let canonical = release_review_v1::to_canonical_json(&document)?;
         let completion = release_review_v1::completion(&document)?;
         cancellation.bail_if_cancelled()?;
@@ -644,7 +660,7 @@ impl ReviewSessionRefreshArgs {
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
         let review_path = resolve_review_document_path(invocation_dir, &self.file);
         let display_path = review_path.to_string_lossy().into_owned();
-        let original = match std::fs::read_to_string(&review_path) {
+        let original = match read_to_string(&review_path) {
             Ok(original) => original,
             Err(error) => {
                 return Ok(refresh_refused(
@@ -720,7 +736,7 @@ impl ReviewSessionRefreshArgs {
             ));
         }
 
-        let repository_root = match std::fs::canonicalize(&repository_root) {
+        let repository_root = match canonicalize(&repository_root) {
             Ok(root) => root,
             Err(error) => {
                 return Ok(refresh_refused(
@@ -734,7 +750,7 @@ impl ReviewSessionRefreshArgs {
                 ));
             }
         };
-        let review_path_canonical = match std::fs::canonicalize(&review_path) {
+        let review_path_canonical = match canonicalize(&review_path) {
             Ok(path) => path,
             Err(error) => {
                 return Ok(refresh_refused(
@@ -983,7 +999,7 @@ pub struct ReviewSessionFreshnessOutput {
 impl ReviewSessionStatusArgs {
     fn invoke_freshness_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
         let review_path = resolve_review_document_path(invocation_dir, &self.file);
-        let bindings = crate::release_review_source_probe::read_bindings(&review_path)?;
+        let bindings = read_bindings(&review_path)?;
         Ok(CliOutput::facet(ReviewSessionFreshnessOutput {
             schema: "sfm.release-review-freshness/1".to_owned(),
             repository_relationships: inspect_repository_relationships(
@@ -1226,8 +1242,8 @@ fn inspect_capture_relationship(
     }
     let mut tree = ReviewSessionWorkingTreeOutput {
         schema: "sfm.release-review.working-tree-evidence/1".into(),
-        checked_at_unix_millis: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
+        checked_at_unix_millis: SystemTime::now()
+            .duration_since(UNIX_EPOCH)
             .map_or(0, |value| {
                 u64::try_from(value.as_millis()).unwrap_or(u64::MAX)
             }),
@@ -1241,7 +1257,7 @@ fn inspect_capture_relationship(
             .review_evidence_paths
             .first()
             .ok_or_else(|| eyre::eyre!("capture binding has no original output exclusion"))?;
-        let config = crate::release_review_working_tree::WorkingTreeReviewConfig {
+        let config = WorkingTreeReviewConfig {
             repository_root: root.to_owned(),
             lane_id: binding.lane_id.clone(),
             repository_id: binding.repository_id.clone(),
@@ -1251,11 +1267,7 @@ fn inspect_capture_relationship(
             include_untracked: saved.include_untracked,
             review_evidence_path: evidence.clone(),
         };
-        crate::release_review_working_tree::scope_matches(
-            &config,
-            saved,
-            &crate::cancellation::CancellationToken::new(),
-        )
+        scope_matches(&config, saved, &CancellationToken::new())
     })();
     match result {
         Ok((matches, head)) if Some(&head) == output.ambient_head.as_ref() => {
@@ -1361,8 +1373,8 @@ impl ReplaceExistingError {
     }
 }
 
-impl std::fmt::Display for ReplaceExistingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ReplaceExistingError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Self::ConcurrentModification => f.write_str(
                 "release-review document changed while refresh was running; no refreshed bytes were published",
@@ -1405,7 +1417,7 @@ fn write_existing_atomically_if_unchanged(
             path.display()
         ))
     })?;
-    let current = std::fs::read(path).map_err(|error| {
+    let current = read(path).map_err(|error| {
         ReplaceExistingError::Io(format!(
             "could not re-read release-review document {} before replacement: {error}",
             path.display()
@@ -1443,23 +1455,20 @@ fn resolve_review_document_path(invocation_dir: &Path, requested_path: &Path) ->
 fn read_review_document_at(
     path: &Path,
 ) -> eyre::Result<release_review_v1::ReleaseReviewDocumentV1> {
-    let input = std::fs::read_to_string(path)
+    let input = read_to_string(path)
         .wrap_err_with(|| format!("could not read release-review document {}", path.display()))?;
     let header: ReviewSchemaHeader = facet_json::from_str(&input)
         .map_err(|error| eyre::eyre!("invalid review schema header: {error:?}"))?;
-    if header.schema == crate::release_review_ledger::SCHEMA {
+    if header.schema == SCHEMA {
         return Ok(resolve_ledger_at(path, &input)?.document);
     }
     release_review_v1::parse(&input)
         .wrap_err_with(|| format!("could not load release-review document {}", path.display()))
 }
 
-fn resolve_ledger_at(
-    path: &Path,
-    input: &str,
-) -> eyre::Result<crate::release_review_ledger_resolve::Resolution> {
-    let ledger = crate::release_review_ledger::parse(input)?;
-    let parent = std::fs::canonicalize(
+fn resolve_ledger_at(path: &Path, input: &str) -> eyre::Result<Resolution> {
+    let ledger = parse(input)?;
+    let parent = canonicalize(
         path.parent()
             .ok_or_else(|| eyre::eyre!("review path has no parent"))?,
     )?;
@@ -1467,19 +1476,16 @@ fn resolve_ledger_at(
         path.file_name()
             .ok_or_else(|| eyre::eyre!("review path has no filename"))?,
     );
-    let cancellation = crate::cancellation::CancellationToken::new();
-    let budget = crate::release_review_capture_io::CaptureBudget::with_timeout(
-        &cancellation,
-        std::time::Duration::from_secs(10),
-    );
-    let mut roots = std::collections::BTreeMap::new();
+    let cancellation = CancellationToken::new();
+    let budget = CaptureBudget::with_timeout(&cancellation, Duration::from_secs(10));
+    let mut roots = BTreeMap::new();
     for target in &ledger.targets {
         let hint = resolve_path(&parent, Path::new(&target.root_hint));
         let bytes = budget.git(&hint, &["rev-parse", "--show-toplevel"], None, 64 * 1024)?;
-        let root = std::fs::canonicalize(String::from_utf8(bytes)?.trim_end_matches(['\r', '\n']))?;
+        let root = canonicalize(String::from_utf8(bytes)?.trim_end_matches(['\r', '\n']))?;
         roots.insert(target.id.clone(), root);
     }
-    crate::release_review_ledger_resolve::resolve(&ledger, &path, &roots, &cancellation)
+    resolve(&ledger, &path, &roots, &cancellation)
 }
 
 fn resolve_bound_repository_root(
@@ -1504,15 +1510,12 @@ fn resolve_bound_repository_root(
     // Resolve only that hinted repository, never scan sibling repositories.
     // Failed discovery retains the hint so the ordinary typed probe reports
     // unavailable, rather than treating missing source as current.
-    let budget = crate::release_review_capture_io::CaptureBudget::with_timeout(
-        &crate::cancellation::CancellationToken::new(),
-        std::time::Duration::from_secs(5),
-    );
+    let budget = CaptureBudget::with_timeout(&CancellationToken::new(), Duration::from_secs(5));
     budget
         .git(&hinted, &["rev-parse", "--show-toplevel"], None, 64 * 1024)
         .ok()
         .and_then(|bytes| String::from_utf8(bytes).ok())
-        .and_then(|root| std::fs::canonicalize(root.trim_end_matches(['\r', '\n'])).ok())
+        .and_then(|root| canonicalize(root.trim_end_matches(['\r', '\n'])).ok())
         .unwrap_or(hinted)
 }
 
@@ -1536,13 +1539,13 @@ fn resolve_output_path(
     let requested_parent = unresolved
         .parent()
         .ok_or_else(|| eyre::eyre!("release-review output path has no parent"))?;
-    std::fs::create_dir_all(requested_parent).wrap_err_with(|| {
+    create_dir_all(requested_parent).wrap_err_with(|| {
         format!(
             "could not create release-review directory {}",
             requested_parent.display()
         )
     })?;
-    let parent = std::fs::canonicalize(requested_parent).wrap_err_with(|| {
+    let parent = canonicalize(requested_parent).wrap_err_with(|| {
         format!(
             "could not resolve release-review directory {}",
             requested_parent.display()

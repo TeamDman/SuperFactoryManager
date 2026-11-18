@@ -9,20 +9,27 @@ use super::nfrt_host_protocol::read_frame;
 use super::nfrt_host_session::NfrtHostSession;
 use super::nfrt_launch_contract::PreparedNfrtInvocationInput;
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
+use crate::cancellation::CancellationToken;
+use crate::source_projection;
 use crate::source_projection::nfrt_input_store::NfrtInputStore;
 use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
 use crate::source_projection::nfrt_tool_sdk::NfrtToolSdk;
 use eyre::Result;
 use eyre::ensure;
+use std::env;
 use std::fs::OpenOptions;
+use std::fs::canonicalize;
 use std::io::BufReader;
 use std::io::Cursor;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 use std::sync::mpsc;
+use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use tracing::field;
 
 const HOST_SOURCES: &[(&str, &[u8])] = &[
     (
@@ -97,12 +104,12 @@ pub(crate) fn with_owned_compiler_inputs<T>(
     project: &dyn NfrtProjectOwner,
     prepared: &PreparedNfrtInvocationInput,
     sdk: &mut NfrtToolSdk,
-    cancellation: &crate::cancellation::CancellationToken,
+    cancellation: &CancellationToken,
     derived_cache_root: Option<&Path>,
     consume: impl FnOnce(
         &Path,
         &Path,
-        &[&crate::source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt; 2],
+        &[&source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt; 2],
     ) -> Result<(
         T,
         Option<super::local_dependency_cache::VerifiedLocalDependencyPublication>,
@@ -198,7 +205,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
         store.publish_host_jar(HOST_SOURCES)
     })?;
     let mut host_preparation = NfrtPreparationPhase::start("owned_host.host_command_prepare");
-    let classpath = std::env::join_paths([
+    let classpath = env::join_paths([
         verified_java_spelling(&host_jar)?,
         verified_java_spelling(&runtime)?,
     ])?;
@@ -253,7 +260,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
     let session_creation = NfrtPreparationPhase::start("owned_host.session_new");
     let mut session =
         session_creation.finish(NfrtHostSession::new(project, prepared, &mut store))?;
-    let result = std::thread::scope(|scope| -> Result<()> {
+    let result = thread::scope(|scope| -> Result<()> {
         // One queued bounded frame: no unbounded buffering or detached reader.
         let (sender, receiver) = mpsc::sync_channel(1);
         let reader_thread = scope.spawn(move || {
@@ -272,7 +279,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
                 let request_span = tracing::info_span!(
                     "nfrt_host_request",
                     request_id,
-                    operation = tracing::field::Empty,
+                    operation = field::Empty,
                     host_pid = host.0.id()
                 );
                 let _request_span = request_span.enter();
@@ -303,7 +310,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
                 let request = NfrtPreparationPhase::run("owned_host.protocol_decode", || {
                     protocol.read_request(&mut Cursor::new(frame))
                 })?;
-                request_span.record("operation", tracing::field::debug(request.operation));
+                request_span.record("operation", field::debug(request.operation));
                 tracing::info!(phase = "owned_host.protocol_request", request_id,
                     operation = ?request.operation, request_bytes = request.payload.len(),
                     "nfrt_preparation_work");
@@ -330,7 +337,7 @@ pub(crate) fn with_owned_compiler_inputs<T>(
     NfrtPreparationPhase::run("owned_host.sdk_recheck.after_host", || sdk.recheck())?;
     prepared.recheck_java_trust()?;
     cancellation.bail_if_cancelled()?;
-    let export_key = if std::env::var_os("SFM_AGENT_DERIVED_EXPORT_ROOT").is_some() {
+    let export_key = if env::var_os("SFM_AGENT_DERIVED_EXPORT_ROOT").is_some() {
         NfrtPreparationPhase::run("owned_host.derived_export_key", || {
             super::derived_toolchain_cache::key(project, prepared, sdk)
         })?
@@ -416,10 +423,10 @@ fn unique_runtime_snapshot<'a>(
     Ok(&input.snapshot_relative_path)
 }
 
-fn verified_java_spelling(path: &Path) -> Result<std::path::PathBuf> {
+fn verified_java_spelling(path: &Path) -> Result<PathBuf> {
     let normal = dunce::simplified(path);
     ensure!(
-        normal.is_absolute() && std::fs::canonicalize(normal)? == std::fs::canonicalize(path)?,
+        normal.is_absolute() && canonicalize(normal)? == canonicalize(path)?,
         "Java classpath spelling changed the held file identity"
     );
     Ok(normal.to_owned())
@@ -429,7 +436,7 @@ fn wait_success(
     child: &mut OwnedChild,
     limit: Duration,
     role: &str,
-    cancellation: &crate::cancellation::CancellationToken,
+    cancellation: &CancellationToken,
 ) -> Result<()> {
     let started = Instant::now();
     loop {
@@ -445,7 +452,7 @@ fn wait_success(
             started.elapsed() < limit,
             "{role} exceeded its process bound"
         );
-        std::thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(100));
     }
 }
 
@@ -454,8 +461,8 @@ fn wait_success(
 fn finish_host(
     host: &mut OwnedChild,
     result: Result<()>,
-    cancellation: &crate::cancellation::CancellationToken,
-    reader_thread: std::thread::ScopedJoinHandle<'_, ()>,
+    cancellation: &CancellationToken,
+    reader_thread: thread::ScopedJoinHandle<'_, ()>,
 ) -> Result<()> {
     // Terminate/reap this exact owned child before joining its pipe reader.
     // Otherwise an error path could wait forever for Java to close stdout.

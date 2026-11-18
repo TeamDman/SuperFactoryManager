@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 use figue::{self as args};
 
@@ -13,8 +14,8 @@ impl GitArgs {
     /// # Errors
     ///
     /// Returns an error if the selected git command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -40,14 +41,14 @@ impl GitCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            GitCommand::Add(args) => args.invoke(),
-            GitCommand::Commit(args) => args.invoke(),
-            GitCommand::Merge(args) => args.invoke(),
-            GitCommand::Push(args) => args.invoke(),
-            GitCommand::Status(args) => args.invoke(),
-            GitCommand::Tag(args) => args.invoke(),
+            GitCommand::Add(args) => args.invoke(app_home),
+            GitCommand::Commit(args) => args.invoke(app_home),
+            GitCommand::Merge(args) => args.invoke(app_home),
+            GitCommand::Push(args) => args.invoke(app_home),
+            GitCommand::Status(args) => args.invoke(app_home),
+            GitCommand::Tag(args) => args.invoke(app_home),
         }
     }
 }

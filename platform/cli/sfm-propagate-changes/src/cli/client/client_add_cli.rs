@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -13,7 +14,7 @@ impl ClientAddArgs {
     /// # Errors
     ///
     /// Returns an error if client targets cannot be resolved or persisted.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::client_cli::add_clients(&self.glob)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::client_cli::add_clients(&self.glob, app_home)
     }
 }

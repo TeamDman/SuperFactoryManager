@@ -7,12 +7,14 @@
 //! retained as partial or missing corpus evidence and as an explicit bounded
 //! review unit instead of being dropped.
 
+use crate::release_review_git;
 use crate::release_review_git::GitChangeKind;
 use crate::release_review_git::GitDomainChange;
 use crate::release_review_git::GitPath;
 use crate::release_review_git::GitReviewDomain;
 use crate::release_review_git::GitReviewUnit;
 use crate::release_review_git::GitReviewUnitKind;
+use crate::release_review_v1;
 use crate::release_review_v1::ChangeOperationV1;
 use crate::release_review_v1::CorpusDocumentV1;
 use crate::release_review_v1::MaterializationV1;
@@ -42,11 +44,14 @@ use eyre::Context as _;
 use eyre::eyre;
 use sha2::Digest as _;
 use sha2::Sha256;
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::error::Error;
+use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fs::canonicalize;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -131,7 +136,7 @@ impl ReleaseReviewRefreshError {
 }
 
 impl Display for ReleaseReviewRefreshError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.code, self.message)
     }
 }
@@ -271,7 +276,7 @@ fn materialize_with_markers(
     );
 
     let mut document = ReleaseReviewDocumentV1 {
-        schema: crate::release_review_v1::SCHEMA.to_owned(),
+        schema: release_review_v1::SCHEMA.to_owned(),
         review_session: ReviewSessionV2 {
             schema: review_session_v2::SCHEMA.to_owned(),
             id: session_id,
@@ -361,13 +366,13 @@ fn materialize_with_markers(
     if !include_markers {
         document.review_session.style_rules.clear();
     }
-    let projected = crate::release_review_v1::to_canonical_json(&document)
+    let projected = release_review_v1::to_canonical_json(&document)
         .wrap_err("could not canonicalize materializer output projection")?;
     document.producer_generations[0].output_fingerprint = sha256(projected.as_bytes());
 
-    let canonical = crate::release_review_v1::to_canonical_json(&document)
+    let canonical = release_review_v1::to_canonical_json(&document)
         .wrap_err("materialized release-review document is invalid")?;
-    let document = crate::release_review_v1::parse(&canonical)
+    let document = release_review_v1::parse(&canonical)
         .wrap_err("canonical materializer output did not parse")?;
     let reconciliation = reconcile_materialization(domain, &document)?;
     if !reconciliation.complete {
@@ -618,13 +623,13 @@ pub fn merge_refreshed_materialization(
         .clone_from(&existing.completion_attestations);
 
     refresh_owned_output_fingerprints(&mut document)?;
-    let canonical = crate::release_review_v1::to_canonical_json(&document).map_err(|error| {
+    let canonical = release_review_v1::to_canonical_json(&document).map_err(|error| {
         ReleaseReviewRefreshError::new(
             "refresh.merged-document-invalid",
             format!("preserved review progress is incompatible with refreshed output: {error:#}"),
         )
     })?;
-    let document = crate::release_review_v1::parse(&canonical).map_err(|error| {
+    let document = release_review_v1::parse(&canonical).map_err(|error| {
         ReleaseReviewRefreshError::new(
             "refresh.merged-document-invalid",
             format!("canonical refreshed review could not be parsed: {error:#}"),
@@ -661,13 +666,13 @@ fn validate_refresh_source_identity(
     existing: &ReleaseReviewDocumentV1,
     refreshed: &ReleaseReviewDocumentV1,
 ) -> Result<(), ReleaseReviewRefreshError> {
-    crate::release_review_v1::to_canonical_json(existing).map_err(|error| {
+    release_review_v1::to_canonical_json(existing).map_err(|error| {
         ReleaseReviewRefreshError::new(
             "refresh.existing-document-invalid",
             format!("existing review document is invalid: {error:#}"),
         )
     })?;
-    crate::release_review_v1::to_canonical_json(refreshed).map_err(|error| {
+    release_review_v1::to_canonical_json(refreshed).map_err(|error| {
         ReleaseReviewRefreshError::new(
             "refresh.fresh-document-invalid",
             format!("fresh producer document is invalid: {error:#}"),
@@ -812,7 +817,7 @@ fn refresh_owned_output_fingerprints(
             generation.output_fingerprint = "0".repeat(64);
         }
     }
-    let projected = crate::release_review_v1::to_canonical_json(document).map_err(|error| {
+    let projected = release_review_v1::to_canonical_json(document).map_err(|error| {
         ReleaseReviewRefreshError::new(
             "refresh.output-fingerprint-failed",
             format!("could not canonicalize refreshed output projection: {error:#}"),
@@ -874,8 +879,8 @@ pub fn reconcile_materialization(
     for path in &domain.reconciliation.paths {
         let (materialized_path, path_limitation) = portable_path(&path.path);
         let side = match path.side {
-            crate::release_review_git::GitRevisionSide::Before => SnapshotSideV1::Before,
-            crate::release_review_git::GitRevisionSide::Candidate => SnapshotSideV1::After,
+            release_review_git::GitRevisionSide::Before => SnapshotSideV1::Before,
+            release_review_git::GitRevisionSide::Candidate => SnapshotSideV1::After,
         };
         let Some(materialization) = corpus_addresses.get(&(side, materialized_path.as_str()))
         else {
@@ -889,7 +894,7 @@ pub fn reconcile_materialization(
             || *materialization != MaterializationV1::Complete
             || matches!(
                 path.disposition,
-                crate::release_review_git::GitReconciliationDisposition::ExplicitlyUnsupported
+                release_review_git::GitReconciliationDisposition::ExplicitlyUnsupported
             )
         {
             explicitly_unsupported += 1;
@@ -916,7 +921,7 @@ fn validate_inputs(
     domain: &GitReviewDomain,
     config: &ReleaseReviewMaterializeConfig,
 ) -> eyre::Result<()> {
-    if domain.schema != crate::release_review_git::GIT_DOMAIN_SCHEMA {
+    if domain.schema != release_review_git::GIT_DOMAIN_SCHEMA {
         return Err(eyre!("unsupported Git review domain schema"));
     }
     if !domain.reconciliation.complete || domain.reconciliation.unreconciled_side_path_count != 0 {
@@ -925,9 +930,9 @@ fn validate_inputs(
     if domain.reconciliation.raw_change_count != domain.changes.len() {
         return Err(eyre!("Git raw-change reconciliation count is inconsistent"));
     }
-    let domain_root = std::fs::canonicalize(&domain.repository_root)
+    let domain_root = canonicalize(&domain.repository_root)
         .wrap_err("could not canonicalize Git-domain repository root")?;
-    let configured_root = std::fs::canonicalize(&config.repository_root)
+    let configured_root = canonicalize(&config.repository_root)
         .wrap_err("could not canonicalize configured repository root")?;
     if domain_root != configured_root {
         return Err(eyre!("configured repository root differs from Git domain"));
@@ -1316,7 +1321,7 @@ fn generated_comment(
     })
 }
 
-fn compare_review_units(left: &ReviewUnitV1, right: &ReviewUnitV1) -> std::cmp::Ordering {
+fn compare_review_units(left: &ReviewUnitV1, right: &ReviewUnitV1) -> Ordering {
     let left_path = left
         .path_after
         .as_deref()

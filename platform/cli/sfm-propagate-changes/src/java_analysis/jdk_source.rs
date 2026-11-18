@@ -19,13 +19,14 @@ use super::syntax::is_nonsemantic_literal_or_comment;
 use super::syntax::named_children;
 use crate::artifact_lock::ArtifactLock;
 use crate::cancellation::CancellationToken;
+use crate::jar_build::engine::select_source_cache;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::jdk::JdkSource;
 use crate::jdk::ResolvedJava;
 use crate::jdk::host_jbrsdk_platform;
 use crate::jdk::resolve_exact_java;
-use crate::jdk::resolve_exact_java_for_minecraft_dir;
+use crate::jdk::resolve_exact_java_at_home;
 use crate::jdk::select_jdk_source;
 use crate::jdk_artifact_cache::acquire_pinned_jbrsdk_zip;
 use crate::source_archive::extract_zip_atomically;
@@ -37,6 +38,10 @@ use facet::Facet;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -290,9 +295,9 @@ impl JdkSourceDomainState {
             canonical_tree: canonical_tree.to_owned(),
             inventory: domain.inventory.clone(),
         };
-        let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+        let mut writer = BufWriter::new(File::create(path)?);
         facet_json::to_writer_std(&mut writer, &context)?;
-        std::io::Write::flush(&mut writer)?;
+        Write::flush(&mut writer)?;
         Ok(true)
     }
 
@@ -300,7 +305,7 @@ impl JdkSourceDomainState {
     /// The snapshot is transport only: its canonical tree must still exist,
     /// and every inventory entry remains a canonical relative path.
     pub(crate) fn read_worker_context(path: &Path) -> eyre::Result<Self> {
-        let encoded = std::fs::read_to_string(path)?;
+        let encoded = fs::read_to_string(path)?;
         let context: JdkSourceWorkerContext = facet_json::from_str(&encoded)?;
         if context.schema != JDK_SOURCE_WORKER_CONTEXT_SCHEMA {
             eyre::bail!("unsupported JDK source worker context schema");
@@ -364,13 +369,9 @@ impl JdkSourceDomain {
                     minecraft_dir.display()
                 )
             })?;
-        let selected = crate::jar_build::engine::select_source_cache(
-            repository,
-            None,
-            &CancellationToken::new(),
-        )?;
+        let selected = select_source_cache(repository, None, &CancellationToken::new())?;
         let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
-        let lockfile_text = std::fs::read_to_string(&lockfile_path)?;
+        let lockfile_text = fs::read_to_string(&lockfile_path)?;
         if matches!(
             parse_document(&lockfile_text)?,
             ToolchainLockfileDocument::V4(ref lockfile) if lockfile.jdk_pins.is_some()
@@ -417,8 +418,8 @@ impl JdkSourceDomain {
             jdk_cache_root,
             source_cache_root,
             java_home,
-            |root, major, explicit_home| match explicit_home {
-                Some(home) => resolve_exact_java_for_minecraft_dir(root, major, Some(home)),
+            |_root, major, explicit_home| match explicit_home {
+                Some(home) => resolve_exact_java_at_home(major, home),
                 None => resolve_exact_java(major),
             },
         )
@@ -436,7 +437,7 @@ impl JdkSourceDomain {
             .parse::<u32>()
             .wrap_err_with(|| format!("invalid Java release `{java_release}`"))?;
         let lockfile_path = project_root.join("sfm-toolchain.lock.json");
-        let lockfile_text = std::fs::read_to_string(&lockfile_path).wrap_err_with(|| {
+        let lockfile_text = fs::read_to_string(&lockfile_path).wrap_err_with(|| {
             format!(
                 "failed to read generated project lockfile {}",
                 lockfile_path.display()
@@ -537,7 +538,7 @@ impl JdkSourceDomain {
                 canonical_tree.display()
             )
         })?;
-        std::fs::create_dir_all(parent).wrap_err_with(|| {
+        fs::create_dir_all(parent).wrap_err_with(|| {
             format!(
                 "failed to create JDK source cache parent {}",
                 parent.display()
@@ -575,7 +576,7 @@ impl JdkSourceDomain {
             let relative = path.strip_prefix(tree)?;
             hasher.update(relative.to_string_lossy().replace('\\', "/").as_bytes());
             hasher.update(&[0]);
-            hasher.update(&std::fs::read(&path)?);
+            hasher.update(&fs::read(&path)?);
             hasher.update(&[0]);
         }
         let identity = format!(
@@ -703,7 +704,7 @@ impl JdkSourceDomain {
             .map(|(offset, relative)| {
                 cancellation_token.bail_if_cancelled()?;
                 let absolute = join_slash_path(&self.canonical_tree, relative);
-                let source = std::fs::read_to_string(&absolute).wrap_err_with(|| {
+                let source = fs::read_to_string(&absolute).wrap_err_with(|| {
                     format!("failed to read JDK source {}", absolute.display())
                 })?;
                 let sequence = first_sequence
@@ -774,7 +775,7 @@ impl JdkSourceDomain {
             .map(|relative| {
                 cancellation_token.bail_if_cancelled()?;
                 let absolute = join_slash_path(&self.canonical_tree, relative);
-                let source = std::fs::read_to_string(&absolute).wrap_err_with(|| {
+                let source = fs::read_to_string(&absolute).wrap_err_with(|| {
                     format!("failed to read JDK source {}", absolute.display())
                 })?;
                 JavaSyntaxFile::parse_text_with_diagnostic_limit(
@@ -822,7 +823,7 @@ impl JdkSourceDomain {
             return;
         };
         let absolute = join_slash_path(&self.canonical_tree, relative);
-        let Ok(source) = std::fs::read_to_string(&absolute) else {
+        let Ok(source) = fs::read_to_string(&absolute) else {
             return;
         };
         if blake3_content_hash(&source) != span.source_hash {
@@ -953,7 +954,7 @@ impl BranchJdkSourceProvider {
             .join("sfm-toolchain")
             .join("state")
             .join("last-plan.json");
-        let plan_text = std::fs::read_to_string(&plan_path).wrap_err_with(|| {
+        let plan_text = fs::read_to_string(&plan_path).wrap_err_with(|| {
             format!(
                 "branch-selected Java provider is unavailable because {} could not be read; run an SFM toolchain plan/build for branch `{branch}`",
                 plan_path.display()
@@ -1194,7 +1195,6 @@ mod tests {
     use super::*;
     use crate::java_analysis::JavaClasspathMode;
     use std::io::Cursor;
-    use std::io::Write as _;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
 
@@ -1490,20 +1490,26 @@ mod tests {
         std::fs::write(&source, b"package java.lang; public class Altered {}").unwrap();
         let error = JdkSourceDomain::from_archive("17", "fixture", &archive, source_hash, &cache)
             .expect_err("a tampered extracted JDK source must fail closed");
-        assert!(error
-            .to_string()
-            .contains("differs from its authenticated archive"));
-        assert!(std::fs::read(&source)
-            .unwrap()
-            .windows(7)
-            .any(|part| part == b"Altered"));
+        assert!(
+            error
+                .to_string()
+                .contains("differs from its authenticated archive")
+        );
+        assert!(
+            std::fs::read(&source)
+                .unwrap()
+                .windows(7)
+                .any(|part| part == b"Altered")
+        );
 
         std::fs::write(&archive, b"changed archive").unwrap();
         let error = JdkSourceDomain::from_archive("17", "fixture", &archive, source_hash, &cache)
             .expect_err("the selected archive identity must also be rechecked");
-        assert!(error
-            .to_string()
-            .contains("differs from its selected identity"));
+        assert!(
+            error
+                .to_string()
+                .contains("differs from its selected identity")
+        );
     }
 
     #[test]

@@ -7,6 +7,8 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use gix::objs::Kind;
+use gix::open::Options;
 use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
@@ -15,8 +17,11 @@ use std::env;
 use std::fs;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::ErrorKind;
 use std::io::Read;
 use std::io::Write;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
@@ -25,6 +30,7 @@ use std::process::ChildStdin;
 use std::process::ChildStdout;
 use std::process::Command;
 use std::process::Stdio;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 const MAX_BLOB_BYTES: u64 = 128 * 1024 * 1024;
@@ -602,7 +608,7 @@ pub(crate) fn preflight_imports(
                 validate_existing_mode(&destination, &content.git_mode)?;
                 present.insert(path.clone());
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
             Err(error) => {
                 return Err(error)
                     .wrap_err_with(|| format!("cannot inspect release import '{path}'"));
@@ -618,7 +624,7 @@ fn scan_existing_import_paths(root: &Path) -> Result<BTreeMap<String, String>> {
         let imports_root = root.join("platform/minecraft").join(import_dir);
         let metadata = match fs::symlink_metadata(&imports_root) {
             Ok(metadata) => metadata,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) if error.kind() == ErrorKind::NotFound => continue,
             Err(error) => {
                 return Err(error).wrap_err_with(|| format!("cannot inspect {import_dir} root"));
             }
@@ -689,7 +695,7 @@ fn validate_import_parents(root: &Path, path: &str) -> Result<()> {
                 metadata.is_dir() && !metadata.file_type().is_symlink(),
                 "release import parent '{parent}' is not a real directory"
             ),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+            Err(error) if error.kind() == ErrorKind::NotFound => break,
             Err(error) => {
                 return Err(error)
                     .wrap_err_with(|| format!("cannot inspect import parent '{parent}'"));
@@ -701,7 +707,6 @@ fn validate_import_parents(root: &Path, path: &str) -> Result<()> {
 
 #[cfg(unix)]
 fn set_import_mode(path: &Path, git_mode: &str) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
     let mode = if git_mode == "100755" { 0o755 } else { 0o644 };
     fs::set_permissions(path, fs::Permissions::from_mode(mode))?;
     Ok(())
@@ -709,7 +714,6 @@ fn set_import_mode(path: &Path, git_mode: &str) -> Result<()> {
 
 #[cfg(unix)]
 fn validate_existing_mode(path: &Path, git_mode: &str) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
     let executable = fs::metadata(path)?.permissions().mode() & 0o111 != 0;
     ensure!(
         executable == (git_mode == "100755"),
@@ -775,7 +779,7 @@ pub(crate) struct PinnedBlobReader {
 
 impl PinnedBlobReader {
     pub(crate) fn open(root: &Path) -> Result<Self> {
-        let options = gix::open::Options::isolated().config_overrides([
+        let options = Options::isolated().config_overrides([
             "gitoxide.objects.noReplace=true",
             "gitoxide.objects.allocLimit=134217728",
         ]);
@@ -831,10 +835,7 @@ impl PinnedBlobReader {
             exact.object_id()
         );
         let header = self.repository.find_header(exact.object_id())?;
-        ensure!(
-            header.kind() == gix::objs::Kind::Blob,
-            "pinned object is not a blob"
-        );
+        ensure!(header.kind() == Kind::Blob, "pinned object is not a blob");
         let size = header.size();
         ensure!(size <= MAX_BLOB_BYTES, "pinned blob is too large");
         let bytes = self.repository.find_blob(exact.object_id())?.take_data();
@@ -1315,7 +1316,7 @@ impl GitBlobHasher {
             header.last() == Some(&b'\n'),
             "Git blob reader ended before header"
         );
-        let header = std::str::from_utf8(&header[..header.len() - 1])?;
+        let header = from_utf8(&header[..header.len() - 1])?;
         let mut fields = header.split(' ');
         let found_oid = fields.next().unwrap_or_default();
         let kind = fields.next().unwrap_or_default();

@@ -1,3 +1,5 @@
+use crate::source_projection;
+use std::env;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -6,7 +8,7 @@ pub(crate) fn select_projections(
     repo_root: Option<&Path>,
     selector: &str,
 ) -> eyre::Result<(PathBuf, Vec<String>)> {
-    let cwd = std::env::current_dir()?;
+    let cwd = env::current_dir()?;
     let root = match repo_root {
         Some(root) => root.to_owned(),
         None => gix::discover(&cwd)?
@@ -14,7 +16,7 @@ pub(crate) fn select_projections(
             .ok_or_else(|| eyre::eyre!("projection selection requires a repository worktree"))?
             .to_owned(),
     };
-    let catalog = crate::source_projection::core_catalog::CoreCatalog::load(&root, &cwd)?;
+    let catalog = source_projection::core_catalog::CoreCatalog::load(&root, &cwd)?;
     let keys = matching_keys(catalog.catalog.0.keys().map(String::as_str), selector)?;
     Ok((catalog.repo_root, keys))
 }

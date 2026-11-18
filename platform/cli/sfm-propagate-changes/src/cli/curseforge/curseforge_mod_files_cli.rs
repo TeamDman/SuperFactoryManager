@@ -8,6 +8,9 @@ use crate::curseforge::list_project_files_for_version;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 
 /// List `CurseForge` files for one selected project without changing an SFM lockfile.
 #[derive(Facet)]
@@ -97,8 +100,8 @@ mod tests {
     }
 }
 
-impl std::fmt::Debug for CurseforgeModFilesArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeModFilesArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeModFilesArgs")
             .finish_non_exhaustive()
     }

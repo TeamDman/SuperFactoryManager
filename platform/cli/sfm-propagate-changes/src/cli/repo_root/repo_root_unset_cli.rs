@@ -1,6 +1,7 @@
-use crate::paths::APP_HOME;
+use crate::paths::AppHome;
 use eyre::Context;
 use facet::Facet;
+use std::fs::remove_file;
 use tracing::info;
 
 /// Arguments for unsetting the configured repo root.
@@ -11,11 +12,11 @@ impl RepoRootUnsetArgs {
     /// # Errors
     ///
     /// Returns an error if the repo root file exists but cannot be removed.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let repo_root_file = APP_HOME.file_path(super::repo_root_cli::REPO_ROOT_FILE);
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let repo_root_file = app_home.file_path(super::repo_root_cli::REPO_ROOT_FILE);
 
         if repo_root_file.exists() {
-            std::fs::remove_file(&repo_root_file).wrap_err("Failed to remove repo root file")?;
+            remove_file(&repo_root_file).wrap_err("Failed to remove repo root file")?;
             info!("Repo root unset");
         } else {
             info!("Repo root was not set");

@@ -2,6 +2,8 @@ use super::BuildMode;
 use super::ErrorAction;
 use super::Parallelism;
 use crate::branch_targets::BranchQuery;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
@@ -10,6 +12,9 @@ use std::path::PathBuf;
     reason = "This type carries normalized CLI flags into the build engine."
 )]
 pub struct BuildOptions {
+    pub app_home: AppHome,
+    /// Application cache fallback; selected native roots take precedence.
+    pub cache_home: Option<CacheHome>,
     pub selection: BuildSelection,
     /// Explicit guarded native-root override; catalog operations select the checkout root by default.
     pub cache_root: Option<PathBuf>,
@@ -43,6 +48,13 @@ pub enum BuildSelection {
 }
 
 impl BuildOptions {
+    /// Retain the application cache selected for this invocation.
+    #[must_use]
+    pub fn with_cache_home(mut self, cache_home: Option<&CacheHome>) -> Self {
+        self.cache_home = cache_home.cloned();
+        self
+    }
+
     pub(crate) fn worktree_query(&self) -> eyre::Result<&BranchQuery> {
         match &self.selection {
             BuildSelection::Worktree(query) => Ok(query),

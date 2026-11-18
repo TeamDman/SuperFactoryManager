@@ -13,6 +13,7 @@ use std::fs;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 const UTF8_BOM: &[u8] = b"\xEF\xBB\xBF";
@@ -239,7 +240,7 @@ pub(super) fn render_java_artifact_with(
     } else {
         (&[][..], artifact.source_bytes.as_slice())
     };
-    let source = std::str::from_utf8(java_bytes)
+    let source = from_utf8(java_bytes)
         .wrap_err_with(|| format!("Java source '{output_path}' is not UTF-8"))?;
     let rendered = render(source, context)
         .wrap_err_with(|| format!("cannot project Java source '{output_path}'"))?;

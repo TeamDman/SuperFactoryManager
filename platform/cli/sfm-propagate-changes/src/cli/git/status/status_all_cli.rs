@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -13,7 +14,7 @@ impl StatusAllArgs {
     /// # Errors
     ///
     /// Returns an error if getting worktree status fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::git_status_cli::run_all(self.short)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::git_status_cli::run_all(self.short, app_home)
     }
 }

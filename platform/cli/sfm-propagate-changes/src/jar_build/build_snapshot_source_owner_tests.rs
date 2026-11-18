@@ -1,4 +1,5 @@
-use super::tests::{java, project};
+use super::tests::java;
+use super::tests::project;
 use super::*;
 
 #[test]
@@ -13,13 +14,15 @@ fn shared_source_snapshot_refuses_foreign_owners_without_changing_latest() -> Re
     )?;
     let publish = |destination: &Path, producer: &Path| {
         BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-            &minecraft,
-            destination,
-            &source_cache,
-            "1.19.2",
-            &java(&minecraft),
-            producer,
-            ("sdk-fixture", "fixture-runtime-contract"),
+            BuildSnapshotPublicationRequest {
+                minecraft_dir: &minecraft,
+                cache_dir: destination,
+                source_cache_dir: &source_cache,
+                minecraft_version: "1.19.2",
+                java: &java(&minecraft),
+                project_dir: producer,
+                identities: ("sdk-fixture", "fixture-runtime-contract"),
+            },
             &CancellationToken::new(),
         )
     };
@@ -67,13 +70,15 @@ fn shared_source_snapshot_refuses_linked_roots_leaves_and_ancestors() -> Result<
         let source = source_cache.join("project");
         let publish = || {
             BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-                &minecraft,
-                &cache,
-                &source_cache,
-                "1.19.2",
-                &java(&minecraft),
-                &source,
-                ("sdk-fixture", "fixture-runtime-contract"),
+                BuildSnapshotPublicationRequest {
+                    minecraft_dir: &minecraft,
+                    cache_dir: &cache,
+                    source_cache_dir: &source_cache,
+                    minecraft_version: "1.19.2",
+                    java: &java(&minecraft),
+                    project_dir: &source,
+                    identities: ("sdk-fixture", "fixture-runtime-contract"),
+                },
                 &CancellationToken::new(),
             )
         };

@@ -4,8 +4,11 @@ use super::class_evidence::ClassEvidence;
 use super::jar_pair::ReleaseReportJarPair;
 use super::render::escape;
 use super::render::read_bounded;
+use crate::source_comparison;
+use crate::source_projection;
 use crate::source_projection::provenance::sha256;
 use base64::Engine as _;
+use base64::engine;
 use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeMap;
@@ -14,14 +17,23 @@ use std::fmt::Write as _;
 use std::io::Cursor;
 use std::io::Read as _;
 use std::path::Path;
+use std::str::from_utf8;
 pub(crate) fn entries(path: &str, expected: &str) -> Result<BTreeMap<String, Vec<u8>>> {
     entries_bounded(path, expected, 16 * 1024 * 1024, 512 * 1024 * 1024)
 }
 /// Interactive inspections use tighter admission before retaining two complete sides.
-pub(crate) fn entries_for_inspection(path: &str, expected: &str) -> Result<BTreeMap<String, Vec<u8>>> {
+pub(crate) fn entries_for_inspection(
+    path: &str,
+    expected: &str,
+) -> Result<BTreeMap<String, Vec<u8>>> {
     entries_bounded(path, expected, 4 * 1024 * 1024, 32 * 1024 * 1024)
 }
-fn entries_bounded(path: &str, expected: &str, member_limit: u64, expanded_limit: u64) -> Result<BTreeMap<String, Vec<u8>>> {
+fn entries_bounded(
+    path: &str,
+    expected: &str,
+    member_limit: u64,
+    expanded_limit: u64,
+) -> Result<BTreeMap<String, Vec<u8>>> {
     let bytes = read_bounded(Path::new(path), 128 * 1024 * 1024)?;
     ensure!(sha256(&bytes) == expected, "archive raw identity mismatch");
     let mut zip = zip::ZipArchive::new(Cursor::new(bytes))?;
@@ -31,7 +43,7 @@ fn entries_bounded(path: &str, expected: &str, member_limit: u64, expanded_limit
     for i in 0..zip.len() {
         let entry = zip.by_index(i)?;
         let name = entry.name().to_owned();
-        crate::source_projection::promotion::validate_relative_path(name.trim_end_matches('/'))?;
+        source_projection::promotion::validate_relative_path(name.trim_end_matches('/'))?;
         ensure!(
             !result.contains_key(&name),
             "duplicate archive entry: {name}"
@@ -43,10 +55,7 @@ fn entries_bounded(path: &str, expected: &str, member_limit: u64, expanded_limit
         total = total
             .checked_add(entry.size())
             .ok_or_else(|| eyre::eyre!("archive size overflow"))?;
-        ensure!(
-            total <= expanded_limit,
-            "archive expanded budget exceeded"
-        );
+        ensure!(total <= expanded_limit, "archive expanded budget exceeded");
         let expected = entry.size();
         let mut bytes = Vec::new();
         entry.take(member_limit + 1).read_to_end(&mut bytes)?;
@@ -62,7 +71,7 @@ fn side(bytes: Option<&Vec<u8>>, path: &str) -> String {
     let Some(bytes) = bytes else {
         return "<p>Entry absent.</p>".into();
     };
-    let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
+    let encoded = engine::general_purpose::STANDARD.encode(bytes);
     let mut html = format!(
         "<p>{} bytes · <code>{}</code> · <a download=\"{}\" href=\"data:application/octet-stream;base64,{encoded}\">Download exact member</a></p>",
         bytes.len(),
@@ -80,7 +89,7 @@ fn side(bytes: Option<&Vec<u8>>, path: &str) -> String {
 }
 fn text(bytes: Option<&Vec<u8>>) -> String {
     bytes
-        .and_then(|b| std::str::from_utf8(b).ok())
+        .and_then(|b| from_utf8(b).ok())
         .filter(|s| !s.contains('\0'))
         .unwrap_or("")
         .to_owned()
@@ -155,7 +164,7 @@ pub(super) fn render(
     }
     let prepared: BTreeSet<_> = data.classes.iter().map(|r| r.path.as_str()).collect();
     let mut moved = moves(&a, &b);
-    crate::source_comparison::namespace_moves::extend_archive(&a, &b, &mut moved);
+    source_comparison::namespace_moves::extend_archive(&a, &b, &mut moved);
     let targets: BTreeSet<_> = moved.values().collect();
     let paths: BTreeSet<_> = a.keys().chain(b.keys()).collect();
     let mut folders: BTreeMap<String, String> = BTreeMap::new();

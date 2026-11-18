@@ -3,6 +3,7 @@
 use crate::cli::output::CliOutput;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::manifestation::read_output;
 use crate::source_projection::manifestation::render_output;
 use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::sha256;
@@ -49,7 +50,7 @@ fn trace(args: &SourceTraceArgs) -> Result<SourceTraceReport> {
     let root = checked_directory(&args.project_root)?;
     let (loaded, key) = CoreCatalog::for_project(&root)?;
     let artifact = render_output(&loaded, &key, &args.file)?;
-    let current = crate::source_projection::manifestation::read_output(&root, &args.file)?;
+    let current = read_output(&root, &args.file)?;
     Ok(SourceTraceReport {
         schema: "sfm:source_projection_trace@3".to_owned(),
         minecraft_version: loaded.catalog.entry(&key)?.minecraft_version.clone(),

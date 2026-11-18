@@ -1,3 +1,4 @@
+use crate::jar_build;
 use facet::Facet;
 use std::collections::BTreeMap;
 #[derive(Debug, Facet)]
@@ -9,7 +10,7 @@ pub struct ContainerTestReceipt {
     pub worker: String,
     pub exit_code: Option<i64>,
     pub seconds: f64,
-    pub summary: Option<crate::jar_build::JunitSummary>,
+    pub summary: Option<jar_build::JunitSummary>,
     pub accepted: bool,
     pub removed: bool,
     pub error: Option<String>,

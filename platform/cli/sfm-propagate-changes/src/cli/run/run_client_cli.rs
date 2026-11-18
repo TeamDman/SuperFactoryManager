@@ -1,9 +1,16 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
+use crate::cli::jar::JarBuildOptionsArgs;
+use crate::jar_build::BuildMode;
 use crate::jar_build::ClientTitleScreen;
+use crate::jar_build::GamePuppetKeepOpen;
+use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
 use facet::Facet;
 use figue as args;
+use std::fs::canonicalize;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Arguments for launching the selected projection's native client runtime.
@@ -75,7 +82,7 @@ pub struct RunClientArgs {
     pub keep_open: Option<Option<String>>,
 }
 
-type ProjectionClientOptions = crate::cli::jar::JarBuildOptionsArgs;
+type ProjectionClientOptions = JarBuildOptionsArgs;
 
 impl ProjectionClientOptions {
     fn invoke(
@@ -83,9 +90,12 @@ impl ProjectionClientOptions {
         kind: RunKind,
         run_options: RunOptions,
         cancellation: CancellationToken,
+        homes: &InvocationHomes,
     ) -> eyre::Result<()> {
-        crate::jar_build::RunCommand::with_run_options(
-            self.into_options(crate::jar_build::BuildMode::Build)?,
+        let app_home = homes.app_home();
+        RunCommand::with_run_options(
+            self.into_options(BuildMode::Build, app_home)?
+                .with_cache_home(homes.available_cache_home()),
             kind,
             run_options,
             cancellation,
@@ -98,10 +108,15 @@ impl RunClientArgs {
     /// # Errors
     ///
     /// Returns an error if planning, building, or launching fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         if self.smoke && self.puppet.is_none() {
             self.validate_smoke_options()?;
         }
+        self.validate_launch_handoff()?;
         let Self {
             options,
             runtime_slot,
@@ -124,34 +139,10 @@ impl RunClientArgs {
             mute,
             keep_open,
         } = self;
-        eyre::ensure!(
-            !share_runtime || runtime_slot.is_some(),
-            "--share-runtime requires explicit --runtime-slot"
-        );
-        validate_inspection_launch(
-            inspection_workspace.is_some(),
-            inspection_python.is_some(),
-            puppet.is_some(),
-            smoke,
-            text_editor || input_diag || title_screen.is_some(),
-            keep_open.as_ref(),
-        )?;
-        let inspection_workspace = inspection_workspace.map(std::fs::canonicalize).transpose()?;
-        if let Some(path) = &inspection_workspace {
-            eyre::ensure!(path.is_file(), "--inspection-workspace requires a prepared JSON file");
-        }
-        let inspection_python = inspection_python.map(std::fs::canonicalize).transpose()?;
-        if let Some(path) = &inspection_python {
-            eyre::ensure!(path.is_file(), "--inspection-python requires an existing executable file");
-        }
+        let inspection_workspace =
+            resolve_inspection_file(inspection_workspace, "--inspection-workspace")?;
+        let inspection_python = resolve_inspection_file(inspection_python, "--inspection-python")?;
         let client_hotswap_port = resolve_hotswap_port(hotswap, hotswap_port)?;
-        if smoke && puppet.is_some() {
-            eyre::bail!("--smoke and --puppet cannot be used together.");
-        }
-        eyre::ensure!(
-            diagnostic_launch_gate.is_none() || (smoke && !options.dry_run),
-            "--diagnostic-launch-gate requires --smoke without --dry-run"
-        );
         if let Some(puppet) = puppet {
             if text_editor || input_diag || title_screen.is_some() || solo {
                 eyre::bail!("--puppet cannot be combined with interactive client flags.");
@@ -167,9 +158,7 @@ impl RunClientArgs {
                     share_runtime,
                     game_puppet_filter: Some(puppet.to_owned()),
                     game_puppet_game_test: super::normalize_game_puppet_game_test(game_test)?,
-                    game_puppet_keep_open: crate::jar_build::GamePuppetKeepOpen::from_cli(
-                        keep_open,
-                    )?,
+                    game_puppet_keep_open: GamePuppetKeepOpen::from_cli(keep_open)?,
                     game_puppet_viewport_selection: "declared".to_owned(),
                     game_puppet_mute: mute,
                     preview_width,
@@ -181,6 +170,7 @@ impl RunClientArgs {
                     ..RunOptions::default()
                 },
                 cancellation_token,
+                homes,
             );
         }
         if smoke {
@@ -194,16 +184,7 @@ impl RunClientArgs {
                     ..RunOptions::default()
                 },
                 cancellation_token,
-            );
-        }
-        if width.is_some()
-            || height.is_some()
-            || keep_open.is_some()
-            || game_test.is_some()
-            || !mute
-        {
-            eyre::bail!(
-                "--width, --height, --mute, --keep-open, and --game-test require --puppet."
+                homes,
             );
         }
         let title_screen = resolve_title_screen(title_screen, text_editor, input_diag)?;
@@ -221,8 +202,43 @@ impl RunClientArgs {
                 ..RunOptions::default()
             },
             cancellation_token,
+            homes,
         )
     }
+    fn validate_launch_handoff(&self) -> eyre::Result<()> {
+        eyre::ensure!(
+            !self.share_runtime || self.runtime_slot.is_some(),
+            "--share-runtime requires explicit --runtime-slot"
+        );
+        validate_inspection_launch(
+            self.inspection_workspace.as_deref(),
+            self.inspection_python.as_deref(),
+            self.puppet.as_deref(),
+            self.smoke,
+            self.text_editor || self.input_diag || self.title_screen.is_some(),
+            self.keep_open.as_ref(),
+        )?;
+        if self.smoke && self.puppet.is_some() {
+            eyre::bail!("--smoke and --puppet cannot be used together.");
+        }
+        eyre::ensure!(
+            self.diagnostic_launch_gate.is_none() || (self.smoke && !self.options.dry_run),
+            "--diagnostic-launch-gate requires --smoke without --dry-run"
+        );
+        if self.puppet.is_none()
+            && (self.width.is_some()
+                || self.height.is_some()
+                || self.keep_open.is_some()
+                || self.game_test.is_some()
+                || !self.mute)
+        {
+            eyre::bail!(
+                "--width, --height, --mute, --keep-open, and --game-test require --puppet."
+            );
+        }
+        Ok(())
+    }
+
     fn validate_smoke_options(&self) -> eyre::Result<()> {
         eyre::ensure!(
             !self.share_runtime || self.runtime_slot.is_some(),
@@ -248,19 +264,35 @@ impl RunClientArgs {
     }
 }
 
+fn resolve_inspection_file(path: Option<PathBuf>, option: &str) -> eyre::Result<Option<PathBuf>> {
+    let path = path.map(canonicalize).transpose()?;
+    if let Some(path) = &path {
+        eyre::ensure!(path.is_file(), "{option} requires an existing file");
+    }
+    Ok(path)
+}
+
 fn validate_inspection_launch(
-    workspace: bool, python: bool, puppet: bool, smoke: bool, another_screen: bool,
+    workspace: Option<&Path>,
+    python: Option<&Path>,
+    puppet: Option<&str>,
+    smoke: bool,
+    another_screen: bool,
     keep_open: Option<&Option<String>>,
 ) -> eyre::Result<()> {
-    if workspace && (smoke || another_screen) {
-        eyre::bail!("--inspection-workspace cannot be combined with --smoke or another launch screen");
+    if workspace.is_some() && (smoke || another_screen) {
+        eyre::bail!(
+            "--inspection-workspace cannot be combined with --smoke or another launch screen"
+        );
     }
-    if python && puppet && !workspace {
+    if python.is_some() && puppet.is_some() && workspace.is_none() {
         eyre::bail!("--inspection-python with --puppet requires --inspection-workspace");
     }
-    if workspace && puppet {
-        eyre::ensure!(keep_open.is_some_and(Option::is_none),
-            "--inspection-workspace with --puppet requires bare --keep-open so handoff stays open");
+    if workspace.is_some() && puppet.is_some() {
+        eyre::ensure!(
+            keep_open.is_some_and(Option::is_none),
+            "--inspection-workspace with --puppet requires bare --keep-open so handoff stays open"
+        );
     }
     Ok(())
 }
@@ -281,14 +313,86 @@ mod inspection_launch_tests {
 
     #[test]
     fn prepared_workspace_opens_only_in_supported_client_handoffs() {
-        assert!(validate_inspection_launch(true, false, false, false, false, None).is_ok());
-        assert!(validate_inspection_launch(true, true, true, false, false, Some(&None)).is_ok());
-        assert!(validate_inspection_launch(true, false, true, false, false, None).is_err());
-        assert!(validate_inspection_launch(true, false, true, false, false, Some(&Some("5m".into()))).is_err());
-        assert!(validate_inspection_launch(true, false, false, true, false, None).is_err());
-        assert!(validate_inspection_launch(true, false, false, false, true, None).is_err());
-        assert!(validate_inspection_launch(false, true, true, false, false, None).is_err());
-        assert!(validate_inspection_launch(false, false, true, false, false, None).is_ok());
+        assert!(
+            validate_inspection_launch(
+                Some(std::path::Path::new("fixture")),
+                None,
+                None,
+                false,
+                false,
+                None
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_inspection_launch(
+                Some(std::path::Path::new("fixture")),
+                Some(std::path::Path::new("fixture")),
+                Some("fixture"),
+                false,
+                false,
+                Some(&None)
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_inspection_launch(
+                Some(std::path::Path::new("fixture")),
+                None,
+                Some("fixture"),
+                false,
+                false,
+                None
+            )
+            .is_err()
+        );
+        assert!(
+            validate_inspection_launch(
+                Some(std::path::Path::new("fixture")),
+                None,
+                Some("fixture"),
+                false,
+                false,
+                Some(&Some("5m".into()))
+            )
+            .is_err()
+        );
+        assert!(
+            validate_inspection_launch(
+                Some(std::path::Path::new("fixture")),
+                None,
+                None,
+                true,
+                false,
+                None
+            )
+            .is_err()
+        );
+        assert!(
+            validate_inspection_launch(
+                Some(std::path::Path::new("fixture")),
+                None,
+                None,
+                false,
+                true,
+                None
+            )
+            .is_err()
+        );
+        assert!(
+            validate_inspection_launch(
+                None,
+                Some(std::path::Path::new("fixture")),
+                Some("fixture"),
+                false,
+                false,
+                None
+            )
+            .is_err()
+        );
+        assert!(
+            validate_inspection_launch(None, None, Some("fixture"), false, false, None).is_ok()
+        );
     }
 }
 

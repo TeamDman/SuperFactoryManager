@@ -1,12 +1,18 @@
 //! Native Windows credential storage and self-cleaning Task Scheduler registration.
 //! No shell, encoded script, registry persistence or privileged service is involved.
+
 use chrono::DateTime;
 use chrono::Utc;
 use eyre::Context;
+use std::fs;
+use std::io::ErrorKind;
 use std::io::Write;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::fs::MetadataExt;
 use std::path::Path;
+use std::path::PathBuf;
+use std::slice::from_raw_parts;
+use windows::Win32;
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::Foundation::HLOCAL;
 use windows::Win32::Foundation::RPC_E_CHANGED_MODE;
@@ -44,12 +50,12 @@ use windows::core::PWSTR;
 
 fn reject_reparse(path: &Path) -> eyre::Result<()> {
     for ancestor in path.ancestors() {
-        match std::fs::symlink_metadata(ancestor) {
+        match fs::symlink_metadata(ancestor) {
             Ok(meta) => eyre::ensure!(
                 meta.file_attributes() & 0x400 == 0,
                 "Credential paths cannot contain reparse points"
             ),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+            Err(error) if error.kind() == ErrorKind::NotFound => (),
             Err(error) => return Err(error.into()),
         }
     }
@@ -68,7 +74,7 @@ fn user_sid() -> eyre::Result<String> {
     // SAFETY: null buffer deliberately queries the required size.
     let _ = unsafe { GetTokenInformation(*token, TokenUser, None, 0, &raw mut size) };
     eyre::ensure!(size > 0, "Cannot determine token-user buffer size");
-    let mut buffer = vec![0_usize; (size as usize).div_ceil(std::mem::size_of::<usize>())];
+    let mut buffer = vec![0_usize; (size as usize).div_ceil(size_of::<usize>())];
     // SAFETY: allocated aligned buffer has at least the returned required length.
     unsafe {
         GetTokenInformation(
@@ -92,7 +98,7 @@ fn user_sid() -> eyre::Result<String> {
 
 pub(super) fn prepare(root: &Path) -> eyre::Result<()> {
     reject_reparse(root)?;
-    std::fs::create_dir_all(root)?;
+    fs::create_dir_all(root)?;
     let sddl = format!("D:P(A;OICI;FA;;;{})", user_sid()?);
     let sddl: Vec<u16> = sddl.encode_utf16().chain(Some(0)).collect();
     let path: Vec<u16> = root.as_os_str().encode_wide().chain(Some(0)).collect();
@@ -160,8 +166,7 @@ fn crypt(bytes: &[u8], encrypt: bool) -> eyre::Result<Vec<u8>> {
     // SAFETY: successful DPAPI calls return a LocalAlloc allocation.
     let _allocation = unsafe { Owned::new(HLOCAL(output.pbData.cast())) };
     // SAFETY: DPAPI returned this initialized span, kept alive by the allocation above.
-    let result =
-        unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize) }.to_vec();
+    let result = unsafe { from_raw_parts(output.pbData, output.cbData as usize) }.to_vec();
     if !encrypt {
         for index in 0..output.cbData as usize {
             // SAFETY: each index is within the initialized, exclusively owned DPAPI output.
@@ -178,14 +183,14 @@ fn crypt(bytes: &[u8], encrypt: bool) -> eyre::Result<Vec<u8>> {
 pub(super) fn read(root: &Path, name: &str) -> eyre::Result<Vec<u8>> {
     let path = checked_path(root, name)?;
     eyre::ensure!(
-        std::fs::metadata(&path)?.len() <= 65536,
+        fs::metadata(&path)?.len() <= 65536,
         "Oversized discovery lease"
     );
-    crypt(&std::fs::read(path)?, false)
+    crypt(&fs::read(path)?, false)
         .wrap_err("Cannot decrypt discovery lease for the current Windows user")
 }
 
-fn checked_path(root: &Path, name: &str) -> eyre::Result<std::path::PathBuf> {
+fn checked_path(root: &Path, name: &str) -> eyre::Result<PathBuf> {
     eyre::ensure!(
         super::curseforge_auth::valid_lease_name(name),
         "Invalid discovery lease identity"
@@ -292,7 +297,7 @@ pub(super) fn write(
         }?;
         Ok(())
     })?;
-    let mut file = std::fs::OpenOptions::new()
+    let mut file = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(path)?;
@@ -303,9 +308,9 @@ pub(super) fn write(
 
 pub(super) fn remove(root: &Path, name: &str) -> eyre::Result<()> {
     let path = checked_path(root, name)?;
-    match std::fs::remove_file(path) {
+    match fs::remove_file(path) {
         Ok(()) => (),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+        Err(error) if error.kind() == ErrorKind::NotFound => (),
         Err(error) => return Err(error.into()),
     }
     let name = task_name(name)?;
@@ -313,10 +318,7 @@ pub(super) fn remove(root: &Path, name: &str) -> eyre::Result<()> {
         // SAFETY: this exact generated task identity belongs to the current user and lease.
         match unsafe { folder.DeleteTask(&BSTR::from(name), 0) } {
             Ok(()) => Ok(()),
-            Err(error)
-                if error.code()
-                    == windows::Win32::Foundation::ERROR_FILE_NOT_FOUND.to_hresult() =>
-            {
+            Err(error) if error.code() == Win32::Foundation::ERROR_FILE_NOT_FOUND.to_hresult() => {
                 Ok(())
             }
             Err(error) => Err(error.into()),

@@ -9,13 +9,18 @@ use super::SymbolRenameArgs;
 use super::SymbolServeArgs;
 use super::SymbolShowDefinitionArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::BranchSelector;
 use crate::cli::output::CliOutput;
+use crate::jar_build::engine::select_project_source_cache;
+use crate::java_analysis::JavaAnalysisDiagnosticOutput;
 use crate::java_analysis::JavaClasspathMode;
 use crate::java_analysis::JavaSourceWorkspace;
 use crate::java_analysis::JavaSymbolSelector;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue::{self as args};
+use std::env::current_dir;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -29,9 +34,13 @@ impl SymbolArgs {
     /// # Errors
     ///
     /// Returns an error when symbol arguments or analysis fail.
-    pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<CliOutput> {
-        let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(cancellation_token, &invocation_dir)
+    pub fn invoke(
+        self,
+        cancellation_token: &CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<CliOutput> {
+        let invocation_dir = current_dir()?;
+        self.invoke_in(cancellation_token, &invocation_dir, homes)
     }
 
     /// Invoke relative-path arguments against an explicit directory.
@@ -44,8 +53,10 @@ impl SymbolArgs {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> eyre::Result<CliOutput> {
-        self.command.invoke_in(cancellation_token, invocation_dir)
+        self.command
+            .invoke_in(cancellation_token, invocation_dir, homes)
     }
 }
 
@@ -75,9 +86,13 @@ impl SymbolCommand {
     /// # Errors
     ///
     /// Returns an error when the selected command fails.
-    pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<CliOutput> {
-        let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(cancellation_token, &invocation_dir)
+    pub fn invoke(
+        self,
+        cancellation_token: &CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<CliOutput> {
+        let invocation_dir = current_dir()?;
+        self.invoke_in(cancellation_token, &invocation_dir, homes)
     }
 
     /// Invoke the selected symbol command against an explicit directory.
@@ -89,14 +104,25 @@ impl SymbolCommand {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> eyre::Result<CliOutput> {
         match self {
-            Self::ShowDefinition(args) => args.invoke_in(cancellation_token, invocation_dir),
-            Self::ListUsages(args) => args.invoke_in(cancellation_token, invocation_dir),
-            Self::List(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::ShowDefinition(args) => {
+                args.invoke_in(cancellation_token, invocation_dir, homes.app_home())
+            }
+            Self::ListUsages(args) => {
+                args.invoke_in(cancellation_token, invocation_dir, homes.app_home())
+            }
+            Self::List(args) => {
+                args.invoke_in(cancellation_token, invocation_dir, homes.app_home())
+            }
             Self::ProjectList(args) => args.invoke_in(cancellation_token, invocation_dir),
-            Self::Index(args) => args.invoke_in(cancellation_token, invocation_dir),
-            Self::Serve(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::Index(args) => {
+                args.invoke_in(cancellation_token, invocation_dir, homes.app_home())
+            }
+            Self::Serve(args) => {
+                args.invoke_in(cancellation_token, invocation_dir, homes.app_home())
+            }
             Self::Rename(args) => args.invoke(),
             Self::Move(args) => args.invoke(),
         }
@@ -143,15 +169,25 @@ impl SymbolWorkspaceArgs {
     ///
     /// Returns an error when arguments conflict, branch selection fails, or a
     /// configured source root cannot be read.
-    pub fn resolve(self, invocation_dir: &Path) -> eyre::Result<JavaSourceWorkspace> {
+    pub fn resolve(
+        self,
+        invocation_dir: &Path,
+        app_home: &AppHome,
+    ) -> eyre::Result<JavaSourceWorkspace> {
         self.validate()?;
         let mode = self.effective_classpath_mode();
-        JavaSourceWorkspace::resolve(self.branch, &self.source_root, mode, invocation_dir)
+        JavaSourceWorkspace::resolve(
+            self.branch,
+            &self.source_root,
+            mode,
+            invocation_dir,
+            app_home,
+        )
     }
 }
 
-/// Read-only symbol queries may inspect a branch or a generated project.
-/// Mutation and long-running server commands retain their branch-only args.
+/// Read-only symbol queries and the symbol server inspect an explicitly
+/// selected historical branch or an exact catalogued generated projection.
 #[derive(Facet, Clone, Debug)]
 pub struct SymbolQueryWorkspaceArgs {
     /// Branch selector providing the SFM/Minecraft/Java context.
@@ -169,6 +205,9 @@ pub struct SymbolQueryWorkspaceArgs {
     /// Explicit exact-major JDK home for a generated project.
     #[facet(default, args::named)]
     pub java_home: Option<PathBuf>,
+    /// Guarded native source-cache override; no application/cache home is resolved here.
+    #[facet(default, args::named)]
+    pub cache_root: Option<PathBuf>,
 }
 
 pub struct ResolvedSymbolQueryWorkspace {
@@ -176,11 +215,12 @@ pub struct ResolvedSymbolQueryWorkspace {
     pub branch: BranchSelector,
     pub generated_project: bool,
     pub project_root: Option<PathBuf>,
+    pub cache_root: Option<PathBuf>,
 }
 
 pub(super) fn project_jdk_diagnostics(
     resolved: &ResolvedSymbolQueryWorkspace,
-) -> Vec<crate::java_analysis::JavaAnalysisDiagnosticOutput> {
+) -> Vec<JavaAnalysisDiagnosticOutput> {
     if !resolved.generated_project {
         return Vec::new();
     }
@@ -194,8 +234,8 @@ pub(super) fn project_jdk_diagnostics(
 }
 
 pub(super) fn append_project_jdk_diagnostics(
-    diagnostics: &mut Vec<crate::java_analysis::JavaAnalysisDiagnosticOutput>,
-    project_diagnostics: Vec<crate::java_analysis::JavaAnalysisDiagnosticOutput>,
+    diagnostics: &mut Vec<JavaAnalysisDiagnosticOutput>,
+    project_diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
 ) {
     if project_diagnostics.is_empty() {
         return;
@@ -249,8 +289,15 @@ impl SymbolQueryWorkspaceArgs {
     /// # Errors
     ///
     /// Returns an error when the selected workspace cannot be read.
-    pub fn resolve(self, invocation_dir: &Path) -> eyre::Result<ResolvedSymbolQueryWorkspace> {
+    pub fn resolve(
+        self,
+        invocation_dir: &Path,
+        app_home: &AppHome,
+    ) -> eyre::Result<ResolvedSymbolQueryWorkspace> {
         self.validate()?;
+        let cache_root = self
+            .cache_root
+            .map(|path| resolve_invocation_path(path, invocation_dir));
         if let Some(branch) = self.branch {
             let mode = self.classpath_mode.unwrap_or(JavaClasspathMode::Branch);
             let workspace = JavaSourceWorkspace::resolve(
@@ -258,12 +305,14 @@ impl SymbolQueryWorkspaceArgs {
                 &self.source_root,
                 mode,
                 invocation_dir,
+                app_home,
             )?;
             return Ok(ResolvedSymbolQueryWorkspace {
                 workspace,
                 branch,
                 generated_project: false,
                 project_root: None,
+                cache_root,
             });
         }
         let project_root = self
@@ -273,8 +322,15 @@ impl SymbolQueryWorkspaceArgs {
         let java_home = self
             .java_home
             .map(|home| resolve_invocation_path(home, invocation_dir));
-        let workspace = JavaSourceWorkspace::resolve_generated_project_with_java_home(
+        let selected = select_project_source_cache(
             &project_root,
+            cache_root.as_deref(),
+            &CancellationToken::new(),
+        )?;
+        let workspace = JavaSourceWorkspace::resolve_generated_project_with_cache(
+            &project_root,
+            &selected.home().join("minecraft-toolchain").join("jbrsdk"),
+            &selected.home().0,
             java_home.as_deref(),
         )?;
         eyre::ensure!(
@@ -288,6 +344,7 @@ impl SymbolQueryWorkspaceArgs {
             branch,
             generated_project: true,
             project_root: Some(project_root),
+            cache_root,
         })
     }
 }
@@ -433,7 +490,7 @@ mod tests {
         else {
             panic!("expected symbol serve command");
         };
-        assert_eq!(serve.workspace.branch.to_string(), "1.19.2");
+        assert_eq!(serve.workspace.branch.as_ref().unwrap().as_ref(), "1.19.2");
         assert!(serve.workspace.source_root.is_empty());
         assert_eq!(serve.workspace.classpath_mode, None);
     }
@@ -709,6 +766,7 @@ mod tests {
             source_root: Vec::new(),
             classpath_mode: None,
             java_home: Some(PathBuf::from("selected-jdk")),
+            cache_root: None,
         };
         base.validate().unwrap();
         let mut conflicting = base.clone();
@@ -724,5 +782,49 @@ mod tests {
             conflicting.validate().is_err(),
             "--java-home is project-only"
         );
+    }
+    #[test]
+    fn symbol_server_selects_catalog_projection_without_a_branch() {
+        let cli = parse(&["symbol", "serve", "--project-root", "projection-root"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::Serve(args),
+        }) = cli.command
+        else {
+            panic!("expected symbol server");
+        };
+        args.workspace.validate().unwrap();
+        assert!(args.workspace.branch.is_none());
+        assert_eq!(
+            args.workspace.project_root,
+            Some(PathBuf::from("projection-root"))
+        );
+        let mut ambiguous = args.workspace;
+        ambiguous.branch = Some(BranchSelector("1.19.2".to_owned()));
+        assert!(ambiguous.validate().is_err());
+    }
+
+    #[test]
+    fn symbol_queries_and_server_accept_an_explicit_guarded_cache_root() {
+        for command in ["list", "serve"] {
+            let cli = parse(&[
+                "symbol",
+                command,
+                "--branch",
+                "1.19.2",
+                "--cache-root",
+                "selected-cache",
+            ]);
+            let workspace = match cli.command {
+                CliCommand::Symbol(SymbolArgs {
+                    command: SymbolCommand::List(args),
+                }) => args.workspace,
+                CliCommand::Symbol(SymbolArgs {
+                    command: SymbolCommand::Serve(args),
+                }) => args.workspace,
+                _ => panic!("expected query/server"),
+            };
+            workspace.validate().unwrap();
+            assert_eq!(workspace.cache_root, Some(PathBuf::from("selected-cache")));
+        }
     }
 }

@@ -1,5 +1,6 @@
 use super::DependencyComponentAddArgs;
 use crate::cancellation::CancellationToken;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
@@ -18,9 +19,12 @@ impl DependencyComponentArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         match self.command {
-            DependencyComponentCommand::Add(args) => args.invoke(cancellation_token, cache_home),
+            DependencyComponentCommand::Add(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
         }
     }
 }

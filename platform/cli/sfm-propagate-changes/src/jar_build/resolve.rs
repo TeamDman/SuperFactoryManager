@@ -3,6 +3,15 @@
 //! Legacy constructors retain existing behavior. Named native planner and
 //! external-tool integration remain separate gates, not implied by this API.
 
+use crate::jar_build;
+use crate::source_git::canonical_https_remote;
+use crate::source_projection;
+use crate::toolchain_lockfile_schema;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
+use crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3;
+use crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3;
+use std::env;
+use std::io::ErrorKind;
 #[path = "resolver_acquisition_policy.rs"]
 mod acquisition_policy;
 
@@ -17,6 +26,7 @@ use super::DependencyPlan;
 use super::DependencySource;
 use super::MavenCoordinate;
 use super::Repository;
+use super::SourceBuildCheckout;
 use super::SourceBuildSystem;
 use super::SourceGitProvenance;
 use super::acquire_artifact_path_lock_cancellable;
@@ -754,13 +764,15 @@ impl Resolver {
             acquire_artifact_path_lock_cancellable(&checkout_dir, &self.cancellation_token)?;
         materialize_source_build(
             &self.cancellation_token,
-            remote_url,
-            &source_git.commit,
+            SourceBuildCheckout {
+                remote_url,
+                commit: &source_git.commit,
+                checkout_dir: &checkout_dir,
+                repository_dir: &repository_dir,
+            },
             coordinate,
             &self.cache_dir,
             source_build,
-            &checkout_dir,
-            &repository_dir,
         )?;
         self.cancellation_token.bail_if_cancelled()?;
         let source_output =
@@ -823,7 +835,7 @@ impl Resolver {
         locked_root: &Path,
         build_system: &SourceBuildSystem,
     ) -> eyre::Result<(PathBuf, PathBuf, PathBuf)> {
-        let remote_url = crate::source_git::canonical_https_remote(remote_url)?;
+        let remote_url = canonical_https_remote(remote_url)?;
         let common_cache_dir = self.cache_dir.parent().unwrap_or(&self.cache_dir);
         let compact_checkout = || {
             super::source_build_root()
@@ -1178,7 +1190,7 @@ impl Resolver {
             .iter()
             .find(|entry| entry.coordinate.as_deref() == Some(coordinate.as_str()))
             .filter(|entry| {
-                crate::jar_build::source_build_receipt::required(
+                jar_build::source_build_receipt::required(
                     entry.coordinate.as_deref(),
                     entry.source_build.as_ref(),
                 )
@@ -1193,12 +1205,12 @@ impl Resolver {
         let relative = portable
             .strip_prefix("$sfm-cache/")
             .ok_or_else(|| eyre::eyre!("producer output requires a portable $sfm-cache path"))?;
-        crate::source_projection::promotion::validate_relative_path(relative)?;
+        source_projection::promotion::validate_relative_path(relative)?;
         let cache = self
             .cache_dir
             .parent()
             .ok_or_else(|| eyre::eyre!("producer cache has no toolchain root"))?;
-        crate::source_projection::candidate_lock::checked_directory(cache)?;
+        source_projection::candidate_lock::checked_directory(cache)?;
         // A missing locked producer output still has a reviewable path. Check
         // every existing component without creating it; the receipt/closure
         // preflight below decides whether any producer effect is permitted.
@@ -1212,7 +1224,7 @@ impl Resolver {
             }
             match fs::symlink_metadata(&candidate) {
                 Ok(metadata) => eyre::ensure!(
-                    !crate::source_projection::candidate_lock::is_reparse(&metadata)
+                    !source_projection::candidate_lock::is_reparse(&metadata)
                         && if index + 1 == parts.len() {
                             metadata.is_file()
                         } else {
@@ -1220,14 +1232,14 @@ impl Resolver {
                         },
                     "producer output path contains a reparse point or wrong file type"
                 ),
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => missing = true,
+                Err(error) if error.kind() == ErrorKind::NotFound => missing = true,
                 Err(error) => return Err(error.into()),
             }
         }
         if !missing {
-            return Ok(Some(
-                crate::source_projection::candidate_lock::checked_file(cache, relative)?,
-            ));
+            return Ok(Some(source_projection::candidate_lock::checked_file(
+                cache, relative,
+            )?));
         }
         Ok(Some(candidate))
     }
@@ -1276,7 +1288,7 @@ impl Resolver {
             "producer-pinned input cannot use weak artifact substitution"
         );
         if artifact.is_file() {
-            crate::jar_build::source_build_receipt::verify(
+            jar_build::source_build_receipt::verify(
                 cache,
                 artifact,
                 locked.coordinate.as_deref(),
@@ -1286,7 +1298,7 @@ impl Resolver {
             )?;
         } else {
             eyre::ensure!(
-                crate::jar_build::source_build_receipt::verify_recipe_without_output(
+                jar_build::source_build_receipt::verify_recipe_without_output(
                     cache,
                     locked.coordinate.as_deref(),
                     locked.hash,
@@ -1316,7 +1328,7 @@ impl Resolver {
         };
         let receipt = prepared.receipt();
         if receipt.recipe_id
-            != crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
+            != source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
         {
             return Ok(false);
         }
@@ -1400,16 +1412,45 @@ impl Resolver {
             artifact == cache.join(&relative) && artifact.is_file(),
             "retained historical artifact is missing from its exact shared-cache path"
         );
+        Self::verify_retained_historical_bytes(artifact, &locked.hash, bytes, sha256)?;
+        self.verify_retained_historical_sidecar(
+            cache,
+            &relative,
+            artifact,
+            coordinate,
+            locked,
+            sidecar_sha256,
+        )?;
+        Ok(true)
+    }
+
+    fn verify_retained_historical_bytes(
+        artifact: &Path,
+        hash: &ContentHash,
+        bytes: usize,
+        sha256: &str,
+    ) -> eyre::Result<()> {
         let raw = fs::read(artifact)?;
         eyre::ensure!(
             raw.len() == bytes
                 && format!("{:x}", sha2::Sha256::digest(&raw)) == sha256
-                && ContentHash::from_path(artifact, locked.hash.algorithm)? == locked.hash,
+                && ContentHash::from_path(artifact, hash.algorithm)? == *hash,
             "retained historical artifact bytes differ from both full SHA-256 and frozen BLAKE3 pins"
         );
+        Ok(())
+    }
+
+    fn verify_retained_historical_sidecar(
+        &self,
+        cache: &Path,
+        relative: &str,
+        artifact: &Path,
+        coordinate: &MavenCoordinate,
+        locked: &ArtifactLockEntry,
+        sidecar_sha256: &str,
+    ) -> eyre::Result<()> {
         let sidecar_relative = format!("{relative}.sfm-provenance.json");
-        let sidecar =
-            crate::source_projection::candidate_lock::checked_file(cache, &sidecar_relative)?;
+        let sidecar = source_projection::candidate_lock::checked_file(cache, &sidecar_relative)?;
         let sidecar_bytes = fs::read(&sidecar)?;
         eyre::ensure!(
             sidecar_bytes.len() <= 4096
@@ -1418,7 +1459,7 @@ impl Resolver {
                     == self.locked_artifact_provenance(coordinate, locked.hash),
             "retained historical provenance sidecar differs from its reviewed original"
         );
-        Ok(true)
+        Ok(())
     }
 
     fn locked_artifact_hash(&self, coordinate: &MavenCoordinate) -> Option<&ContentHash> {
@@ -1724,10 +1765,8 @@ impl Resolver {
         let mut plan = DependencyPlan {
             configuration: configuration.to_string(),
             bundle: None,
-            artifact_treatment:
-                crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
-            data_run_policy:
-                crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
+            artifact_treatment: toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+            data_run_policy: toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
             notation: coordinate.to_string(),
             resolved_notation: resolved.to_string(),
             source,
@@ -1925,7 +1964,7 @@ impl Resolver {
             })
             .filter(|entry| entry.source == ArtifactSource::SourceBuild)
         {
-            let contract = crate::jar_build::frozen_file_dependency_contract::FrozenFileDependencyContract::for_artifact(entry)
+            let contract = jar_build::frozen_file_dependency_contract::FrozenFileDependencyContract::for_artifact(entry)
                 .ok_or_else(|| eyre::eyre!("frozen source-built dependency {coordinate} has no matching reviewed runtime dependency contract; source-build provenance or a missing POM alone cannot authorize an empty closure"))?;
             let path = maven_cache_path_for(&self.cache_dir, coordinate);
             let _guard =
@@ -1976,9 +2015,6 @@ fn apply_prepared_dependency_policy(
     plan: &mut DependencyPlan,
     row: &ReleasedPreparedDependency,
 ) -> eyre::Result<()> {
-    use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
-    use crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3;
-    use crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3;
     plan.notation.clone_from(&row.requested_coordinate);
     plan.resolved_notation.clone_from(&row.resolved_coordinate);
     plan.dynamic_version = row.requested_coordinate != row.resolved_coordinate;
@@ -2062,7 +2098,7 @@ fn find_local_cached_artifact(coordinate: &MavenCoordinate) -> Option<LocalCache
         .join(&coordinate.artifact)
         .join(&coordinate.version)
         .join(coordinate.file_name());
-    if let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
+    if let Some(home) = env::var_os("USERPROFILE").or_else(|| env::var_os("HOME")) {
         let home = PathBuf::from(home);
         let m2 = home.join(".m2").join("repository").join(&relative);
         if m2.is_file() {

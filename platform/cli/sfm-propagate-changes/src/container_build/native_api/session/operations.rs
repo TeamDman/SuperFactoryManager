@@ -14,6 +14,7 @@ use super::pause;
 use super::policy;
 use super::session_operation;
 use super::url;
+use std::time::Instant;
 pub(super) async fn ready(target: &SessionTarget) -> eyre::Result<Option<SessionReady>> {
     let Some(bytes) = file_archive::fetch(
         &target.engine_endpoint,
@@ -86,7 +87,7 @@ pub(super) async fn perform(
     };
     let path = url(&["exec", &created.id, "start"])?;
     json(&target.engine_endpoint, "POST", path.path(), &start).await?;
-    let deadline = std::time::Instant::now() + Duration::from_secs(15);
+    let deadline = Instant::now() + Duration::from_secs(15);
     loop {
         let path = url(&["exec", &created.id, "json"])?;
         let state: exec_inspect::ExecInspect = facet_json::from_slice(
@@ -101,7 +102,7 @@ pub(super) async fn perform(
             break;
         }
         eyre::ensure!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "controller publication exceeded15s; inspect status before retry"
         );
         pause(cancellation).await?;
@@ -126,7 +127,7 @@ pub(super) async fn perform(
         "invalid controller receipt"
     );
     let path = format!("{GAME}/managed-session/{sequence:06}.response.json");
-    let deadline = std::time::Instant::now() + Duration::from_mins(2);
+    let deadline = Instant::now() + Duration::from_mins(2);
     loop {
         if let Some(bytes) = file_archive::fetch(
             &target.engine_endpoint,
@@ -150,7 +151,7 @@ pub(super) async fn perform(
             return Ok(response);
         }
         eyre::ensure!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "puppet response exceeded120s; request remains recorded, inspect status before retry"
         );
         pause(cancellation).await?;

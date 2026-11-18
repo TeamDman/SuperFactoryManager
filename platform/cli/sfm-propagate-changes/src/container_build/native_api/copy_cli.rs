@@ -1,12 +1,14 @@
 use http_body_util::BodyExt;
 use std::path::Path;
+use std::str::from_utf8;
 use std::time::Duration;
+use tokio::runtime::Builder as RuntimeBuilder;
+use tokio::time;
 /// Copy one admitted ELF from a fresh, never-started, mount-free container; remove that container.
 pub(super) fn copy(endpoint: &Path, image: &str, timeout: Duration) -> eyre::Result<Vec<u8>> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
-    runtime.block_on(async { tokio::time::timeout(timeout,async {
+    let runtime = RuntimeBuilder::new_current_thread().enable_all().build()?;
+    runtime.block_on(async {
+time::timeout(timeout,async {
   eyre::ensure!(image.len()==64 && image.bytes().all(|b|b.is_ascii_hexdigit()),"invalid exact image config ID");
   let body=format!(r#"{{"Image":"{image}","Cmd":["/bin/true"],"User":"10001:10001","WorkingDir":"/tmp","HostConfig":{{"NetworkMode":"none","ReadonlyRootfs":true,"CapDrop":["ALL"],"SecurityOpt":["no-new-privileges"],"Binds":[]}}}}"#);
   let mut created=super::transport::request(endpoint,"POST","/v1.44/containers/create",super::transport::bytes_body(body.clone()),body.len() as u64).await?;
@@ -33,9 +35,9 @@ fn extract(raw: &[u8]) -> eyre::Result<Vec<u8>> {
         if header.iter().all(|b| *b == 0) {
             break;
         }
-        let name = std::str::from_utf8(&header[..100])?.trim_end_matches(char::from(0));
+        let name = from_utf8(&header[..100])?.trim_end_matches(char::from(0));
         let size = usize::from_str_radix(
-            std::str::from_utf8(&header[124..136])?.trim_matches([char::from(0), ' ']),
+            from_utf8(&header[124..136])?.trim_matches([char::from(0), ' ']),
             8,
         )?;
         eyre::ensure!(

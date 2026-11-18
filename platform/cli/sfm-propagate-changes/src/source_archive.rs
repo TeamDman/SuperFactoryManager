@@ -1,3 +1,4 @@
+use crate::source_projection;
 use eyre::Context;
 use sha2::Digest;
 use sha2::Sha256;
@@ -81,7 +82,7 @@ pub(crate) fn matches_catalog_source_identity(input: &Path, expected: &str) -> e
     if let Some(payload) = expected.strip_prefix("payload-") {
         Ok(archive_payload_sha256(input)? == payload)
     } else {
-        Ok(crate::source_projection::provenance::sha256(&fs::read(input)?) == expected)
+        Ok(source_projection::provenance::sha256(&fs::read(input)?) == expected)
     }
 }
 

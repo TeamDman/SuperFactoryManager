@@ -1,21 +1,24 @@
 //! Exact records in a bounded downloadable ZIP instead of a giant visible JSON block.
+
 use super::article_release_delivery::ArticleReleaseDelivery;
 use super::document::ReleaseReportDocument;
 use super::render::asset_path;
 use super::render::read_bounded;
+use crate::source_projection;
 use crate::source_projection::provenance::sha256;
 use base64::Engine as _;
+use base64::engine;
 use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::io::Write as _;
 use std::path::Path;
-
+use zip::write;
 pub(super) fn render(manifest: &[u8], doc: &ReleaseReportDocument, root: &Path) -> Result<String> {
     let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
-    let options = zip::write::SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
+    let options =
+        write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     writer.start_file("report-input.json", options)?;
     writer.write_all(manifest)?;
     let mut total = manifest.len();
@@ -42,7 +45,7 @@ pub(super) fn render(manifest: &[u8], doc: &ReleaseReportDocument, root: &Path) 
         bytes.len() <= 12 * 1024 * 1024,
         "download ZIP exceeds 12 MiB budget"
     );
-    let data = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    let data = engine::general_purpose::STANDARD.encode(&bytes);
     Ok(format!(
         "<a class=\"evidence-download\" download=\"sfm-release-evidence.zip\" href=\"data:application/zip;base64,{data}\">Download complete machine-readable evidence (ZIP)</a><span class=\"small-note\"> Exact input manifest, supplied source snapshots, case/section records and all paired class evidence. PNGs displayed in this article retain their original pixels.</span>"
     ))
@@ -50,7 +53,7 @@ pub(super) fn render(manifest: &[u8], doc: &ReleaseReportDocument, root: &Path) 
 
 fn append_delivery_receipts(
     writer: &mut zip::ZipWriter<Cursor<Vec<u8>>>,
-    options: zip::write::SimpleFileOptions,
+    options: write::SimpleFileOptions,
     doc: &ReleaseReportDocument,
     total: &mut usize,
 ) -> Result<()> {
@@ -81,7 +84,7 @@ fn append_delivery_receipts(
     );
     let mut identities = BTreeSet::new();
     for (artifact, pair) in delivery.artifacts.iter().zip(&doc.jars) {
-        crate::source_projection::promotion::validate_relative_path(&artifact.id)?;
+        source_projection::promotion::validate_relative_path(&artifact.id)?;
         ensure!(
             artifact.id == pair.id && identities.insert(&artifact.id),
             "duplicate or mismatched receipt artifact identity"

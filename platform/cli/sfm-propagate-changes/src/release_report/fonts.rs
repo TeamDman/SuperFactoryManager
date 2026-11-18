@@ -1,7 +1,8 @@
 //! Embed the approved unmodified font and its complete licence for standalone reports.
 use base64::Engine as _;
+use base64::engine;
 pub(super) fn embed(html: &str) -> String {
-    let font = base64::engine::general_purpose::STANDARD
+    let font = engine::general_purpose::STANDARD
         .encode(include_bytes!("assets/paper-mono/PaperMono-variable.woff2"));
     let css = format!(
         "<style>@font-face{{font-family:'Paper Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url(data:font/woff2;base64,{font}) format('woff2');}}{}</style>",

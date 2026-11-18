@@ -5,6 +5,7 @@ use super::CacheReportArgs;
 use super::CacheRootArgs;
 use super::CacheVerifyJdkArgs;
 use super::CacheVerifyRemapsArgs;
+use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
 
@@ -20,8 +21,8 @@ impl CacheArgs {
     /// # Errors
     ///
     /// Returns an error if the selected cache command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(homes)
     }
 }
 
@@ -49,15 +50,15 @@ impl CacheCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
-            CacheCommand::Path(args) => args.invoke(),
-            CacheCommand::Root(args) => args.invoke(),
+            CacheCommand::Path(args) => args.invoke(homes.cache_home()?),
+            CacheCommand::Root(args) => args.invoke(homes),
             CacheCommand::Report(args) => args.invoke(),
             CacheCommand::VerifyJdk(args) => args.invoke(),
             CacheCommand::VerifyRemaps(args) => args.invoke(),
-            CacheCommand::Open(args) => args.invoke(),
-            CacheCommand::Clean(args) => args.invoke(),
+            CacheCommand::Open(args) => args.invoke(homes.cache_home()?),
+            CacheCommand::Clean(args) => args.invoke(homes.selected_cache_home()?),
         }
     }
 }

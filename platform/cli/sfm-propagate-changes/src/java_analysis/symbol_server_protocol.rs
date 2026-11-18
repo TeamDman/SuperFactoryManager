@@ -9,10 +9,18 @@ use super::UsageAtPositionRequest;
 use super::UsageAtPositionResult;
 use super::definition_workspace_fingerprint;
 use facet::Facet;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::env::current_dir;
+use std::env::temp_dir;
+use std::error::Error as StdError;
 use std::fmt;
+use std::io::Error as IoError;
+use std::io::ErrorKind;
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 
 pub const SYMBOL_SERVER_PROTOCOL_SCHEMA: &str = "sfm.symbol-server/1";
 pub const SYMBOL_SERVER_HELLO_SCHEMA: &str = "sfm.symbol-server.hello/1";
@@ -141,7 +149,7 @@ impl SymbolServerWorkspaceOutput {
                 self.roots.len()
             );
         }
-        let mut mapped_root_ids = std::collections::BTreeSet::new();
+        let mut mapped_root_ids = BTreeSet::new();
         for (root, mapping) in self.request_workspace.source_roots.iter().zip(&self.roots) {
             if mapping.root_id.trim().is_empty()
                 || mapping.source_set.trim().is_empty()
@@ -183,7 +191,7 @@ impl SymbolServerWorkspaceOutput {
     }
 
     fn validate_managed_source_roots(&self) -> eyre::Result<()> {
-        let mut managed_root_keys = std::collections::BTreeSet::new();
+        let mut managed_root_keys = BTreeSet::new();
         for root in &self.managed_source_roots {
             if root.resolver_id.trim().is_empty()
                 || root.address_scheme.trim().is_empty()
@@ -267,7 +275,7 @@ impl SymbolServerWorkspaceOutput {
     }
 
     fn validate_dependency_source_roots(&self) -> eyre::Result<()> {
-        let mut dependency_root_ids = std::collections::BTreeSet::new();
+        let mut dependency_root_ids = BTreeSet::new();
         for root in &self.dependency_source_roots {
             if root.root_id.trim().is_empty()
                 || root.source_set.trim().is_empty()
@@ -363,7 +371,7 @@ fn project_workspace_roots(
     Vec<SymbolServerWorkspaceRootOutput>,
     Vec<SymbolServerManagedSourceRootOutput>,
 )> {
-    let mut authorities = std::collections::BTreeMap::new();
+    let mut authorities = BTreeMap::new();
     for authority in &workspace.root_authorities {
         if authorities
             .insert(authority.root_id.as_str(), authority)
@@ -493,12 +501,12 @@ fn managed_source_path(
     portable: &str,
     root_id: &str,
     require_existing: bool,
-) -> eyre::Result<std::path::PathBuf> {
+) -> eyre::Result<PathBuf> {
     let portable = Path::new(portable);
     let local = if portable.is_absolute() {
         portable.to_path_buf()
     } else if !require_existing {
-        std::env::temp_dir()
+        temp_dir()
             .join("sfm-unavailable-managed-source")
             .join("jdk")
             .join(root_id)
@@ -515,7 +523,7 @@ fn managed_source_path(
     } else if local.is_absolute() {
         Ok(local)
     } else {
-        std::env::current_dir()
+        current_dir()
             .map(|current| current.join(local))
             .map_err(|error| {
                 eyre::eyre!(
@@ -918,7 +926,7 @@ impl SymbolServerFrame {
 
 #[derive(Debug)]
 pub enum SymbolServerProtocolError {
-    Io(std::io::Error),
+    Io(IoError),
     TruncatedHeader {
         received: usize,
     },
@@ -977,8 +985,8 @@ impl fmt::Display for SymbolServerProtocolError {
     }
 }
 
-impl std::error::Error for SymbolServerProtocolError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl StdError for SymbolServerProtocolError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Io(error) => Some(error),
             _ => None,
@@ -986,8 +994,8 @@ impl std::error::Error for SymbolServerProtocolError {
     }
 }
 
-impl From<std::io::Error> for SymbolServerProtocolError {
-    fn from(error: std::io::Error) -> Self {
+impl From<IoError> for SymbolServerProtocolError {
+    fn from(error: IoError) -> Self {
         Self::Io(error)
     }
 }
@@ -1146,7 +1154,7 @@ fn read_until_full(
         match reader.read(&mut buffer[received..]) {
             Ok(0) => break,
             Ok(count) => received += count,
-            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
             Err(error) => return Err(SymbolServerProtocolError::Io(error)),
         }
     }

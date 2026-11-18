@@ -1,6 +1,7 @@
 use super::DependencyArtifactAcceptArgs;
 use super::DependencyArtifactImportArgs;
 use crate::cancellation::CancellationToken;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
@@ -19,9 +20,12 @@ impl DependencyArtifactArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         match self.command {
-            DependencyArtifactCommand::Accept(args) => args.invoke(cancellation_token, cache_home),
+            DependencyArtifactCommand::Accept(args) => {
+                args.invoke(cancellation_token, cache_home, app_home)
+            }
             DependencyArtifactCommand::Import(_) => {
                 unreachable!("project import selects its own catalog-owned cache")
             }

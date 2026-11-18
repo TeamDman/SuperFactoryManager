@@ -23,10 +23,13 @@ use sha1::Sha1;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 const SCHEMA: &str = "sfm:development-project-fixtures@1";
@@ -211,8 +214,8 @@ pub fn collect_verified_development_project_fixtures(
         bare_sha256(&provenance_bytes)? == expected_provenance_sha256,
         "development fixture provenance differs from the pinned SHA-256"
     );
-    let provenance_text = std::str::from_utf8(&provenance_bytes)
-        .wrap_err("development fixture provenance is not UTF-8")?;
+    let provenance_text =
+        from_utf8(&provenance_bytes).wrap_err("development fixture provenance is not UTF-8")?;
     let provenance: FixtureProvenance = facet_json::from_str(provenance_text)
         .wrap_err("cannot parse development fixture provenance")?;
     ensure!(
@@ -378,8 +381,8 @@ fn parse_fixture_tree(output: &[u8]) -> Result<BTreeMap<String, TreeFile>> {
             .iter()
             .position(|byte| *byte == b'\t')
             .ok_or_else(|| eyre::eyre!("malformed fixture Git tree record"))?;
-        let metadata = std::str::from_utf8(&record[..tab])?;
-        let path = std::str::from_utf8(&record[tab + 1..])?;
+        let metadata = from_utf8(&record[..tab])?;
+        let path = from_utf8(&record[tab + 1..])?;
         let mut fields = metadata.split(' ');
         let mode = fields.next().unwrap_or_default();
         let kind = fields.next().unwrap_or_default();
@@ -648,8 +651,6 @@ fn is_lower_hex(value: &str, len: usize) -> bool {
 
 #[cfg(unix)]
 fn verify_unix_mode(path: &Path, expected: &str) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
     let executable = fs::metadata(path)?.permissions().mode() & 0o111 != 0;
     ensure!(
         executable == (expected == "100755"),
@@ -662,6 +663,7 @@ fn verify_unix_mode(path: &Path, expected: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
     use std::process::Stdio;
 
     fn git(root: &Path, args: &[&str]) -> String {
@@ -872,7 +874,6 @@ mod tests {
             .stdout(Stdio::piped())
             .spawn()
             .unwrap();
-        use std::io::Write;
         child
             .stdin
             .take()

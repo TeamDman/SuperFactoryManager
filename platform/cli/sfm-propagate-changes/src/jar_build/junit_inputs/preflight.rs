@@ -16,13 +16,18 @@ use super::roots;
 use super::source_lock::SourceLock;
 use super::target_recipe::TargetRecipe;
 use super::target_report::TargetReport;
+use crate::paths::CacheHome;
 use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
 use std::time::Instant;
 
-pub(crate) fn preflight(repo: &Path, cancel: &CancellationToken) -> eyre::Result<PreflightReport> {
+pub(crate) fn preflight(
+    repo: &Path,
+    cancel: &CancellationToken,
+    cache_home: &CacheHome,
+) -> eyre::Result<PreflightReport> {
     run(
         repo,
-        &super::super::common_toolchain_cache_dir()?.join("maven"),
+        &super::super::common_toolchain_cache_dir(cache_home).join("maven"),
         None,
         cancel,
     )

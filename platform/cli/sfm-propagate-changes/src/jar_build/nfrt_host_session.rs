@@ -9,7 +9,9 @@ use super::nfrt_child_tool::prepare_child_command;
 use super::nfrt_host_protocol::NfrtHostOperation;
 use super::nfrt_host_protocol::NfrtHostRequest;
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
+use crate::cancellation::CancellationToken;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
+use crate::source_projection;
 use crate::source_projection::nfrt_held_producer::NfrtHeldProducer;
 use crate::source_projection::nfrt_input_store::NfrtInputStore;
 use crate::source_projection::nfrt_producer_output_receipt::NfrtProducerDeclaration;
@@ -26,7 +28,7 @@ use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-
+use std::path::Path;
 #[derive(Facet)]
 struct Graph {
     schema: String,
@@ -107,7 +109,7 @@ impl<'a> NfrtHostSession<'a> {
     /// before spawning this command. No protocol success reply is implied.
     pub(crate) fn prepare_tool(
         &self,
-        java: &std::path::Path,
+        java: &Path,
         graph_node_id: &str,
         payload: &str,
     ) -> Result<NfrtChildCommand> {
@@ -138,8 +140,8 @@ impl<'a> NfrtHostSession<'a> {
     pub(crate) fn execute_tool(
         &mut self,
         request: &NfrtHostRequest,
-        sdk: &mut crate::source_projection::nfrt_tool_sdk::NfrtToolSdk,
-        cancellation: &crate::cancellation::CancellationToken,
+        sdk: &mut source_projection::nfrt_tool_sdk::NfrtToolSdk,
+        cancellation: &CancellationToken,
     ) -> Result<String> {
         let mut phase = NfrtPreparationPhase::start("host_session.execute_tool");
         phase.work(1, request.payload.len() as u64);
@@ -251,7 +253,7 @@ impl<'a> NfrtHostSession<'a> {
     /// Never convert these paths into an inherited-cache execution permit.
     pub(crate) fn with_compiler_inputs<T>(
         &self,
-        consume: impl FnOnce(&std::path::Path, &std::path::Path) -> Result<T>,
+        consume: impl FnOnce(&Path, &Path) -> Result<T>,
     ) -> Result<T> {
         ensure!(
             self.finished && self.compiler_inputs_ready,
@@ -578,7 +580,7 @@ impl<'a> NfrtHostSession<'a> {
     }
 
     fn producer_observations(
-        root: &std::path::Path,
+        root: &Path,
         held: &mut BTreeMap<(String, String), NfrtHeldProducer>,
         selected: &[((String, String), NfrtProducerDeclaration)],
         scope: &NfrtProducerScope,

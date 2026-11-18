@@ -1,13 +1,19 @@
 use crate::branch_targets::MinecraftVersion;
 use crate::cli::jar::get_jar_dir;
+use crate::paths::AppHome;
 use eyre::Context;
 use std::ffi::OsStr;
+use std::fs::copy;
+use std::fs::create_dir_all;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::fs::remove_file;
 use std::path::Path;
 use std::path::PathBuf;
 use tracing::info;
 
 pub(super) fn update_mods_folder_with_jar(mods_dir: &Path, jar: &Path) -> eyre::Result<()> {
-    std::fs::create_dir_all(mods_dir)?;
+    create_dir_all(mods_dir)?;
 
     remove_sfm_jars_from_mods_folder(mods_dir)?;
 
@@ -16,7 +22,7 @@ pub(super) fn update_mods_folder_with_jar(mods_dir: &Path, jar: &Path) -> eyre::
             .ok_or_else(|| eyre::eyre!("Jar filename missing: {}", jar.display()))?,
     );
 
-    std::fs::copy(jar, &destination).wrap_err_with(|| {
+    copy(jar, &destination).wrap_err_with(|| {
         format!(
             "Failed to copy jar from {} to {}",
             jar.display(),
@@ -38,7 +44,7 @@ pub(super) fn remove_sfm_jars_from_mods_folder(mods_dir: &Path) -> eyre::Result<
         return Ok(());
     }
 
-    for existing in std::fs::read_dir(mods_dir)?
+    for existing in read_dir(mods_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {
@@ -52,7 +58,7 @@ pub(super) fn remove_sfm_jars_from_mods_folder(mods_dir: &Path) -> eyre::Result<
                     .is_some_and(|extension| extension == OsStr::new("jar"))
         })
     {
-        std::fs::remove_file(&existing)
+        remove_file(&existing)
             .wrap_err_with(|| format!("Failed to remove old jar: {}", existing.display()))?;
     }
 
@@ -120,15 +126,18 @@ fn client_game_dir_candidates(instance_dir: &Path) -> Vec<PathBuf> {
     ]
 }
 
-pub(super) fn find_best_jar_for_mc_version(mc_version: &str) -> eyre::Result<Option<PathBuf>> {
-    let jar_dir = get_jar_dir()?;
+pub(super) fn find_best_jar_for_mc_version(
+    mc_version: &str,
+    app_home: &AppHome,
+) -> eyre::Result<Option<PathBuf>> {
+    let jar_dir = get_jar_dir(app_home)?;
     if !jar_dir.exists() {
         return Ok(None);
     }
 
     let needle = format!("-MC{mc_version}-");
 
-    let mut matches: Vec<PathBuf> = std::fs::read_dir(&jar_dir)?
+    let mut matches: Vec<PathBuf> = read_dir(&jar_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {
@@ -153,7 +162,7 @@ pub(super) fn find_best_jar_for_mc_version(mc_version: &str) -> eyre::Result<Opt
 }
 
 pub(super) fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {
-    let content = std::fs::read_to_string(gradle_properties)
+    let content = read_to_string(gradle_properties)
         .wrap_err("Failed to read gradle.properties for mod_version")?;
 
     let mod_version = content
@@ -178,7 +187,7 @@ pub(super) fn pick_jar_for_mod_version(
     let suffix = format!("-{mod_version}.jar");
     let rust_suffix = format!("-{mod_version}-rust.jar");
 
-    let mut candidates: Vec<PathBuf> = std::fs::read_dir(libs_dir)?
+    let mut candidates: Vec<PathBuf> = read_dir(libs_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {

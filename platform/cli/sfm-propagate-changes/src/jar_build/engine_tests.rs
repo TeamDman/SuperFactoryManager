@@ -1,5 +1,12 @@
 use super::ArtifactAuditIssueKind;
 use super::clean_gametest_server_world;
+use super::game_puppet_preview_source_identity;
+use super::prepare_development_identity;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
+use crate::source_projection::catalog_owned_project::tests::Fixture;
+use crate::source_projection::core_inputs::CORE_ROOT;
+use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
 
 #[test]
 fn legacy_dependency_remap_rejects_truncated_and_corrupt_cached_jars() -> eyre::Result<()> {
@@ -4298,6 +4305,8 @@ pub(super) fn minimal_plan_for_paths() -> BuildPlan {
 
 fn test_build_options(parallelism: Parallelism) -> BuildOptions {
     BuildOptions {
+        app_home: AppHome(PathBuf::from("test-app-home")),
+        cache_home: Some(CacheHome(PathBuf::from("test-cache"))),
         selection: super::super::BuildSelection::Worktree(BranchQuery::default()),
         cache_root: None,
         refresh: false,
@@ -6197,6 +6206,7 @@ fn fresh_jar_output_worktree_external_cache_is_refused_before_planning() -> eyre
     let marker = external.join(".sfm-native-cache-root.json");
     let before = fs::read(&marker)?;
     let planning = super::NativePlanningOptions {
+        cache_home: None,
         output_name: Some("fresh.jar".to_owned()),
         derived_cache_root: Some(derived),
         pinned_sdk: None,
@@ -6439,5 +6449,99 @@ fn linux_existing_javac_warm_output_admission() -> eyre::Result<()> {
     assert!(!super::main_compilation_cache_matches(
         &context, &state, &changed, &classes, &refmap
     )?);
+    Ok(())
+}
+
+#[test]
+fn missing_cache_requirement_survives_target_reports() -> eyre::Result<()> {
+    for parallelism in [Parallelism::Sequential, Parallelism::Parallel { limit: 2 }] {
+        let options = test_build_options(parallelism);
+        let Err(error) = super::execute_targets(
+            &options,
+            vec![test_worktree_target("1.19.2", "fixture")],
+            "cache-selection-fixture",
+            &CancellationToken::new(),
+            |_, _, _| Err(super::CacheHomeRequired.into()),
+        ) else {
+            eyre::bail!("cache selection failure must propagate");
+        };
+        assert!(error.downcast_ref::<super::CacheHomeRequired>().is_some());
+    }
+    Ok(())
+}
+
+#[test]
+fn puppet_preview_fingerprint_uses_selected_release_ownership_without_flat_sources()
+-> eyre::Result<()> {
+    let (fixture, mut plan) = catalog_release_packaging_fixture_plan("1.19.2", "release")?;
+    plan.lockfile_path = plan.minecraft_dir.join("sfm-toolchain.lock.json");
+    let legacy_root = fixture.repository().join("platform/minecraft/src");
+    assert!(!legacy_root.exists());
+    let initial = game_puppet_preview_source_identity(&plan)?.source_fingerprint;
+
+    fs::create_dir_all(&legacy_root)?;
+    fs::write(
+        legacy_root.join("Unselected.java"),
+        b"class Unselected {}\n",
+    )?;
+    assert_eq!(
+        game_puppet_preview_source_identity(&plan)?.source_fingerprint,
+        initial,
+        "a catalog launch must not fingerprint the unrelated legacy source tree"
+    );
+    let selected = fixture
+        .repository()
+        .join(CORE_ROOT)
+        .join("src/main/java/Shared.java");
+    let mut bytes = fs::read(&selected)?;
+    bytes.extend_from_slice(b"// selected input changed\n");
+    fs::write(selected, bytes)?;
+    assert!(game_puppet_preview_source_identity(&plan).is_err());
+    Ok(())
+}
+
+#[test]
+fn puppet_preview_fingerprint_tracks_development_rendering_and_rejects_stale_owner()
+-> eyre::Result<()> {
+    let mut fixture = Fixture::new_for_target("1.19.2");
+    fixture.set_project_file_for(
+        "1.19.2",
+        "sfm-toolchain.lock.json",
+        "build/proof/dev-lock.json",
+        include_bytes!(
+            "../../../../minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.json"
+        ),
+        false,
+    )?;
+    let key = Fixture::key(0, "dev");
+    let mut plan = minimal_plan_for_paths();
+    fixture.publish(&key);
+    plan.identity = prepare_development_identity(
+        fixture.collect(&key)?.check_current()?,
+        NATIVE_DEPENDENCY_PROFILE,
+    )?;
+    plan.minecraft_dir = plan.identity.minecraft_dir();
+    plan.lockfile_path = plan.minecraft_dir.join("sfm-toolchain.lock.json");
+    assert!(!fixture.repository().join("platform/minecraft/src").exists());
+    let initial = game_puppet_preview_source_identity(&plan)?.source_fingerprint;
+
+    let selected = fixture
+        .repository()
+        .join(CORE_ROOT)
+        .join("src/main/java/Shared.java");
+    let mut bytes = fs::read(&selected)?;
+    bytes.extend_from_slice(b"// changed rendered development source\n");
+    fs::write(selected, bytes)?;
+    assert!(game_puppet_preview_source_identity(&plan).is_err());
+    fixture.publish(&key);
+    plan.identity = prepare_development_identity(
+        fixture.collect(&key)?.check_current()?,
+        NATIVE_DEPENDENCY_PROFILE,
+    )?;
+    assert_ne!(
+        game_puppet_preview_source_identity(&plan)?.source_fingerprint,
+        initial,
+        "the same projection with changed selected rendering needs a new fingerprint"
+    );
     Ok(())
 }

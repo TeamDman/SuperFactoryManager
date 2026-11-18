@@ -12,10 +12,12 @@ use crate::cli::jar::BranchSelector;
 use crate::cli::jar::get_jar_dir;
 use crate::cli::repo_root::get_repo_root;
 use crate::modrinth::ModrinthHttpClient;
+use crate::paths::AppHome;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
+use std::fs::read;
 use tracing::info;
 
 /// Arguments for validating remote Modrinth jars against local release jars.
@@ -34,22 +36,26 @@ impl ModrinthReleaseValidateArgs {
     /// # Errors
     ///
     /// Returns an error if remote hashes do not match local release jars.
-    pub fn invoke(self) -> eyre::Result<()> {
-        validate_release_hashes(self.branch, self.project)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        validate_release_hashes(self.branch, self.project, app_home)
     }
 }
 
-fn validate_release_hashes(branch: BranchSelector, project: Option<String>) -> eyre::Result<()> {
+fn validate_release_hashes(
+    branch: BranchSelector,
+    project: Option<String>,
+    app_home: &AppHome,
+) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let branch_query = branch.into_query()?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let branch_query = branch.into_query(app_home)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
 
     let client = ModrinthHttpClient::new(None)?;
     let existing_versions = fetch_project_versions(&client, &project_id)?;
@@ -60,7 +66,7 @@ fn validate_release_hashes(branch: BranchSelector, project: Option<String>) -> e
 
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
-        let local_bytes = std::fs::read(&jar)
+        let local_bytes = read(&jar)
             .wrap_err_with(|| format!("Failed to read local jar for hashing: {}", jar.display()))?;
         let local_sha1 = sha1_hex(&local_bytes);
 

@@ -79,8 +79,7 @@ static HISTORICAL_2612_NEOFORM_RECIPE: NamedNeoformCompileRecipe = NamedNeoformC
 
 fn named_neoform_recipe(target: &str, recipe: &str) -> Option<&'static NamedNeoformCompileRecipe> {
     if target == "26.1.2"
-        && recipe
-            == crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
+        && recipe == source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
     {
         Some(&HISTORICAL_2612_NEOFORM_RECIPE)
     } else if recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1") {
@@ -131,7 +130,7 @@ fn require_named_neoform_recipe_identity(
 }
 
 fn validate_named_neoform_compile(
-    project: &crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    project: &source_projection::frozen_recipe_project::FrozenRecipeProject,
 ) -> eyre::Result<()> {
     let receipt = project.receipt();
     let released = &receipt.released_inputs;
@@ -152,7 +151,7 @@ fn validate_named_neoform_compile(
             && released.loader_coordinate == expected.loader,
         "named NeoForm Compile requires its exact reviewed Windows/Linux loader recipe"
     );
-    crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_prepared_at(
+    source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_prepared_at(
         project.project().repo_root(), Arc::clone(project.dependencies()), false,
     )?;
     Ok(())
@@ -160,24 +159,23 @@ fn validate_named_neoform_compile(
 
 #[cfg(any(windows, target_os = "linux"))]
 struct DevelopmentNeoformSource<'a> {
-    owner: crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner<'a>,
+    owner: source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner<'a>,
     dependencies:
-        Arc<crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies>,
-    supplement:
-        crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement,
+        Arc<source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies>,
+    supplement: source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement,
 }
 
 #[cfg(any(windows, target_os = "linux"))]
 fn development_neoform_source<'a>(
-    project: &'a crate::source_projection::catalog_owned_project::CatalogOwnedProject,
+    project: &'a source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
 ) -> eyre::Result<DevelopmentNeoformSource<'a>> {
     let owner =
         crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner::from_checked(
             project, profile,
         )?;
-    let dependencies = Arc::new(crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies::from_checked(&owner, false)?);
-    let supplement = crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_development_at(project.repo_root(), Arc::clone(&dependencies), false)?;
+    let dependencies = Arc::new(source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies::from_checked(&owner, false)?);
+    let supplement = source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_development_at(project.repo_root(), Arc::clone(&dependencies), false)?;
     Ok(DevelopmentNeoformSource {
         owner,
         dependencies,
@@ -187,7 +185,7 @@ fn development_neoform_source<'a>(
 
 #[cfg(any(windows, target_os = "linux"))]
 fn resolve_development_minecraft_plan(
-    project: &crate::source_projection::catalog_owned_project::CatalogOwnedProject,
+    project: &source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
     minecraft_cache: &Path,
     client: &Client,
@@ -249,10 +247,10 @@ fn resolve_development_minecraft_plan(
 
 #[cfg(any(windows, target_os = "linux"))]
 enum NeoformCompileSource<'a> {
-    Released(&'a crate::source_projection::frozen_recipe_project::FrozenRecipeProject),
+    Released(&'a source_projection::frozen_recipe_project::FrozenRecipeProject),
     Admitted {
-        frozen: &'a crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
-        owner: crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner<'a>,
+        frozen: &'a source_projection::frozen_recipe_project::FrozenRecipeProject,
+        owner: source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner<'a>,
     },
     Development(Box<DevelopmentNeoformSource<'a>>),
 }
@@ -284,7 +282,7 @@ impl<'a> NeoformCompileSource<'a> {
         }
     }
 
-    fn owner(&self) -> &dyn crate::source_projection::nfrt_project_owner::NfrtProjectOwner {
+    fn owner(&self) -> &dyn source_projection::nfrt_project_owner::NfrtProjectOwner {
         match self {
             Self::Released(project) => *project,
             Self::Admitted { owner, .. } => owner,
@@ -308,7 +306,7 @@ impl<'a> NeoformCompileSource<'a> {
 
     fn export(
         &self,
-        selected: &crate::jdk::ResolvedJava,
+        selected: &jdk::ResolvedJava,
         executable: &[u8],
         invocation: &str,
     ) -> eyre::Result<super::nfrt_launch_contract::NfrtExportPlan> {
@@ -383,7 +381,7 @@ fn acquire_named_neoform_inputs(
     context.plan.recheck_named_inputs()?;
     context.plan.recheck_named_sdk()?;
     let java = &context.plan.java;
-    let selected = crate::jdk::ResolvedJava {
+    let selected = jdk::ResolvedJava {
         executable: fs::canonicalize(&java.executable)?,
         home: java.home.as_ref().map(fs::canonicalize).transpose()?,
         version_output: java.version_output.clone(),
@@ -393,7 +391,7 @@ fn acquire_named_neoform_inputs(
         pin_sha512: java.pin_sha512.clone(),
     };
     let nonce = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    let invocation = format!("native-{}-{nonce}", std::process::id());
+    let invocation = format!("native-{}-{nonce}", process_id());
     let executable = read_named_authenticated_file(&selected.executable, 16 * 1024 * 1024)?;
     let export = source.export(&selected, &executable, &invocation)?;
     tracing::info!(target = %export.declaration().target_id,
@@ -511,7 +509,7 @@ fn verify_named_supplement_bytes(
         "named supplement size mismatch; no repair performed"
     );
     eyre::ensure!(
-        crate::source_projection::provenance::sha256(bytes) == format!("sha256:{expected_sha256}"),
+        source_projection::provenance::sha256(bytes) == format!("sha256:{expected_sha256}"),
         "named supplement SHA-256 mismatch; no repair performed"
     );
     Ok(())
@@ -541,7 +539,7 @@ fn with_named_neoform_context<T>(
     let project = source.owner();
     let prepared = acquire_named_neoform_inputs(context, &source)?;
     let java = &context.plan.java;
-    let selected = crate::jdk::ResolvedJava {
+    let selected = jdk::ResolvedJava {
         executable: fs::canonicalize(&java.executable)?,
         home: java.home.as_ref().map(fs::canonicalize).transpose()?,
         version_output: java.version_output.clone(),
@@ -550,8 +548,7 @@ fn with_named_neoform_context<T>(
         pin_url: java.pin_url.clone(),
         pin_sha512: java.pin_sha512.clone(),
     };
-    let mut sdk =
-        crate::source_projection::nfrt_tool_sdk::NfrtToolSdk::capture(&selected, &prepared)?;
+    let mut sdk = source_projection::nfrt_tool_sdk::NfrtToolSdk::capture(&selected, &prepared)?;
     let profile_key = if context.plan.derived_cache_root.is_some() {
         None
     } else {

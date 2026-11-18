@@ -1,7 +1,10 @@
 //! Synchronous record writer: thread serialization and bounded shared-file locks.
 use std::fs::File;
-use std::io::{self, Write};
-use std::sync::{Mutex, MutexGuard};
+use std::io::Write;
+use std::io::{self};
+use std::sync;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 use tracing_subscriber::fmt::MakeWriter;
 
 pub(super) struct LogWriter {
@@ -26,7 +29,7 @@ impl<'a> MakeWriter<'a> for LogWriter {
         let file = self
             .file
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+            .unwrap_or_else(sync::PoisonError::into_inner);
         let result = super::persistent_log::lock(&file, None);
         LogGuard {
             file,

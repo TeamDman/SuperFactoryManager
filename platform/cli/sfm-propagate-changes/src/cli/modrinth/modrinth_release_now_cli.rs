@@ -12,6 +12,7 @@ use crate::cli::jar::get_jar_dir;
 use crate::cli::repo_root::get_repo_root;
 use crate::modrinth::ModrinthApiSecret;
 use crate::modrinth::ModrinthHttpClient;
+use crate::paths::AppHome;
 use color_eyre::owo_colors::OwoColorize;
 use facet::Facet;
 use figue as args;
@@ -46,13 +47,14 @@ impl ModrinthReleaseNowArgs {
     /// # Errors
     ///
     /// Returns an error if release metadata cannot be computed or uploaded.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         release_now(
             self.branch,
             self.project,
             self.token,
             self.op_secret,
             self.dry_run,
+            app_home,
         )
     }
 }
@@ -67,18 +69,19 @@ fn release_now(
     token: Option<String>,
     op_secret: Option<String>,
     dry_run: bool,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let changelog_section = compute_wrapped_release_changelog(&repo_root, &mod_version)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let branch_query = branch.into_query()?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let branch_query = branch.into_query(app_home)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
     let plans = build_release_plans(&jars, &mod_version)?;
 
     info!("{} {}", "Project ID:".cyan().bold(), project_id);

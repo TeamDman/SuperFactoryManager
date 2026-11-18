@@ -1,14 +1,29 @@
 //! Additive run files; only the small latest pointer is replaced.
+
 use super::LoggingConfig;
 use crate::cancellation::CancellationToken;
 use crate::file_identity::file_identity;
 use chrono::Utc;
-use eyre::{Result, WrapErr as _, ensure};
+use eyre::Result;
+use eyre::WrapErr as _;
+use eyre::ensure;
 use facet::Facet;
-use std::fs::{self, File, OpenOptions};
-use std::io::{Read as _, Seek as _, SeekFrom, Write as _};
-use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::fs::{self};
+use std::io::Error as IoError;
+use std::io::ErrorKind;
+use std::io::Read as _;
+use std::io::Result as IoResult;
+use std::io::Seek as _;
+use std::io::SeekFrom;
+use std::io::Write as _;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::id as process_id;
+use std::thread::sleep;
+use std::time::Duration;
+use std::time::Instant;
 
 pub(super) struct PreparedLog {
     pub(super) path: PathBuf,
@@ -26,6 +41,8 @@ struct LatestLog {
 
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt as _;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt as _;
 
@@ -48,14 +65,10 @@ fn regular(path: &Path, file: &File) -> Result<()> {
         path.display()
     );
     #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt as _;
-        ensure!(
-            metadata.file_attributes() & 0x400 == 0
-                && file.metadata()?.file_attributes() & 0x400 == 0,
-            "log path is a reparse point"
-        );
-    }
+    ensure!(
+        metadata.file_attributes() & 0x400 == 0 && file.metadata()?.file_attributes() & 0x400 == 0,
+        "log path is a reparse point"
+    );
     let current = options().read(true).open(path)?;
     ensure!(
         file_identity(file)? == file_identity(&current)?,
@@ -65,23 +78,21 @@ fn regular(path: &Path, file: &File) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn lock(file: &File, cancellation: Option<&CancellationToken>) -> std::io::Result<()> {
+pub(super) fn lock(file: &File, cancellation: Option<&CancellationToken>) -> IoResult<()> {
     let started = Instant::now();
     loop {
         if cancellation.is_some_and(CancellationToken::is_cancelled) {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Interrupted,
+            return Err(IoError::new(
+                ErrorKind::Interrupted,
                 "cancelled while initializing log discovery",
             ));
         }
         match file.try_lock() {
             Ok(()) => return Ok(()),
-            Err(std::fs::TryLockError::WouldBlock)
-                if started.elapsed() < Duration::from_secs(2) =>
-            {
-                std::thread::sleep(Duration::from_millis(10));
+            Err(fs::TryLockError::WouldBlock) if started.elapsed() < Duration::from_secs(2) => {
+                sleep(Duration::from_millis(10));
             }
-            Err(error) => return Err(std::io::Error::other(error)),
+            Err(error) => return Err(IoError::other(error)),
         }
     }
 }
@@ -203,7 +214,7 @@ fn unique(
         format!(
             "run-{}-{}-{:032x}.ndjson",
             now.format("%Y-%m-%d_%H-%M-%S%.9f"),
-            std::process::id(),
+            process_id(),
             rand::random::<u128>()
         )
     })
@@ -226,7 +237,7 @@ fn create_unique(
             .open(&path)
         {
             Ok(file) => file,
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
             Err(error) => {
                 return Err(error)
                     .wrap_err_with(|| format!("could not create run log {}", path.display()));
@@ -266,7 +277,7 @@ fn latest_lock(directory: &Path, cancellation: &CancellationToken) -> Result<Fil
         .open(&lock_path)
     {
         Ok(file) => file,
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => {
             options().read(true).write(true).open(&lock_path)?
         }
         Err(error) => return Err(error.into()),
@@ -305,12 +316,12 @@ fn publish_latest(
             );
             Some(file)
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) if error.kind() == ErrorKind::NotFound => None,
         Err(error) => return Err(error.into()),
     };
     let stage = directory.join(format!(
         ".latest-{}-{:032x}.json",
-        std::process::id(),
+        process_id(),
         rand::random::<u128>()
     ));
     let mut staged = options()
@@ -322,7 +333,7 @@ fn publish_latest(
         schema: "sfm:run_log_pointer@1".to_owned(),
         file: filename.to_owned(),
         started_utc: Utc::now().to_rfc3339(),
-        pid: std::process::id(),
+        pid: process_id(),
     };
     writeln!(staged, "{}", facet_json::to_string(&pointer)?)?;
     staged.sync_all()?;

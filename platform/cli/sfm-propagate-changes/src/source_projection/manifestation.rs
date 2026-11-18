@@ -18,9 +18,13 @@ use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs::create_dir_all;
+use std::fs::remove_file;
 use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::result::Result as StdResult;
+use std::str::from_utf8;
 
 #[derive(Debug, Default, facet::Facet)]
 pub(crate) struct ManifestReport {
@@ -99,7 +103,7 @@ pub(crate) fn manifest_selected(
                 .strip_prefix(repo)
                 .map(|p| p.to_string_lossy().replace('\\', "/"))
         })
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+        .collect::<StdResult<Vec<_>, _>>()?;
     let dirty = dirty_paths(repo, &roots)?;
     for (_, path, _, _) in &changes {
         ensure!(
@@ -114,7 +118,7 @@ pub(crate) fn manifest_selected(
         let parent = destination
             .parent()
             .ok_or_else(|| eyre::eyre!("output lacks parent"))?;
-        std::fs::create_dir_all(parent)?;
+        create_dir_all(parent)?;
         super::sync::inspect_output_parents(repo, &path)?;
         let current = super::sync::read_regular_file_if_present(&destination)?;
         ensure!(
@@ -126,7 +130,7 @@ pub(crate) fn manifest_selected(
             staged.write_all(bytes)?;
             staged.persist(&destination).map_err(|error| error.error)?;
         } else {
-            std::fs::remove_file(&destination)?;
+            remove_file(&destination)?;
         }
     }
     report.writes_performed = true;
@@ -182,7 +186,7 @@ fn parse_dirty_paths(bytes: &[u8]) -> Result<BTreeSet<String>> {
             record.len() > 3 && record[2] == b' ',
             "malformed Git status record"
         );
-        paths.insert(std::str::from_utf8(&record[3..])?.to_owned());
+        paths.insert(from_utf8(&record[3..])?.to_owned());
         if record[..2]
             .iter()
             .any(|status| matches!(status, b'R' | b'C'))
@@ -190,7 +194,7 @@ fn parse_dirty_paths(bytes: &[u8]) -> Result<BTreeSet<String>> {
             let original = records
                 .next()
                 .ok_or_else(|| eyre::eyre!("missing Git rename source"))?;
-            paths.insert(std::str::from_utf8(original)?.to_owned());
+            paths.insert(from_utf8(original)?.to_owned());
         }
     }
     Ok(paths)
@@ -222,8 +226,7 @@ pub(crate) fn render_output(
         CORE_METADATA_PATH,
         super::core_inputs::MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata =
-        CoreProjectInputs::from_json(std::str::from_utf8(&bytes)?, &loaded.registered_features)?;
+    let metadata = CoreProjectInputs::from_json(from_utf8(&bytes)?, &loaded.registered_features)?;
     let core = loaded.repo_root.join(CORE_ROOT);
     let context = loaded.context(key)?;
     let inventory = discover_core_source_files(&core)?;
@@ -263,8 +266,7 @@ pub(crate) fn render_selected(
         CORE_METADATA_PATH,
         super::core_inputs::MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata =
-        CoreProjectInputs::from_json(std::str::from_utf8(&bytes)?, &loaded.registered_features)?;
+    let metadata = CoreProjectInputs::from_json(from_utf8(&bytes)?, &loaded.registered_features)?;
     let core = loaded.repo_root.join(CORE_ROOT);
     let selector = metadata.validated_selector(&loaded.registered_features)?;
     let inventory = discover_core_source_files(&core)?;
@@ -403,6 +405,8 @@ fn require_matches(selectors: &[String], matched: &BTreeSet<String>, kind: &str)
 
 #[cfg(test)]
 mod tests {
+    use super::super::core_catalog::write_project_catalog_fixture;
+    use super::super::projection_catalog::CATALOG_PATH;
     use super::*;
 
     fn git(root: &Path, args: &[&str]) {
@@ -506,8 +510,6 @@ mod tests {
 
     #[test]
     fn file_render_fans_out_without_reading_unselected_source_bodies() {
-        use super::super::core_catalog::write_project_catalog_fixture;
-        use super::super::projection_catalog::CATALOG_PATH;
         let repo = tempfile::tempdir().unwrap();
         write_project_catalog_fixture(repo.path(), "a", "1.19.2").unwrap();
         git(repo.path(), &["init", "--quiet"]);

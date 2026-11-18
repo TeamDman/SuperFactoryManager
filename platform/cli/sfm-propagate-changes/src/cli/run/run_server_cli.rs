@@ -1,10 +1,12 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
 use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -23,14 +25,23 @@ pub struct RunServerArgs {
 }
 
 impl RunServerArgs {
-    pub(crate) fn into_options(self, mode: BuildMode) -> eyre::Result<BuildOptions> {
-        self.options.into_options(mode)
+    pub(crate) fn into_options(
+        self,
+        mode: BuildMode,
+        app_home: &AppHome,
+    ) -> eyre::Result<BuildOptions> {
+        self.options.into_options(mode, app_home)
     }
 
     /// # Errors
     ///
     /// Returns an error if planning, building, or launching fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         eyre::ensure!(
             !self.share_runtime || self.runtime_slot.is_some(),
             "--share-runtime requires explicit --runtime-slot"
@@ -41,7 +52,8 @@ impl RunServerArgs {
             ..RunOptions::default()
         };
         RunCommand::with_run_options(
-            self.into_options(BuildMode::Build)?,
+            self.into_options(BuildMode::Build, app_home)?
+                .with_cache_home(homes.available_cache_home()),
             RunKind::Server,
             run_options,
             cancellation_token,

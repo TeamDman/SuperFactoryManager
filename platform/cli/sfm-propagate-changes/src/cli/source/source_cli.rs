@@ -13,8 +13,10 @@ use super::release_provider_plan_cli::ReleaseProviderPlanArgs;
 use super::release_tag_preflight_cli::ReleaseTagPreflightArgs;
 use super::release_target_plan_cli::ReleaseTargetPlanArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::output::CliOutput;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
+use crate::paths::CacheHome;
 use crate::source_projection::development_baseline::CANONICAL_COMMIT;
 use crate::source_projection::development_baseline::DevelopmentHeadSpec;
 use crate::source_projection::development_baseline::compare_committed_source_heads;
@@ -41,6 +43,7 @@ use crate::source_projection::provenance::sha256;
 use crate::source_projection::release_apply::apply_release_baseline;
 use crate::source_projection::release_apply::release_source_paths;
 use crate::source_projection::release_baseline::ImportFile;
+use crate::source_projection::release_baseline::ReleaseBaselineReport;
 use crate::source_projection::release_baseline::collect_tagged_gradle_tree;
 use crate::source_projection::release_baseline::insert_import_file;
 use crate::source_projection::release_baseline::materialize_released_4_34_0_imports;
@@ -66,10 +69,14 @@ use figue::{self as args};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::ErrorKind;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command as ProcessCommand;
+use std::str::from_utf8;
 use std::thread;
 use std::time::Duration;
 
@@ -367,6 +374,7 @@ impl LegacySourceArgs {
         self,
         cancellation: &CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> Result<CliOutput> {
         let legacy_root = match &self.command {
             LegacySourceCommand::ImportRelease(args) => Some(&args.repo_root),
@@ -405,10 +413,20 @@ impl LegacySourceArgs {
                 return args.invoke_in(cancellation, invocation_dir);
             }
             LegacySourceCommand::Build(args) => {
-                return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Build);
+                return args.invoke_in(
+                    cancellation,
+                    invocation_dir,
+                    SourceGradleMode::Build,
+                    homes.cache_home()?,
+                );
             }
             LegacySourceCommand::Run(args) => {
-                return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Run);
+                return args.invoke_in(
+                    cancellation,
+                    invocation_dir,
+                    SourceGradleMode::Run,
+                    homes.cache_home()?,
+                );
             }
             LegacySourceCommand::Promote(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
@@ -553,7 +571,7 @@ fn read_committed_frozen_selection_manifest(
         .collect::<Result<Vec<_>>>()?
         .join("/");
     verify_committed_selection_manifest(repo_root, source_commit, &manifest_repo_path, &bytes)?;
-    let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&bytes)?)?;
+    let manifest = SourceProjectionManifest::from_json(from_utf8(&bytes)?)?;
     Ok((manifest, sha256(&bytes)))
 }
 
@@ -762,6 +780,7 @@ impl SourceGradleArgs {
         cancellation: &CancellationToken,
         invocation_dir: &Path,
         mode: SourceGradleMode,
+        cache_home: &CacheHome,
     ) -> Result<CliOutput> {
         cancellation.bail_if_cancelled()?;
         let Self {
@@ -807,6 +826,7 @@ impl SourceGradleArgs {
             &output_root,
             java_major,
             explicit_java_home.as_deref(),
+            cache_home,
         )?;
         let home = resolved_java.home.as_deref().ok_or_else(|| {
             eyre::eyre!(
@@ -862,7 +882,7 @@ fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathB
                 "development output root traverses a symlink or reparse point: '{}'",
                 cursor.display()
             ),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+            Err(error) if error.kind() == ErrorKind::NotFound => break,
             Err(error) => {
                 return Err(error).wrap_err_with(|| {
                     format!(
@@ -915,7 +935,7 @@ fn physical_output_root(output_root: &Path) -> Result<PathBuf> {
     loop {
         match fs::symlink_metadata(cursor) {
             Ok(_) => break,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == ErrorKind::NotFound => {
                 let component = cursor
                     .file_name()
                     .ok_or_else(|| eyre::eyre!("projection output has no existing ancestor"))?;
@@ -941,7 +961,6 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x0000_0400 != 0
     }
     #[cfg(not(windows))]
@@ -1321,7 +1340,7 @@ fn preflight_development_gradle_expectations(
 fn preflight_development_source_import(
     repo_root: &Path,
     spec: &DevelopmentHeadSpec,
-    report: &crate::source_projection::release_baseline::ReleaseBaselineReport,
+    report: &ReleaseBaselineReport,
 ) -> Result<()> {
     let target = report
         .targets
@@ -1741,6 +1760,7 @@ pub(super) mod tests {
     use crate::cli::Cli;
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
+    use crate::paths::AppHome;
     use crate::source_projection::frozen_release::FrozenSourceInventory;
     use crate::source_projection::manifest::FrozenSourceBinding;
     use crate::source_projection::manifest::PathEffect;
@@ -1749,6 +1769,8 @@ pub(super) mod tests {
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
     use crate::source_projection::provenance::ProjectionProvenance;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt as _;
     use std::process::Command as TestCommand;
 
     fn git_test(root: &Path, args: &[&str]) -> String {
@@ -3213,7 +3235,6 @@ pub(super) mod tests {
         .unwrap();
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt as _;
             fs::write(
                 &wrapper,
                 b"#!/bin/sh\nprintf '%s\\n' \"$JAVA_HOME\" > invocation.txt\nprintf '%s %s %s %s %s %s\\n' \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"$6\" >> invocation.txt\n",
@@ -3429,10 +3450,14 @@ pub(super) mod tests {
         .unwrap();
 
         let cancellation = CancellationToken::new();
+        let homes = InvocationHomes::new(
+            AppHome(repo.path().join("settings")),
+            Ok(CacheHome(repo.path().join("cache"))),
+        );
         LegacySourceArgs {
             command: LegacySourceCommand::Sync(fixture_args(repo.path())),
         }
-        .invoke_in(&cancellation, repo.path())
+        .invoke_in(&cancellation, repo.path(), &homes)
         .unwrap();
         let output = repo.path().join("generated/src/main/java/Example.java");
         assert!(
@@ -3443,13 +3468,13 @@ pub(super) mod tests {
         LegacySourceArgs {
             command: LegacySourceCommand::Check(fixture_args(repo.path())),
         }
-        .invoke_in(&cancellation, repo.path())
+        .invoke_in(&cancellation, repo.path(), &homes)
         .unwrap();
         fs::write(&output, "contributor change\n").unwrap();
         let _ = LegacySourceArgs {
             command: LegacySourceCommand::Sync(fixture_args(repo.path())),
         }
-        .invoke_in(&cancellation, repo.path())
+        .invoke_in(&cancellation, repo.path(), &homes)
         .unwrap_err();
         assert_eq!(fs::read_to_string(&output).unwrap(), "contributor change\n");
     }

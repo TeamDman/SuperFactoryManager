@@ -2,6 +2,8 @@ use super::input::ComparisonInput;
 use super::report::ComparisonReport;
 use super::request::ComparisonRequest;
 use crate::cancellation::CancellationToken;
+use crate::release_report;
+use crate::source_projection;
 use crate::source_projection::candidate_lock::checked_directory;
 use eyre::Result;
 use eyre::ensure;
@@ -23,7 +25,7 @@ pub fn prepare(
         .file_name()
         .and_then(|name| name.to_str())
         .ok_or_else(|| eyre::eyre!("comparison output needs a directory name"))?;
-    crate::source_projection::promotion::validate_relative_path(name)?;
+    source_projection::promotion::validate_relative_path(name)?;
     let parent = checked_directory(
         output
             .parent()
@@ -45,7 +47,7 @@ pub fn prepare(
     }
     let report = super::compare(request, cancellation)?;
     let json = facet_json::to_string_pretty(&report)?;
-    let html = crate::release_report::comparison_render::render(&report, cancellation)?;
+    let html = release_report::comparison_render::render(&report, cancellation)?;
     let staging = tempfile::Builder::new()
         .prefix(".sfm-comparison-")
         .tempdir_in(&parent)?;

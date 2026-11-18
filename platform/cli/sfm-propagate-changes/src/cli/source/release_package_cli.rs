@@ -37,6 +37,7 @@ use std::io::Write as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 pub(super) const INVENTORY_FILE: &str = "release-inventory.json";
 pub(super) const COMPLETION_FILE: &str = "release-package.json";
@@ -133,7 +134,7 @@ impl ReleasePackageArgs {
         );
         let roots = parse_roots(&self.candidate.candidate_root)?;
         let inventory_bytes = read_inventory(&inventory_path)?;
-        let frozen: ReleaseInventory = facet_json::from_str(std::str::from_utf8(&inventory_bytes)?)
+        let frozen: ReleaseInventory = facet_json::from_str(from_utf8(&inventory_bytes)?)
             .wrap_err("cannot parse strict frozen release inventory JSON")?;
         let verified = verify_candidate_in(
             cancellation,

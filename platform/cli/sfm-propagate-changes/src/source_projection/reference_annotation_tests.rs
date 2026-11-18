@@ -1,8 +1,12 @@
 use super::context::ProjectionContext;
+use super::core_inputs::CoreInputSnapshot;
 use super::core_inputs::SelectedCoreInput;
 use super::core_inputs::attach_reference_template;
+use super::core_inputs::attach_reference_template_with_snapshot;
 use super::core_inputs::render_core_input;
 use super::reference_annotations::associations;
+use super::source_reference::SourceReference;
+use super::source_reference_kind::SourceReferenceKind;
 use std::collections::BTreeMap;
 fn context(enabled: bool) -> ProjectionContext {
     ProjectionContext {
@@ -181,8 +185,6 @@ fn real_energy_and_recipe_markers_preserve_both_feature_outputs() {
 
 #[test]
 fn typed_reference_namespaces_scopes_serialization_and_links() {
-    use super::source_reference::SourceReference;
-    use super::source_reference_kind::SourceReferenceKind;
     let source = "{% issue 42 %}\n{% pr 42 %}\n{% discussion 42 %}\n{% issue \"Other/Repository\" 7 %}\n{% issue \"other/repository\" 7 %}\n";
     let associations = associations(
         source,
@@ -250,8 +252,6 @@ fn references_reject_unsafe_scopes_invalid_kinds_and_duplicate_metadata() {
 
 #[test]
 fn companion_snapshot_retains_invocation_bytes_and_resolved_guard_evidence() {
-    use super::core_inputs::CoreInputSnapshot;
-    use super::core_inputs::attach_reference_template_with_snapshot;
     let temp = tempfile::tempdir().unwrap();
     let core = temp.path().join("platform/minecraft/core-liquid-template");
     std::fs::create_dir_all(core.join("src")).unwrap();

@@ -1,11 +1,13 @@
 //! Bounded, read-only reachability report. This is not a garbage collector.
 
-use crate::branch_targets::WorktreeTarget;
 use crate::dependency_inventory::DependencyInventory;
 use crate::paths::CacheHome;
 use crate::source_cache::SourceCacheLayout;
+use crate::source_git::canonical_https_remote;
 use crate::source_projection::candidate_lock::is_reparse;
 use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::nfrt_child_identity_supplement::reviewed_producer_jar_paths;
+use crate::source_projection::provenance::sha256;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
@@ -20,6 +22,10 @@ use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+
+#[path = "cache_report_owners.rs"]
+mod owner_claims;
+use owner_claims::CacheOwnerClaims;
 
 const MAX_MAVEN_ENTRIES: usize = 100_000;
 const MAX_SOURCE_ENTRIES: usize = 10_000;
@@ -50,6 +56,9 @@ impl ExpectedPaths {
 
 impl CacheReportArgs {
     /// Report a checkout's expected resources and bounded candidates, without mutation.
+    ///
+    /// # Errors
+    /// Returns an error if catalog inputs, owned cache paths or report output cannot be read.
     pub fn invoke(self) -> eyre::Result<()> {
         let (catalog, selected_key) = CoreCatalog::for_project(&self.project_root)?;
         let logical = self
@@ -59,75 +68,12 @@ impl CacheReportArgs {
         let cache = CacheHome(physical.clone());
         let selected = DependencyInventory::load_project(&self.project_root, cache.clone())?;
         let selected_paths = expected_paths(&selected)?;
-        let mut known_owners = ExpectedPaths::default();
-        let mut unknown_owners = Vec::new();
-        let mut known_owner_count = 0;
-        let mut prior_schema_direct_count = 0;
-        for key in catalog.catalog.0.keys() {
-            if key == &selected_key {
-                continue;
-            }
-            let project = catalog.repo_root.join(catalog.catalog.project_dir(key)?);
-            let lock = project.join("sfm-toolchain.lock.json");
-            if !lock.is_file() {
-                unknown_owners.push(format!("catalog {key}: lock unavailable"));
-                continue;
-            }
-            if let Some(paths) = prior_schema_direct_paths(&lock, &cache)? {
-                known_owners.direct.extend(paths);
-                prior_schema_direct_count += 1;
-                unknown_owners.push(format!(
-                    "catalog {key}: prior schema 2 direct paths counted; derived resources and consumers unknown"
-                ));
-                continue;
-            }
-            match DependencyInventory::load_project(&project, cache.clone()) {
-                Ok(inventory) => {
-                    known_owners.extend(expected_paths(&inventory)?);
-                    known_owner_count += 1;
-                }
-                Err(error) => unknown_owners.push(format!(
-                    "catalog {key}: {}",
-                    unavailable_lock_reason(&lock, &error)
-                )),
-            }
-        }
-        // Other worktrees may intentionally point at this same physical root.
-        // A missing/offline worktree cannot be taken as proof of non-ownership.
-        for worktree in crate::worktree::get_worktrees(&catalog.repo_root)? {
-            let target = WorktreeTarget::from_worktree(worktree)?;
-            if dunce::canonicalize(target.worktree_path.as_path())
-                .ok()
-                .as_deref()
-                == Some(catalog.repo_root.as_path())
-            {
-                continue;
-            }
-            let other_alias = target.worktree_path.join("sfm-toolchain-data");
-            let Ok(other_physical) = dunce::canonicalize(&other_alias) else {
-                unknown_owners.push(format!(
-                    "worktree {}: cache root unavailable",
-                    target.branch
-                ));
-                continue;
-            };
-            if other_physical != physical {
-                continue;
-            }
-            match DependencyInventory::load_target(target.clone(), cache.clone()) {
-                Ok(inventory) => {
-                    known_owners.extend(expected_paths(&inventory)?);
-                    known_owner_count += 1;
-                }
-                Err(error) => unknown_owners.push(format!("worktree {}: {error}", target.branch)),
-            }
-        }
-        let producer_paths =
-            crate::source_projection::nfrt_child_identity_supplement::reviewed_producer_jar_paths(
-                &catalog.repo_root,
-                &physical.join("minecraft-toolchain/maven"),
-            )?;
-        known_owners.direct.extend(producer_paths.iter().cloned());
+        let mut owners = CacheOwnerClaims::collect(&catalog, &selected_key, &physical, &cache)?;
+        let producer_paths = reviewed_producer_jar_paths(
+            &catalog.repo_root,
+            &physical.join("minecraft-toolchain/maven"),
+        )?;
+        owners.paths.direct.extend(producer_paths.iter().cloned());
         let revision = checkout_revision(&catalog.repo_root)?;
         let schema = match parse_document(&selected.original_input)? {
             ToolchainLockfileDocument::V3(_) => 3,
@@ -144,7 +90,7 @@ impl CacheReportArgs {
         ))?;
         stdout_line(format!(
             "  selected lock SHA-256: {}",
-            crate::source_projection::provenance::sha256(selected.original_input.as_bytes())
+            sha256(selected.original_input.as_bytes())
         ))?;
         stdout_line(format!("  logical cache alias: {}", logical.display()))?;
         stdout_line(format!("  physical cache target: {}", physical.display()))?;
@@ -152,15 +98,19 @@ impl CacheReportArgs {
             "  logical alias is a link/reparse point: {}",
             is_reparse(&fs::symlink_metadata(&logical)?)
         ))?;
-        stdout_line(format!("  other readable owner locks: {known_owner_count}"))?;
         stdout_line(format!(
-            "  prior-schema locks with exact direct paths only: {prior_schema_direct_count}"
+            "  other readable owner locks: {}",
+            owners.readable_lock_count
+        ))?;
+        stdout_line(format!(
+            "  prior-schema locks with exact direct paths only: {}",
+            owners.prior_schema_direct_count
         ))?;
         stdout_line(format!(
             "  reviewed NeoForm producer recipe JAR paths: {}",
             producer_paths.len()
         ))?;
-        for owner in &unknown_owners {
+        for owner in &owners.unknown {
             stdout_line(format!("  unknown owner: {owner}"))?;
         }
         stdout_line(format!(
@@ -177,100 +127,126 @@ impl CacheReportArgs {
         for path in &selected_paths.derived {
             stdout_line(format!("    derived: {}", path.display()))?;
         }
-        // Maven JAR leaves are the one direct resource class whose physical
-        // layout is stable and enumerable without walking extracted source trees.
-        let observed = existing_maven_jars(&physical.join("minecraft-toolchain/maven"))?;
-        let (other_owner, unclassified) =
-            classify_observed(&observed, &selected_paths.direct, &known_owners.direct);
-        stdout_line(format!("  observed Maven JARs: {}", observed.len()))?;
-        stdout_line(format!(
-            "  selected-checkout missing; known other owner: {}",
-            other_owner.len()
-        ))?;
-        stdout_line(format!(
-            "  unclassified Maven JARs (may be producer tools, not cleanup candidates): {}",
-            unclassified.len()
-        ))?;
-        for path in unclassified {
-            stdout_line(format!("    unclassified: {}", path.display()))?;
-        }
-        let git_root = physical.join("minecraft-toolchain/sources/git");
-        let mut git_entries = child_directories(&git_root.join("repositories"))?;
-        for remote in child_directories(&git_root.join("trees"))? {
-            git_entries.extend(child_directories(&remote)?);
-        }
-        let (git_other, git_unclassified) =
-            classify_observed(&git_entries, &selected_paths.derived, &known_owners.derived);
-        stdout_line(format!(
-            "  observed Git repositories and trees: {}",
-            git_entries.len()
-        ))?;
-        stdout_line(format!(
-            "  Git entries held by known other locks: {}",
-            git_other.len()
-        ))?;
-        stdout_line(format!(
-            "  unclassified Git entries (not deletion candidates): {}",
-            git_unclassified.len()
-        ))?;
-        for path in git_unclassified {
-            stdout_line(format!("    unclassified Git: {}", path.display()))?;
-        }
-        let source_trees = observed_source_trees(&physical.join("minecraft-toolchain/sources"))?;
-        let (source_other, source_unknown) = classify_observed(
-            &source_trees,
-            &selected_paths.derived,
-            &known_owners.derived,
-        );
-        stdout_line(format!(
-            "  observed non-Git source trees: {}",
-            source_trees.len()
-        ))?;
-        stdout_line(format!(
-            "  source trees held by known other locks: {}",
-            source_other.len()
-        ))?;
-        stdout_line(format!(
-            "  source trees without a readable lock claim, protected: {}",
-            source_unknown.len()
-        ))?;
-        for path in &source_unknown {
-            stdout_line(format!("    protected source: {}", path.display()))?;
-        }
-        let index_entries =
-            observed_index_entries(&physical.join("minecraft-toolchain/symbol-index"))?;
-        stdout_line(format!(
-            "  symbol-index entries, reader/owner status unverified and protected: {}",
-            index_entries.len()
-        ))?;
-        for path in &index_entries {
-            stdout_line(format!("    protected index: {}", path.display()))?;
-        }
-        // A source search can run ripgrep against an acquired tree, and index
-        // readers load validated payloads. This report does not acquire a
-        // cross-process reader lease or prove that every sharing owner is online.
-        let retirement_candidates = source_trees
-            .iter()
-            .chain(&index_entries)
-            .filter(|path| {
-                source_index_retirement_allowed(
-                    selected_paths.derived.contains(*path) || known_owners.derived.contains(*path),
-                    false,
-                    false,
-                )
-            })
-            .count();
-        stdout_line(format!(
-            "  source/index retirement candidates: {retirement_candidates}; owner union and idle readers are unverified"
-        ))?;
-        stdout_line(
-            "  unknown classes: non-JAR Maven metadata, unobserved/descendant source data, derived preparation, Minecraft assets, index descendants, prior-schema derived resources, receipts and snapshots",
-        )?;
-        stdout_line(
-            "  retirement blocked: producer recipes, other/offline owners and active readers/publishers are not fully known; report never deletes or follows descendants of a cache link for cleanup",
-        )?;
+        report_maven_paths(&physical, &selected_paths, &owners.paths)?;
+        report_git_paths(&physical, &selected_paths, &owners.paths)?;
+        report_source_retirement(&physical, &selected_paths, &owners.paths)?;
         Ok(())
     }
+}
+
+fn report_maven_paths(
+    physical: &Path,
+    selected_paths: &ExpectedPaths,
+    known_owners: &ExpectedPaths,
+) -> eyre::Result<()> {
+    // Maven JAR leaves are the one direct resource class whose physical
+    // layout is stable and enumerable without walking extracted source trees.
+    let observed = existing_maven_jars(&physical.join("minecraft-toolchain/maven"))?;
+    let (other_owner, unclassified) =
+        classify_observed(&observed, &selected_paths.direct, &known_owners.direct);
+    stdout_line(format!("  observed Maven JARs: {}", observed.len()))?;
+    stdout_line(format!(
+        "  selected-checkout missing; known other owner: {}",
+        other_owner.len()
+    ))?;
+    stdout_line(format!(
+        "  unclassified Maven JARs (may be producer tools, not cleanup candidates): {}",
+        unclassified.len()
+    ))?;
+    for path in unclassified {
+        stdout_line(format!("    unclassified: {}", path.display()))?;
+    }
+    Ok(())
+}
+
+fn report_git_paths(
+    physical: &Path,
+    selected_paths: &ExpectedPaths,
+    known_owners: &ExpectedPaths,
+) -> eyre::Result<()> {
+    let git_root = physical.join("minecraft-toolchain/sources/git");
+    let mut git_entries = child_directories(&git_root.join("repositories"))?;
+    for remote in child_directories(&git_root.join("trees"))? {
+        git_entries.extend(child_directories(&remote)?);
+    }
+    let (git_other, git_unclassified) =
+        classify_observed(&git_entries, &selected_paths.derived, &known_owners.derived);
+    stdout_line(format!(
+        "  observed Git repositories and trees: {}",
+        git_entries.len()
+    ))?;
+    stdout_line(format!(
+        "  Git entries held by known other locks: {}",
+        git_other.len()
+    ))?;
+    stdout_line(format!(
+        "  unclassified Git entries (not deletion candidates): {}",
+        git_unclassified.len()
+    ))?;
+    for path in git_unclassified {
+        stdout_line(format!("    unclassified Git: {}", path.display()))?;
+    }
+    Ok(())
+}
+
+fn report_source_retirement(
+    physical: &Path,
+    selected_paths: &ExpectedPaths,
+    known_owners: &ExpectedPaths,
+) -> eyre::Result<()> {
+    let source_trees = observed_source_trees(&physical.join("minecraft-toolchain/sources"))?;
+    let (source_other, source_unknown) = classify_observed(
+        &source_trees,
+        &selected_paths.derived,
+        &known_owners.derived,
+    );
+    stdout_line(format!(
+        "  observed non-Git source trees: {}",
+        source_trees.len()
+    ))?;
+    stdout_line(format!(
+        "  source trees held by known other locks: {}",
+        source_other.len()
+    ))?;
+    stdout_line(format!(
+        "  source trees without a readable lock claim, protected: {}",
+        source_unknown.len()
+    ))?;
+    for path in &source_unknown {
+        stdout_line(format!("    protected source: {}", path.display()))?;
+    }
+    let index_entries = observed_index_entries(&physical.join("minecraft-toolchain/symbol-index"))?;
+    stdout_line(format!(
+        "  symbol-index entries, reader/owner status unverified and protected: {}",
+        index_entries.len()
+    ))?;
+    for path in &index_entries {
+        stdout_line(format!("    protected index: {}", path.display()))?;
+    }
+    // A source search can run ripgrep against an acquired tree, and index
+    // readers load validated payloads. This report does not acquire a
+    // cross-process reader lease or prove that every sharing owner is online.
+    let retirement_candidates = source_trees
+        .iter()
+        .chain(&index_entries)
+        .filter(|path| {
+            source_index_retirement_allowed(
+                selected_paths.derived.contains(*path) || known_owners.derived.contains(*path),
+                false,
+                false,
+            )
+        })
+        .count();
+    stdout_line(format!(
+        "  source/index retirement candidates: {retirement_candidates}; owner union and idle readers are unverified"
+    ))?;
+    stdout_line(
+        "  unknown classes: non-JAR Maven metadata, unobserved/descendant source data, derived preparation, Minecraft assets, index descendants, prior-schema derived resources, receipts and snapshots",
+    )?;
+    stdout_line(
+        "  retirement blocked: producer recipes, other/offline owners and active readers/publishers are not fully known; report never deletes or follows descendants of a cache link for cleanup",
+    )?;
+    Ok(())
 }
 
 pub(super) fn checked_existing_root(logical: &Path) -> eyre::Result<PathBuf> {
@@ -371,15 +347,14 @@ fn expected_paths(inventory: &DependencyInventory) -> eyre::Result<ExpectedPaths
         paths
             .direct
             .insert(inventory.local_path(&artifact.cache_path)?);
-        if let Some(source_git) = &artifact.source_git {
-            if let Some(remote) = source_git.remote_url.as_deref() {
-                let remote = crate::source_git::canonical_https_remote(remote)?;
-                paths.derived.insert(
-                    inventory.local_path(
-                        &SourceCacheLayout::git(&remote, &source_git.commit).repository,
-                    )?,
-                );
-            }
+        if let Some(source_git) = &artifact.source_git
+            && let Some(remote) = source_git.remote_url.as_deref()
+        {
+            let remote = canonical_https_remote(remote)?;
+            paths.derived.insert(
+                inventory
+                    .local_path(&SourceCacheLayout::git(&remote, &source_git.commit).repository)?,
+            );
         }
     }
     for dependency in &inventory.lockfile.dependencies {

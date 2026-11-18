@@ -92,7 +92,9 @@ use directive_scanner::scan;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
+use liquid::model::Value;
 use liquid::model::ValueView;
+use std::collections::BTreeMap;
 
 /// Render one primary Java source file for a validated target and preset.
 ///
@@ -166,7 +168,7 @@ impl PreparedSource {
         for (index, chunk) in template.chunks.iter().enumerate() {
             globals.insert(
                 format!("__sfm_chunk_{index}").into(),
-                liquid::model::Value::scalar(if references_only {
+                Value::scalar(if references_only {
                     String::new()
                 } else {
                     registry_metadata::substitute(chunk)?
@@ -176,7 +178,7 @@ impl PreparedSource {
         for (index, reference) in template.references.iter().enumerate() {
             globals.insert(
                 format!("__sfm_reference_{index}").into(),
-                liquid::model::Value::scalar(if references_only {
+                Value::scalar(if references_only {
                     facet_json::to_string(reference)? + "\n"
                 } else {
                     String::new()
@@ -192,7 +194,7 @@ impl PreparedSource {
 
 /// Invocation-local parsed templates; context validation still runs on every render.
 #[derive(Default)]
-pub(super) struct SourceRenderCache(std::collections::BTreeMap<String, PreparedSource>);
+pub(super) struct SourceRenderCache(BTreeMap<String, PreparedSource>);
 
 impl SourceRenderCache {
     pub(super) fn render(&mut self, source: &str, context: &ProjectionContext) -> Result<String> {
@@ -224,7 +226,6 @@ fn validate_selectors(template: &ScannedTemplate, globals: &liquid::Object) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
 
     #[test]
     fn parsed_cache_reuses_templates_but_not_context_values_or_validation() {

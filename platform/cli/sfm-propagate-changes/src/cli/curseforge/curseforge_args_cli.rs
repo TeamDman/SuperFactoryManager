@@ -4,6 +4,7 @@ use super::CurseforgeModArgs;
 use super::CurseforgePopularArgs;
 use super::CurseforgeProjectArgs;
 use super::CurseforgeReleaseArgs;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -19,8 +20,8 @@ impl CurseforgeArgs {
     /// # Errors
     ///
     /// Returns an error if the selected `CurseForge` command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -46,14 +47,14 @@ impl CurseforgeCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
             Self::Auth(args) => args.invoke(),
-            Self::Project(args) => args.invoke(),
-            Self::Minecraft(args) => args.invoke(),
+            Self::Project(args) => args.invoke(app_home),
+            Self::Minecraft(args) => args.invoke(app_home),
             Self::Mod(args) => args.invoke(),
-            Self::Popular(args) => args.invoke(),
-            Self::Release(args) => args.invoke(),
+            Self::Popular(args) => args.invoke(app_home),
+            Self::Release(args) => args.invoke(app_home),
         }
     }
 }

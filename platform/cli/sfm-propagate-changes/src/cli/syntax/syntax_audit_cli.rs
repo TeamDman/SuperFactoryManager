@@ -1,5 +1,6 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::syntax_highlight::audit_repository;
 use facet::Facet;
 use figue::{self as args};
 use std::path::PathBuf;
@@ -15,7 +16,7 @@ impl SyntaxAuditArgs {
     /// # Errors
     /// Fails for invalid roots, enumeration errors or cancelled engine probes.
     pub fn invoke(self, cancellation: &CancellationToken) -> eyre::Result<CliOutput> {
-        Ok(CliOutput::facet(crate::syntax_highlight::audit_repository(
+        Ok(CliOutput::facet(audit_repository(
             &self.root,
             cancellation,
         )?))

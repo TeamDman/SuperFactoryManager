@@ -1,4 +1,5 @@
 use super::SourceJarPath;
+use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -10,7 +11,7 @@ impl SourceFiletreePath {
         let path = source_jar.as_path();
         let stem = path
             .file_stem()
-            .and_then(std::ffi::OsStr::to_str)
+            .and_then(OsStr::to_str)
             .ok_or_else(|| eyre::eyre!("Jar path has no file stem: {}", path.display()))?;
         Ok(Self(path.with_file_name(format!("{stem}.filetree"))))
     }

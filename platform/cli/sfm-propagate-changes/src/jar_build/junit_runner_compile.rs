@@ -1,9 +1,16 @@
 //! The built-in `JUnit` helper compiles against one selected console JAR only.
 //! This held contract is separate from the product's `NeoForm` classpath role.
-use eyre::{Result, ensure};
-use std::fs::{self, File};
+
+use crate::file_identity;
+use crate::source_projection;
+use eyre::Result;
+use eyre::ensure;
+use std::fs::File;
+use std::fs::{self};
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
+use std::slice::from_ref;
 
 const SOURCE: &[u8] = include_bytes!("junit_event_runner.java");
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
@@ -11,15 +18,15 @@ const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 struct HeldInput {
     path: PathBuf,
     file: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
     sha256: String,
 }
 
 impl HeldInput {
     fn capture(path: &Path) -> Result<Self> {
         let file = File::open(path)?;
-        let identity = crate::file_identity::file_identity(&file)?;
-        let sha256 = crate::source_projection::provenance::sha256(&Self::read(path)?);
+        let identity = file_identity::file_identity(&file)?;
+        let sha256 = source_projection::provenance::sha256(&Self::read(path)?);
         let input = Self {
             path: path.to_owned(),
             file,
@@ -53,16 +60,16 @@ impl HeldInput {
     fn recheck(&self) -> Result<()> {
         let opened = File::open(&self.path)?;
         ensure!(
-            crate::file_identity::file_identity(&self.file)? == self.identity
-                && crate::file_identity::file_identity(&opened)? == self.identity,
+            file_identity::file_identity(&self.file)? == self.identity
+                && file_identity::file_identity(&opened)? == self.identity,
             "JUnit runner compiler input was replaced"
         );
         ensure!(
-            crate::source_projection::provenance::sha256(&Self::read(&self.path)?) == self.sha256,
+            source_projection::provenance::sha256(&Self::read(&self.path)?) == self.sha256,
             "JUnit runner compiler input bytes changed"
         );
         ensure!(
-            crate::file_identity::file_identity(&File::open(&self.path)?)? == self.identity,
+            file_identity::file_identity(&File::open(&self.path)?)? == self.identity,
             "JUnit runner compiler input was replaced during recheck"
         );
         Ok(())
@@ -88,15 +95,11 @@ impl JunitRunnerCompile {
         let console = HeldInput::capture(console)?;
         let source = HeldInput::capture(source)?;
         ensure!(
-            source.sha256 == crate::source_projection::provenance::sha256(SOURCE),
+            source.sha256 == source_projection::provenance::sha256(SOURCE),
             "JUnit runner compiler accepts only its built-in source"
         );
-        let mut arguments = super::no_ap_javac_arguments(
-            std::slice::from_ref(&console.path),
-            classes,
-            release,
-            major,
-        );
+        let mut arguments =
+            super::no_ap_javac_arguments(from_ref(&console.path), classes, release, major);
         // The only source is appended after all fixed compiler options.
         arguments.push(source.path.display().to_string());
         Ok(Self {

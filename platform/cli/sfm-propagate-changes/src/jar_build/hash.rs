@@ -1,10 +1,13 @@
 use blake3::Hasher as Blake3Hasher;
+use core::fmt;
 use eyre::Context;
 use facet::Facet;
 use sha1::Digest;
 use sha1::Sha1 as Sha1Hasher;
 use sha1::digest::Update;
+use std::fs::read;
 use std::path::Path;
+use std::str::from_utf8;
 use tracing::debug_span;
 use tracing::instrument;
 
@@ -14,8 +17,8 @@ pub enum ContentHashAlgorithm {
     Sha1,
     Blake3,
 }
-impl core::fmt::Display for ContentHashAlgorithm {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Display for ContentHashAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ContentHashAlgorithm::Sha1 => write!(f, "sha1"),
             ContentHashAlgorithm::Blake3 => write!(f, "blake3"),
@@ -30,8 +33,8 @@ pub struct ContentHash {
     pub algorithm: ContentHashAlgorithm,
 }
 
-impl core::fmt::Display for ContentHash {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Display for ContentHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:", self.algorithm)?;
         for byte in &self.value {
             write!(f, "{byte:02x}")?;
@@ -89,7 +92,7 @@ impl ContentHash {
 
         let mut value = [0u8; 20];
         for (index, chunk) in input.as_bytes().chunks_exact(2).enumerate() {
-            let text = std::str::from_utf8(chunk)
+            let text = from_utf8(chunk)
                 .map_err(|_error| format!("Content hash contains invalid UTF-8: {input}"))?;
             value[index] = u8::from_str_radix(text, 16)
                 .map_err(|_error| format!("Content hash contains invalid hex: {input}"))?;
@@ -132,7 +135,7 @@ impl ContentHash {
     ) -> eyre::Result<Self> {
         let path = path.as_ref();
         let bytes = debug_span!("read_file_for_hash").in_scope(|| {
-            std::fs::read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))
+            read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))
         })?;
         Ok(Self::from_bytes(&bytes, algorithm))
     }

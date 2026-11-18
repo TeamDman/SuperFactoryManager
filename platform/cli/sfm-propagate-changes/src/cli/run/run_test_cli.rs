@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::RunTestAction;
@@ -51,7 +52,12 @@ impl RunTestArgs {
     /// # Errors
     ///
     /// Returns an error if planning, building, compiling tests, or running `JUnit` fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         let Self {
             options,
             no_capture,
@@ -62,7 +68,9 @@ impl RunTestArgs {
             .as_ref()
             .map_or(RunTestAction::Run, RunTestCliCommand::action);
         JarBuildRunTestCommand::new(
-            options.into_options(BuildMode::Build)?,
+            options
+                .into_options(BuildMode::Build, app_home)?
+                .with_cache_home(homes.available_cache_home()),
             RunTestOptions {
                 action,
                 filter,

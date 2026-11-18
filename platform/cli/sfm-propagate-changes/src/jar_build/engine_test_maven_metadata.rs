@@ -1,6 +1,6 @@
 // Pure canonical POM resolution: no artifact materialization or network method is called.
 pub(crate) fn snapshot_test_maven_metadata(
-    lock: &crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+    lock: &toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
     minecraft_version: &str,
     maven_cache: &Path,
     token: &CancellationToken,
@@ -69,7 +69,7 @@ fn snapshot_test_metadata_roots(
         }
     }
     let catalog = trace.catalog()?;
-    let identity = crate::source_projection::provenance::sha256(
+    let identity = source_projection::provenance::sha256(
         catalog
             .as_deref()
             .unwrap_or(b"sfm:empty_test_maven_metadata@1"),

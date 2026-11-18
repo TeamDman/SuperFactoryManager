@@ -16,7 +16,7 @@ use facet::Facet;
 use reqwest::Url;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-
+use std::str::from_utf8;
 const MAX_PARENT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_CHILD_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_LIBRARIES: usize = 4096;
@@ -355,7 +355,7 @@ fn parse_authenticated_parent(
             && ContentHash::from_bytes(raw, parent.original_hash.algorithm) == parent.original_hash,
         "Minecraft parent bytes do not match the original exact frozen pin"
     );
-    let text = std::str::from_utf8(raw).wrap_err("authenticated version JSON is not UTF-8")?;
+    let text = from_utf8(raw).wrap_err("authenticated version JSON is not UTF-8")?;
     let metadata: CompileVersionJson = facet_json::from_str(text)
         .wrap_err("cannot parse authenticated Minecraft compile metadata")?;
     ensure!(

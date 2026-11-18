@@ -50,7 +50,8 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModAuthors>(), 0);
-        let value: ModAuthors = SfmModAuthors.try_into()?;
+        let value: Result<ModAuthors> = SfmModAuthors.try_into();
+        let value = value?;
         assert_eq!(value.as_slice()[0].as_str(), SfmModAuthors::VALUE);
         assert_eq!(SfmModAuthors::try_from(&value)?, SfmModAuthors);
         assert_eq!(SfmModAuthors::try_from(value)?, SfmModAuthors);

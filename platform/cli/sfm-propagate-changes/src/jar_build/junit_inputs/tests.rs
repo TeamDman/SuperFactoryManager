@@ -424,6 +424,10 @@ fn real_engine_entry_refuses_before_projection_planning_or_java() -> eyre::Resul
         "1.19.2",
     )?;
     let options = BuildOptions {
+        app_home: crate::paths::AppHome(temp.path().join("app-home")),
+        cache_home: Some(crate::paths::CacheHome(
+            temp.path().join("application-cache"),
+        )),
         selection: BuildSelection::Projection {
             selector: "sfm-4.35.0/*".to_owned(),
             repo_root: Some(temp.path().to_owned()),
@@ -478,17 +482,23 @@ fn serialized_launch_inputs_are_bound_before_effect_and_receipt() -> eyre::Resul
         std::fs::write(&classpath, b"reviewed/classpath")?;
         std::fs::write(&argfile, b"@reviewed-java-args")?;
         std::fs::write(&working_directory, b"reviewed-fixture-identity-and-path")?;
-        let admitted = LaunchInputs::capture_for_directory(temp.path(), &sha256(b"reviewed-fixture-identity-and-path"))?;
+        let admitted = LaunchInputs::capture_for_directory(
+            temp.path(),
+            &sha256(b"reviewed-fixture-identity-and-path"),
+        )?;
         admitted.recheck(temp.path())?;
         effects.fetch_add(1, Ordering::SeqCst);
-        assert_eq!(
-            admitted.runtime_classpath,
-            sha256(b"reviewed/classpath")
-        );
+        assert_eq!(admitted.runtime_classpath, sha256(b"reviewed/classpath"));
         assert_eq!(admitted.argfile, sha256(b"@reviewed-java-args"));
         std::fs::write(changed, b"changed-after-admission")?;
         if changed == &working_directory {
-            assert!(LaunchInputs::capture_for_directory(temp.path(), &sha256(b"reviewed-fixture-identity-and-path")).is_err());
+            assert!(
+                LaunchInputs::capture_for_directory(
+                    temp.path(),
+                    &sha256(b"reviewed-fixture-identity-and-path")
+                )
+                .is_err()
+            );
         }
         let previous = effects.load(Ordering::SeqCst);
         let result = admitted
@@ -504,7 +514,13 @@ fn serialized_launch_inputs_are_bound_before_effect_and_receipt() -> eyre::Resul
         );
     }
     std::fs::remove_file(&argfile)?;
-    assert!(LaunchInputs::capture_for_directory(temp.path(), &sha256(b"reviewed-fixture-identity-and-path")).is_err());
+    assert!(
+        LaunchInputs::capture_for_directory(
+            temp.path(),
+            &sha256(b"reviewed-fixture-identity-and-path")
+        )
+        .is_err()
+    );
     Ok(())
 }
 

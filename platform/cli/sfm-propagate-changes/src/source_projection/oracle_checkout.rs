@@ -11,13 +11,17 @@ use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
 use gix::bstr::ByteSlice;
+use gix::open::Options;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Read as _;
 use std::io::Seek as _;
 use std::path::Path;
 use std::process::Child;
+use std::process::ExitStatus;
 use std::process::Stdio;
+use std::str::from_utf8;
+use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -146,7 +150,7 @@ pub fn observe(root: &Path, cancellation: &CancellationToken) -> Result<Checkout
 
 fn discover(root: &Path, budget: &Budget<'_>) -> Result<BTreeMap<String, Vec<gix::Repository>>> {
     budget.check()?;
-    let options = gix::open::Options::isolated()
+    let options = Options::isolated()
         .strict_config(true)
         .config_overrides(["gitoxide.objects.noReplace=true"]);
     let repository = gix::open_opts(root, options)?;
@@ -285,7 +289,7 @@ fn inspect(
 fn disabled_filters(bytes: &[u8]) -> Result<Vec<String>> {
     let mut drivers = BTreeSet::new();
     for key in nul_records(bytes)? {
-        let key = std::str::from_utf8(key)?;
+        let key = from_utf8(key)?;
         if let Some(rest) = key.strip_prefix("filter.")
             && let Some((driver, member)) = rest.rsplit_once('.')
             && matches!(member, "clean" | "smudge" | "process" | "required")
@@ -329,7 +333,7 @@ fn parse_status(bytes: &[u8]) -> Result<(Vec<CheckoutChange>, usize)> {
             record.len() >= 4 && record[2] == b' ',
             "Malformed checkout status record"
         );
-        let status = std::str::from_utf8(&record[..2])?.to_owned();
+        let status = from_utf8(&record[..2])?.to_owned();
         ensure!(
             record[..2].iter().all(|byte| b" MADRCUT?!".contains(byte)),
             "Unknown checkout status code"
@@ -386,8 +390,8 @@ fn nul_records(bytes: &[u8]) -> Result<Vec<&[u8]>> {
 }
 
 fn text_path(bytes: &[u8]) -> Result<String> {
-    let path = std::str::from_utf8(bytes)
-        .wrap_err("Checkout path is not UTF-8; refusing lossy observation")?;
+    let path =
+        from_utf8(bytes).wrap_err("Checkout path is not UTF-8; refusing lossy observation")?;
     ensure!(
         !path.starts_with('/') && path.split('/').all(|part| !matches!(part, "" | "." | "..")),
         "Unsafe checkout path"
@@ -440,7 +444,7 @@ impl Budget<'_> {
         let mut child = command
             .spawn()
             .wrap_err("Cannot launch checkout Git diagnostic")?;
-        let waited = (|| -> Result<std::process::ExitStatus> {
+        let waited = (|| -> Result<ExitStatus> {
             loop {
                 self.check()?;
                 ensure!(
@@ -451,7 +455,7 @@ impl Budget<'_> {
                 if let Some(status) = child.try_wait()? {
                     return Ok(status);
                 }
-                std::thread::sleep(Duration::from_millis(10));
+                sleep(Duration::from_millis(10));
             }
         })();
         let status = match waited {
@@ -491,7 +495,7 @@ fn reap_owned(child: &mut Child) -> Result<()> {
             Instant::now() < deadline,
             "Owned checkout Git diagnostic did not terminate; cleanup remains unproven"
         );
-        std::thread::sleep(Duration::from_millis(10));
+        sleep(Duration::from_millis(10));
     }
 }
 

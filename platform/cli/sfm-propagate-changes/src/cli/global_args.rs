@@ -1,8 +1,10 @@
 use crate::cli::output::OutputFormat;
 use crate::logging::LoggingConfig;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue::{self as args};
 use std::path::PathBuf;
+use std::path::absolute;
 use std::str::FromStr;
 use tracing::level_filters::LevelFilter;
 
@@ -39,12 +41,13 @@ impl GlobalArgs {
     /// # Errors
     ///
     /// This function will return an error if the log filter string is invalid.
-    pub fn logging_config(&self) -> eyre::Result<LoggingConfig> {
-        self.logging_config_with_default_file(true)
+    pub fn logging_config(&self, app_home: &AppHome) -> eyre::Result<LoggingConfig> {
+        self.logging_config_with_default_file(app_home, true)
     }
 
     pub(crate) fn logging_config_with_default_file(
         &self,
+        app_home: &AppHome,
         default_file: bool,
     ) -> eyre::Result<LoggingConfig> {
         let explicit_filter = self.debug || self.log_filter.is_some();
@@ -54,12 +57,7 @@ impl GlobalArgs {
             (false, None) => LevelFilter::INFO,
         };
         let (json_log_path, json_log_directory) = match &self.log_file {
-            None if default_file => (
-                None,
-                Some(std::path::absolute(
-                    crate::paths::AppHome::resolve()?.file_path("logs"),
-                )?),
-            ),
+            None if default_file => (None, Some(absolute(app_home.file_path("logs"))?)),
             None => (None, None),
             Some(path) if path.is_dir() => (None, Some(path.clone())),
             Some(path) => (Some(path.clone()), None),

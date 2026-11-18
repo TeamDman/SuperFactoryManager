@@ -5,6 +5,7 @@ use super::Path;
 use super::SessionTarget;
 use super::session_inspect::SessionInspect;
 use super::url;
+use crate::container_build;
 pub(super) async fn engine(
     endpoint: &Path,
     starting: bool,
@@ -156,7 +157,7 @@ fn validate_at_phase(
             && command[6] == "--startup-seconds",
         "session command shape mismatch"
     );
-    crate::container_build::session_request::bare_test(&command[1])?;
+    container_build::session_request::bare_test(&command[1])?;
     eyre::ensure!(
         (512..=8192).contains(&command[3].parse::<u64>()?)
             && (1..=28800).contains(&command[5].parse::<u64>()?)

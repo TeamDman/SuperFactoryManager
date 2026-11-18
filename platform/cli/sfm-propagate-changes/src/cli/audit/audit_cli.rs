@@ -1,17 +1,23 @@
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use crate::source_audit::SourceAuditCommand;
-use crate::source_audit::SourceAuditOptions;
 use crate::source_audit::SourceLanguage;
 use crate::source_audit::SourceLineLimit;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
+use std::path::PathBuf;
 
 /// Options for auditing tracked source files and cross-version change surfaces.
 #[derive(Facet, Debug, Clone)]
 pub struct AuditArgs {
-    /// Branch selector to audit.
-    #[facet(args::named)]
-    pub branch: BranchSelector,
+    /// Historical branch selector; choose exactly one of --branch and --project-root.
+    #[facet(default, args::named)]
+    pub branch: Option<BranchSelector>,
+
+    /// Exact catalogued generated projection to audit without branch/global-root fallback.
+    #[facet(default, args::named)]
+    pub project_root: Option<PathBuf>,
 
     /// Source language to audit. Repeat for multiple languages. Defaults to rust and java.
     #[facet(default, args::named)]
@@ -35,22 +41,85 @@ pub struct AuditArgs {
 }
 
 impl AuditArgs {
-    pub(crate) fn into_options(self) -> eyre::Result<SourceAuditOptions> {
-        let mut languages = self.language;
-        languages.extend(self.lang);
-        Ok(SourceAuditOptions {
-            branch: self.branch.into_query()?,
-            languages,
-            max_lines: self.max_lines,
-            version_surfaces: self.version_surfaces,
-            font_render_surface: self.font_render_surface,
-        })
+    pub(crate) fn validate_selection(&self) -> eyre::Result<()> {
+        eyre::ensure!(
+            self.branch.is_some() != self.project_root.is_some(),
+            "provide exactly one of --branch or --project-root"
+        );
+        eyre::ensure!(
+            !self.version_surfaces || self.project_root.is_none(),
+            "--version-surfaces compares historical Git branches; use --branch for that audit"
+        );
+        Ok(())
     }
 
     /// # Errors
     ///
     /// Returns an error if source auditing fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        SourceAuditCommand::new(self.into_options()?).invoke()
+    pub fn invoke_in(mut self, invocation_dir: &Path, app_home: &AppHome) -> eyre::Result<()> {
+        self.validate_selection()?;
+        self.language.append(&mut self.lang);
+        let command =
+            SourceAuditCommand::new(self.language, self.max_lines, self.font_render_surface);
+        if let Some(branch) = self.branch {
+            return command.invoke_branch(
+                &branch.into_query(app_home)?,
+                self.version_surfaces,
+                app_home,
+            );
+        }
+        let project_root = self
+            .project_root
+            .ok_or_else(|| eyre::eyre!("provide exactly one of --branch or --project-root"))?;
+        command.invoke_catalog_project(&invocation_dir.join(project_root))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalog_audit_requires_one_explicit_selection_and_keeps_version_audit_historical()
+    -> eyre::Result<()> {
+        let args = figue::from_slice::<AuditArgs>(&["--project-root", "selected-projection"])
+            .into_result()?
+            .get_silent();
+        args.validate_selection()?;
+        let args = figue::from_slice::<AuditArgs>(&[
+            "--project-root",
+            "selected-projection",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()?
+        .get_silent();
+        assert!(args.validate_selection().is_err());
+        let args = figue::from_slice::<AuditArgs>(&[
+            "--project-root",
+            "selected-projection",
+            "--version-surfaces",
+        ])
+        .into_result()?
+        .get_silent();
+        assert!(args.validate_selection().is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn catalog_audit_resolves_project_paths_against_supplied_invocation_directory()
+    -> eyre::Result<()> {
+        let invocation = tempfile::tempdir()?;
+        let app_home = AppHome(invocation.path().join("app-home"));
+        let args = figue::from_slice::<AuditArgs>(&["--project-root", "selected-projection"])
+            .into_result()?
+            .get_silent();
+        let expected = invocation.path().join("selected-projection");
+        let error = args.invoke_in(invocation.path(), &app_home).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            format!("cannot inspect directory '{}'", expected.display())
+        );
+        Ok(())
     }
 }

@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -14,7 +15,7 @@ impl JarDirSetArgs {
     /// # Errors
     ///
     /// Returns an error if the jar directory cannot be created or persisted.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::jar_dir_cli::set_jar_dir(&self.path)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::jar_dir_cli::set_jar_dir(&self.path, app_home)
     }
 }

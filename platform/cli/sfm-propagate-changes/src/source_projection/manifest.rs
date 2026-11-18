@@ -10,6 +10,7 @@ use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::path::Path;
 
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -1267,7 +1268,7 @@ fn validate_post_baseline_version_sources(baseline: &ReleaseBaselineBinding) -> 
 }
 
 fn has_exact_extension(path: &str, expected: &str) -> bool {
-    std::path::Path::new(path)
+    Path::new(path)
         .extension()
         .and_then(|extension| extension.to_str())
         == Some(expected)

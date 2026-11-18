@@ -1,3 +1,13 @@
+use futures_util::stream::try_unfold;
+use hyper::body::Frame;
+use std::collections::BTreeMap;
+use std::fs::OpenOptions;
+use std::io::Error as IoError;
+use std::path::Path;
+use std::time::Instant;
+use tokio::fs;
+use tokio::runtime::Builder as RuntimeBuilder;
+use tokio::time;
 mod api_component;
 mod api_created;
 mod api_error_detail;
@@ -44,12 +54,12 @@ pub(super) fn build(
         &request.context,
         report.total_bytes.saturating_add(8 * 1024 * 1024 * 1024),
     )?;
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
+    let runtime = RuntimeBuilder::new_current_thread().enable_all().build()?;
     runtime.block_on(async {
-        tokio::time::timeout(timeout,async {
-            cancellation.bail_if_cancelled()?;
+
+time::timeout(timeout,async {
+
+cancellation.bail_if_cancelled()?;
             let version:api_version::ApiVersion=facet_json::from_slice(&transport::small(endpoint,"GET","/version").await?)?;
             eyre::ensure!(version.version==policy::VERSION && version.os=="linux" && version.arch=="amd64"
                 && version.components.iter().any(|part|part.name=="Podman Engine"),"unsupported engine identity/version; native safety profile admits only reviewed Podman 6.0.2 linux/amd64");
@@ -72,15 +82,17 @@ pub(super) fn build(
             let unique_tag=format!("sfm-container-build:{:016x}",rand::random::<u64>());
             let query=policy::query(request.offline,&unique_tag)?;
             let mut query_url=reqwest::Url::parse(&format!("http://localhost/?{query}"))?;
-            let labels=std::collections::BTreeMap::from([(image_cache::LABEL.to_owned(),report.context_identity.clone().ok_or_else(||eyre::eyre!("context identity missing"))?)]);
+            let labels=BTreeMap::from([(image_cache::LABEL.to_owned(),report.context_identity.clone().ok_or_else(||eyre::eyre!("context identity missing"))?)]);
             if report.toolchain_lock_sha256.is_some(){query_url.query_pairs_mut().append_pair("target",request.profile.stage());}
             let mut labels=labels;labels.insert("org.sfm.container.profile".into(),image_cache::profile(request,report).into());
             query_url.query_pairs_mut().append_pair("labels",&facet_json::to_string(&labels)?);
             let query=query_url.query().unwrap_or_default();
-            let file=tokio::fs::File::open(archive.path()).await?;let length=file.metadata().await?.len();
-            let stream=futures_util::stream::try_unfold((file,super::phase_timer::PhaseTimer::start("archive_body_produced",length)),|(mut file,timer)|async move {
-                let mut bytes=vec![0_u8;65536];let read=file.read(&mut bytes).await?;if read==0 {return Ok::<_,std::io::Error>(None);}bytes.truncate(read);
-                Ok(Some((hyper::body::Frame::data(bytes::Bytes::from(bytes)),(file,timer))))
+            let file=fs::File::open(archive.path()).await?;let length=file.metadata().await?.len();
+            let stream=try_unfold((file,super::phase_timer::PhaseTimer::start("archive_body_produced",length)),|(mut file,timer)|async move {
+
+let mut bytes=vec![0_u8;65536];let read=file.read(&mut bytes).await?;if read==0 {
+return Ok::<_,IoError>(None);}bytes.truncate(read);
+                Ok(Some((Frame::data(bytes::Bytes::from(bytes)),(file,timer))))
             });
             let body=http_body_util::StreamBody::new(stream).boxed();
             let transfer_timer=super::phase_timer::PhaseTimer::start("http_build_response_headers",length);
@@ -91,14 +103,14 @@ pub(super) fn build(
             let mut line=Vec::new();let mut total=0_usize;
 
             let diagnostic_path=request.context.join("build-progress.log");
-            let mut diagnostic=std::fs::OpenOptions::new().create(true).append(true).open(&diagnostic_path)?;
-            let mut capacity_checked=std::time::Instant::now();
+            let mut diagnostic=OpenOptions::new().create(true).append(true).open(&diagnostic_path)?;
+            let mut capacity_checked=Instant::now();
             while let Some(frame)=response.response.body_mut().frame().await {
                 cancellation.bail_if_cancelled()?;
                 if capacity_checked.elapsed()>=Duration::from_secs(5) {
                     super::disk::check(&request.context,2*1024*1024*1024)?;
                     let info:api_info::ApiInfo=facet_json::from_slice(&transport::small(endpoint,"GET","/v6.0.2/libpod/info").await?)?;
-                    info.store.check()?; capacity_checked=std::time::Instant::now();
+                    info.store.check()?; capacity_checked=Instant::now();
                 }
                 if let Ok(data)=frame?.into_data() { diagnostic.write_all(&data)?;diagnostic.flush()?;total+=data.len();eyre::ensure!(total<=64*1024*1024,"build progress byte budget exceeded");
                     for byte in data {if byte==b'\n' {if !line.is_empty(){policy::progress(&line)?;line.clear();}}else{eyre::ensure!(line.len()<4*1024*1024,"build progress line budget exceeded");line.push(byte);}}
@@ -123,7 +135,7 @@ pub(super) fn memory_limit() -> u64 {
     policy::MEMORY
 }
 pub(super) fn copy_linux_cli(
-    endpoint: &std::path::Path,
+    endpoint: &Path,
     image: &str,
     timeout: Duration,
 ) -> eyre::Result<Vec<u8>> {

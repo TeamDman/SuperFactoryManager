@@ -1,4 +1,5 @@
 use crate::cli::server::load_server_targets;
+use crate::paths::AppHome;
 use facet::Facet;
 use tracing::info;
 use tracing::warn;
@@ -11,8 +12,8 @@ impl JarUpdateServersArgs {
     /// # Errors
     ///
     /// Returns an error if tracked servers or jar files cannot be updated.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let targets = load_server_targets()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let targets = load_server_targets(app_home)?;
         if targets.is_empty() {
             info!("No tracked servers. Use `sfm-propagate-changes server add <glob>`.");
             return Ok(());
@@ -22,7 +23,8 @@ impl JarUpdateServersArgs {
         let mut skipped = 0usize;
 
         for target in targets {
-            let Some(jar) = super::jar_shared::find_best_jar_for_mc_version(&target.mc_version)?
+            let Some(jar) =
+                super::jar_shared::find_best_jar_for_mc_version(&target.mc_version, app_home)?
             else {
                 warn!(
                     path = %target.path.display(),

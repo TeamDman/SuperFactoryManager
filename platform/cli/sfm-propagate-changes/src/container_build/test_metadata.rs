@@ -1,9 +1,12 @@
 use super::artifact::put_bytes;
 use super::context_manifest::ContextManifest;
 use crate::cancellation::CancellationToken;
+use crate::jar_build;
 use crate::jar_build::test_maven_metadata_snapshot::TestMavenMetadataSnapshot;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::provenance::sha256;
+use crate::toolchain_lockfile_schema;
+use std::ffi::OsStr;
 use std::path::Path;
 pub(super) const DERIVED_CATALOG: &str = "cache/minecraft-toolchain/maven/maven-metadata-pins.json";
 pub(super) fn collect(
@@ -12,9 +15,9 @@ pub(super) fn collect(
     cache_root: &Path,
     token: &CancellationToken,
 ) -> eyre::Result<TestMavenMetadataSnapshot> {
-    let lock = crate::toolchain_lockfile_schema::read_current(text)?;
+    let lock = toolchain_lockfile_schema::read_current(text)?;
     let maven = checked_directory(&cache_root.join("minecraft-toolchain/maven"))?;
-    crate::jar_build::snapshot_test_maven_metadata(&lock, minecraft_version, &maven, token)
+    jar_build::snapshot_test_maven_metadata(&lock, minecraft_version, &maven, token)
 }
 pub(super) fn stage(
     snapshot: &TestMavenMetadataSnapshot,
@@ -38,7 +41,7 @@ pub(super) fn stage(
     }
     for (path, raw) in &snapshot.files {
         eyre::ensure!(
-            Path::new(path).extension() == Some(std::ffi::OsStr::new("pom")),
+            Path::new(path).extension() == Some(OsStr::new("pom")),
             "non-POM metadata export refused"
         );
         let destination = format!("cache/minecraft-toolchain/maven/{path}");

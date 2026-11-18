@@ -15,19 +15,26 @@ use eyre::WrapErr;
 use eyre::bail;
 use eyre::ensure;
 use facet::Facet;
+use gix::index::entry::Flags as GitIndexFlags;
+use gix::index::entry::Stage as GitIndexStage;
+use gix::open::Options;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
 #[cfg(windows)]
 use std::os::windows::fs::MetadataExt as _;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::Component;
+use std::path::MAIN_SEPARATOR;
 use std::path::Path;
 use std::path::PathBuf;
 #[cfg(any(unix, test))]
 use std::process::Command;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 const MATRIX_SIZE: usize = 10;
@@ -453,7 +460,6 @@ fn run_promotion_with_pre_apply_verification(
                 fs::write(&staged, bytes).wrap_err("could not stage candidate output")?;
                 #[cfg(unix)]
                 if operation.relative_path == "gradlew" {
-                    use std::os::unix::fs::PermissionsExt as _;
                     fs::set_permissions(&staged, fs::Permissions::from_mode(0o755))?;
                 }
             }
@@ -761,8 +767,7 @@ fn reviewed_matrix(
         "compatibility evidence differs from reviewed SHA-256 at '{}'",
         request.compatibility_evidence_relative_path
     );
-    let source_manifest =
-        SourceProjectionManifest::from_json(std::str::from_utf8(&source_manifest_bytes)?)?;
+    let source_manifest = SourceProjectionManifest::from_json(from_utf8(&source_manifest_bytes)?)?;
     validate_matrix(&source_manifest, request)?;
     Ok((root, source_manifest, head_commit, source_manifest_sha256))
 }
@@ -1567,7 +1572,7 @@ fn rollback(
 }
 
 fn parse_manifest(bytes: &[u8]) -> Result<ProjectionProvenance> {
-    let text = std::str::from_utf8(bytes).wrap_err("projection manifest is not UTF-8")?;
+    let text = from_utf8(bytes).wrap_err("projection manifest is not UTF-8")?;
     let manifest = ProjectionProvenance::from_json(text)?;
     manifest.require_legacy_owner()?;
     ensure!(
@@ -1713,7 +1718,7 @@ fn inspect_directory_chain(path: &Path) -> Result<()> {
 fn is_within(child: &Path, parent: &Path) -> bool {
     let child = child.to_string_lossy().to_lowercase();
     let parent = parent.to_string_lossy().to_lowercase();
-    child == parent || child.starts_with(&format!("{parent}{}", std::path::MAIN_SEPARATOR))
+    child == parent || child.starts_with(&format!("{parent}{MAIN_SEPARATOR}"))
 }
 
 fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
@@ -1800,7 +1805,7 @@ fn git_head_commit(root: &Path) -> Result<String> {
 fn promotion_repository(root: &Path) -> Result<gix::Repository> {
     let mut repository = gix::open_opts(
         root,
-        gix::open::Options::isolated().config_overrides([
+        Options::isolated().config_overrides([
             "gitoxide.objects.noReplace=true",
             "gitoxide.objects.allocLimit=67108864",
         ]),
@@ -1840,13 +1845,10 @@ fn promotion_index_matches_head(root: &Path, evidence_path: &str) -> Result<bool
     for entry in index.entries() {
         let path: &[u8] = entry.path(&index);
         if selected(path) {
-            if entry.stage() != gix::index::entry::Stage::Unconflicted {
+            if entry.stage() != GitIndexStage::Unconflicted {
                 return Ok(false);
             }
-            if entry
-                .flags
-                .contains(gix::index::entry::Flags::INTENT_TO_ADD)
-            {
+            if entry.flags.contains(GitIndexFlags::INTENT_TO_ADD) {
                 continue;
             }
             staged.insert(path.to_vec(), (entry.mode.bits(), entry.id));
@@ -1923,6 +1925,8 @@ mod tests {
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::SCHEMA_VERSION;
     use crate::source_projection::provenance::ProjectedFileProvenance;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt as _;
     use tempfile::TempDir;
 
     const TEST_EVIDENCE_PATH: &str = "docs/compatibility-evidence.md";
@@ -2539,8 +2543,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn unstaged_executable_mode_change_in_checked_in_root_is_rejected() {
-        use std::os::unix::fs::PermissionsExt as _;
-
         let fixture = Fixture::new();
         let path = fixture.destination("1.19.2").join("keep.txt");
         let mut permissions = fs::metadata(&path).unwrap().permissions();

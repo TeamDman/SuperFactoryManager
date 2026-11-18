@@ -53,7 +53,7 @@ fn require_named_jar_recipe_identity(
 }
 
 fn validate_named_jar_project(
-    project: &crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    project: &source_projection::frozen_recipe_project::FrozenRecipeProject,
 ) -> eyre::Result<()> {
     validate_first_named_compile(project)?;
     let receipt = project.receipt();
@@ -146,7 +146,7 @@ mod development_source_output_admission_tests {
 // Forge's SpecialSource validator stays separate: a named NeoForge package
 // uses the original named class closure, with no remapping tool or mappings.
 fn validate_named_package_project(
-    project: &crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    project: &source_projection::frozen_recipe_project::FrozenRecipeProject,
 ) -> eyre::Result<()> {
     if project.receipt().released_inputs.loader_kind == "neogradle_userdev" {
         validate_named_neoform_compile(project)?;
@@ -187,7 +187,7 @@ fn require_named_package_recipe_identity(
 pub(crate) struct NamedJarReport {
     schema: String,
     scope: String,
-    preparation: crate::source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
+    preparation: source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
     java_release: u32,
     tool_jvm_major: u32,
     actual_sdk_identity: String,
@@ -205,7 +205,7 @@ pub(crate) struct NamedJarReport {
 
 /// Exact named Jar route; sources/output/cache/recipe remain checked owner-derived.
 pub(crate) fn invoke_named_jar(
-    project: crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    project: source_projection::frozen_recipe_project::FrozenRecipeProject,
     options: &NamedCompileOptions,
     output_name: Option<&str>,
     cancellation: &CancellationToken,
@@ -217,6 +217,7 @@ pub(crate) fn invoke_named_jar(
     };
     let derived_cache_root = selected_named_cache_owner(options, &identity, cancellation)?;
     let planning = NativePlanningOptions {
+        cache_home: options.cache_home.clone(),
         output_name: output_name.map(str::to_owned),
         derived_cache_root,
         pinned_sdk: options.pinned_sdk.clone(),
@@ -300,7 +301,7 @@ fn capture_named_package_hash_with_empty(
     empty_mixin: bool,
 ) -> eyre::Result<ContentHash> {
     require_named_jar_path(path)?;
-    crate::source_projection::candidate_lock::checked_directory(
+    source_projection::candidate_lock::checked_directory(
         path.parent()
             .ok_or_else(|| eyre::eyre!("named Jar generated input has no parent"))?,
     )?;
@@ -371,13 +372,13 @@ fn require_named_jar_output_path(project: &Path, path: &Path) -> eyre::Result<()
     let relative = parent
         .strip_prefix(project)
         .wrap_err("named Jar output escapes its owner")?;
-    crate::source_projection::native_project_target::inspect_cache_ancestors(
+    source_projection::native_project_target::inspect_cache_ancestors(
         project,
         &relative.to_string_lossy().replace('\\', "/"),
     )?;
     match fs::symlink_metadata(path) {
         Ok(metadata) => require_named_regular_file(path, &metadata)?,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
     Ok(())
@@ -386,7 +387,7 @@ fn require_named_jar_output_path(project: &Path, path: &Path) -> eyre::Result<()
 fn require_named_jar_output_absent(project: &Path, output: &Path) -> eyre::Result<()> {
     require_named_jar_output_path(project, output)?;
     match fs::symlink_metadata(output) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         Ok(_) => {
             eyre::bail!("named Jar refuses existing output of any kind; prior evidence is retained")
         }
@@ -407,7 +408,7 @@ fn copy_named_neoform_package(input: &Path, output: &Path) -> eyre::Result<()> {
         .write(true)
         .create_new(true)
         .open(output)?;
-    std::io::copy(&mut source, &mut destination)?;
+    io::copy(&mut source, &mut destination)?;
     destination.sync_all()?;
     drop(destination);
     held.recheck()?;
@@ -423,7 +424,7 @@ enum NamedPackageHeldFile {
     EmptyMixin {
         path: PathBuf,
         held: File,
-        identity: crate::file_identity::FileIdentity,
+        identity: file_identity::FileIdentity,
         modified: SystemTime,
         content_hash: ContentHash,
     },
@@ -436,7 +437,7 @@ impl NamedPackageHeldFile {
             )?));
         }
         require_named_jar_path(path)?;
-        crate::source_projection::candidate_lock::checked_directory(
+        source_projection::candidate_lock::checked_directory(
             path.parent()
                 .ok_or_else(|| eyre::eyre!("empty mixin mapping has no parent"))?,
         )?;
@@ -444,7 +445,7 @@ impl NamedPackageHeldFile {
         let held = File::open(path)?;
         let metadata = held.metadata()?;
         require_named_regular_file(path, &metadata)?;
-        let identity = crate::file_identity::file_identity(&held)?;
+        let identity = file_identity::file_identity(&held)?;
         let modified = metadata.modified()?;
         let content_hash = ContentHash::from_bytes(&[], expected.algorithm);
         let after = held.metadata()?;
@@ -454,8 +455,8 @@ impl NamedPackageHeldFile {
                 && after.len() == 0
                 && after.modified()? == modified
                 && current.metadata()?.len() == 0
-                && crate::file_identity::file_identity(&held)? == identity
-                && crate::file_identity::file_identity(&current)? == identity
+                && file_identity::file_identity(&held)? == identity
+                && file_identity::file_identity(&current)? == identity
                 && content_hash == *expected,
             "exact empty mixin mapping changed or lost its expected byte identity"
         );
@@ -509,7 +510,7 @@ impl NamedPackageHeldFile {
                         && current_modified == *modified
                         && held.metadata()?.len() == 0
                         && held.metadata()?.modified()? == *modified
-                        && crate::file_identity::file_identity(held)? == *identity,
+                        && file_identity::file_identity(held)? == *identity,
                     "empty mixin mapping changed before delegation"
                 );
                 Ok(())
@@ -522,7 +523,7 @@ struct NamedPackageDiagnosticFile {
     root: PathBuf,
     path: PathBuf,
     held: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
 }
 impl NamedPackageDiagnosticFile {
     fn create(root: &Path, directory: &Path, role: &str) -> eyre::Result<Self> {
@@ -532,8 +533,7 @@ impl NamedPackageDiagnosticFile {
             _ => eyre::bail!("unreviewed named Jar diagnostic role"),
         };
         create_specialsource_diagnostic_directory(root, directory)?;
-        let canonical_directory =
-            crate::source_projection::candidate_lock::checked_directory(directory)?;
+        let canonical_directory = source_projection::candidate_lock::checked_directory(directory)?;
         let owner = tempfile::Builder::new()
             .prefix(prefix)
             .suffix(suffix)
@@ -544,10 +544,10 @@ impl NamedPackageDiagnosticFile {
             .ok_or_else(|| eyre::eyre!("created diagnostic lacks basename"))?;
         let path = directory.join(basename);
         require_named_jar_output_path(root, &path)?;
-        let identity = crate::file_identity::file_identity(&held)?;
+        let identity = file_identity::file_identity(&held)?;
         eyre::ensure!(
-            crate::file_identity::file_identity(&File::open(&canonical_path)?)? == identity
-                && crate::file_identity::file_identity(&File::open(&path)?)? == identity,
+            file_identity::file_identity(&File::open(&canonical_path)?)? == identity
+                && file_identity::file_identity(&File::open(&path)?)? == identity,
             "created named Jar diagnostic lost canonical/normal owner identity"
         );
         Ok(Self {
@@ -561,8 +561,8 @@ impl NamedPackageDiagnosticFile {
         require_named_jar_output_path(&self.root, &self.path)?;
         let current = File::open(&self.path)?;
         eyre::ensure!(
-            crate::file_identity::file_identity(&current)? == self.identity
-                && crate::file_identity::file_identity(&self.held)? == self.identity,
+            file_identity::file_identity(&current)? == self.identity
+                && file_identity::file_identity(&self.held)? == self.identity,
             "named Jar created diagnostic path identity changed"
         );
         Ok(())
@@ -617,7 +617,7 @@ fn require_named_jar_cache_tree_with_bounds(
     let mut pending = vec![(root.to_path_buf(), 0_usize)];
     let mut entries = 0_usize;
     while let Some((directory, depth)) = pending.pop() {
-        crate::source_projection::candidate_lock::checked_directory(&directory)?;
+        source_projection::candidate_lock::checked_directory(&directory)?;
         eyre::ensure!(
             depth <= max_depth,
             "named Jar cache tree exceeds depth bound"
@@ -631,7 +631,7 @@ fn require_named_jar_cache_tree_with_bounds(
             let path = entry?.path();
             let metadata = fs::symlink_metadata(&path)?;
             if metadata.is_dir() {
-                crate::source_projection::candidate_lock::checked_directory(&path)?;
+                source_projection::candidate_lock::checked_directory(&path)?;
                 pending.push((path, depth + 1));
             } else {
                 require_named_regular_file(&path, &metadata)?;
@@ -754,7 +754,7 @@ fn require_named_package_work_tree(cache_dir: &Path, relative: &str) -> eyre::Re
     );
     // Derived preparation belongs to the selected shared cache root. The
     // final JAR is still checked separately against the projection owner.
-    crate::source_projection::native_project_target::inspect_cache_ancestors(cache_dir, relative)?;
+    source_projection::native_project_target::inspect_cache_ancestors(cache_dir, relative)?;
     let path = cache_dir.join(relative);
     if path.exists() {
         require_named_jar_cache_tree(&path)?;
@@ -873,7 +873,7 @@ impl ExecutionContext<'_> {
             self.recheck_named_package_admission(Some(&admission))?;
             return Ok(Some(admission));
         }
-        refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
+        refuse_specialsource_jvm_overrides(|name| env::var_os(name))?;
         let resolver = self.plan.resolver(&self.cancellation_token)?;
         let classpath = self.package_reobfuscation_classpath(&resolver)?;
         eyre::ensure!(
@@ -1198,11 +1198,11 @@ impl ExecutionContext<'_> {
             specialsource_path_utf16_units(&self.plan.java.executable)? < 260,
             "named Jar requires verified normal short SDK executable spelling"
         );
-        refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
+        refuse_specialsource_jvm_overrides(|name| env::var_os(name))?;
         create_specialsource_diagnostic_directory(&project_root, diagnostic)?;
         let scratch = RetainedSpecialSourceScratch::create()?;
         let full_classpath = dedup_paths_preserve_order(
-            std::iter::once(tool.cache_path.clone())
+            once(tool.cache_path.clone())
                 .chain(classpath.iter().cloned())
                 .collect(),
         );
@@ -1247,7 +1247,7 @@ impl ExecutionContext<'_> {
             project.recheck(false)?;
             self.plan.recheck_named_sdk()?;
             self.require_named_package_paths()?;
-            refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
+            refuse_specialsource_jvm_overrides(|name| env::var_os(name))?;
             for (_, file) in &files {
                 file.recheck()?;
             }
@@ -1307,7 +1307,7 @@ impl ExecutionContext<'_> {
                 } else if receipt.phase == "prepared" {
                     "preflight_refused".clone_into(&mut receipt.phase);
                 }
-                if let Some(io) = error.downcast_ref::<std::io::Error>() {
+                if let Some(io) = error.downcast_ref::<io::Error>() {
                     receipt.io_error_kind = Some(format!("{:?}", io.kind()));
                     receipt.raw_os_error = io.raw_os_error();
                 }
@@ -1496,7 +1496,7 @@ impl NamedPackageLaunchReceipt {
             transport_argfile: require_named_jar_path(transport)?.to_owned(),
             console_log: require_named_jar_path(log)?.to_owned(),
             argfile_bytes: bytes.len(),
-            argfile_sha256: crate::source_projection::provenance::sha256(bytes),
+            argfile_sha256: source_projection::provenance::sha256(bytes),
             child_created: false,
             child_pid: None,
             io_error_kind: None,
@@ -1518,9 +1518,8 @@ impl NamedPackageLaunchReceipt {
         self.raw_os_error = report.raw_os_error;
     }
     fn persist(&self) -> eyre::Result<PathBuf> {
-        let directory = crate::source_projection::candidate_lock::checked_directory(Path::new(
-            &self.diagnostic_cwd,
-        ))?;
+        let directory =
+            source_projection::candidate_lock::checked_directory(Path::new(&self.diagnostic_cwd))?;
         let encoded = facet_json::to_string_pretty(self)?;
         eyre::ensure!(
             encoded.len() <= NAMED_JAR_MAX_RECEIPT_BYTES,

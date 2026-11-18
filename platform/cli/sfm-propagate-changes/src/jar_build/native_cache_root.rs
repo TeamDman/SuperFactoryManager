@@ -17,9 +17,12 @@ use eyre::Result;
 use eyre::WrapErr as _;
 use eyre::ensure;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::io::Error as IoError;
+use std::io::ErrorKind;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Component;
@@ -29,6 +32,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::sync::Weak;
+use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -52,10 +56,9 @@ struct HeldPinnedSdk {
     _ancestors: Vec<File>,
 }
 
-impl std::fmt::Debug for HeldPinnedSdk {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("HeldPinnedSdk")
+impl fmt::Debug for HeldPinnedSdk {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HeldPinnedSdk")
             .field("home", &self.image.home())
             .finish_non_exhaustive()
     }
@@ -99,14 +102,14 @@ impl HeldPinnedSdk {
 
     fn recheck(&mut self, root: &Path, cancel: &CancellationToken) -> Result<()> {
         cancel.bail_if_cancelled()?;
-        let image_started = std::time::Instant::now();
+        let image_started = Instant::now();
         checked_pinned_sdk_home(root, &mut self.image, &self.pin, &self.artifact)?;
         tracing::info!(
             phase = "warm_sdk_held_image_recheck",
             elapsed_ms = image_started.elapsed().as_millis(),
             "warm_run_stage"
         );
-        let launch_started = std::time::Instant::now();
+        let launch_started = Instant::now();
         self.launch.recheck(cancel)?;
         tracing::info!(
             phase = "warm_sdk_launch_recheck",
@@ -310,7 +313,7 @@ impl NativeCacheRoot {
         cancel.bail_if_cancelled()?;
         let created = match fs::create_dir(&checked) {
             Ok(()) => true,
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => false,
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => false,
             Err(error) => return Err(error.into()),
         };
         guards.extend(lease_ancestors(&checked)?);
@@ -483,7 +486,7 @@ fn validate_location(
             );
             dunce::canonicalize(path)?
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => parent.join(name),
+        Err(error) if error.kind() == ErrorKind::NotFound => parent.join(name),
         Err(error) => return Err(error.into()),
     };
     ensure!(
@@ -547,7 +550,7 @@ fn logical_source_project(path: &Path) -> Result<PathBuf> {
                 );
                 break;
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == ErrorKind::NotFound => {
                 ensure!(
                     tail.len() < 128,
                     "Source project has too many missing components"
@@ -726,18 +729,16 @@ fn wait_for_marker(root: &Path, cancel: &CancellationToken) -> Result<File> {
                 );
             }
             Err(error) => {
-                let transient = error
-                    .downcast_ref::<std::io::Error>()
-                    .is_some_and(|source| {
-                        source.kind() == std::io::ErrorKind::NotFound
-                            || (cfg!(windows) && matches!(source.raw_os_error(), Some(5 | 32 | 33)))
-                    });
+                let transient = error.downcast_ref::<IoError>().is_some_and(|source| {
+                    source.kind() == ErrorKind::NotFound
+                        || (cfg!(windows) && matches!(source.raw_os_error(), Some(5 | 32 | 33)))
+                });
                 if !transient || started.elapsed() >= CLAIM_WAIT {
                     return Err(error).wrap_err("Native cache root has no valid tool-owned marker; existing contents preserved");
                 }
             }
         }
-        std::thread::sleep(Duration::from_millis(20));
+        sleep(Duration::from_millis(20));
     }
 }
 

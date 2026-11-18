@@ -2,6 +2,7 @@
 //!
 //! This capability does not authorize any compiler, generator or host launch.
 //! Misses must leave it before re-entering the ordinary strict live-source path.
+use std::str::from_utf8;
 #[path = "retained_compile_entries.rs"]
 mod entries;
 
@@ -58,7 +59,7 @@ impl RetainedCompileInputs {
 
     pub(super) fn properties(&self) -> Result<BTreeMap<String, String>> {
         let input = self.project.project().selected_input("gradle.properties")?;
-        let content = std::str::from_utf8(input.output_bytes())?;
+        let content = from_utf8(input.output_bytes())?;
         let mut properties = BTreeMap::new();
         for line in content.lines().map(str::trim) {
             if line.is_empty() || line.starts_with('#') {

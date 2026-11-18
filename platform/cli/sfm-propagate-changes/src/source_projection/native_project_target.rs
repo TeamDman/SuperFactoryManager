@@ -26,8 +26,10 @@ use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 pub const NATIVE_DEPENDENCY_PROFILE: &str = "rust-toolchain";
 const LOCKFILE: &str = "sfm-toolchain.lock.json";
@@ -344,7 +346,7 @@ fn selected_profile(
     let lock = artifacts
         .get(LOCKFILE)
         .ok_or_else(|| eyre::eyre!("native projection is missing `{LOCKFILE}`"))?;
-    let document = parse_document(std::str::from_utf8(&lock.output_bytes)?)?;
+    let document = parse_document(from_utf8(&lock.output_bytes)?)?;
     let lock = match document {
         ToolchainLockfileDocument::V4(lock) => lock,
         ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => {
@@ -400,7 +402,7 @@ fn validate_platform_inputs(
     let properties = artifacts
         .get("gradle.properties")
         .ok_or_else(|| eyre::eyre!("native projection has no Gradle properties"))?;
-    let properties = std::str::from_utf8(&properties.output_bytes)?;
+    let properties = from_utf8(&properties.output_bytes)?;
     let neo_version = exact_property(properties, "neo_version")?;
     for (id, expected_kind) in [
         (
@@ -491,7 +493,7 @@ pub(crate) fn inspect_cache_ancestors(project: &Path, relative: &str) -> Result<
             Ok(_) => {
                 checked_directory(&current)?;
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
             Err(error) => return Err(error).wrap_err("cannot inspect native cache ancestor"),
         }
     }
@@ -520,6 +522,8 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v4::FeatureComponentV4;
     use crate::toolchain_lockfile_schema::version::v4::FeatureV4;
     use crate::toolchain_lockfile_schema::version::v4::SourceExcludeV4;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
     use std::process::Command;
 
     const RAW_V4: &str = include_str!(
@@ -938,7 +942,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn projection_and_cache_symlink_ancestors_are_refused() {
-        use std::os::unix::fs::symlink;
         let fixture = Fixture::new(RAW_V4, KEY, "release");
         let external = tempfile::tempdir().unwrap();
         symlink(

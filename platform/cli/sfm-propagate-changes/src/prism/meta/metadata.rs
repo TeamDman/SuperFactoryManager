@@ -2,6 +2,9 @@ use crate::prism::PrismComponent;
 use crate::prism::PrismLoaderComponent;
 use eyre::Context;
 use facet::Facet;
+use reqwest::blocking;
+use reqwest::header;
+use std::cmp::Ordering;
 use tracing::warn;
 
 const PRISM_META_BASE_URL: &str = "https://meta.prismlauncher.org/v1";
@@ -152,12 +155,9 @@ pub fn resolve_lwjgl_component(minecraft_version: &str) -> eyre::Result<Option<P
 
 fn fetch_meta_index(uid: &str) -> eyre::Result<PrismMetaIndex> {
     let url = format!("{PRISM_META_BASE_URL}/{uid}/index.json");
-    let text = reqwest::blocking::Client::new()
+    let text = blocking::Client::new()
         .get(&url)
-        .header(
-            reqwest::header::USER_AGENT,
-            "sfm-propagate-changes/prism-sync",
-        )
+        .header(header::USER_AGENT, "sfm-propagate-changes/prism-sync")
         .send()
         .wrap_err_with(|| format!("Failed to request Prism metadata: {url}"))?
         .error_for_status()
@@ -184,7 +184,7 @@ fn versions_requiring_minecraft<'a>(
         .collect()
 }
 
-fn compare_prism_versions(left: &PrismMetaVersion, right: &PrismMetaVersion) -> std::cmp::Ordering {
+fn compare_prism_versions(left: &PrismMetaVersion, right: &PrismMetaVersion) -> Ordering {
     release_rank(left)
         .cmp(&release_rank(right))
         .then_with(|| left.release_time.cmp(&right.release_time))

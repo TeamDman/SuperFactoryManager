@@ -56,8 +56,7 @@ struct BuildPlan {
     artifact_portability: ArtifactPortabilityAudit,
     warnings: Vec<String>,
     #[facet(skip_unless_truthy)]
-    catalog_project:
-        Option<crate::source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt>,
+    catalog_project: Option<source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt>,
     #[facet(skip_serializing, opaque)]
     identity: BuildProjectIdentity,
     #[facet(default, proxy = JsonOptionalPath, skip_serializing_if = Option::is_none)]
@@ -348,9 +347,9 @@ struct McpConfigPlan {
 #[derive(Clone, Debug, Facet)]
 struct DependencyPlan {
     configuration: String,
-    bundle: Option<crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
-    artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
-    data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
+    bundle: Option<toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
+    artifact_treatment: toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
+    data_run_policy: toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
     notation: String,
     resolved_notation: String,
     source: DependencySource,
@@ -776,8 +775,8 @@ impl MavenCoordinate {
     }
 }
 
-impl std::fmt::Display for MavenCoordinate {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for MavenCoordinate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}:{}", self.group, self.artifact, self.version)?;
         if let Some(classifier) = &self.classifier {
             write!(f, ":{classifier}")?;

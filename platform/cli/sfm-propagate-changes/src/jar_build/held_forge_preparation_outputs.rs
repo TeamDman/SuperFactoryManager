@@ -8,6 +8,7 @@ use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeSet;
 use std::fs::File;
+use std::io::Error as IoError;
 use std::io::Read as _;
 use std::io::Seek as _;
 use std::io::SeekFrom;
@@ -87,7 +88,7 @@ impl HeldForgePreparationOutputs {
                 Ok(file) => file,
                 Err(error)
                     if error
-                        .downcast_ref::<std::io::Error>()
+                        .downcast_ref::<IoError>()
                         .is_some_and(|error| matches!(error.raw_os_error(), Some(5 | 32))) =>
                 {
                     return Ok(None);

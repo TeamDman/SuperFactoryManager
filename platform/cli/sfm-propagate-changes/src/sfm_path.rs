@@ -7,6 +7,8 @@ use facet::Facet;
 use std::convert::Infallible;
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::fmt;
+use std::ops;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -76,7 +78,7 @@ impl AsRef<Path> for SfmPath {
     }
 }
 
-impl std::ops::Deref for SfmPath {
+impl ops::Deref for SfmPath {
     type Target = Path;
 
     fn deref(&self) -> &Self::Target {
@@ -84,8 +86,8 @@ impl std::ops::Deref for SfmPath {
     }
 }
 
-impl std::fmt::Display for SfmPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for SfmPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.display())
     }
 }

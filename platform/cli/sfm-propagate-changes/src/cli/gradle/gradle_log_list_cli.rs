@@ -1,3 +1,4 @@
+use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
 
@@ -13,7 +14,7 @@ impl GradleLogListArgs {
     /// # Errors
     ///
     /// Returns an error if log files cannot be listed.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::gradle_cli::gradle_logs_list(self.latest)
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        super::gradle_cli::gradle_logs_list(self.latest, homes.cache_home()?)
     }
 }

@@ -1,8 +1,12 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::source_comparison::file_reference_query::FileReferenceQuery;
 use crate::source_comparison::input::ComparisonInput;
+use crate::source_comparison::snapshot as source_comparison_snapshot;
+use crate::source_projection::promotion::validate_relative_path;
 use facet::Facet;
 use figue::{self as args};
+use std::fs::File;
 use std::io::Read as _;
 use std::path::PathBuf;
 #[derive(Debug, Facet)]
@@ -16,9 +20,9 @@ pub struct SourceReferencesArgs {
 }
 impl SourceReferencesArgs {
     pub(super) fn invoke(self, cancellation: &CancellationToken) -> eyre::Result<CliOutput> {
-        crate::source_projection::promotion::validate_relative_path(&self.path)?;
+        validate_relative_path(&self.path)?;
         let mut raw = Vec::new();
-        std::fs::File::open(&self.input)?
+        File::open(&self.input)?
             .take(1024 * 1024 + 1)
             .read_to_end(&mut raw)?;
         eyre::ensure!(
@@ -26,11 +30,9 @@ impl SourceReferencesArgs {
             "reference query input exceeds 1 MiB"
         );
         let input: ComparisonInput = facet_json::from_slice(&raw)?;
-        let snapshot = crate::source_comparison::snapshot(&input, cancellation)?;
-        Ok(CliOutput::facet(
-            crate::source_comparison::file_reference_query::FileReferenceQuery::from_snapshot(
-                &snapshot, &self.path,
-            ),
-        ))
+        let snapshot = source_comparison_snapshot(&input, cancellation)?;
+        Ok(CliOutput::facet(FileReferenceQuery::from_snapshot(
+            &snapshot, &self.path,
+        )))
     }
 }

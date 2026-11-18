@@ -7,6 +7,7 @@
 
 use super::super::build_snapshot_receipt as snapshot;
 use super::CancellationToken;
+use crate::file_identity;
 use crate::source_projection::candidate_lock::checked_directory;
 #[cfg(windows)]
 use crate::source_projection::core_input_leases::DirectoryLeases;
@@ -14,6 +15,7 @@ use eyre::Result;
 use eyre::WrapErr as _;
 use eyre::ensure;
 use std::fs;
+use std::io;
 use std::io::Read as _;
 use std::io::Seek as _;
 use std::io::SeekFrom;
@@ -162,7 +164,7 @@ impl FreshJarOutput {
     pub(super) fn recheck_absent(&self) -> Result<()> {
         self.recheck_parent()?;
         match fs::symlink_metadata(&self.output) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
             Ok(_) => eyre::bail!("fresh JAR refuses an existing output of any kind"),
             Err(error) => Err(error).wrap_err("cannot inspect fresh JAR output"),
         }
@@ -242,6 +244,7 @@ impl FreshJarOutput {
     ) -> Result<fs::File> {
         // The actual read remains bounded even if a mutable source grows after
         // authentication. One extra byte distinguishes growth from exact EOF.
+
         let hash = super::capture_named_package_hash(input)?;
         let held = super::ReviewedSpecialSourceFile::read(input, &hash)?;
         let expected_bytes = held.bytes;
@@ -265,7 +268,7 @@ impl FreshJarOutput {
         cancellation.bail_if_cancelled()?;
         let mut destination = options.open(&self.output)?;
         super::require_named_regular_file(&self.output, &destination.metadata()?)?;
-        let copied = std::io::copy(&mut source, &mut destination)?;
+        let copied = io::copy(&mut source, &mut destination)?;
         ensure!(
             copied == expected_bytes,
             "fresh JAR source length changed after authentication"
@@ -274,7 +277,7 @@ impl FreshJarOutput {
         held.recheck()?;
         let before = destination.metadata()?;
         super::require_named_regular_file(&self.output, &before)?;
-        let identity = crate::file_identity::file_identity(&destination)?;
+        let identity = file_identity::file_identity(&destination)?;
         ensure!(
             before.len() == expected_bytes,
             "fresh JAR completed copy has an unexpected length"
@@ -294,7 +297,7 @@ impl FreshJarOutput {
             u64::try_from(raw.len())? == expected_bytes
                 && after.len() == expected_bytes
                 && after.modified()? == before.modified()?
-                && crate::file_identity::file_identity(&destination)? == identity
+                && file_identity::file_identity(&destination)? == identity
                 && super::ContentHash::from_bytes(&raw, hash.algorithm) == hash,
             "fresh JAR completed copy changed bytes"
         );

@@ -15,7 +15,10 @@ use std::fs::File;
 #[cfg(all(test, windows))]
 use std::fs::OpenOptions;
 use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::path::Path;
+use std::path::PathBuf;
 
 const MAX_PRODUCER_BYTES: usize = 512 * 1024 * 1024;
 
@@ -24,7 +27,7 @@ pub(crate) struct NfrtHeldProducer {
     file: File,
     identity: FileIdentity,
     bytes: usize,
-    path: std::path::PathBuf,
+    path: PathBuf,
     _ancestry: DirectoryLeases,
 }
 
@@ -70,8 +73,6 @@ impl NfrtHeldProducer {
     /// Keep this owner alive through snapshot copying and child use.
     /// The pure receipt layer subsequently hashes these observed bytes.
     pub(crate) fn read_once(&mut self) -> Result<NfrtProducerRead> {
-        use std::io::Seek;
-        use std::io::SeekFrom;
         self.file.seek(SeekFrom::Start(0))?;
         let before = file_identity(&self.file)?;
         ensure!(

@@ -108,6 +108,34 @@ impl CatalogReleasePlan {
         Self::from_checked_project(&project, &properties, changelog, release_feature)
     }
 
+    pub(crate) fn projection_key(&self) -> &str {
+        &self.projection_key
+    }
+    pub(crate) fn project_dir(&self) -> &str {
+        &self.project_dir
+    }
+    pub(crate) fn target_id(&self) -> &str {
+        &self.target_id
+    }
+    pub(crate) fn minecraft_version(&self) -> &str {
+        &self.minecraft_version
+    }
+    pub(crate) fn mod_version(&self) -> &str {
+        &self.mod_version
+    }
+    pub(crate) fn package_loader(&self) -> &str {
+        &self.package_loader
+    }
+    pub(crate) fn java_major(&self) -> u16 {
+        self.java_major
+    }
+    pub(crate) fn ownership_identity(&self) -> &str {
+        &self.ownership_identity
+    }
+    pub(crate) fn changelog(&self) -> &CatalogReleaseChangelog {
+        &self.changelog
+    }
+
     fn from_checked_project(
         project: &CatalogOwnedProject,
         properties: &CatalogReleaseProperties,

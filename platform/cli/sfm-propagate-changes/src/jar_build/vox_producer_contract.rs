@@ -2,6 +2,7 @@
 //! Kept dependency-free so this policy can also be tested without a CLI rebuild.
 
 use std::collections::BTreeMap;
+use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::path::Path;
 use std::process::Command;
@@ -256,7 +257,7 @@ pub(crate) fn configure_child(
         value.is_some()
             && AMBIENT_CONTROLS
                 .iter()
-                .any(|blocked| name == std::ffi::OsStr::new(blocked))
+                .any(|blocked| name == OsStr::new(blocked))
     }) {
         return Err("Vox child already contains an unreviewed JVM, loader or trust override");
     }

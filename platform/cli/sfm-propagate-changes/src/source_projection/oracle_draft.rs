@@ -43,10 +43,13 @@ use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::ErrorKind;
 use std::io::Write as _;
+use std::iter::once;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const REVIEW_SCHEMA: &str = "sfm:oracle_draft_ownership_review@1";
 const MAX_WITNESS_BYTES: u64 = 1024 * 1024;
@@ -158,10 +161,8 @@ pub fn draft(
         CORE_METADATA_PATH,
         MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &catalog.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
     let core = checked_directory(&catalog.repo_root.join(CORE_ROOT))?;
     let inventory = discover_core_source_files(&core)?;
     let mut prepared = read_witnesses(&catalog, &bindings, &git, request, cancellation)?;
@@ -419,7 +420,7 @@ fn read_witnesses(
                 "Draft witness {} exceeds the 1 MiB text limit",
                 binding.projection
             );
-            let text = std::str::from_utf8(bytes).wrap_err(
+            let text = from_utf8(bytes).wrap_err(
                 "Drafting requires UTF-8 text; use exact-byte seeding for binary assets",
             )?;
             ensure!(
@@ -556,7 +557,7 @@ fn inventory_identity(inventory: &BTreeSet<String>) -> String {
     sha256(
         inventory
             .iter()
-            .flat_map(|path| path.bytes().chain(std::iter::once(0)))
+            .flat_map(|path| path.bytes().chain(once(0)))
             .collect::<Vec<_>>()
             .as_slice(),
     )
@@ -594,8 +595,7 @@ fn read_review(path: &Path, invocation_dir: &Path) -> Result<OracleDraftReview> 
         .and_then(|name| name.to_str())
         .ok_or_else(|| eyre::eyre!("Review file name is not UTF-8"))?;
     let bytes = read_bounded(&parent, name, MAX_REVIEW_BYTES)?;
-    facet_json::from_str(std::str::from_utf8(&bytes)?)
-        .wrap_err("Cannot parse draft ownership review")
+    facet_json::from_str(from_utf8(&bytes)?).wrap_err("Cannot parse draft ownership review")
 }
 
 fn membership_variants(
@@ -879,7 +879,7 @@ fn checked_destination(
         "Draft destination must be outside canonical Minecraft inputs, projections and Git state"
     );
     match fs::symlink_metadata(&destination) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
         Ok(_) => eyre::bail!(
             "Draft destination already exists; choose a new directory to preserve all staged and contributor work"
@@ -897,7 +897,7 @@ fn create_scratch_file(root: &Path, relative: &str, bytes: &[u8]) -> Result<()> 
         let next = parent.join(part);
         match fs::create_dir(&next) {
             Ok(()) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
             Err(error) => return Err(error.into()),
         }
         parent = checked_directory(&next)?;

@@ -2,6 +2,7 @@ use super::dependency_context::load_inventory;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
 use crate::dependency_inventory::DependencyInventory;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3;
@@ -29,9 +30,10 @@ impl DependencyRemoveArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let inventory = load_inventory(self.branch, cache_home)?;
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
         let removed = remove_target(inventory, &self.target)?;
         stdout_line(format!("Removed {removed}."))?;
         Ok(())

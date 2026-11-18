@@ -6,6 +6,7 @@ use super::SourceProblem;
 use arborium_java::language as java_language;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs::read_to_string;
 use std::path::Path;
 use tree_sitter_patched_arborium::Node;
 use tree_sitter_patched_arborium::Parser;
@@ -36,7 +37,7 @@ impl AuditRules {
     ///
     /// Returns an error when the rule file cannot be read or does not use the audit-rule grammar.
     pub(crate) fn load(path: &Path) -> eyre::Result<Self> {
-        let contents = std::fs::read_to_string(path).map_err(|error| {
+        let contents = read_to_string(path).map_err(|error| {
             eyre::eyre!("Failed to read audit rule file {}: {error}", path.display())
         })?;
         Self::parse(&contents).map_err(|error| {
@@ -47,7 +48,7 @@ impl AuditRules {
         })
     }
 
-    fn parse(contents: &str) -> Result<Self, String> {
+    pub(crate) fn parse(contents: &str) -> Result<Self, String> {
         let mut deny_calls = Vec::new();
         let mut permitted_callers = Vec::new();
         for (line_index, source_line) in contents.lines().enumerate() {

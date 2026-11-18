@@ -1,13 +1,21 @@
 //! Admission and held SDK for the exact retained Vox Cargo producer.
-use super::engine::{SourceBuildProvenance, SourceBuildSystem};
+use super::engine::SourceBuildProvenance;
+use super::engine::SourceBuildSystem;
 use super::vox_producer_contract as policy;
 use crate::cancellation::CancellationToken;
+use crate::jdk;
+use crate::jdk_artifact_cache;
 use crate::jdk_artifact_cache::VerifiedPinnedJbrsdk;
-use crate::toolchain_lockfile_schema::version::v4::{JdkArtifactV4, JdkPinV4};
-use eyre::{Result, ensure};
+use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
+use eyre::Result;
+use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::env;
+use std::fs::read_to_string;
+use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Facet)]
@@ -100,7 +108,7 @@ pub(super) fn preflight(
     );
     let spec = checked_spec()?;
     let selection = policy::select(
-        crate::jdk::host_jbrsdk_platform().unwrap_or("unsupported-host"),
+        jdk::host_jbrsdk_platform().unwrap_or("unsupported-host"),
         &policy::Recipe {
             coordinate,
             remote,
@@ -111,7 +119,7 @@ pub(super) fn preflight(
         },
     )
     .map_err(|error| eyre::eyre!(error))?;
-    if let Some(name) = policy::unexpected_ambient(|name| std::env::var_os(name)) {
+    if let Some(name) = policy::unexpected_ambient(|name| env::var_os(name)) {
         eyre::bail!(
             "Pinned Vox producer refuses ambient {name}; its value is not logged or erased"
         );
@@ -120,7 +128,7 @@ pub(super) fn preflight(
 }
 
 impl PreparedSdk {
-    pub(super) fn require_trust_support(&self, external_trust: bool) -> Result<()> {
+    pub(super) fn require_trust_support(external_trust: bool) -> Result<()> {
         policy::require_supported_trust(external_trust).map_err(|error| eyre::eyre!(error))
     }
 
@@ -143,7 +151,7 @@ impl PreparedSdk {
             .parent()
             .ok_or_else(|| eyre::eyre!("Source-build Maven cache has no parent"))?
             .join("jbrsdk");
-        let image = crate::jdk_artifact_cache::install_verified_pinned_jbrsdk(
+        let image = jdk_artifact_cache::install_verified_pinned_jbrsdk(
             &pin,
             &artifact,
             &root,
@@ -161,11 +169,7 @@ impl PreparedSdk {
             selection: self.selection,
         };
         sdk.recheck(cancel)?;
-        crate::jdk::resolve_pinned_java_from_verified_home(
-            sdk.image.home(),
-            &sdk.pin,
-            &sdk.artifact,
-        )?;
+        jdk::resolve_pinned_java_from_verified_home(sdk.image.home(), &sdk.pin, &sdk.artifact)?;
         sdk.recheck(cancel)?;
         cancel.bail_if_cancelled()?;
         Ok(sdk)
@@ -179,7 +183,7 @@ impl SelectedSdk {
         cancel: &CancellationToken,
     ) -> Result<()> {
         self.recheck(cancel)?;
-        if let Some(name) = policy::unexpected_ambient(|name| std::env::var_os(name)) {
+        if let Some(name) = policy::unexpected_ambient(|name| env::var_os(name)) {
             eyre::bail!(
                 "Pinned Vox producer refuses ambient {name}; its value is not logged or erased"
             );
@@ -209,7 +213,7 @@ impl SelectedSdk {
                 cancellation: Some(cancel),
             },
         )?;
-        let release = std::fs::read_to_string(self.image.home().join("release"))?;
+        let release = read_to_string(self.image.home().join("release"))?;
         policy::verify_runtime(self.selection, &release).map_err(|error| eyre::eyre!(error))
     }
 }

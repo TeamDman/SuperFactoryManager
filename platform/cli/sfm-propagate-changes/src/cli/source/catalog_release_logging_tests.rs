@@ -84,8 +84,7 @@ fn release_plan_logging_worker() -> Result<()> {
         "4.35.0",
     ])?;
     assert!(!cli.defers_file_logging());
-    assert_eq!(AppHome::resolve()?.0, expected_home);
-    let logging = cli.logging_config()?;
+    let logging = cli.logging_config(&AppHome(expected_home.clone()))?;
     assert_eq!(logging.json_log_directory, Some(expected_home.join("logs")));
     assert!(logging.json_log_path.is_none());
     println!("{CONFIGURATION_MARKER}");
@@ -197,7 +196,7 @@ fn release_plan_keeps_explicit_file_logging() -> Result<()> {
         "4.35.0",
     ])?;
     assert!(!cli.defers_file_logging());
-    let logging = cli.logging_config()?;
+    let logging = cli.logging_config(&AppHome(fixture.path().join("application-home")))?;
     assert_eq!(logging.json_log_path, Some(destination.clone()));
     assert!(logging.json_log_directory.is_none());
     assert!(!destination.exists());

@@ -7,12 +7,14 @@ use crate::dependency_sources::SourceComponentPreflight;
 use crate::dependency_sources::SourcePreflight;
 use crate::dependency_sources::SourceProviderPreflight;
 use crate::dependency_sources::UnavailableSource;
+use crate::java_analysis;
 use crate::payload_fetcher::PayloadFetcher;
 use crate::source_decompile::acquire_locked_decompiled_sources;
 use crate::source_decompile::derive_locked_decompile_provider;
 use crate::source_decompile::derive_locked_decompile_provider_with_runtime;
 use crate::source_provider::SourceProviderKind;
 use crate::source_provider::SourceProviderView;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactPurposeV3;
 use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
 use crate::toolchain_lockfile_schema::version::v3::DecompileSourceProviderV3;
@@ -50,7 +52,7 @@ pub(crate) fn derive_locked_loader_artifact_sources(
     inventory: &DependencyInventory,
 ) -> eyre::Result<Vec<LockedArtifactSource>> {
     derive_locked_loader_artifact_sources_with(inventory, |binary, decompiler| {
-        if let Some(fixture) = crate::java_analysis::current_scenario_fixture() {
+        if let Some(fixture) = java_analysis::current_scenario_fixture() {
             eyre::ensure!(
                 !fixture.decompiler_runtime_identity.trim().is_empty(),
                 "scenario decompiler runtime identity must be explicit"
@@ -77,8 +79,8 @@ pub(crate) fn derive_locked_loader_artifact_sources(
 fn derive_locked_loader_artifact_sources_with(
     inventory: &DependencyInventory,
     derive_provider: impl FnOnce(
-        &crate::toolchain_lockfile_schema::version::v3::ArtifactV3,
-        &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+        &toolchain_lockfile_schema::version::v3::ArtifactV3,
+        &toolchain_lockfile_schema::version::v3::DependencyComponentV3,
     ) -> eyre::Result<DecompileSourceProviderV3>,
 ) -> eyre::Result<Vec<LockedArtifactSource>> {
     let loader_id = &inventory.lockfile.platform.loader_dependency;
@@ -181,7 +183,7 @@ pub(crate) fn append_locked_artifact_source_preflight(
     for source in sources {
         let status = locked_artifact_source_status(inventory, source)?;
         let provider_definition =
-            crate::toolchain_lockfile_schema::version::v3::SourceProviderV3::Decompile(
+            toolchain_lockfile_schema::version::v3::SourceProviderV3::Decompile(
                 source.provider.clone(),
             );
         let view = SourceProviderView::new(inventory, &provider_definition, 0);
@@ -236,7 +238,7 @@ fn locked_artifact_source_status(
     inventory: &DependencyInventory,
     source: &LockedArtifactSource,
 ) -> eyre::Result<SourceStatus> {
-    let provider = crate::toolchain_lockfile_schema::version::v3::SourceProviderV3::Decompile(
+    let provider = toolchain_lockfile_schema::version::v3::SourceProviderV3::Decompile(
         source.provider.clone(),
     );
     let view = SourceProviderView::new(inventory, &provider, 0);

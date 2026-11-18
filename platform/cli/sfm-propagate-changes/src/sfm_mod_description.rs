@@ -15,6 +15,14 @@ impl SfmModDescription {
         "Adds a certain magical factory manager to the game.\nAutomation is within your grasp!";
 }
 
+impl TryFrom<SfmModDescription> for ModDescription {
+    type Error = eyre::Report;
+
+    fn try_from(_: SfmModDescription) -> Result<Self> {
+        Self::parse(SfmModDescription::VALUE)
+    }
+}
+
 impl TryFrom<&ModDescription> for SfmModDescription {
     type Error = eyre::Report;
 
@@ -42,7 +50,8 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModDescription>(), 0);
-        let value: ModDescription = SfmModDescription.into();
+        let value: Result<ModDescription> = SfmModDescription.try_into();
+        let value = value?;
         assert_eq!(value.as_str(), SfmModDescription::VALUE);
         assert_eq!(value, ModDescription::parse(SfmModDescription::VALUE)?);
         assert_eq!(SfmModDescription::try_from(&value)?, SfmModDescription);

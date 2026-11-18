@@ -8,6 +8,7 @@ use crate::syntax_highlight::SyntaxHighlightRequest;
 use facet::Facet;
 use figue::{self as args};
 use std::io::Read;
+use std::io::stdin;
 
 #[derive(Facet, Debug)]
 pub struct SyntaxHighlightArgs {
@@ -40,7 +41,7 @@ impl SyntaxHighlightArgs {
     /// Returns an error when stdin is not selected/readable or engine setup
     /// fails. Request validation failures are typed command output.
     pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<CliOutput> {
-        self.invoke_with_reader(cancellation_token, std::io::stdin().lock())
+        self.invoke_with_reader(cancellation_token, stdin().lock())
     }
 
     /// Execute the direct command against an explicit reader for deterministic

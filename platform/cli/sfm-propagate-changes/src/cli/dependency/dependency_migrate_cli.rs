@@ -1,12 +1,14 @@
 use crate::branch_targets::select_single_worktree_target;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use crate::toolchain_lockfile_schema::MigrationAnalysis;
 use crate::toolchain_lockfile_schema::analyze_migration;
 use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
+use std::fs::read_to_string;
 
 #[derive(Facet, Debug)]
 pub struct DependencyMigrateArgs {
@@ -23,16 +25,20 @@ impl DependencyMigrateArgs {
     /// # Errors
     ///
     /// Returns an error when branch resolution, lockfile parsing, or migration validation fails.
-    pub fn invoke(self, _cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        _cancellation_token: CancellationToken,
+        app_home: &AppHome,
+    ) -> eyre::Result<()> {
         let check = self.check;
-        let query = self.branch.into_query()?;
-        let target = select_single_worktree_target(&query)?;
+        let query = self.branch.into_query(app_home)?;
+        let target = select_single_worktree_target(&query, app_home)?;
         let lockfile_path = target
             .worktree_path
             .join("platform")
             .join("minecraft")
             .join("sfm-toolchain.lock.json");
-        let input = std::fs::read_to_string(&lockfile_path)
+        let input = read_to_string(&lockfile_path)
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
 
         match analyze_migration(&input)? {

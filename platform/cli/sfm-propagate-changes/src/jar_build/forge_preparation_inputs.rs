@@ -3,6 +3,10 @@
 //! This key excludes unrelated SFM source bodies and the broad projection receipt.
 //! It records local actual-byte evidence, not released or historical reconstruction.
 
+use crate::jar_build;
+use std::env;
+use std::ffi::OsString;
+use std::slice::from_ref;
 #[path = "forge_preparation_capture.rs"]
 mod capture;
 #[cfg(windows)]
@@ -252,7 +256,7 @@ impl ForgePreparationInputs {
             return Ok(None);
         }
         let expected = context.forge_mapping_path("srg_to_official.tsrg")?;
-        if !crate::jar_build::build_snapshot_receipt::same_path_spelling(mapping_path, &expected) {
+        if !jar_build::build_snapshot_receipt::same_path_spelling(mapping_path, &expected) {
             return Ok(None);
         }
         let Some((mut owner, hash)) = Self::prepare_common(context, "remap")? else {
@@ -672,9 +676,7 @@ impl ForgePreparationInputs {
             let actual = resolve_current_minecraft_libraries(context, client)?;
             let mut expected = Vec::new();
             for selected in parent.libraries() {
-                if !selected
-                    .library_allowed_for_target(std::env::consts::OS, std::env::consts::ARCH)?
-                {
+                if !selected.library_allowed_for_target(env::consts::OS, env::consts::ARCH)? {
                     continue;
                 }
                 let relative = selected
@@ -743,7 +745,7 @@ impl ForgePreparationInputs {
         request: &ForgePreparationInputRequest,
     ) -> Result<Option<Vec<u8>>> {
         context.assert_allowed_input(&request.path)?;
-        if !self.capacity_allows(std::slice::from_ref(request)) {
+        if !self.capacity_allows(from_ref(request)) {
             return Ok(None);
         }
         let Some(captured) = HeldForgePreparationInput::capture(
@@ -837,13 +839,11 @@ fn validate_selected_lock(current: &[u8], selected: &[u8], expected: &str) -> Re
 }
 
 fn clean_environment() -> bool {
-    if cfg!(target_os = "linux")
-        && !crate::jar_build::local_dependency_cache::environment_allows_reuse()
-    {
+    if cfg!(target_os = "linux") && !jar_build::local_dependency_cache::environment_allows_reuse() {
         return false;
     }
     environment_is_clean(|name| {
-        let value = std::env::var_os(name);
+        let value = env::var_os(name);
         if value.is_some() {
             tracing::info!(
                 environment_name = name,
@@ -855,7 +855,7 @@ fn clean_environment() -> bool {
     })
 }
 
-fn environment_is_clean(mut value: impl FnMut(&str) -> Option<std::ffi::OsString>) -> bool {
+fn environment_is_clean(mut value: impl FnMut(&str) -> Option<OsString>) -> bool {
     [
         "JAVA_TOOL_OPTIONS",
         "JDK_JAVA_OPTIONS",
@@ -918,8 +918,8 @@ fn recipe_basis(
         append(hash, include_bytes!("java_trust.rs"));
     };
     append(hash, kind.as_bytes());
-    append(hash, std::env::consts::OS.as_bytes());
-    append(hash, std::env::consts::ARCH.as_bytes());
+    append(hash, env::consts::OS.as_bytes());
+    append(hash, env::consts::ARCH.as_bytes());
     append(hash, minecraft_version.as_bytes());
     append(hash, loader_coordinate.as_bytes());
     append(hash, &java_release.to_le_bytes());

@@ -22,6 +22,7 @@ use crate::release_review_surface_v1::source_range;
 use crate::release_review_surface_v1::stable_review_surface_id;
 use crate::release_review_v1::SnapshotSideV1;
 use crate::release_review_v1::Utf8RangeV1;
+use gix::diff;
 use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
@@ -614,8 +615,8 @@ fn limit_surface(request: &ReviewSurfaceRequestV1, message: String) -> ReviewSur
 }
 
 fn histogram_hunks(before: &str, after: &str) -> Vec<RawHunk> {
-    let input = gix::diff::blob::InternedInput::new(before, after);
-    gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Histogram, &input)
+    let input = diff::blob::InternedInput::new(before, after);
+    diff::blob::diff_with_slider_heuristics(diff::blob::Algorithm::Histogram, &input)
         .hunks()
         .map(|hunk| RawHunk {
             before_start: hunk.before.start as usize,

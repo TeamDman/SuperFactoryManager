@@ -16,17 +16,53 @@ use crate::cancellation::CancellationToken;
 use eyre::WrapErr;
 use facet::Facet;
 use std::collections::BTreeMap;
+use std::env::current_exe;
+use std::env::var_os;
+use std::fs;
+use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Child;
 use std::process::Command;
 use std::process::ExitStatus;
+#[cfg(windows)]
+use std::ptr::from_ref as ptr_from_ref;
+use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
+#[cfg(windows)]
+use windows::Win32::Foundation::CloseHandle;
+#[cfg(windows)]
+use windows::Win32::Foundation::HANDLE;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::AssignProcessToJobObject;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::CreateJobObjectW;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_JOB_MEMORY;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_PROCESS_MEMORY;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
+#[cfg(test)]
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::QueryInformationJobObject;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::SetInformationJobObject;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::TerminateJobObject;
 
 const LIVE_WORKER_ENV: &str = "SFM_LIVE_DEFINITION_WORKER_REQUEST";
 const LIVE_WORKER_GATE_ENV: &str = "SFM_LIVE_DEFINITION_WORKER_GATE";
@@ -76,20 +112,20 @@ struct RunningLiveWorker {
 /// Returns an error when the start gate, request, source, parser, or output is
 /// invalid.
 pub(crate) fn run_live_definition_worker_from_env() -> eyre::Result<bool> {
-    let Some(request_path) = std::env::var_os(LIVE_WORKER_ENV) else {
+    let Some(request_path) = var_os(LIVE_WORKER_ENV) else {
         return Ok(false);
     };
-    let gate_path = std::env::var_os(LIVE_WORKER_GATE_ENV)
+    let gate_path = var_os(LIVE_WORKER_GATE_ENV)
         .ok_or_else(|| eyre::eyre!("live definition worker start gate is missing"))?;
     wait_for_start_gate(Path::new(&gate_path))?;
-    let request: LiveWorkerRequest = facet_json::from_str(&std::fs::read_to_string(request_path)?)?;
+    let request: LiveWorkerRequest = facet_json::from_str(&fs::read_to_string(request_path)?)?;
     if request.schema != LIVE_WORKER_REQUEST_SCHEMA {
         eyre::bail!("unsupported live definition worker request schema");
     }
-    let mut writer = BufWriter::new(std::fs::File::create(&request.output_path)?);
+    let mut writer = BufWriter::new(File::create(&request.output_path)?);
     writeln!(writer, "{LIVE_WORKER_OUTPUT_SCHEMA}")?;
     for file in request.files {
-        let source = std::fs::read_to_string(&file.path)
+        let source = fs::read_to_string(&file.path)
             .map_err(|error| eyre::eyre!("Failed to read Java source {}: {error}", file.path))?;
         let facts = extract_java_file_facts_from_text_with_detail(
             JavaFileFactsInput {
@@ -184,7 +220,7 @@ pub(crate) fn build_live_definition_index_streaming(
 
             let completed = poll_completed_workers(&mut running)?;
             if completed.is_empty() {
-                std::thread::sleep(Duration::from_millis(10));
+                sleep(Duration::from_millis(10));
                 continue;
             }
             for (key, mut worker, status) in completed {
@@ -318,7 +354,7 @@ pub(crate) fn build_live_definition_index_in_process(
             .len()
             .checked_add(offset)
             .ok_or_else(|| eyre::eyre!("live JDK source sequence overflow"))?;
-        let source = std::fs::read_to_string(&file.absolute_path).wrap_err_with(|| {
+        let source = fs::read_to_string(&file.absolute_path).wrap_err_with(|| {
             format!("failed to read JDK source {}", file.absolute_path.display())
         })?;
         linker.ingest(extract_java_file_facts_from_text_with_detail(
@@ -346,7 +382,7 @@ fn wait_for_start_gate(path: &Path) -> eyre::Result<()> {
         if started.elapsed() >= LIVE_WORKER_GATE_TIMEOUT {
             eyre::bail!("live definition worker timed out waiting for its start gate");
         }
-        std::thread::sleep(Duration::from_millis(1));
+        sleep(Duration::from_millis(1));
     }
     Ok(())
 }
@@ -386,12 +422,12 @@ fn spawn_live_worker(
         include_members,
         files: request_files,
     };
-    let mut writer = BufWriter::new(std::fs::File::create(&request_path)?);
+    let mut writer = BufWriter::new(File::create(&request_path)?);
     facet_json::to_writer_std(&mut writer, &request)?;
     writer.flush()?;
     drop(writer);
 
-    let mut command = Command::new(std::env::current_exe()?);
+    let mut command = Command::new(current_exe()?);
     command
         .env(LIVE_WORKER_ENV, &request_path)
         .env(LIVE_WORKER_GATE_ENV, &gate_path);
@@ -401,7 +437,7 @@ fn spawn_live_worker(
         let _ = child.wait();
         return Err(error.wrap_err("failed to assign live definition worker to memory job"));
     }
-    if let Err(error) = std::fs::File::create(&gate_path) {
+    if let Err(error) = File::create(&gate_path) {
         let _ = child.kill();
         let _ = child.wait();
         return Err(error.into());
@@ -433,13 +469,13 @@ fn poll_completed_workers(
 }
 
 fn read_live_worker_output(path: &Path) -> eyre::Result<Vec<JavaFileFacts>> {
-    let bytes = std::fs::metadata(path)?.len();
+    let bytes = fs::metadata(path)?.len();
     if bytes > LIVE_WORKER_OUTPUT_LIMIT_BYTES {
         eyre::bail!(
             "live definition worker output exceeded {LIVE_WORKER_OUTPUT_LIMIT_BYTES} bytes"
         );
     }
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let mut lines = BufReader::new(file).lines();
     let schema = lines
         .next()
@@ -489,20 +525,11 @@ fn kill_and_wait_all(running: &mut BTreeMap<StableShardKey, RunningLiveWorker>) 
 }
 
 #[cfg(windows)]
-struct SharedWorkerJob(windows::Win32::Foundation::HANDLE);
+struct SharedWorkerJob(HANDLE);
 
 #[cfg(windows)]
 impl SharedWorkerJob {
     fn new() -> eyre::Result<Self> {
-        use windows::Win32::System::JobObjects::CreateJobObjectW;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_JOB_MEMORY;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_PROCESS_MEMORY;
-        use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
-        use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
-        use windows::Win32::System::JobObjects::SetInformationJobObject;
-
         // SAFETY: null security attributes and no name create a private job.
         let handle = unsafe { CreateJobObjectW(None, None) }?;
         let job = Self(handle);
@@ -514,14 +541,14 @@ impl SharedWorkerJob {
         information.BasicLimitInformation.ActiveProcessLimit = 4;
         information.ProcessMemoryLimit = LIVE_WORKER_PROCESS_MEMORY_LIMIT_BYTES;
         information.JobMemoryLimit = LIVE_WORKER_JOB_MEMORY_LIMIT_BYTES;
-        let size = u32::try_from(std::mem::size_of_val(&information))?;
+        let size = u32::try_from(size_of_val(&information))?;
         // SAFETY: the job handle and information pointer remain valid for the
         // exact declared byte size during this call.
         unsafe {
             SetInformationJobObject(
                 job.0,
                 JobObjectExtendedLimitInformation,
-                std::ptr::from_ref(&information).cast(),
+                ptr_from_ref(&information).cast(),
                 size,
             )
         }?;
@@ -529,16 +556,12 @@ impl SharedWorkerJob {
     }
 
     fn assign(&self, child: &Child) -> eyre::Result<()> {
-        use std::os::windows::io::AsRawHandle;
-        use windows::Win32::Foundation::HANDLE;
-        use windows::Win32::System::JobObjects::AssignProcessToJobObject;
         // SAFETY: the job is live and the child owns a live process handle.
         unsafe { AssignProcessToJobObject(self.0, HANDLE(child.as_raw_handle())) }?;
         Ok(())
     }
 
     fn terminate(&self) {
-        use windows::Win32::System::JobObjects::TerminateJobObject;
         // SAFETY: the job handle remains live for this guard's lifetime.
         let _ = unsafe { TerminateJobObject(self.0, 1) };
     }
@@ -548,10 +571,6 @@ impl SharedWorkerJob {
         &self,
     ) -> eyre::Result<windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION>
     {
-        use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
-        use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
-        use windows::Win32::System::JobObjects::QueryInformationJobObject;
-
         let mut information = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
         let size = u32::try_from(std::mem::size_of_val(&information))?;
         let mut returned = 0_u32;
@@ -579,7 +598,7 @@ impl SharedWorkerJob {
 impl Drop for SharedWorkerJob {
     fn drop(&mut self) {
         // SAFETY: this guard owns the handle and closes it exactly once.
-        let _ = unsafe { windows::Win32::Foundation::CloseHandle(self.0) };
+        let _ = unsafe { CloseHandle(self.0) };
     }
 }
 
@@ -822,11 +841,6 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn shared_worker_job_reports_the_configured_hard_limits() {
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_JOB_MEMORY;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_PROCESS_MEMORY;
-
         let job = SharedWorkerJob::new().unwrap();
         let limits = job.query_limits().unwrap();
         let flags = limits.BasicLimitInformation.LimitFlags;

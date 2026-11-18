@@ -2,6 +2,8 @@
 use super::source_reference::SourceReference;
 use facet::Facet;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::iter::once;
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[facet(deny_unknown_fields)]
 pub struct ReferenceAssociations {
@@ -29,7 +31,7 @@ impl ReferenceAssociations {
             self.references.windows(2).all(|refs| refs[0] < refs[1]),
             "references must be sorted and unique"
         );
-        let mut identities = std::collections::BTreeSet::new();
+        let mut identities = BTreeSet::new();
         for reference in &self.references {
             reference.validate()?;
             eyre::ensure!(
@@ -37,7 +39,7 @@ impl ReferenceAssociations {
                 "duplicate GitHub reference identity"
             );
         }
-        for digest in std::iter::once(&self.context_sha256).chain(self.declarations.values()) {
+        for digest in once(&self.context_sha256).chain(self.declarations.values()) {
             let digest = digest.strip_prefix("sha256:").unwrap_or("");
             eyre::ensure!(
                 digest.len() == 64

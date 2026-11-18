@@ -12,14 +12,17 @@ use crate::curseforge::CurseforgeProjectMetadata;
 use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
 use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3;
 use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use facet::Facet;
 use figue as args;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 #[derive(Facet, Debug)]
 pub struct DependencyRefreshArgs {
@@ -39,9 +42,10 @@ impl DependencyRefreshArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let inventory = load_inventory(self.branch, cache_home)?;
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
         let reports = refresh_dependencies(
             inventory,
             self.target.as_deref(),
@@ -69,7 +73,7 @@ struct RefreshReport {
 struct RefreshCandidate {
     artifact_id: String,
     url: String,
-    cache_path: std::path::PathBuf,
+    cache_path: PathBuf,
     curseforge_file: Option<(CurseforgeProjectId, CurseforgeProjectFileId)>,
 }
 
@@ -195,7 +199,7 @@ fn fetch_curseforge_fallback(
 fn selected_components<'a>(
     inventory: &'a DependencyInventory,
     target: Option<&str>,
-) -> eyre::Result<Vec<&'a crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3>> {
+) -> eyre::Result<Vec<&'a DependencyComponentV3>> {
     let Some(target) = target else {
         return Ok(inventory
             .lockfile

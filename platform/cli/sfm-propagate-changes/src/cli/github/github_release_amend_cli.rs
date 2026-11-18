@@ -1,4 +1,5 @@
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -26,7 +27,7 @@ impl GithubReleaseAmendArgs {
     /// # Errors
     ///
     /// Returns an error if the release amend plan cannot be resolved or applied.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::github_cli::release_amend(self.branch, self.repo, self.dry_run, self.yes)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::github_cli::release_amend(self.branch, self.repo, self.dry_run, self.yes, app_home)
     }
 }

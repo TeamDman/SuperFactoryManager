@@ -4,6 +4,7 @@ use super::SourceJarPath;
 use super::SourceOutputCacheRoot;
 use super::hash::ContentHash;
 use super::hash::ContentHashAlgorithm;
+use crate::source_archive;
 use eyre::Context;
 use std::fs;
 use std::io;
@@ -25,7 +26,7 @@ pub(super) fn materialize(
     match fs::symlink_metadata(output.as_path()) {
         Ok(_) => {
             eyre::ensure!(
-                crate::source_archive::extracted_tree_matches_archive(
+                source_archive::extracted_tree_matches_archive(
                     source_jar.as_path(),
                     output.as_path()
                 )?,
@@ -40,12 +41,9 @@ pub(super) fn materialize(
         Err(error) => return Err(error.into()),
     }
 
-    crate::source_archive::extract_zip_atomically(source_jar.as_path(), output.as_path())?;
+    source_archive::extract_zip_atomically(source_jar.as_path(), output.as_path())?;
     eyre::ensure!(
-        crate::source_archive::extracted_tree_matches_archive(
-            source_jar.as_path(),
-            output.as_path()
-        )?,
+        source_archive::extracted_tree_matches_archive(source_jar.as_path(), output.as_path())?,
         "new source filetree failed sealed archive validation"
     );
     fs::write(state_path.as_path(), format!("{source_hash}\n"))

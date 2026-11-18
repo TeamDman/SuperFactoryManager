@@ -11,6 +11,11 @@ use super::preflight;
 use super::preflight_report::PreflightReport;
 use super::require_complete;
 use super::target_report::TargetReport;
+use crate::toolchain_lockfile_schema;
+use std::collections::BTreeMap;
+use std::env;
+use std::fs::read;
+use std::str::from_utf8;
 
 pub(in crate::jar_build::engine) fn prepare_for_compile_plan(
     plan: &BuildPlan,
@@ -68,8 +73,7 @@ pub(super) fn verify_development_roots_and_pins(
     // Read the declared profile from retained selected bytes, not a fresh live
     // POM or an independently selected projection's dependency declarations.
     let lock = project.selected_input("sfm-toolchain.lock.json")?;
-    let effective =
-        crate::toolchain_lockfile_schema::read_current(std::str::from_utf8(lock.output_bytes())?)?;
+    let effective = toolchain_lockfile_schema::read_current(from_utf8(lock.output_bytes())?)?;
     let mut actual = Vec::new();
     for row in super::super::project_v3_dependencies(&effective)? {
         if row.configuration.starts_with("test") {
@@ -111,7 +115,7 @@ pub(super) fn verify_development_roots_and_pins(
         actual == expected,
         "development JUnit roots differ from the reviewed test authority"
     );
-    let pins: std::collections::BTreeMap<_, _> = target
+    let pins: BTreeMap<_, _> = target
         .selected_pins
         .iter()
         .chain(&target.production_base_witnesses)
@@ -177,7 +181,7 @@ pub(super) fn prepare_development_with(
         target,
         source_snapshot_identity,
         java_identity: identity(&(plan.java.cache_identity(), actual_sdk))?,
-        cli_sha256: super::sha256(&std::fs::read(std::env::current_exe()?)?),
+        cli_sha256: super::sha256(&read(env::current_exe()?)?),
         test_source_lock_sha256: report.test_source_lock_sha256,
         test_provenance_sha256: report.test_provenance_sha256,
         configuration_sha256: report.configuration_sha256,

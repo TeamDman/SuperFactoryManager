@@ -18,6 +18,8 @@ use sha2::Sha256;
 #[cfg(windows)]
 use std::collections::BTreeMap;
 #[cfg(windows)]
+use std::env;
+#[cfg(windows)]
 use std::fs;
 #[cfg(windows)]
 use std::fs::File;
@@ -86,8 +88,8 @@ impl LocalDependencyImage {
         image.hold_ancestors(home)?;
         let mut hash = Sha256::new();
         append(&mut hash, b"sfm:local_dependency_sdk_image@2");
-        append(&mut hash, std::env::consts::OS.as_bytes());
-        append(&mut hash, std::env::consts::ARCH.as_bytes());
+        append(&mut hash, env::consts::OS.as_bytes());
+        append(&mut hash, env::consts::ARCH.as_bytes());
         // The existing SDK owner retains and authenticates java/javac/release/modules.
         append(&mut hash, sdk_identity.as_bytes());
         let entries_seen = image.capture_selected(&mut hash, cancel)?;

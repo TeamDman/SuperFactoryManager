@@ -8,11 +8,17 @@ use super::identity;
 use super::preflight;
 use super::require_complete;
 use super::sha256;
+use crate::jar_build;
+use crate::paths::CacheHomeRequired;
+use crate::source_projection;
+use std::env;
+use std::fs::read;
+use std::fs::write;
 use std::path::PathBuf;
 
 fn authority_target(key: &str) -> Option<&str> {
     let current = key.strip_prefix("sfm-4.35.0/mc-").filter(|version| {
-        crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+        source_projection::projection_catalog::SUPPORTED_TARGETS
             .iter()
             .any(|(target, _)| version == target)
     });
@@ -23,7 +29,7 @@ pub(in crate::jar_build::engine) fn enforce_selected(
     options: &BuildOptions,
     cancel: &CancellationToken,
 ) -> eyre::Result<()> {
-    let crate::jar_build::BuildSelection::Projection {
+    let jar_build::BuildSelection::Projection {
         selector,
         repo_root,
     } = &options.selection
@@ -31,7 +37,7 @@ pub(in crate::jar_build::engine) fn enforce_selected(
         return Ok(());
     };
     let (root, keys) =
-        crate::jar_build::projection_selection::select_projections(repo_root.as_deref(), selector)?;
+        jar_build::projection_selection::select_projections(repo_root.as_deref(), selector)?;
     let ids: Vec<_> = keys
         .iter()
         .filter_map(|key| authority_target(key).map(str::to_owned))
@@ -39,9 +45,10 @@ pub(in crate::jar_build::engine) fn enforce_selected(
     if ids.is_empty() {
         return Ok(());
     }
+    let cache_home = options.cache_home.as_ref().ok_or(CacheHomeRequired)?;
     let report = preflight::run(
         &root,
-        &super::super::common_toolchain_cache_dir()?.join("maven"),
+        &super::super::common_toolchain_cache_dir(cache_home).join("maven"),
         Some(&ids),
         cancel,
     )?;
@@ -88,7 +95,7 @@ pub(in crate::jar_build::engine) fn prepare_for_plan(
         target,
         source_snapshot_identity,
         java_identity: plan.java.cache_identity(),
-        cli_sha256: sha256(&std::fs::read(std::env::current_exe()?)?),
+        cli_sha256: sha256(&read(env::current_exe()?)?),
         test_source_lock_sha256: report.test_source_lock_sha256,
         test_provenance_sha256: report.test_provenance_sha256,
         configuration_sha256: report.configuration_sha256,
@@ -210,7 +217,7 @@ impl PreparedJunitInputs {
 pub(in crate::jar_build::engine) fn write_execution_receipt(
     prepared: &PreparedJunitInputs,
     plan: &BuildPlan,
-    options: &crate::jar_build::RunTestOptions,
+    options: &jar_build::RunTestOptions,
     output: &super::super::CancellableOutput,
     summary: String,
     launch_inputs: &super::launch_inputs::LaunchInputs,
@@ -233,7 +240,7 @@ pub(in crate::jar_build::engine) fn write_execution_receipt(
         scope: "generated_projection_headless_junit; packaged_candidate_runtime_not_inferred"
             .to_owned(),
     };
-    std::fs::write(output_path, facet_json::to_string_pretty(&receipt)?)?;
+    write(output_path, facet_json::to_string_pretty(&receipt)?)?;
     Ok(())
 }
 

@@ -6,6 +6,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::mem::take;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum ScannedSource<'a> {
@@ -252,7 +253,7 @@ fn flush_chunk(
 ) -> eyre::Result<()> {
     let index = chunks.len();
     write!(skeleton, "{{{{ __sfm_chunk_{index} }}}}")?;
-    chunks.push(std::mem::take(raw));
+    chunks.push(take(raw));
     Ok(())
 }
 

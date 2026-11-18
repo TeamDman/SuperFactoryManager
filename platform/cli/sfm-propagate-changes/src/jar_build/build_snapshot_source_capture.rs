@@ -25,6 +25,7 @@ use eyre::ensure;
 use std::collections::BTreeSet;
 use std::fs;
 use std::fs::File;
+use std::io::ErrorKind;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
@@ -119,7 +120,7 @@ impl SnapshotSourceCapture {
         cancellation.bail_if_cancelled()?;
         let source = self.project.join(root);
         match fs::symlink_metadata(&source) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
             result => {
                 let metadata = result?;
                 ensure!(
@@ -266,7 +267,10 @@ impl SnapshotSourceCapture {
                 .iter()
                 .all(|path| receipt.directories.contains(&format!("project/{path}")))
             && receipt.files.len() == self.files.len()
-            && self.files.iter().all(|path| receipt.files.contains_key(&format!("project/{path}")))
+            && self
+                .files
+                .iter()
+                .all(|path| receipt.files.contains_key(&format!("project/{path}")))
     }
 
     /// A published managed snapshot is content-sealed already. Hold selected
@@ -282,7 +286,10 @@ impl SnapshotSourceCapture {
             return Ok(false);
         }
         for relative in &self.files {
-            if !selected.iter().any(|root| relative.starts_with(&format!("{root}/"))) {
+            if !selected
+                .iter()
+                .any(|root| relative.starts_with(&format!("{root}/")))
+            {
                 continue;
             }
             cancellation.bail_if_cancelled()?;

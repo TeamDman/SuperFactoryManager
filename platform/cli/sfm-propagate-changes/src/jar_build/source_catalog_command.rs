@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 enum SourceCatalogTarget {
-    Branch(BuildOptions),
+    Branch(Box<BuildOptions>),
     GeneratedProject(PathBuf),
 }
 
@@ -24,7 +24,7 @@ impl SourceCatalogCommand {
         cancellation_token: CancellationToken,
     ) -> Self {
         Self {
-            target: SourceCatalogTarget::Branch(options),
+            target: SourceCatalogTarget::Branch(Box::new(options)),
             query,
             cancellation_token,
         }

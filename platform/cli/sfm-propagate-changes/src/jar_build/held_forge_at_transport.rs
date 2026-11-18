@@ -4,6 +4,7 @@ use crate::source_projection::core_input_leases::DirectoryLeases;
 use eyre::Result;
 use eyre::ensure;
 use std::fs::File;
+use std::io;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Path;
@@ -45,7 +46,7 @@ impl HeldForgeAtTransport {
             "AT transport length changed"
         );
         let mut actual = Vec::new();
-        std::io::Read::by_ref(&mut file)
+        io::Read::by_ref(&mut file)
             .take(bytes.len() as u64 + 1)
             .read_to_end(&mut actual)?;
         ensure!(actual == bytes, "AT transport bytes changed");

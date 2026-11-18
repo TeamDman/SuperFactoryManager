@@ -1,7 +1,9 @@
 use std::fs::File;
 use std::io::Cursor;
 use std::io::Read as _;
+use std::path::Component;
 use zip::ZipArchive;
+use zip::result;
 impl Resolver {
     // POM discovery is deliberately cache-only. Public metadata provisioning is a
     // separate reviewed operation; an offline test never silently fetches parents.
@@ -79,7 +81,7 @@ impl Resolver {
                     .wrap_err_with(|| format!("offline Maven metadata missing/unreadable: {coordinate}; expected pinned POM at {}", path.display()))?;
                 eyre::ensure!(
                     raw.len() as u64 == pin.bytes
-                        && crate::source_projection::provenance::sha256(&raw) == pin.sha256,
+                        && source_projection::provenance::sha256(&raw) == pin.sha256,
                     "pinned Maven metadata hash/size mismatch: {coordinate}"
                 );
                 if let Some(t) = trace {
@@ -140,7 +142,7 @@ impl Resolver {
                         );
                         return Ok(Some(text));
                     }
-                    Err(zip::result::ZipError::FileNotFound) => {}
+                    Err(result::ZipError::FileNotFound) => {}
                     Err(error) => return Err(error.into()),
                 }
             }
@@ -153,7 +155,7 @@ fn bounded_regular_read(path: &Path, root: &Path, budget: u64) -> eyre::Result<V
     let mut current = root.to_path_buf();
     for component in relative.components() {
         eyre::ensure!(
-            matches!(component, std::path::Component::Normal(_)),
+            matches!(component, Component::Normal(_)),
             "unsafe metadata cache path"
         );
         current.push(component);

@@ -6,7 +6,7 @@ const NAMED_SDK_JVM_OVERRIDE_NAMES: [&str; 3] =
     ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"];
 
 fn refuse_named_sdk_jvm_overrides(
-    mut value: impl FnMut(&str) -> Option<std::ffi::OsString>,
+    mut value: impl FnMut(&str) -> Option<OsString>,
 ) -> eyre::Result<()> {
     for name in NAMED_SDK_JVM_OVERRIDE_NAMES {
         eyre::ensure!(
@@ -26,10 +26,9 @@ fn normal_named_sdk_spelling(canonical: &Path) -> eyre::Result<PathBuf> {
 fn require_named_sdk_launch_path(path: &Path) -> eyre::Result<()> {
     eyre::ensure!(
         path.is_absolute()
-            && !path.components().any(|part| matches!(
-                part,
-                std::path::Component::ParentDir | std::path::Component::CurDir
-            )),
+            && !path
+                .components()
+                .any(|part| matches!(part, Component::ParentDir | Component::CurDir)),
         "named SDK launch path must be absolute without traversal"
     );
     let text = path
@@ -47,8 +46,8 @@ fn require_named_sdk_launch_path(path: &Path) -> eyre::Result<()> {
 #[cfg(windows)]
 fn require_named_sdk_windows_launch_path(path: &Path, text: &str) -> eyre::Result<()> {
     eyre::ensure!(
-        matches!(path.components().next(), Some(std::path::Component::Prefix(prefix))
-            if matches!(prefix.kind(), std::path::Prefix::Disk(_))),
+        matches!(path.components().next(), Some(Component::Prefix(prefix))
+            if matches!(prefix.kind(), Prefix::Disk(_))),
         "named SDK cannot be expressed as an unambiguous normal local disk path; no prefix stripping, SDK replacement or fallback is permitted"
     );
     eyre::ensure!(
@@ -62,7 +61,7 @@ struct NamedSdkSpellingInput {
     canonical_path: PathBuf,
     launch_path: PathBuf,
     held: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
     bytes: u64,
     modified: SystemTime,
     digest: blake3::Hash,
@@ -87,7 +86,7 @@ impl NamedSdkSpellingInput {
         let held = File::open(&canonical_path)?;
         let metadata = held.metadata()?;
         eyre::ensure!(metadata.is_file(), "named SDK input is not a regular file");
-        let identity = crate::file_identity::file_identity(&held)?;
+        let identity = file_identity::file_identity(&held)?;
         let bytes = metadata.len();
         let modified = metadata.modified()?;
         let digest = stream_named_sdk_spelling_hash(&held, cancellation)?;
@@ -108,7 +107,7 @@ impl NamedSdkSpellingInput {
         for path in [&self.canonical_path, &self.launch_path] {
             let reopened = File::open(path)?;
             eyre::ensure!(
-                crate::file_identity::file_identity(&reopened)? == self.identity
+                file_identity::file_identity(&reopened)? == self.identity
                     && named_sdk_spelling_metadata_matches(
                         &reopened.metadata()?,
                         self.bytes,
@@ -118,7 +117,7 @@ impl NamedSdkSpellingInput {
             );
         }
         eyre::ensure!(
-            crate::file_identity::file_identity(&self.held)? == self.identity
+            file_identity::file_identity(&self.held)? == self.identity
                 && named_sdk_spelling_metadata_matches(
                     &self.held.metadata()?,
                     self.bytes,
@@ -153,7 +152,7 @@ fn stream_named_sdk_spelling_hash(
     cancellation: &CancellationToken,
 ) -> eyre::Result<blake3::Hash> {
     let mut borrowed = file;
-    borrowed.seek(std::io::SeekFrom::Start(0))?;
+    borrowed.seek(io::SeekFrom::Start(0))?;
     let mut hasher = blake3::Hasher::new();
     let mut buffer = [0_u8; 16_384];
     loop {
@@ -234,7 +233,7 @@ impl NamedSdkLaunchSpelling {
         Ok(())
     }
 
-    fn require_resolved_paths(&self, resolved: &crate::jdk::ResolvedJava) -> eyre::Result<()> {
+    fn require_resolved_paths(&self, resolved: &jdk::ResolvedJava) -> eyre::Result<()> {
         eyre::ensure!(
             resolved.home.as_deref() == Some(self.launch_home.as_path())
                 && resolved.executable == self.inputs[0].launch_path,
@@ -250,9 +249,9 @@ impl NamedSdkLaunchSpelling {
 fn resolve_named_java_with_verified_spelling(
     home: &Path,
     cancellation: &CancellationToken,
-    resolve: impl FnOnce(&Path) -> eyre::Result<crate::jdk::ResolvedJava>,
-) -> eyre::Result<crate::jdk::ResolvedJava> {
-    refuse_named_sdk_jvm_overrides(|name| std::env::var_os(name))?;
+    resolve: impl FnOnce(&Path) -> eyre::Result<jdk::ResolvedJava>,
+) -> eyre::Result<jdk::ResolvedJava> {
+    refuse_named_sdk_jvm_overrides(|name| env::var_os(name))?;
     let checked = NamedSdkLaunchSpelling::capture(home, cancellation)?;
     cancellation.bail_if_cancelled()?;
     let resolved = resolve(&checked.launch_home)?;

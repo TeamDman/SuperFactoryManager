@@ -8,6 +8,7 @@ use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::core_catalog::read_bounded_input;
 use crate::source_projection::provenance::sha256;
 use sha2::Digest as _;
+use std::fs::File;
 use std::io::Read as _;
 use std::time::Duration;
 pub(super) fn execute(
@@ -144,7 +145,7 @@ fn verify_cache(
             continue;
         }
         let result = (|| -> eyre::Result<()> {
-            let mut input = std::fs::File::open(checked_file(&cache, relative)?)?;
+            let mut input = File::open(checked_file(&cache, relative)?)?;
             eyre::ensure!(
                 input.metadata()?.len() == row.bytes,
                 "cached artifact size changed"

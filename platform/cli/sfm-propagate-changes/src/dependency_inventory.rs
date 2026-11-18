@@ -1,8 +1,15 @@
+use crate::branch_targets;
 use crate::branch_targets::BranchQuery;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_single_worktree_target;
+use crate::jar_build;
+use crate::paths;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
+use crate::source_binding;
+use crate::source_projection;
 use crate::source_provider::SourceProviderView;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
 #[cfg(test)]
@@ -16,6 +23,7 @@ use crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyV3;
 use eyre::Context;
+use std::fs::read_to_string;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -28,8 +36,12 @@ pub(crate) struct DependencyInventory {
 }
 
 impl DependencyInventory {
-    pub fn load(query: &BranchQuery, cache_home: CacheHome) -> eyre::Result<Self> {
-        let target = select_single_worktree_target(query)?;
+    pub fn load(
+        query: &BranchQuery,
+        cache_home: CacheHome,
+        app_home: &AppHome,
+    ) -> eyre::Result<Self> {
+        let target = select_single_worktree_target(query, app_home)?;
         Self::load_target(target, cache_home)
     }
 
@@ -39,7 +51,7 @@ impl DependencyInventory {
             .join("platform")
             .join("minecraft")
             .join("sfm-toolchain.lock.json");
-        let input = std::fs::read_to_string(&lockfile_path)
+        let input = read_to_string(&lockfile_path)
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
         let lockfile = read_editable(&input)
             .wrap_err_with(|| format!("Failed to load {}", lockfile_path.display()))?;
@@ -56,22 +68,22 @@ impl DependencyInventory {
     /// worktree source commands continue to use `load_target` above.
     pub(crate) fn load_project(project_root: &Path, cache_home: CacheHome) -> eyre::Result<Self> {
         let (catalog, key) =
-            crate::source_projection::core_catalog::CoreCatalog::for_project(project_root)?;
+            source_projection::core_catalog::CoreCatalog::for_project(project_root)?;
         let projection = catalog.context(&key)?;
         let lockfile_path = catalog
             .repo_root
             .join(catalog.catalog.project_dir(&key)?)
             .join("sfm-toolchain.lock.json");
-        let input = std::fs::read_to_string(&lockfile_path)
+        let input = read_to_string(&lockfile_path)
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
         let mut lockfile = read_editable(&input)
             .wrap_err_with(|| format!("Failed to load {}", lockfile_path.display()))?;
-        crate::source_binding::apply_for_project(&catalog.repo_root, &key, &input, &mut lockfile)?;
+        source_binding::apply_for_project(&catalog.repo_root, &key, &input, &mut lockfile)?;
         let target = WorktreeTarget {
-            branch: crate::branch_targets::BranchName::new(format!("project:{key}")),
-            worktree_path: crate::branch_targets::WorktreePath::new(catalog.repo_root),
+            branch: branch_targets::BranchName::new(format!("project:{key}")),
+            worktree_path: branch_targets::WorktreePath::new(catalog.repo_root),
             core: false,
-            mc_version: Some(crate::branch_targets::MinecraftVersion::parse(
+            mc_version: Some(branch_targets::MinecraftVersion::parse(
                 &projection.minecraft_version,
             )?),
         };
@@ -93,7 +105,7 @@ impl DependencyInventory {
         let mut effective = self.lockfile.clone();
         if let Some(key) = self.target.branch.as_str().strip_prefix("project:") {
             let base = read_editable(&self.original_input)?;
-            crate::source_binding::restore_base_providers(
+            source_binding::restore_base_providers(
                 &self.target.worktree_path,
                 key,
                 &self.original_input,
@@ -143,7 +155,7 @@ impl DependencyInventory {
     }
 
     pub fn local_path(&self, portable: &Path) -> eyre::Result<PathBuf> {
-        if let Some(relative) = crate::paths::portable_cache_relative(portable)? {
+        if let Some(relative) = paths::portable_cache_relative(portable)? {
             return Ok(self.cache_home.join("minecraft-toolchain").join(relative));
         }
         if portable.is_absolute() {
@@ -176,7 +188,7 @@ impl DependencyInventory {
     pub fn locked_file_status(
         &self,
         portable: &Path,
-        expected: crate::jar_build::hash::ContentHash,
+        expected: jar_build::hash::ContentHash,
     ) -> eyre::Result<AcquisitionStatus> {
         Ok(AcquisitionStatus::from_locked_file(
             &self.local_path(portable)?,
@@ -213,7 +225,7 @@ fn read_editable(input: &str) -> eyre::Result<ArtifactLockfileV3> {
     match parse_document(input)? {
         ToolchainLockfileDocument::V3(document) => Ok(document),
         ToolchainLockfileDocument::V4(document) => Ok(ArtifactLockfileV3 {
-            schema_version: crate::toolchain_lockfile_schema::version::v3::SCHEMA_VERSION,
+            schema_version: toolchain_lockfile_schema::version::v3::SCHEMA_VERSION,
             platform: document.platform,
             policy: document.policy,
             repositories: document.repositories,
@@ -234,11 +246,11 @@ pub(crate) enum AcquisitionStatus {
 }
 
 impl AcquisitionStatus {
-    fn from_locked_file(path: &Path, expected: crate::jar_build::hash::ContentHash) -> Self {
+    fn from_locked_file(path: &Path, expected: jar_build::hash::ContentHash) -> Self {
         if !path.is_file() {
             return Self::Missing;
         }
-        match crate::jar_build::hash::ContentHash::from_path(path, expected.algorithm) {
+        match jar_build::hash::ContentHash::from_path(path, expected.algorithm) {
             Ok(actual) if actual == expected => Self::Acquired,
             Ok(_) | Err(_) => Self::Stale,
         }

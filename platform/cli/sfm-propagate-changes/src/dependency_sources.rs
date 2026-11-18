@@ -10,24 +10,28 @@ use crate::cli::global_args::GlobalArgs;
 use crate::cli::jar::BranchSelector;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
+use crate::jar_build;
 use crate::jar_build::BuildMode;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use crate::jar_build::SourceOutputCommand;
 use crate::jar_build::SourceOutputLayout;
 use crate::jar_build::SourceOutputOptions;
+use crate::paths::AppHome;
 use crate::payload_fetcher::http_fetcher;
 use crate::source_decompile::acquire_locked_decompiled_sources;
 use crate::source_git::acquire_locked_git_sources;
 use crate::source_maven::acquire_locked_maven_sources;
 use crate::source_provider::SourceProviderKind;
 use crate::source_provider::SourceProviderView;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyV3;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
 use facet::Facet;
 use figue::ToArgs;
 use std::collections::VecDeque;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -383,8 +387,9 @@ pub(crate) fn acquire_selected_sources(
     targets: &[SourceAcquisitionTarget<'_>],
     branch: &BranchSelector,
     parallelism: Parallelism,
-    java_home: Option<&std::path::Path>,
+    java_home: Option<&Path>,
     cancellation_token: &CancellationToken,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
     let platform = targets
         .iter()
@@ -412,6 +417,7 @@ pub(crate) fn acquire_selected_sources(
                 platform.first().copied(),
                 java_home,
                 token,
+                app_home,
             )
         },
         |target, token| acquire_independent_source(inventory, target, token),
@@ -543,11 +549,10 @@ fn execute_acquisition_tasks<T: Sync>(
 fn acquire_platform_sources(
     inventory: &DependencyInventory,
     branch: BranchSelector,
-    provider: Option<
-        &crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3,
-    >,
-    java_home: Option<&std::path::Path>,
+    provider: Option<&toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3>,
+    java_home: Option<&Path>,
     cancellation_token: &CancellationToken,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
     let catalog =
         provider.and_then(|provider| provider.derived_checks.catalog_projection.as_deref());
@@ -579,7 +584,7 @@ fn acquire_platform_sources(
             eyre::eyre!("catalog platform sources require an explicit --java-home")
         })?;
         (
-            crate::jar_build::BuildSelection::Projection {
+            jar_build::BuildSelection::Projection {
                 selector: projection.to_owned(),
                 repo_root: Some(inventory.target.worktree_path.as_path().to_path_buf()),
             },
@@ -588,12 +593,14 @@ fn acquire_platform_sources(
         )
     } else {
         (
-            crate::jar_build::BuildSelection::Worktree(branch.into_query()?),
+            jar_build::BuildSelection::Worktree(branch.into_query(app_home)?),
             None,
             None,
         )
     };
-    let build = crate::jar_build::BuildOptions {
+    let build = jar_build::BuildOptions {
+        app_home: app_home.clone(),
+        cache_home: Some(inventory.cache_home.clone()),
         selection,
         cache_root,
         refresh: false,
@@ -607,7 +614,7 @@ fn acquire_platform_sources(
         artifact_sources: Vec::new(),
         require_portable_artifacts: false,
         error_action: ErrorAction::default(),
-        parallelism: crate::jar_build::Parallelism::Sequential,
+        parallelism: Parallelism::Sequential,
         wait_for_build_lock: false,
         mode: BuildMode::Build,
     };
@@ -622,7 +629,7 @@ fn acquire_platform_sources(
             eyre::bail!("catalog platform source is missing its locked source identity");
         };
         let tree = inventory.local_path(&provider.derived_checks.tree_cache_path)?;
-        crate::jar_build::engine::invoke_catalog_platform_source_output(
+        jar_build::engine::invoke_catalog_platform_source_output(
             &build,
             &tree,
             &identity,
@@ -635,7 +642,7 @@ fn acquire_platform_sources(
                 0,
             )
             .status()?
-                == crate::dependency_inventory::SourceStatus::Acquired,
+                == SourceStatus::Acquired,
             "catalog platform output differs from the exact locked source JAR or filetree"
         );
     } else {

@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use crate::worktree::get_sorted_worktrees;
 use eyre::Context;
 use eyre::bail;
@@ -19,8 +20,8 @@ impl PushArgs {
     /// # Errors
     ///
     /// Returns an error if any push fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let worktrees = get_sorted_worktrees()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let worktrees = get_sorted_worktrees(app_home)?;
 
         if worktrees.is_empty() {
             info!("No worktrees found.");

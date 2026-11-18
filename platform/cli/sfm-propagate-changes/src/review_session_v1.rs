@@ -1,5 +1,6 @@
 //! Frozen `sfm.review-session/1` model and pure conformance kernel.
 
+use crate::payload_fetcher;
 use eyre::Context;
 use eyre::eyre;
 use facet::Facet;
@@ -7,6 +8,7 @@ use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs::read_to_string;
 use std::path::Path;
 use std::path::PathBuf;
 use unicode_normalization::UnicodeNormalization;
@@ -735,11 +737,8 @@ impl SessionStoreV1 {
         let canonical = to_canonical_json(session)?;
         let reparsed = parse(&canonical)?;
         let _evaluations = evaluate_all(&reparsed)?;
-        crate::payload_fetcher::write_payload_atomically(&self.path, canonical.as_bytes())?;
-        crate::payload_fetcher::write_payload_atomically(
-            &self.last_valid_path,
-            canonical.as_bytes(),
-        )?;
+        payload_fetcher::write_payload_atomically(&self.path, canonical.as_bytes())?;
+        payload_fetcher::write_payload_atomically(&self.last_valid_path, canonical.as_bytes())?;
         Ok(())
     }
 
@@ -777,7 +776,7 @@ fn read_session(
     label: &str,
     diagnostics: &mut Vec<String>,
 ) -> Option<ReviewSessionV1> {
-    match std::fs::read_to_string(path)
+    match read_to_string(path)
         .wrap_err_with(|| format!("could not read {} session at {}", label, path.display()))
         .and_then(|input| parse(&input))
         .and_then(|session| evaluate_all(&session).map(|_| session))

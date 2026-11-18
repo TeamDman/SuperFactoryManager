@@ -1,4 +1,4 @@
-use super::SymbolWorkspaceArgs;
+use super::SymbolQueryWorkspaceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::java_analysis::DefinitionAtPositionEngine;
@@ -8,15 +8,19 @@ use crate::java_analysis::SymbolServerLimits;
 use crate::java_analysis::SymbolServerState;
 use crate::java_analysis::SymbolServerWorkspaceOutput;
 use crate::java_analysis::run_symbol_server_runtime;
+use crate::paths::AppHome;
 use facet::Facet;
 use std::io::Read;
+use std::io::Result as IoResult;
+use std::io::stdin;
+use std::io::stdout as io_stdout;
 use std::path::Path;
 use std::sync::Arc;
 
 #[derive(Facet, Debug)]
 pub struct SymbolServeArgs {
     #[facet(flatten)]
-    pub workspace: SymbolWorkspaceArgs,
+    pub workspace: SymbolQueryWorkspaceArgs,
 }
 
 impl SymbolServeArgs {
@@ -32,18 +36,17 @@ impl SymbolServeArgs {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        app_home: &AppHome,
     ) -> eyre::Result<CliOutput> {
-        let branch = self.workspace.branch.clone();
-        let workspace = self.workspace.resolve(invocation_dir)?;
+        let resolved = self.workspace.resolve(invocation_dir, app_home)?;
         let (dependencies, dependency_index, dependency_source_roots) =
             super::load_definition_at_position_dependencies(
-                &workspace,
-                &branch,
-                None,
+                &resolved,
                 cancellation_token,
+                app_home,
             )?;
         let served_workspace = SymbolServerWorkspaceOutput::from_workspace_with_dependency_sources(
-            &workspace,
+            &resolved.workspace,
             dependency_index
                 .as_ref()
                 .map(|index| index.expected_identity.clone()),
@@ -52,7 +55,7 @@ impl SymbolServeArgs {
         )?;
         let engine = Arc::new(
             DefinitionAtPositionEngine::new_with_dependency_source_roots(
-                workspace,
+                resolved.workspace,
                 dependencies,
                 dependency_index,
                 dependency_source_roots,
@@ -79,7 +82,7 @@ impl SymbolServeArgs {
             maximum_pending_definitions = limits.max_pending_definitions,
             "symbol server ready for handshake"
         );
-        let stdout = std::io::stdout();
+        let stdout = io_stdout();
         let mut writer = stdout.lock();
         let summary = run_symbol_server_runtime(
             SymbolServerStdin,
@@ -104,7 +107,7 @@ impl SymbolServeArgs {
 struct SymbolServerStdin;
 
 impl Read for SymbolServerStdin {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        std::io::stdin().lock().read(buf)
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        stdin().lock().read(buf)
     }
 }

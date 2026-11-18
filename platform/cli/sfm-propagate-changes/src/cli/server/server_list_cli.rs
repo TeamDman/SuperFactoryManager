@@ -1,4 +1,5 @@
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -18,8 +19,8 @@ impl ServerListArgs {
     /// # Errors
     ///
     /// Returns an error if tracked servers cannot be read or the branch query is invalid.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         let glob = self.glob.unwrap_or_else(|| "*".to_string());
-        super::server_cli::list_servers(&glob, self.branch)
+        super::server_cli::list_servers(&glob, self.branch, app_home)
     }
 }

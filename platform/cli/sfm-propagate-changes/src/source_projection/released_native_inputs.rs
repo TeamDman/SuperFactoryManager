@@ -19,6 +19,7 @@ use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::str::from_utf8;
 
 #[cfg(test)]
 const REVIEW: &str =
@@ -570,7 +571,7 @@ fn check_role_inputs(
             witness.sha256,
             actual
         );
-        std::str::from_utf8(bytes).wrap_err("released role input is not UTF-8")?;
+        from_utf8(bytes).wrap_err("released role input is not UTF-8")?;
         hashes.insert(witness.path.clone(), actual);
     }
     Ok(hashes)
@@ -587,7 +588,7 @@ fn parse_bound_lock(recipe: &ReviewedRecipe, bytes: &[u8]) -> Result<ArtifactLoc
         recipe.target
     );
     let ToolchainLockfileDocument::V2 { lockfile: lock, .. } =
-        parse_document(std::str::from_utf8(bytes).wrap_err("released lock is not UTF-8")?)?
+        parse_document(from_utf8(bytes).wrap_err("released lock is not UTF-8")?)?
     else {
         eyre::bail!("released adapter requires the exact reviewed schema-2 document");
     };
@@ -960,7 +961,7 @@ fn check_source_excludes(
             sha256(bytes) == format!("sha256:{}", witness.sha256),
             "source-exclusion hash mismatch"
         );
-        let patterns = std::str::from_utf8(bytes)?
+        let patterns = from_utf8(bytes)?
             .lines()
             .map(str::trim)
             .filter(|line| !line.is_empty() && !line.starts_with('#'))
@@ -1050,7 +1051,7 @@ fn exact_byte_requirements(lock: &ArtifactLockfileV2) -> Result<Vec<ReleasedExac
 
 fn properties_map(bytes: &[u8]) -> Result<BTreeMap<String, String>> {
     let mut properties = BTreeMap::new();
-    for line in std::str::from_utf8(bytes)?.lines().map(str::trim) {
+    for line in from_utf8(bytes)?.lines().map(str::trim) {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
@@ -1079,7 +1080,7 @@ fn dependency_script<'a>(
         paths.len() == 1,
         "dependency-script role is missing or ambiguous"
     );
-    Ok(std::str::from_utf8(&inputs[&paths[0].path])?)
+    Ok(from_utf8(&inputs[&paths[0].path])?)
 }
 
 fn check_gradle_line(text: &str, line: usize, configuration: &str, coordinate: &str) -> Result<()> {
@@ -1127,6 +1128,7 @@ mod tests {
     use super::*;
     use crate::source_projection::candidate_lock::checked_file;
     use crate::source_projection::core_slice_test_support::read_bounded;
+    use crate::source_projection::prepared_dependency_inputs::PreparedDependencyInputs;
     use std::path::Path;
 
     type Fixture = (Vec<u8>, BTreeMap<String, Vec<u8>>);
@@ -1487,8 +1489,6 @@ mod tests {
     #[test]
     #[ignore = "requires an explicitly supplied existing artifact; never acquires or rebuilds it"]
     fn exact_original_26_artifact_prepares_the_released_input_boundary() -> Result<()> {
-        use crate::source_projection::prepared_dependency_inputs::PreparedDependencyInputs;
-
         let artifact_path = std::env::var_os("SFM_EXACT_RELEASED_MEKANISM_26_JAR")
             .ok_or_else(|| eyre::eyre!("supply SFM_EXACT_RELEASED_MEKANISM_26_JAR explicitly"))?;
         let artifact_bytes = read_bounded(Path::new(&artifact_path), 16 * 1024 * 1024)?;

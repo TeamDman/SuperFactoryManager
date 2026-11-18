@@ -1,6 +1,8 @@
 use super::StatusAllArgs;
 use super::StatusDirtyArgs;
 use super::StatusSummaryArgs;
+use crate::git_read::is_merging as is_git_merge_in_progress;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
 use crate::terminal_output::stdout_prompt;
@@ -11,6 +13,7 @@ use eyre::Context;
 use eyre::bail;
 use facet::Facet;
 use figue as args;
+use std::io::stdin;
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::info;
@@ -18,7 +21,8 @@ use tracing::info;
 /// Get the git status for a worktree
 fn get_worktree_status(worktree: &Worktree, short: bool) -> eyre::Result<WorktreeStatus> {
     // Check if we're in a merge state
-    let is_merging = crate::git_read::is_merging(&worktree.path)?;
+
+    let is_merging = is_git_merge_in_progress(&worktree.path)?;
 
     // Get porcelain status for parsing
     let output = Command::new("git")
@@ -316,7 +320,7 @@ fn prompt_autocommit_generated(status: &WorktreeStatus) -> eyre::Result<bool> {
     stdout_prompt("Would you like to auto-commit these changes? [Y/n] ")?;
 
     let mut input = String::new();
-    std::io::stdin()
+    stdin()
         .read_line(&mut input)
         .wrap_err("Failed to read user input")?;
     let input = input.trim().to_lowercase();
@@ -370,8 +374,8 @@ impl GitStatusArgs {
     /// # Errors
     ///
     /// Returns an error if getting worktree status fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.unwrap_or_default().invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.unwrap_or_default().invoke(app_home)
     }
 }
 
@@ -397,17 +401,17 @@ impl StatusCommand {
     /// # Errors
     ///
     /// Returns an error if getting worktree status fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            StatusCommand::All(args) => args.invoke(),
-            StatusCommand::Dirty(args) => args.invoke(),
-            StatusCommand::Summary(args) => args.invoke(),
+            StatusCommand::All(args) => args.invoke(app_home),
+            StatusCommand::Dirty(args) => args.invoke(app_home),
+            StatusCommand::Summary(args) => args.invoke(app_home),
         }
     }
 }
 
-pub(super) fn run_all(short: bool) -> eyre::Result<()> {
-    let Some(worktrees) = nonempty_worktrees()? else {
+pub(super) fn run_all(short: bool, app_home: &AppHome) -> eyre::Result<()> {
+    let Some(worktrees) = nonempty_worktrees(app_home)? else {
         return Ok(());
     };
 
@@ -425,8 +429,8 @@ pub(super) fn run_all(short: bool) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn run_dirty(short: bool) -> eyre::Result<()> {
-    let Some(worktrees) = nonempty_worktrees()? else {
+pub(super) fn run_dirty(short: bool, app_home: &AppHome) -> eyre::Result<()> {
+    let Some(worktrees) = nonempty_worktrees(app_home)? else {
         return Ok(());
     };
 
@@ -464,8 +468,8 @@ pub(super) fn run_dirty(short: bool) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn run_summary() -> eyre::Result<()> {
-    let Some(worktrees) = nonempty_worktrees()? else {
+pub(super) fn run_summary(app_home: &AppHome) -> eyre::Result<()> {
+    let Some(worktrees) = nonempty_worktrees(app_home)? else {
         return Ok(());
     };
 
@@ -573,8 +577,8 @@ pub(super) fn run_summary() -> eyre::Result<()> {
     Ok(())
 }
 
-fn nonempty_worktrees() -> eyre::Result<Option<Vec<Worktree>>> {
-    let worktrees = get_sorted_worktrees()?;
+fn nonempty_worktrees(app_home: &AppHome) -> eyre::Result<Option<Vec<Worktree>>> {
+    let worktrees = get_sorted_worktrees(app_home)?;
 
     if worktrees.is_empty() {
         stdout_line("No worktrees found.")?;
@@ -589,6 +593,6 @@ fn nonempty_worktrees() -> eyre::Result<Option<Vec<Worktree>>> {
 /// # Errors
 ///
 /// Returns an error if getting worktree status fails.
-pub fn run() -> eyre::Result<()> {
-    StatusCommand::default().invoke()
+pub fn run(app_home: &AppHome) -> eyre::Result<()> {
+    StatusCommand::default().invoke(app_home)
 }

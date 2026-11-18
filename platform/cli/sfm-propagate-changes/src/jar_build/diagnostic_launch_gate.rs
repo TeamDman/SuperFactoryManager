@@ -11,16 +11,25 @@
 //! holds remain in scope while the handshake waits.
 use super::runtime_session_receipt::RuntimeSessionReceipt;
 use crate::cancellation::CancellationToken;
-use crate::source_projection::candidate_lock::{checked_directory, checked_file};
-use chrono::{DateTime, Utc};
-use eyre::{Context, ensure};
+use crate::source_projection::candidate_lock::checked_directory;
+use crate::source_projection::candidate_lock::checked_file;
+use chrono::DateTime;
+use chrono::Utc;
+use eyre::Context;
+use eyre::ensure;
 use facet::Facet;
-use std::fs::{self, OpenOptions};
+use std::fs::OpenOptions;
+use std::fs::{self};
+use std::io::ErrorKind;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::id as process_id;
+use std::thread::sleep;
+use std::time::Duration;
+use std::time::Instant;
 
-const WAIT_LIMIT: Duration = Duration::from_secs(300);
+const WAIT_LIMIT: Duration = Duration::from_mins(5);
 const POLL_INTERVAL: Duration = Duration::from_millis(25);
 const RESERVED: [&str; 6] = [
     "sfm-ready.json",
@@ -88,7 +97,7 @@ impl DiagnosticLaunchGate {
         let root = checked_directory(root)?;
         for name in RESERVED {
             ensure!(
-                matches!(fs::symlink_metadata(root.join(name)), Err(error) if error.kind() == std::io::ErrorKind::NotFound),
+                matches!(fs::symlink_metadata(root.join(name)), Err(error) if error.kind() == ErrorKind::NotFound),
                 "diagnostic gate directory must be fresh; {name} already exists or cannot be inspected"
             );
         }
@@ -102,7 +111,7 @@ impl DiagnosticLaunchGate {
                 token: token.clone(),
                 ready_utc: timestamp(now),
                 expires_utc: timestamp(now + chrono::Duration::seconds(300)),
-                owner_pid: std::process::id(),
+                owner_pid: process_id(),
                 owner_id: owner_id.to_owned(),
                 owner_lease: owner_lease.display().to_string(),
                 session_id: session_id.to_owned(),
@@ -144,7 +153,7 @@ impl DiagnosticLaunchGate {
                 );
                 break;
             }
-            std::thread::sleep(POLL_INTERVAL);
+            sleep(POLL_INTERVAL);
         }
         self.record_event("sfm-arm-ack.json", None, None, None)?;
         loop {
@@ -157,7 +166,7 @@ impl DiagnosticLaunchGate {
                 self.record_event("sfm-released.json", None, None, None)?;
                 return Ok(());
             }
-            std::thread::sleep(POLL_INTERVAL);
+            sleep(POLL_INTERVAL);
         }
     }
 
@@ -236,7 +245,7 @@ fn write_record<T: for<'a> Facet<'a>>(root: &Path, name: &str, record: &T) -> ey
 fn read_token(root: &Path, name: &str) -> eyre::Result<Option<String>> {
     let path = root.join(name);
     match fs::symlink_metadata(&path) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
         Err(error) => Err(error).wrap_err_with(|| format!("cannot inspect diagnostic gate {name}")),
         Ok(metadata) => {
             ensure!(

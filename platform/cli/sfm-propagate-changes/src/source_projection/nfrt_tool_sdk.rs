@@ -10,6 +10,7 @@ use crate::file_identity::file_identity;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
 use crate::jar_build::nfrt_preparation_phase::NfrtPreparationPhase;
 use crate::jdk::ResolvedJava;
+use crate::source_projection::provenance;
 use eyre::Result;
 use eyre::ensure;
 use sha2::Digest;
@@ -133,7 +134,7 @@ impl NfrtToolSdk {
         Ok(Self {
             executable: selected.executable.clone(),
             files,
-            identity: crate::source_projection::provenance::sha256(evidence.as_bytes()),
+            identity: provenance::sha256(evidence.as_bytes()),
             _ancestry: ancestry,
         })
     }

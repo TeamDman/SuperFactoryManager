@@ -14,7 +14,7 @@ pub(crate) enum NamedSourceOrigin {
 pub(crate) struct NamedSourceOutputReport {
     schema: String,
     scope: String,
-    preparation: crate::source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
+    preparation: source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
     dependency_origin: NamedSourceOrigin,
     #[facet(proxy = JsonPath)]
     sources_archive: PathBuf,
@@ -47,7 +47,7 @@ pub(crate) fn preflight_named_source_output_recipe(
 }
 
 pub(crate) fn validate_named_source_output_project(
-    project: &crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    project: &source_projection::frozen_recipe_project::FrozenRecipeProject,
 ) -> eyre::Result<()> {
     // This is intentionally a separate operation, not an exception to the
     // Compile/Jar-only generic build guard or a loader-dispatch workaround.
@@ -59,7 +59,7 @@ pub(crate) fn validate_named_source_output_project(
     )?;
     eyre::ensure!(
         project.project().receipt().environment
-            == crate::source_projection::projection_catalog::ProjectionEnvironment::Release,
+            == source_projection::projection_catalog::ProjectionEnvironment::Release,
         "released source view requires a released owner"
     );
     validate_first_named_compile(project)?;
@@ -67,7 +67,7 @@ pub(crate) fn validate_named_source_output_project(
 }
 
 pub(crate) fn invoke_named_source_outputs(
-    project: crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    project: source_projection::frozen_recipe_project::FrozenRecipeProject,
     options: &NamedCompileOptions,
     layout: SourceOutputLayout,
     cancellation: &CancellationToken,
@@ -88,6 +88,7 @@ pub(crate) fn invoke_named_source_outputs(
     };
     let owner = selected_named_cache_owner(options, &identity, cancellation)?;
     let planning = NativePlanningOptions {
+        cache_home: options.cache_home.clone(),
         output_name: None,
         derived_cache_root: owner,
         pinned_sdk: options.pinned_sdk.clone(),
@@ -179,7 +180,7 @@ fn named_source_output_report(
         );
     };
     let source_archive_sha256 = named_source_archive_sha256(context, sources)?;
-    let source_payload_sha256 = crate::source_archive::archive_payload_sha256(sources)?;
+    let source_payload_sha256 = archive_payload_sha256(sources)?;
     let output = match layout {
         SourceOutputLayout::Jar => sources.to_path_buf(),
         SourceOutputLayout::Filetree => {
@@ -228,7 +229,7 @@ fn named_source_archive_sha256(
         .file_name()
         .and_then(|s| s.to_str())
         .ok_or_else(|| eyre::eyre!("source archive has no filename"))?;
-    let checked = crate::source_projection::candidate_lock::checked_file(parent, leaf)?;
+    let checked = source_projection::candidate_lock::checked_file(parent, leaf)?;
     let mut file = fs::File::open(checked)?;
     let before = file.metadata()?;
     eyre::ensure!(

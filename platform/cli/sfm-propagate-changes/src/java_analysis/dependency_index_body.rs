@@ -11,9 +11,11 @@ use super::JavaSymbolUsageOutput;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
+use std::str::from_utf8;
 
 pub const DEPENDENCY_JAVA_SYMBOL_INDEX_BODY_SCHEMA: &str =
     "sfm.dependency-java-symbol-index-body/1";
@@ -127,15 +129,14 @@ where
     UsageFilter: Fn(JavaSymbolKind, &str, &str, Option<&str>, &str) -> bool,
 {
     const DIAGNOSTIC_LIMIT: usize = 256;
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     let mut line = Vec::new();
     if reader.read_until(b'\n', &mut line)? == 0 {
         eyre::bail!("dependency Java symbol stream is empty");
     }
     trim_line_ending(&mut line);
-    let header: DependencyJavaSymbolIndexStreamHeader =
-        facet_json::from_str(std::str::from_utf8(&line)?)?;
+    let header: DependencyJavaSymbolIndexStreamHeader = facet_json::from_str(from_utf8(&line)?)?;
     header.validate(expected_identity)?;
     let mut body = DependencyJavaSymbolIndexBody::new(Vec::new(), Vec::new(), Vec::new());
     let mut resolution = Vec::new();
@@ -156,7 +157,7 @@ where
         if line.is_empty() {
             continue;
         }
-        let line = std::str::from_utf8(&line)?;
+        let line = from_utf8(&line)?;
         let (record_kind, record) = line.split_once('\t').ok_or_else(|| {
             eyre::eyre!("dependency Java symbol stream line {line_index} has no record tag")
         })?;

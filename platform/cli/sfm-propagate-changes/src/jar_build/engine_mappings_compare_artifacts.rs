@@ -1,3 +1,7 @@
+#[path = "source_build_checkout.rs"]
+mod source_build_checkout;
+use source_build_checkout::SourceBuildCheckout;
+
 #[derive(Clone, Debug)]
 struct MojangMethodMapping {
     official_name: String,
@@ -1046,12 +1050,15 @@ fn write_artifact_lockfile_with_extra_cache_paths(
     plan: &BuildPlan,
     extra_cache_paths: &[PathBuf],
 ) -> eyre::Result<()> {
-    if plan.identity.is_catalog_owned() { plan.recheck_named_inputs()?; return Ok(()); }
-    if let Ok(input) = std::fs::read_to_string(&plan.lockfile_path)
+    if plan.identity.is_catalog_owned() {
+        plan.recheck_named_inputs()?;
+        return Ok(());
+    }
+    if let Ok(input) = fs::read_to_string(&plan.lockfile_path)
         && matches!(
-            crate::toolchain_lockfile_schema::parse_document(&input),
-            Ok(crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(_)
-                | crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(_))
+            toolchain_lockfile_schema::parse_document(&input),
+            Ok(toolchain_lockfile_schema::ToolchainLockfileDocument::V3(_)
+                | toolchain_lockfile_schema::ToolchainLockfileDocument::V4(_))
         )
     {
         if !plan.refresh {
@@ -1063,11 +1070,11 @@ fn write_artifact_lockfile_with_extra_cache_paths(
         }
         let resolved = build_artifact_lockfile(plan, extra_cache_paths)?;
         let output = refresh_maintained_lockfile_document(&input, &resolved)?;
-        let artifact_count = match crate::toolchain_lockfile_schema::parse_document(&output)? {
-            crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(lockfile) => {
+        let artifact_count = match toolchain_lockfile_schema::parse_document(&output)? {
+            toolchain_lockfile_schema::ToolchainLockfileDocument::V3(lockfile) => {
                 lockfile.artifacts.len()
             }
-            crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => {
+            toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => {
                 lockfile.artifacts.len()
             }
             _ => unreachable!("refresh helper only emits maintained v3/v4 documents"),
@@ -1102,13 +1109,13 @@ fn refresh_maintained_lockfile_document(
     input: &str,
     resolved: &ArtifactLockfile,
 ) -> eyre::Result<String> {
-    match crate::toolchain_lockfile_schema::parse_document(input)? {
-        crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(lockfile) => {
-            lockfile.refresh_resolved_artifacts(resolved)?.to_canonical_json()
-        }
-        crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => {
-            lockfile.refresh_resolved_artifacts(resolved)?.to_canonical_json()
-        }
+    match toolchain_lockfile_schema::parse_document(input)? {
+        toolchain_lockfile_schema::ToolchainLockfileDocument::V3(lockfile) => lockfile
+            .refresh_resolved_artifacts(resolved)?
+            .to_canonical_json(),
+        toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => lockfile
+            .refresh_resolved_artifacts(resolved)?
+            .to_canonical_json(),
         _ => Err(eyre::eyre!(
             "artifact refresh requires schema version 3 or 4; migrate the lockfile first"
         )),
@@ -1131,7 +1138,10 @@ fn build_artifact_lockfile(
     plan: &BuildPlan,
     extra_cache_paths: &[PathBuf],
 ) -> eyre::Result<ArtifactLockfile> {
-    eyre::ensure!(!plan.identity.is_catalog_owned(), "immutable catalog project cannot enter an artifact lock writer");
+    eyre::ensure!(
+        !plan.identity.is_catalog_owned(),
+        "immutable catalog project cannot enter an artifact lock writer"
+    );
     let mut artifacts = Vec::new();
     let mut entries = Vec::new();
     if let Some(existing_lockfile) = &plan.lockfile {
@@ -1229,7 +1239,7 @@ fn build_artifact_lockfile(
     });
 
     Ok(ArtifactLockfile {
-        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        schema_version: toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
         minecraft_version: plan.minecraft_version.to_string(),
         maven_cache_dir: portable_cache_path(plan, &plan.maven_cache_dir),
         allow_local_artifact_cache: plan.allow_local_artifact_cache,
@@ -1466,10 +1476,10 @@ fn read_optional_artifact_lockfile(
     }
     let content =
         fs::read_to_string(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    let lockfile = match crate::toolchain_lockfile_schema::upgrade_to_latest(&content) {
+    let lockfile = match toolchain_lockfile_schema::upgrade_to_latest(&content) {
         Ok(lockfile) => lockfile,
         Err(legacy_error) => {
-            let current = crate::toolchain_lockfile_schema::read_current(&content).map_err(
+            let current = toolchain_lockfile_schema::read_current(&content).map_err(
                 |current_error| {
                     eyre::eyre!(
                         "legacy lockfile parse failed: {legacy_error}; current lockfile parse failed: {current_error}"
@@ -1491,7 +1501,7 @@ fn read_optional_artifact_lockfile(
 }
 
 fn project_current_lockfile_for_audit(
-    lockfile: crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+    lockfile: toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
     minecraft_version: &str,
 ) -> ArtifactLockfile {
     let repositories = lockfile
@@ -1513,7 +1523,7 @@ fn project_current_lockfile_for_audit(
                     .clone()
                     .unwrap_or_else(|| component.id.clone());
                 let source = match component.declaration.acquisition {
-                    crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3::CurseForge(
+                    toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3::CurseForge(
                         _,
                     ) => DependencySource::CurseMaven,
                     _ => DependencySource::Maven,
@@ -1534,16 +1544,16 @@ fn project_current_lockfile_for_audit(
         .into_iter()
         .map(|artifact| {
             let source = match artifact.provenance {
-                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven => {
+                toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven => {
                     ArtifactSource::RemoteMaven
                 }
-                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp => {
+                toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp => {
                     ArtifactSource::RemoteHttp
                 }
-                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::SourceBuild => {
+                toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::SourceBuild => {
                     ArtifactSource::SourceBuild
                 }
-                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::ToolchainGenerated => {
+                toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::ToolchainGenerated => {
                     ArtifactSource::ExistingSfmCacheUnknown
                 }
             };
@@ -1573,7 +1583,7 @@ fn project_current_lockfile_for_audit(
         .collect();
 
     ArtifactLockfile {
-        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        schema_version: toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
         minecraft_version: minecraft_version.to_string(),
         maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
         allow_local_artifact_cache: lockfile.policy.allow_local_artifact_cache,
@@ -1741,18 +1751,7 @@ fn rust_output_jar_path(
 fn read_properties(path: &Path) -> eyre::Result<BTreeMap<String, String>> {
     let content = fs::read_to_string(path)
         .wrap_err_with(|| format!("Failed to read properties file: {}", path.display()))?;
-    let mut properties = BTreeMap::new();
-
-    for line in content.lines().map(str::trim) {
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        if let Some((key, value)) = line.split_once('=') {
-            properties.insert(key.trim().to_string(), value.trim().to_string());
-        }
-    }
-
-    Ok(properties)
+    native_packaging_properties(content.as_bytes())
 }
 
 fn required_property<'a>(
@@ -1799,10 +1798,10 @@ fn source_git_provenance(path: &Path) -> Option<SourceGitProvenance> {
     let repository = gix::discover(working_dir).ok()?;
     let root = repository.workdir()?.to_path_buf();
     let commit = repository.head_id().ok()?.to_string();
-    let branch = repository.head_name().ok()?.map_or_else(
-        || "HEAD".to_owned(),
-        |name| name.shorten().to_string(),
-    );
+    let branch = repository
+        .head_name()
+        .ok()?
+        .map_or_else(|| "HEAD".to_owned(), |name| name.shorten().to_string());
     let status = git_stdout(&root, ["status", "--porcelain"])?;
     let remote_url = git_stdout(&root, ["remote", "get-url", "origin"]);
     Some(SourceGitProvenance {
@@ -1873,7 +1872,8 @@ fn source_build_provenance(
     let coordinate = coordinate.and_then(|coordinate| MavenCoordinate::parse(coordinate).ok())?;
     let has_gradle_wrapper =
         source_git.root.join("gradlew").is_file() || source_git.root.join("gradlew.bat").is_file();
-    if !has_gradle_wrapper && is_vox_java_cargo_source(&source_git.root, &coordinate, source_relative_path)
+    if !has_gradle_wrapper
+        && is_vox_java_cargo_source(&source_git.root, &coordinate, source_relative_path)
     {
         return Some(SourceBuildProvenance {
             build_system: SourceBuildSystem::CargoCommand,
@@ -1913,7 +1913,11 @@ fn is_vox_java_cargo_source(
     coordinate.group == "org.facet"
         && coordinate.artifact == "vox-java"
         && source_root.join("Cargo.toml").is_file()
-        && source_root.join("vox").join("xtask").join("Cargo.toml").is_file()
+        && source_root
+            .join("vox")
+            .join("xtask")
+            .join("Cargo.toml")
+            .is_file()
         && source_relative_path
             == Path::new("vox")
                 .join("java")
@@ -1958,37 +1962,37 @@ fn source_build_checkout_key(remote_url: &str, commit: &str) -> String {
 /// checkout's generated Java class paths fail even when long-path support is
 /// enabled. Other platforms retain the normal temp-directory behavior.
 fn source_build_root() -> PathBuf {
-    if let Some(root) = std::env::var_os("SFM_SOURCE_BUILD_ROOT")
+    if let Some(root) = env::var_os("SFM_SOURCE_BUILD_ROOT")
         && !root.is_empty()
     {
         return PathBuf::from(root);
     }
 
     #[cfg(windows)]
-    if let Some(system_drive) = std::env::var_os("SystemDrive") {
+    if let Some(system_drive) = env::var_os("SystemDrive") {
         let drive = system_drive.to_string_lossy();
-        let short_root = PathBuf::from(format!(
-            r"{}\tmp",
-            drive.trim_end_matches(['\\', '/'])
-        ));
+        let short_root = PathBuf::from(format!(r"{}\tmp", drive.trim_end_matches(['\\', '/'])));
         if short_root.is_dir() {
             return short_root;
         }
     }
 
-    std::env::temp_dir()
+    env::temp_dir()
 }
 
 fn materialize_source_build(
     cancellation_token: &CancellationToken,
-    remote_url: &str,
-    commit: &str,
+    checkout: SourceBuildCheckout<'_>,
     coordinate: &MavenCoordinate,
     cache_dir: &Path,
     source_build: &SourceBuildProvenance,
-    checkout_dir: &Path,
-    repository_dir: &Path,
 ) -> eyre::Result<()> {
+    let SourceBuildCheckout {
+        remote_url,
+        commit,
+        checkout_dir,
+        repository_dir,
+    } = checkout;
     super::vox_producer_contract::require_dispatch(
         &coordinate.to_string(),
         &source_build.environment,
@@ -2006,13 +2010,10 @@ fn materialize_source_build(
         ),
         SourceBuildSystem::CargoCommand => materialize_cargo_source_build(
             cancellation_token,
-            remote_url,
-            commit,
+            checkout,
             coordinate,
             cache_dir,
             source_build,
-            checkout_dir,
-            repository_dir,
         ),
     }
 }
@@ -2039,13 +2040,15 @@ fn protected_vox_gradle_dispatch_refuses_before_checkout_or_sdk_effects() -> eyr
         };
         let error = materialize_source_build(
             &cancellation,
-            super::vox_producer_contract::REMOTE,
-            super::vox_producer_contract::COMMIT,
+            SourceBuildCheckout {
+                remote_url: super::vox_producer_contract::REMOTE,
+                commit: super::vox_producer_contract::COMMIT,
+                checkout_dir: &root.path().join("checkout"),
+                repository_dir: &root.path().join("repository"),
+            },
             &coordinate,
             &root.path().join("cache"),
             &source,
-            &root.path().join("checkout"),
-            &root.path().join("repository"),
         )
         .expect_err("a protected Vox recipe cannot dispatch to Gradle");
         assert!(
@@ -2060,14 +2063,17 @@ fn protected_vox_gradle_dispatch_refuses_before_checkout_or_sdk_effects() -> eyr
 
 fn materialize_cargo_source_build(
     cancellation_token: &CancellationToken,
-    remote_url: &str,
-    commit: &str,
+    checkout: SourceBuildCheckout<'_>,
     coordinate: &MavenCoordinate,
     cache_dir: &Path,
     source_build: &SourceBuildProvenance,
-    checkout_dir: &Path,
-    repository_dir: &Path,
 ) -> eyre::Result<()> {
+    let SourceBuildCheckout {
+        remote_url,
+        commit,
+        checkout_dir,
+        repository_dir,
+    } = checkout;
     cancellation_token.bail_if_cancelled()?;
     if source_build.tasks.is_empty() {
         eyre::bail!("Source build for {remote_url}@{commit} has no Cargo command");
@@ -2085,11 +2091,11 @@ fn materialize_cargo_source_build(
     } else {
         super::java_trust::JavaTrust::from_environment()?
     };
-    if let Some(prepared) = &prepared_sdk {
+    if prepared_sdk.is_some() {
         // The pinned Vox xtask has no explicit per-tool trust mechanism.
         // Refuse before this function materializes a checkout or acquires/probes
         // an SDK. Do not send ignored variables or a stderr-producing JTO.
-        prepared.require_trust_support(trust.is_some())?;
+        super::cargo_source_jdk::PreparedSdk::require_trust_support(trust.is_some())?;
     }
     prepare_source_build_checkout(
         cancellation_token,
@@ -2303,7 +2309,7 @@ fn prepare_source_build_checkout(
     checkout_dir: &Path,
     repository_dir: &Path,
 ) -> eyre::Result<()> {
-    crate::source_git::materialize_source_build_checkout(
+    materialize_source_build_checkout(
         remote_url,
         repository_dir,
         commit,
@@ -2324,7 +2330,7 @@ fn gradle_wrapper_path(checkout_dir: &Path) -> eyre::Result<PathBuf> {
             checkout_dir.display(),
             wrapper
                 .file_name()
-                .and_then(std::ffi::OsStr::to_str)
+                .and_then(OsStr::to_str)
                 .unwrap_or("gradlew")
         );
     }
@@ -2389,7 +2395,7 @@ fn source_relative_path(
 fn artifact_provenance_path(path: &Path) -> eyre::Result<PathBuf> {
     let file_name = path
         .file_name()
-        .and_then(std::ffi::OsStr::to_str)
+        .and_then(OsStr::to_str)
         .ok_or_else(|| eyre::eyre!("Path has no filename: {}", path.display()))?;
     Ok(path.with_file_name(format!("{file_name}.sfm-provenance.json")))
 }
@@ -2417,7 +2423,7 @@ fn write_artifact_provenance(path: &Path, provenance: &ArtifactProvenance) -> ey
     if fs::read(&provenance_path).is_ok_and(|existing| existing.as_slice() == content.as_bytes()) {
         return Ok(());
     }
-    crate::payload_fetcher::write_payload_atomically(&provenance_path, content.as_bytes())
+    payload_fetcher::write_payload_atomically(&provenance_path, content.as_bytes())
         .wrap_err_with(|| format!("Failed to write {}", provenance_path.display()))
 }
 
@@ -2767,7 +2773,7 @@ fn remove_bad_artifacts_for(path: &Path) -> eyre::Result<()> {
         let entry_path = entry.path();
         let is_bad_artifact = entry_path
             .file_name()
-            .and_then(std::ffi::OsStr::to_str)
+            .and_then(OsStr::to_str)
             .is_some_and(|name| name.starts_with(&bad_prefix));
         if is_bad_artifact {
             fs::remove_file(&entry_path)
@@ -2796,7 +2802,7 @@ fn write_unique_temp_file(path: &Path, bytes: &[u8]) -> eyre::Result<PathBuf> {
                     .wrap_err_with(|| format!("Failed to sync {}", temporary_path.display()))?;
                 return Ok(temporary_path);
             }
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
             Err(error) => {
                 return Err(error)
                     .wrap_err_with(|| format!("Failed to create {}", temporary_path.display()));
@@ -2839,7 +2845,7 @@ fn unique_sibling_path(path: &Path, kind: &str) -> eyre::Result<PathBuf> {
     let file_name = artifact_file_name(path)?;
     Ok(path.with_file_name(format!(
         "{file_name}.{kind}.{}.{}",
-        std::process::id(),
+        process_id(),
         unique_file_nonce()
     )))
 }
@@ -2853,7 +2859,7 @@ fn unique_file_nonce() -> u128 {
 
 fn artifact_file_name(path: &Path) -> eyre::Result<&str> {
     path.file_name()
-        .and_then(std::ffi::OsStr::to_str)
+        .and_then(OsStr::to_str)
         .ok_or_else(|| eyre::eyre!("Path has no filename: {}", path.display()))
 }
 

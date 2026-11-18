@@ -4,6 +4,8 @@ use crate::jar_build::ArtifactAuditCommand;
 use crate::jar_build::ArtifactAuditOptions;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -33,9 +35,15 @@ pub struct JarArtifactAuditArgs {
 }
 
 impl JarArtifactAuditArgs {
-    pub(crate) fn into_options(self) -> eyre::Result<ArtifactAuditOptions> {
+    pub(crate) fn into_options(
+        self,
+        app_home: &AppHome,
+        cache_home: &CacheHome,
+    ) -> eyre::Result<ArtifactAuditOptions> {
         Ok(ArtifactAuditOptions {
-            branch: self.branch.into_query()?,
+            app_home: app_home.clone(),
+            cache_home: cache_home.clone(),
+            branch: self.branch.into_query(app_home)?,
             report_json: self.report_json,
             require_portable_artifacts: self.require_portable_artifacts,
             error_action: self.error_action,
@@ -46,7 +54,13 @@ impl JarArtifactAuditArgs {
     /// # Errors
     ///
     /// Returns an error if locked artifact cache/source provenance fails verification.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        ArtifactAuditCommand::new(self.into_options()?, cancellation_token).invoke()
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        app_home: &AppHome,
+        cache_home: &CacheHome,
+    ) -> eyre::Result<()> {
+        ArtifactAuditCommand::new(self.into_options(app_home, cache_home)?, cancellation_token)
+            .invoke()
     }
 }

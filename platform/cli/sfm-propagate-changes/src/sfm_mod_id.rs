@@ -14,6 +14,14 @@ impl SfmModId {
     pub const VALUE: &'static str = "sfm";
 }
 
+impl TryFrom<SfmModId> for ModId {
+    type Error = eyre::Report;
+
+    fn try_from(_: SfmModId) -> Result<Self> {
+        Self::parse(SfmModId::VALUE)
+    }
+}
+
 impl TryFrom<&ModId> for SfmModId {
     type Error = eyre::Report;
 
@@ -38,7 +46,8 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModId>(), 0);
-        let value: ModId = SfmModId.into();
+        let value: Result<ModId> = SfmModId.try_into();
+        let value = value?;
         assert_eq!(value.as_str(), SfmModId::VALUE);
         assert_eq!(value, ModId::parse(SfmModId::VALUE)?);
         assert_eq!(SfmModId::try_from(&value)?, SfmModId);

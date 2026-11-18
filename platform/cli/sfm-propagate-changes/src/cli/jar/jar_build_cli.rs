@@ -1,8 +1,10 @@
 use super::JarBuildOptionsArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::jar_build::BuildCommand;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -19,8 +21,12 @@ pub struct JarBuildArgs {
 }
 
 impl JarBuildArgs {
-    pub(crate) fn into_options(self, mode: BuildMode) -> eyre::Result<BuildOptions> {
-        let mut options = self.options.into_options(mode)?;
+    pub(crate) fn into_options(
+        self,
+        mode: BuildMode,
+        app_home: &AppHome,
+    ) -> eyre::Result<BuildOptions> {
+        let mut options = self.options.into_options(mode, app_home)?;
         options.output_name = self.output_name;
         Ok(options)
     }
@@ -28,7 +34,13 @@ impl JarBuildArgs {
     /// # Errors
     ///
     /// Returns an error if planning fails or an unsupported build node is reached.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        BuildCommand::new(self.into_options(BuildMode::Build)?, cancellation_token).invoke()
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let mut options = self.into_options(BuildMode::Build, homes.app_home())?;
+        options.cache_home = homes.available_cache_home().cloned();
+        BuildCommand::new(options, cancellation_token).invoke()
     }
 }

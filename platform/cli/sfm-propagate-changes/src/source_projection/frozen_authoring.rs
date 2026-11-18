@@ -29,11 +29,16 @@ use super::sync::ProjectedArtifact;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
+use gix::hash::ObjectId;
+use gix::objs::Kind;
+use gix::open::Options;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const MAX_SOURCE_BLOB_BYTES: usize = 128 * 1024 * 1024;
 
@@ -342,7 +347,7 @@ fn root_child(repo_root: &Path, input_root: &Path, relative: &str) -> Result<Str
     let suffix = suffix
         .components()
         .map(|part| match part {
-            std::path::Component::Normal(name) => name
+            Component::Normal(name) => name
                 .to_str()
                 .map(str::to_owned)
                 .ok_or_else(|| eyre::eyre!("selected input root is not UTF-8")),
@@ -559,10 +564,10 @@ fn read_tree_index(root: &Path, commit: &str) -> Result<BTreeMap<String, GitTree
     ensure!(is_lower_hex(commit, 40), "invalid authored Git commit ID");
     let repository = gix::open_opts(
         root,
-        gix::open::Options::isolated().config_overrides(["gitoxide.objects.noReplace=true"]),
+        Options::isolated().config_overrides(["gitoxide.objects.noReplace=true"]),
     )?;
     let tree = repository
-        .find_commit(gix::hash::ObjectId::from_hex(commit.as_bytes())?)?
+        .find_commit(ObjectId::from_hex(commit.as_bytes())?)?
         .tree()?;
     let mut entries = BTreeMap::new();
     let Some(selected) = tree.lookup_entry_by_path("platform/minecraft")? else {
@@ -572,7 +577,7 @@ fn read_tree_index(root: &Path, commit: &str) -> Result<BTreeMap<String, GitTree
     while let Some((prefix, id)) = pending.pop() {
         for entry in repository.find_tree(id)?.iter() {
             let entry = entry?;
-            let path = format!("{prefix}/{}", std::str::from_utf8(entry.filename())?);
+            let path = format!("{prefix}/{}", from_utf8(entry.filename())?);
             let mode = u32::from(entry.mode().value());
             if mode == 0o040_000 {
                 pending.push((path, entry.object_id()));
@@ -598,7 +603,7 @@ fn read_tree_index(root: &Path, commit: &str) -> Result<BTreeMap<String, GitTree
 fn read_git_blobs(root: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<String, Vec<u8>>> {
     let repository = gix::open_opts(
         root,
-        gix::open::Options::isolated().config_overrides([
+        Options::isolated().config_overrides([
             "gitoxide.objects.noReplace=true",
             "gitoxide.objects.allocLimit=134217728",
         ]),
@@ -606,10 +611,10 @@ fn read_git_blobs(root: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<Strin
     let mut blobs = BTreeMap::new();
     for oid in oids {
         ensure!(is_lower_hex(oid, 40), "invalid authored Git blob ID");
-        let id = gix::hash::ObjectId::from_hex(oid.as_bytes())?;
+        let id = ObjectId::from_hex(oid.as_bytes())?;
         let header = repository.find_header(id)?;
         ensure!(
-            header.kind() == gix::objs::Kind::Blob,
+            header.kind() == Kind::Blob,
             "authored Git object is not a blob"
         );
         ensure!(

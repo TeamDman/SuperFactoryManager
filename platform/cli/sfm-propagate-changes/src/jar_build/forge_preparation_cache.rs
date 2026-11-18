@@ -2,6 +2,11 @@
 //! Project namespaces, source checks and runtime/JAR consumers remain unchanged.
 //! Entries are immutable once recorded. Incomplete/damaged entries are retained;
 //! a later successful production gets another bounded entry, never an overwrite.
+
+use std::fmt;
+use std::io::Error as IoError;
+use std::io::ErrorKind;
+use std::path::Component;
 #[path = "held_forge_at_transport.rs"]
 mod at_transport;
 #[path = "held_forge_preparation_outputs.rs"]
@@ -97,12 +102,11 @@ impl HeldDependencyRemapJar {
     }
 }
 
-impl std::fmt::Debug for HeldDependencyRemapJar {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("HeldDependencyRemapJar")
+impl fmt::Debug for HeldDependencyRemapJar {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HeldDependencyRemapJar")
             .field("path", &self.path)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -195,12 +199,11 @@ fn hold_shared_preparation(
     Ok(None)
 }
 
-impl std::fmt::Debug for HeldForgeDevJar {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("HeldForgeDevJar")
+impl fmt::Debug for HeldForgeDevJar {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HeldForgeDevJar")
             .field("path", &self.path)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -855,7 +858,7 @@ pub(super) fn publish_entry(
         entries.iter().try_fold(0_usize, |count, entry| {
             match fs::symlink_metadata(entry.join("inputs.sha256")) {
                 Ok(_) => Ok(count + 1),
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(count),
+                Err(error) if error.kind() == ErrorKind::NotFound => Ok(count),
                 Err(error) => Err(error),
             }
         })?;
@@ -911,10 +914,9 @@ fn make_directory(path: &Path) -> eyre::Result<PathBuf> {
 pub(super) fn make_held_directory(path: &Path) -> eyre::Result<Option<(PathBuf, DirectoryLeases)>> {
     eyre::ensure!(
         path.is_absolute()
-            && !path.components().any(|c| matches!(
-                c,
-                std::path::Component::CurDir | std::path::Component::ParentDir
-            )),
+            && !path
+                .components()
+                .any(|c| matches!(c, Component::CurDir | Component::ParentDir)),
         "Unsafe preparation directory"
     );
     if path.ancestors().count() > MAX_DIRECTORY_LEASES {
@@ -939,7 +941,7 @@ pub(super) fn make_held_directory(path: &Path) -> eyre::Result<Option<(PathBuf, 
     for directory in missing.into_iter().rev() {
         match fs::create_dir(&directory) {
             Ok(()) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
             Err(error) => return Err(error.into()),
         }
         if ancestry
@@ -988,7 +990,7 @@ fn copy_or_compare(
             !relative.as_os_str().is_empty()
                 && relative
                     .components()
-                    .all(|part| matches!(part, std::path::Component::Normal(_))),
+                    .all(|part| matches!(part, Component::Normal(_))),
             "Unsafe materialization destination"
         );
     }
@@ -1019,8 +1021,8 @@ fn outputs_current(
         Ok(None) => return Ok(false),
         Err(error)
             if error
-                .downcast_ref::<std::io::Error>()
-                .is_some_and(|error| error.kind() == std::io::ErrorKind::NotFound) =>
+                .downcast_ref::<IoError>()
+                .is_some_and(|error| error.kind() == ErrorKind::NotFound) =>
         {
             return Ok(false);
         }

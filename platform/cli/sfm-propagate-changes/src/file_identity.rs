@@ -6,7 +6,13 @@
 use eyre::Result;
 #[cfg(windows)]
 use eyre::WrapErr as _;
+#[cfg(windows)]
+use std::ffi::c_void;
 use std::fs;
+#[cfg(windows)]
+use std::io::Error as IoError;
+#[cfg(windows)]
+use std::ptr::from_mut;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct FileIdentity {
@@ -44,9 +50,9 @@ const FILE_ID_INFORMATION_CLASS: i32 = 18;
 unsafe extern "system" {
     #[link_name = "GetFileInformationByHandleEx"]
     fn get_file_information_by_handle_ex(
-        file: *mut std::ffi::c_void,
+        file: *mut c_void,
         information_class: i32,
-        information: *mut std::ffi::c_void,
+        information: *mut c_void,
         buffer_bytes: u32,
     ) -> i32;
 }
@@ -59,7 +65,7 @@ pub(crate) fn file_identity(file: &fs::File) -> Result<FileIdentity> {
         volume_serial_number: 0,
         file_id: [0; 16],
     };
-    let buffer_bytes = u32::try_from(std::mem::size_of::<WinFileIdInformation>())?;
+    let buffer_bytes = u32::try_from(size_of::<WinFileIdInformation>())?;
     // SAFETY: `file` owns a valid handle. The initialized writable output has
     // the FILE_ID_INFO layout and the supplied size covers the whole buffer.
     // Ownership stays with `file`; this query does not retain or close it.
@@ -67,12 +73,12 @@ pub(crate) fn file_identity(file: &fs::File) -> Result<FileIdentity> {
         get_file_information_by_handle_ex(
             file.as_raw_handle(),
             FILE_ID_INFORMATION_CLASS,
-            std::ptr::from_mut(&mut information).cast(),
+            from_mut(&mut information).cast(),
             buffer_bytes,
         )
     };
     if success == 0 {
-        return Err(std::io::Error::last_os_error())
+        return Err(IoError::last_os_error())
             .wrap_err("could not identify opened file with 128-bit FileIdInfo");
     }
     Ok(FileIdentity {

@@ -1,11 +1,13 @@
 use super::startup_arguments::StartupArguments;
 use super::startup_event_visitor::StartupEventVisitor;
 use super::startup_log_record::StartupLogRecord;
+use std::fmt;
 use tracing::Event;
 use tracing::Subscriber;
 use tracing_subscriber::fmt::FmtContext;
 use tracing_subscriber::fmt::FormatEvent;
 use tracing_subscriber::fmt::FormatFields;
+use tracing_subscriber::fmt::format;
 use tracing_subscriber::fmt::format::Format;
 use tracing_subscriber::fmt::format::Json;
 use tracing_subscriber::fmt::format::Writer;
@@ -20,7 +22,7 @@ pub(crate) struct StartupJsonFormatter {
 impl StartupJsonFormatter {
     pub(crate) fn new(include_target: bool) -> Self {
         Self {
-            fallback: tracing_subscriber::fmt::format()
+            fallback: format()
                 .json()
                 .with_file(true)
                 .with_line_number(true)
@@ -39,18 +41,18 @@ where
         ctx: &FmtContext<'_, S, N>,
         mut writer: Writer<'_>,
         event: &Event<'_>,
-    ) -> std::fmt::Result {
+    ) -> fmt::Result {
         if event.metadata().target() != super::TARGET {
             return self.fallback.format_event(ctx, writer, event);
         }
         let mut visitor = StartupEventVisitor::default();
         event.record(&mut visitor);
         let Some(encoded) = visitor.encoded else {
-            return Err(std::fmt::Error);
+            return Err(fmt::Error);
         };
         // Decode through Facet rather than splicing unchecked JSON into an event.
         let fields: StartupArguments =
-            facet_json::from_str(&encoded).map_err(|_redacted_encoding_error| std::fmt::Error)?;
+            facet_json::from_str(&encoded).map_err(|_redacted_encoding_error| fmt::Error)?;
         let record = StartupLogRecord {
             timestamp: chrono::Utc::now().to_rfc3339(),
             level: event.metadata().level().to_string(),
@@ -60,7 +62,7 @@ where
             line_number: event.metadata().line(),
         };
         let encoded =
-            facet_json::to_string(&record).map_err(|_redacted_encoding_error| std::fmt::Error)?;
+            facet_json::to_string(&record).map_err(|_redacted_encoding_error| fmt::Error)?;
         writeln!(writer, "{encoded}")
     }
 }

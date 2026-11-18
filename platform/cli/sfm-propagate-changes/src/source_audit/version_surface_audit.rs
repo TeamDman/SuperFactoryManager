@@ -1,10 +1,13 @@
 use crate::branch_targets::WorktreeTarget;
 use eyre::Context;
 use gix::bstr::ByteSlice;
+use gix::diff;
+use gix::hash;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt;
 use std::path::Path;
 
 const BASELINE_BRANCH: &str = "1.19.2";
@@ -70,8 +73,8 @@ pub struct ChangedLineRange {
     count: usize,
 }
 
-impl std::fmt::Display for ChangedLineRange {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for ChangedLineRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.count == 0 {
             write!(f, "{} (empty)", self.start)
         } else {
@@ -158,8 +161,8 @@ fn audit_branch(
 
 fn cli_source_matches_baseline(
     repository: &gix::Repository,
-    baseline: gix::hash::ObjectId,
-    target: gix::hash::ObjectId,
+    baseline: hash::ObjectId,
+    target: hash::ObjectId,
 ) -> eyre::Result<bool> {
     Ok(
         tree_path_id_without_cache(repository, baseline, CLI_SOURCE_ROOT)?
@@ -169,8 +172,8 @@ fn cli_source_matches_baseline(
 
 fn later_branch_cli_commits(
     repository: &gix::Repository,
-    baseline: gix::hash::ObjectId,
-    target: gix::hash::ObjectId,
+    baseline: hash::ObjectId,
+    target: hash::ObjectId,
 ) -> eyre::Result<Vec<LaterBranchCliCommit>> {
     let baseline_commits = reachable_commit_ids(repository, baseline)?;
     let mut cli_tree_ids = HashMap::new();
@@ -203,8 +206,8 @@ fn later_branch_cli_commits(
 
 fn unbounded_java_changes(
     repository: &gix::Repository,
-    baseline: gix::hash::ObjectId,
-    target: gix::hash::ObjectId,
+    baseline: hash::ObjectId,
+    target: hash::ObjectId,
 ) -> eyre::Result<Vec<UnboundedJavaChange>> {
     let baseline_files = java_blob_ids(repository, baseline)?;
     let target_files = java_blob_ids(repository, target)?;
@@ -253,10 +256,7 @@ fn unbounded_java_changes(
     Ok(changes)
 }
 
-fn branch_commit_id(
-    repository: &gix::Repository,
-    branch: &str,
-) -> eyre::Result<gix::hash::ObjectId> {
+fn branch_commit_id(repository: &gix::Repository, branch: &str) -> eyre::Result<hash::ObjectId> {
     let reference = format!("refs/heads/{branch}");
     let commit = repository
         .find_reference(&reference)
@@ -268,8 +268,8 @@ fn branch_commit_id(
 
 fn reachable_commit_ids(
     repository: &gix::Repository,
-    start: gix::hash::ObjectId,
-) -> eyre::Result<HashSet<gix::hash::ObjectId>> {
+    start: hash::ObjectId,
+) -> eyre::Result<HashSet<hash::ObjectId>> {
     let mut commits = HashSet::new();
     let mut pending = vec![start];
     while let Some(commit_id) = pending.pop() {
@@ -286,9 +286,9 @@ fn reachable_commit_ids(
 
 fn commits_exclusive_to_target(
     repository: &gix::Repository,
-    target: gix::hash::ObjectId,
-    baseline_commits: &HashSet<gix::hash::ObjectId>,
-) -> eyre::Result<Vec<gix::hash::ObjectId>> {
+    target: hash::ObjectId,
+    baseline_commits: &HashSet<hash::ObjectId>,
+) -> eyre::Result<Vec<hash::ObjectId>> {
     let mut commits = Vec::new();
     let mut visited = HashSet::new();
     let mut pending = vec![target];
@@ -307,10 +307,10 @@ fn commits_exclusive_to_target(
 
 fn tree_path_id(
     repository: &gix::Repository,
-    commit_id: gix::hash::ObjectId,
+    commit_id: hash::ObjectId,
     path: &str,
-    cache: &mut HashMap<gix::hash::ObjectId, Option<gix::hash::ObjectId>>,
-) -> eyre::Result<Option<gix::hash::ObjectId>> {
+    cache: &mut HashMap<hash::ObjectId, Option<hash::ObjectId>>,
+) -> eyre::Result<Option<hash::ObjectId>> {
     if let Some(id) = cache.get(&commit_id) {
         return Ok(*id);
     }
@@ -321,9 +321,9 @@ fn tree_path_id(
 
 fn tree_path_id_without_cache(
     repository: &gix::Repository,
-    commit_id: gix::hash::ObjectId,
+    commit_id: hash::ObjectId,
     path: &str,
-) -> eyre::Result<Option<gix::hash::ObjectId>> {
+) -> eyre::Result<Option<hash::ObjectId>> {
     let commit = repository.find_commit(commit_id)?;
     let tree = commit.tree()?;
     Ok(tree
@@ -342,8 +342,8 @@ fn commit_subject(commit: &gix::Commit<'_>) -> eyre::Result<String> {
 
 fn java_blob_ids(
     repository: &gix::Repository,
-    commit_id: gix::hash::ObjectId,
-) -> eyre::Result<BTreeMap<String, gix::hash::ObjectId>> {
+    commit_id: hash::ObjectId,
+) -> eyre::Result<BTreeMap<String, hash::ObjectId>> {
     let commit = repository.find_commit(commit_id)?;
     let tree = commit.tree()?;
     let Some(root) = tree.lookup_entry_by_path(JAVA_SOURCE_ROOT)? else {
@@ -356,9 +356,9 @@ fn java_blob_ids(
 
 fn collect_java_blob_ids(
     repository: &gix::Repository,
-    tree_id: gix::hash::ObjectId,
+    tree_id: hash::ObjectId,
     prefix: &str,
-    files: &mut BTreeMap<String, gix::hash::ObjectId>,
+    files: &mut BTreeMap<String, hash::ObjectId>,
 ) -> eyre::Result<()> {
     let tree = repository.find_tree(tree_id)?;
     for entry in tree.iter() {
@@ -379,7 +379,7 @@ fn collect_java_blob_ids(
 
 fn java_source(
     repository: &gix::Repository,
-    blob_id: Option<gix::hash::ObjectId>,
+    blob_id: Option<hash::ObjectId>,
 ) -> eyre::Result<Option<String>> {
     let Some(blob_id) = blob_id else {
         return Ok(None);
@@ -391,8 +391,8 @@ fn java_source(
 }
 
 fn java_diff_hunks(baseline: &str, target: &str) -> Vec<JavaDiffHunk> {
-    let input = gix::diff::blob::InternedInput::new(baseline, target);
-    gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Histogram, &input)
+    let input = diff::blob::InternedInput::new(baseline, target);
+    diff::blob::diff_with_slider_heuristics(diff::blob::Algorithm::Histogram, &input)
         .hunks()
         .map(|hunk| JavaDiffHunk {
             base_range: changed_line_range(hunk.before.start as usize, hunk.before.len()),

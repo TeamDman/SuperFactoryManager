@@ -1,4 +1,5 @@
 use eyre::Context as _;
+use std::fs;
 use std::path::Path;
 
 pub(crate) fn read_version_source_excludes(
@@ -14,8 +15,8 @@ pub(crate) fn read_version_source_excludes(
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let excludes_text = std::fs::read_to_string(&path)
-        .wrap_err_with(|| format!("Failed to read {}", path.display()))?;
+    let excludes_text =
+        fs::read_to_string(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
     Ok(excludes_text
         .lines()
         .map(str::trim)

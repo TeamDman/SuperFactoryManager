@@ -3,16 +3,20 @@ use super::ContainerEngine;
 use super::context_manifest::ContextManifest;
 use super::linux_toolchain_lock::LinuxToolchainLock;
 use crate::cancellation::CancellationToken;
+use crate::source_projection;
 use crate::source_projection::candidate_lock::checked_file;
 use eyre::ensure;
 use sha2::Digest as _;
 use sha2::Sha256;
 use std::ffi::OsString;
 use std::fs;
+use std::io;
 use std::io::Read as _;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
+use std::thread::sleep;
+use std::thread::spawn;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -182,7 +186,7 @@ pub(super) fn verify_context(root: &Path, report: &ContextManifest) -> eyre::Res
         report.context_prepared && report.missing.is_empty() && report.context_identity.is_some(),
         "context is incomplete and cannot be built"
     );
-    let raw = crate::source_projection::core_catalog::read_bounded_input(
+    let raw = source_projection::core_catalog::read_bounded_input(
         root,
         "context-manifest.json",
         32 * 1024 * 1024,
@@ -286,7 +290,7 @@ pub(super) fn build(
         .take()
         .ok_or_else(|| eyre::eyre!("engine output pipe missing"))?;
     // Stream engine output to stderr so typed CLI stdout remains a single report.
-    let reader = std::thread::spawn(move || std::io::copy(&mut stdout, &mut std::io::stderr()));
+    let reader = spawn(move || io::copy(&mut stdout, &mut io::stderr()));
     let started = Instant::now();
     let result = loop {
         if cancellation.is_cancelled() || started.elapsed() >= timeout {
@@ -303,7 +307,7 @@ pub(super) fn build(
                 Err(eyre::eyre!("container engine build failed: {status}"))
             };
         }
-        std::thread::sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(100));
     };
     reader
         .join()

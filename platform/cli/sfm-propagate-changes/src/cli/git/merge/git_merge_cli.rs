@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use crate::propagate;
 use facet::Facet;
 use figue::{self as args};
@@ -19,9 +20,12 @@ impl MergeArgs {
     /// # Errors
     ///
     /// This function will return an error if the merge fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        propagate::run(propagate::PropagateOptions {
-            auto_abort: self.auto_abort,
-        })
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        propagate::run(
+            propagate::PropagateOptions {
+                auto_abort: self.auto_abort,
+            },
+            app_home,
+        )
     }
 }

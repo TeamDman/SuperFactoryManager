@@ -1,5 +1,6 @@
 use eyre::Context;
 use facet::Facet;
+use std::path::Component;
 use std::path::Path;
 
 pub const DEPENDENCY_SYMBOL_INDEX_IDENTITY_SCHEMA: &str = "sfm.dependency-symbol-index-identity/1";
@@ -314,7 +315,7 @@ fn validate_portable_root(root: &str) -> eyre::Result<()> {
         || has_windows_drive_prefix(root)
         || path
             .components()
-            .any(|component| !matches!(component, std::path::Component::Normal(_)))
+            .any(|component| !matches!(component, Component::Normal(_)))
     {
         eyre::bail!("source root `{root}` is not a portable relative path");
     }

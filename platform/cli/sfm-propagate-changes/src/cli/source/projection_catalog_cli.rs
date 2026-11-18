@@ -8,9 +8,11 @@ use crate::cli::output::CliOutput;
 use crate::source_projection::context::ProjectionContext;
 use crate::source_projection::core_catalog::CoreCatalog as LoadedCatalog;
 use crate::source_projection::core_catalog::read_bounded_catalog_input;
+use crate::source_projection::core_catalog::read_bounded_input;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_METADATA_PATH;
 use crate::source_projection::core_inputs::CoreProjectInputs;
+use crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES;
 use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
 use crate::source_projection::promotion::validate_relative_path;
@@ -25,6 +27,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const CORE_ROOT: &str = "platform/minecraft/core-liquid-template";
 const CATALOG_SCOPE: &str = "read_only_projection_catalog_inspection";
@@ -197,13 +200,13 @@ fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<Sourc
     let project_inputs_sha256 = if java {
         None
     } else {
-        let bytes = crate::source_projection::core_catalog::read_bounded_input(
+        let bytes = read_bounded_input(
             &loaded.repo_root,
             CORE_METADATA_PATH,
-            crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES,
+            MAX_CORE_METADATA_BYTES,
         )?;
         let metadata = CoreProjectInputs::from_json(
-            std::str::from_utf8(&bytes).wrap_err("core project metadata is not UTF-8")?,
+            from_utf8(&bytes).wrap_err("core project metadata is not UTF-8")?,
             &loaded.registered_features,
         )?;
         // Explicit non-Java rules suffice: no source inventory or asset body
@@ -220,7 +223,7 @@ fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<Sourc
     };
     let source_path = format!("{CORE_ROOT}/{}", args.file);
     let source = read_bounded_catalog_input(&loaded.repo_root, &source_path)?;
-    let source_text = std::str::from_utf8(&source).wrap_err("core source template is not UTF-8")?;
+    let source_text = from_utf8(&source).wrap_err("core source template is not UTF-8")?;
     let rendered = render_java_source(source_text, &context)
         .wrap_err_with(|| format!("could not render core source template `{}`", args.file))?;
     Ok(SourceRenderReport {
@@ -286,7 +289,12 @@ mod tests {
     use super::*;
     use crate::cli::output::OutputFormat;
     use crate::source_projection::core_catalog::MAX_CATALOG_INPUT_BYTES as MAX_INPUT_BYTES;
+    use crate::source_projection::core_inputs::BuildTargetMetadata;
+    use crate::source_projection::core_inputs::InputPredicate;
+    use crate::source_projection::core_inputs::InputVariant;
     use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
 
     const JAVA_PATH: &str = "src/main/java/example/Example.java";
     const ITEM_PATH: &str =
@@ -424,9 +432,6 @@ mod tests {
     }
 
     fn write_text_rule(fixture: &Fixture, template: bool, features: &[&str]) -> String {
-        use crate::source_projection::core_inputs::BuildTargetMetadata;
-        use crate::source_projection::core_inputs::InputPredicate;
-        use crate::source_projection::core_inputs::InputVariant;
         let metadata = CoreProjectInputs {
             schema_version: 1,
             targets: BTreeMap::from([
@@ -706,7 +711,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn rejects_symlinked_catalog_registry_and_core_source() {
-        use std::os::unix::fs::symlink;
         let fixture = Fixture::new();
         let external = fixture.temp.path().join("external");
         fs::write(&external, TEMPLATE).unwrap();

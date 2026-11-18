@@ -2,9 +2,11 @@ use super::RepoRootOpenArgs;
 use super::RepoRootSetArgs;
 use super::RepoRootShowArgs;
 use super::RepoRootUnsetArgs;
+use crate::paths::AppHome;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
+use std::fs::read_to_string;
 use std::path::PathBuf;
 
 pub(super) const REPO_ROOT_FILE: &str = "repo_root.txt";
@@ -21,8 +23,8 @@ impl RepoRootArgs {
     /// # Errors
     ///
     /// Returns an error if the selected repo root command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -44,12 +46,12 @@ impl RepoRootCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            RepoRootCommand::Set(args) => args.invoke(),
-            RepoRootCommand::Unset(args) => args.invoke(),
-            RepoRootCommand::Show(args) => args.invoke(),
-            RepoRootCommand::Open(args) => args.invoke(),
+            RepoRootCommand::Set(args) => args.invoke(app_home),
+            RepoRootCommand::Unset(args) => args.invoke(app_home),
+            RepoRootCommand::Show(args) => args.invoke(app_home),
+            RepoRootCommand::Open(args) => args.invoke(app_home),
         }
     }
 }
@@ -59,8 +61,28 @@ impl RepoRootCommand {
 /// # Errors
 ///
 /// This function will return an error if the repo root has not been set or if the file cannot be read.
-pub fn get_repo_root() -> eyre::Result<PathBuf> {
-    let repo_root_file = crate::paths::APP_HOME.file_path(REPO_ROOT_FILE);
+pub fn get_repo_root(app_home: &AppHome) -> eyre::Result<PathBuf> {
+    require_existing_repo_root(read_repo_root(app_home)?)
+}
+
+/// Read an absolute legacy release root without ambient path resolution.
+///
+/// # Errors
+/// Rejects relative stored settings before probing their target. The normal
+/// settings commands remain available to replace the path with a canonical one.
+pub(crate) fn get_legacy_release_repo_root(app_home: &AppHome) -> eyre::Result<PathBuf> {
+    let root = read_repo_root(app_home)?;
+    eyre::ensure!(
+        root.is_absolute(),
+        "legacy release commands require an absolute configured repository root; \
+         reset it with `repo-root set <path>`. Catalog preparation uses \
+         `source release plan --projection <key> --expected-mod-version <version>`"
+    );
+    require_existing_repo_root(root)
+}
+
+fn read_repo_root(app_home: &AppHome) -> eyre::Result<PathBuf> {
+    let repo_root_file = app_home.file_path(REPO_ROOT_FILE);
 
     if !repo_root_file.exists() {
         eyre::bail!(
@@ -68,11 +90,12 @@ pub fn get_repo_root() -> eyre::Result<PathBuf> {
         );
     }
 
-    let content =
-        std::fs::read_to_string(&repo_root_file).wrap_err("Failed to read repo root file")?;
+    let content = read_to_string(&repo_root_file).wrap_err("Failed to read repo root file")?;
 
-    let path = PathBuf::from(content.trim());
+    Ok(PathBuf::from(content.trim()))
+}
 
+fn require_existing_repo_root(path: PathBuf) -> eyre::Result<PathBuf> {
     if !path.exists() {
         eyre::bail!(
             "Configured repo root does not exist: {}. Use `sfm-propagate-changes repo-root set <path>` to update it.",

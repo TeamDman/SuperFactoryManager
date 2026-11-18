@@ -1,8 +1,12 @@
 //! Resolve locked source-build output paths on the current host.
 
-use std::path::{Path, PathBuf};
+use std::io::Error as IoError;
+use std::io::ErrorKind;
+use std::io::Result as IoResult;
+use std::path::Path;
+use std::path::PathBuf;
 
-pub(super) fn resolve(root: &Path, output: &Path) -> std::io::Result<PathBuf> {
+pub(super) fn resolve(root: &Path, output: &Path) -> IoResult<PathBuf> {
     let portable = output.to_string_lossy().replace('\\', "/");
     if portable.is_empty()
         || portable.contains([':', '\0'])
@@ -10,8 +14,8 @@ pub(super) fn resolve(root: &Path, output: &Path) -> std::io::Result<PathBuf> {
             .split('/')
             .any(|part| part.is_empty() || part == "." || part == "..")
     {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
+        return Err(IoError::new(
+            ErrorKind::InvalidInput,
             "source-build output must be a bounded relative path",
         ));
     }

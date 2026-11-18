@@ -1,6 +1,15 @@
 use super::super::CoreProjectArgs;
 use super::super::CoreProjectCommand;
 use super::*;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
+
+fn test_homes(root: &Path) -> InvocationHomes {
+    InvocationHomes::new(
+        AppHome(root.join("settings")),
+        Ok(CacheHome(root.join("canonical"))),
+    )
+}
 
 fn parsed(extra: &[&str]) -> CoreProjectArgs {
     let mut args = vec![
@@ -87,7 +96,11 @@ fn public_sources_rejects_wrong_recipe_unsupported_loader_and_dev_before_effects
         args.released_recipe = recipe.to_owned();
         args.cache_root = Some(temp.path().join("must-not-create"));
         args.java_home = Some(temp.path().join("must-not-inspect-sdk"));
-        assert!(command.invoke_in(&CancellationToken::new(), repo).is_err());
+        assert!(
+            command
+                .invoke_in(&CancellationToken::new(), repo, &test_homes(temp.path()))
+                .is_err()
+        );
         assert!(!temp.path().join("must-not-create").exists());
     }
     Ok(())
@@ -109,7 +122,7 @@ fn public_sources_valid_recipe_reaches_sdk_guard_without_compiling() -> Result<(
     args.cache_root = Some(temp.path().join("native"));
     args.java_home = Some(temp.path().join("missing-sdk"));
     let error = command
-        .invoke_in(&CancellationToken::new(), repo)
+        .invoke_in(&CancellationToken::new(), repo, &test_homes(temp.path()))
         .err()
         .unwrap();
     assert!(!format!("{error:#}").contains("requires an exact reviewed NeoForm"));

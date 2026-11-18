@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::RunTestAction;
@@ -18,9 +19,16 @@ impl RunCompileArgs {
     /// # Errors
     ///
     /// Returns an error if planning, building, or Java compilation fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         JarBuildRunTestCommand::new(
-            self.options.into_options(BuildMode::Build)?,
+            self.options
+                .into_options(BuildMode::Build, app_home)?
+                .with_cache_home(homes.available_cache_home()),
             RunTestOptions {
                 action: RunTestAction::Compile,
                 filter: None,

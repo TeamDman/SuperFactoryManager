@@ -1,4 +1,4 @@
-use crate::paths::APP_HOME;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 
@@ -10,7 +10,7 @@ impl HomePathArgs {
     /// # Errors
     ///
     /// Returns an error if stdout cannot be written.
-    pub fn invoke(self) -> eyre::Result<()> {
-        stdout_line(APP_HOME.0.display())
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        stdout_line(app_home.0.display())
     }
 }

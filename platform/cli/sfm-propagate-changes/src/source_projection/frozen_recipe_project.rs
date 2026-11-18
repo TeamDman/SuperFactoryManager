@@ -25,8 +25,10 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use frozen_recipe_metadata::DependencyRecipeIdentity;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 #[cfg(test)]
@@ -332,7 +334,7 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     refuse_refresh(refresh)?;
     let configuration_path = configuration_path_for_recipe(recipe_id);
     let configuration_bytes = read_bounded_catalog_input(project.repo_root(), configuration_path)?;
-    let configuration = std::str::from_utf8(&configuration_bytes)?;
+    let configuration = from_utf8(&configuration_bytes)?;
     let recipe = recipe_index_from_configuration(configuration)?
         .targets
         .into_iter()
@@ -465,13 +467,11 @@ fn prepare_frozen_roles(
 /// Select the unique reviewed dependency identity, never a release name.
 /// No artifacts are acquired and every original recipe remains unchanged.
 pub(crate) fn select_frozen_recipe_for_project(project: &CatalogOwnedProject) -> Result<String> {
-    use frozen_recipe_metadata::DependencyRecipeIdentity;
-
     project.recheck()?;
     let mut recipes = Vec::new();
     for path in [BUILD_CONFIGURATION_PATH, HISTORICAL_2612_CONSUMER_PATH] {
         let bytes = read_bounded_catalog_input(project.repo_root(), path)?;
-        recipes.extend(recipe_index_from_configuration(std::str::from_utf8(&bytes)?)?.targets);
+        recipes.extend(recipe_index_from_configuration(from_utf8(&bytes)?)?.targets);
     }
     let lock = project.selected_input(LOCK_OUTPUT)?;
     let lock_sha256 = sha256(lock.require_exact_copy()?);
@@ -707,16 +707,24 @@ fn refuse_refresh(refresh: bool) -> Result<()> {
 pub(crate) mod tests {
     use super::*;
     use crate::source_projection::candidate_lock::checked_file;
+    use crate::source_projection::catalog_owned_project::source_check_observation;
     use crate::source_projection::catalog_owned_project::tests::Fixture;
     use crate::source_projection::core_catalog::CoreCatalog;
+    use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
     use crate::source_projection::core_inputs::CORE_METADATA_PATH;
     use crate::source_projection::core_inputs::CORE_ROOT;
     use crate::source_projection::core_inputs::CoreProjectInputs;
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::core_slice_test_support::read_bounded;
+    use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
+    use crate::source_projection::projection_catalog::CATALOG_PATH;
     use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner;
+    use rayon::prelude::*;
+    use std::cell::RefCell;
     use std::fs;
     use std::path::Path;
+    use std::rc::Rc;
     use walkdir::WalkDir;
 
     fn repository() -> Result<&'static Path> {
@@ -724,6 +732,46 @@ pub(crate) mod tests {
             .ancestors()
             .nth(3)
             .ok_or_else(|| eyre::eyre!("CLI crate must be below the repository"))
+    }
+
+    /// Install only the small reviewed recipe index in a synthetic ownership
+    /// fixture. The real target/compiler/loader rows and thirteen role names
+    /// remain intact; only this target's lock binding names the synthetic input.
+    /// This grants no native dependency preparation or execution capability.
+    pub(crate) fn install_catalog_release_recipe_fixture(
+        project: &CatalogOwnedProject,
+    ) -> Result<()> {
+        let source = repository()?;
+        ensure!(
+            project.repo_root() != fs::canonicalize(source)?,
+            "recipe fixture must not modify the authored repository"
+        );
+        let raw = fs::read_to_string(source.join(BUILD_CONFIGURATION_PATH))?;
+        let mut index = recipe_index_from_configuration(&raw)?;
+        let row = index
+            .targets
+            .iter_mut()
+            .find(|row| row.target == project.receipt().target_id)
+            .ok_or_else(|| eyre::eyre!("recipe fixture target is absent"))?;
+        let lock = project.selected_input(LOCK_OUTPUT)?;
+        row.source_lock.path = lock.source_path().to_owned();
+        row.source_lock.sha256 = sha256(lock.require_exact_copy()?)
+            .strip_prefix("sha256:")
+            .ok_or_else(|| eyre::eyre!("fixture lock hash is not SHA-256"))?
+            .to_owned();
+        let destination = project.repo_root().join(BUILD_CONFIGURATION_PATH);
+        fs::create_dir_all(
+            destination
+                .parent()
+                .ok_or_else(|| eyre::eyre!("fixture recipe has no parent"))?,
+        )?;
+        fs::write(destination, facet_json::to_string_pretty(&index)?)?;
+        fs::copy(
+            source.join(HISTORICAL_2612_CONSUMER_PATH),
+            project.repo_root().join(HISTORICAL_2612_CONSUMER_PATH),
+        )?;
+        select_frozen_recipe_for_project(project)?;
+        Ok(())
     }
 
     // Reuse the shared isolated 20-context ownership fixture, then replace
@@ -921,7 +969,6 @@ pub(crate) mod tests {
 
     #[test]
     fn twenty_owned_contexts_bind_exact_frozen_inputs_without_writes() -> Result<()> {
-        use rayon::prelude::*;
         let results = recipe_index()?
             .targets
             .into_par_iter()
@@ -1890,9 +1937,6 @@ pub(crate) mod tests {
 
     #[test]
     fn retained_authority_rejects_raw_context_and_review_configuration_mutations() -> Result<()> {
-        use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-        use crate::source_projection::projection_catalog::CATALOG_PATH;
-
         let recipe = primary_recipe()?;
         let fixture = fixture_for(&recipe)?;
         let key = Fixture::key(slot(&recipe)?, "release");
@@ -1922,12 +1966,6 @@ pub(crate) mod tests {
 
     #[test]
     fn retained_authority_uses_admitted_bodies_while_public_recheck_stays_strict() -> Result<()> {
-        use crate::source_projection::catalog_owned_project::source_check_observation;
-        use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
-        use crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner;
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
         let recipe = primary_recipe()?;
         let fixture = fixture_for(&recipe)?;
         let key = Fixture::key(slot(&recipe)?, "release");

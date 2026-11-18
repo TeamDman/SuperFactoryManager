@@ -17,10 +17,13 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use gix::objs::Kind;
+use gix::open::Options;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
+use std::str::from_utf8;
 
 pub(crate) const SCHEMA: &str = "sfm:frozen_release_sources@1";
 pub(crate) const MAX_INVENTORY_BYTES: u64 = 8 * 1024 * 1024;
@@ -173,7 +176,7 @@ fn read_inventory(
         sha256(&bytes) == format!("sha256:{}", binding.inventory_sha256),
         "frozen source inventory differs from its pinned SHA-256"
     );
-    let text = std::str::from_utf8(&bytes).wrap_err("frozen source inventory is not UTF-8")?;
+    let text = from_utf8(&bytes).wrap_err("frozen source inventory is not UTF-8")?;
     let inventory: FrozenSourceInventory =
         facet_json::from_str(text).wrap_err("cannot parse frozen source inventory")?;
     // A map parser may collapse duplicate exact keys. New inventories have a
@@ -188,8 +191,7 @@ fn read_inventory(
 }
 
 pub(crate) fn validate_git_commit_root(root: &Path, source_commit: &str) -> Result<()> {
-    let options =
-        gix::open::Options::isolated().config_overrides(["gitoxide.objects.noReplace=true"]);
+    let options = Options::isolated().config_overrides(["gitoxide.objects.noReplace=true"]);
     let mut repository =
         gix::open_opts(root, options).wrap_err("cannot inspect frozen source Git repository")?;
     let _ = repository.clear_namespace();
@@ -205,7 +207,7 @@ pub(crate) fn validate_git_commit_root(root: &Path, source_commit: &str) -> Resu
         .find_header(id)
         .wrap_err("frozen source must name an available Git commit")?;
     ensure!(
-        header.kind() == gix::objs::Kind::Commit,
+        header.kind() == Kind::Commit,
         "frozen source must name an available Git commit"
     );
     Ok(())
@@ -350,9 +352,12 @@ mod tests {
     use super::super::sync::sync_projection;
     use super::*;
     use crate::cancellation::CancellationToken;
+    use crate::cli::InvocationHomes;
     use crate::cli::source::LegacySourceArgs;
     use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceProjectArgs;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use crate::source_projection::manifest::PathEffect;
     use crate::source_projection::manifest::PathEffectKind;
     use crate::source_projection::manifest::ProjectionFeature;
@@ -599,6 +604,10 @@ mod tests {
     #[test]
     fn source_sync_and_check_use_two_frozen_targets_and_reject_edited_output() {
         let (root, commit) = setup();
+        let homes = InvocationHomes::new(
+            AppHome(root.path().join("application")),
+            Ok(CacheHome(root.path().join("cache"))),
+        );
         let bindings = ["1.19.4", "1.20"]
             .into_iter()
             .map(|target| {
@@ -646,7 +655,7 @@ mod tests {
             LegacySourceArgs {
                 command: LegacySourceCommand::Sync(project_args(root.path(), target)),
             }
-            .invoke_in(&cancellation, root.path())
+            .invoke_in(&cancellation, root.path(), &homes)
             .unwrap();
             let projected = root.path().join(format!("generated/{target}"));
             assert!(
@@ -674,7 +683,7 @@ mod tests {
                 LegacySourceArgs {
                     command: LegacySourceCommand::Sync(under_source),
                 }
-                .invoke_in(&cancellation, root.path())
+                .invoke_in(&cancellation, root.path(), &homes)
                 .is_err()
             );
             assert!(!probe.exists());
@@ -686,7 +695,7 @@ mod tests {
                 LegacySourceArgs {
                     command: LegacySourceCommand::Sync(root_alias),
                 }
-                .invoke_in(&cancellation, root.path())
+                .invoke_in(&cancellation, root.path(), &homes)
                 .is_err()
             );
             assert!(!root.path().join(super::super::sync::MANIFEST_FILE).exists());
@@ -734,7 +743,7 @@ mod tests {
             LegacySourceArgs {
                 command: LegacySourceCommand::Check(project_args(root.path(), target)),
             }
-            .invoke_in(&cancellation, root.path())
+            .invoke_in(&cancellation, root.path(), &homes)
             .unwrap();
         }
 
@@ -744,7 +753,7 @@ mod tests {
             LegacySourceArgs {
                 command: LegacySourceCommand::Sync(project_args(root.path(), "1.20")),
             }
-            .invoke_in(&cancellation, root.path())
+            .invoke_in(&cancellation, root.path(), &homes)
             .is_err()
         );
         assert_eq!(fs::read(&edited).unwrap(), b"contributor edit\n");

@@ -10,11 +10,13 @@ use crate::dependency_sources::SourceProviderFilter;
 use crate::dependency_sources::SourceProviderSelection;
 use crate::dependency_sources::UnavailableSource;
 use crate::dependency_sources::preflight_sources;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stderr_line;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 use std::process::Command;
 
 #[derive(Facet, Debug)]
@@ -44,13 +46,14 @@ impl DependencySourceSearchArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
         if self.provider.is_some() && self.provider_id.is_some() {
             eyre::bail!("Use either --provider or --provider-id, not both.");
         }
         let branch = self.branch.clone();
-        let inventory = load_inventory(self.branch, cache_home)?;
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
         let preflight = preflight(
             &inventory,
             &self.dependency,
@@ -188,7 +191,7 @@ fn run_ripgrep(pattern: &str, root: &SearchRoot) -> eyre::Result<()> {
     Ok(())
 }
 
-fn ripgrep_output(pattern: &str, root: &std::path::Path) -> eyre::Result<Option<String>> {
+fn ripgrep_output(pattern: &str, root: &Path) -> eyre::Result<Option<String>> {
     let output = Command::new("rg")
         .args([
             "--line-number",
@@ -224,7 +227,7 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::GitSourceDerivedChecksV3;
     use crate::toolchain_lockfile_schema::version::v3::GitSourceProviderV3;
     use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
-    use std::path::Path;
+    use gix::objs::tree::EntryKind;
     use std::path::PathBuf;
 
     #[test]
@@ -462,8 +465,6 @@ mod tests {
     }
 
     fn materialize_verified_git_provider(inventory: &mut DependencyInventory) {
-        use gix::objs::tree::EntryKind;
-
         let dependency = inventory
             .lockfile
             .dependencies

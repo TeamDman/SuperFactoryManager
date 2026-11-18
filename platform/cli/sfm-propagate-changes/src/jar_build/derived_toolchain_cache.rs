@@ -2,7 +2,10 @@
 //! Only immutable root-owned image paths can authorize reuse. Export candidates
 //! in writable workspaces never authorize execution; image composition reviews
 //! and installs them separately. No writable javac output cache is admitted.
+
+use crate::jar_build;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
+use crate::source_projection;
 use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
 use crate::source_projection::nfrt_tool_sdk::NfrtToolSdk;
 use eyre::Result;
@@ -10,11 +13,16 @@ use eyre::ensure;
 use facet::Facet;
 use sha2::Digest;
 use sha2::Sha256;
+use std::env;
 use std::fs;
 use std::io::Read;
+use std::io::Result as IoResult;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::id as process_id;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 const PROFILE: &str = "/opt/sfm/derived-toolchains";
 const AT: &str = "src/main/resources/META-INF/accesstransformer.cfg";
@@ -71,8 +79,8 @@ pub(super) fn key(
     sdk.recheck()?;
     let mut hash = Sha256::new();
     append(&mut hash, b"sfm:immutable_derived_key@1");
-    append(&mut hash, std::env::consts::ARCH.as_bytes());
-    append(&mut hash, std::env::consts::OS.as_bytes());
+    append(&mut hash, env::consts::ARCH.as_bytes());
+    append(&mut hash, env::consts::OS.as_bytes());
     let (_, base_identity) = verified(
         Path::new("/opt/sfm/derived-cache-base-identity"),
         None,
@@ -81,7 +89,7 @@ pub(super) fn key(
     append(&mut hash, &base_identity);
     append(&mut hash, stable_recipe(receipt)?.as_bytes());
     append(&mut hash, sdk.identity().as_bytes());
-    append(&mut hash, &fs::read(std::env::current_exe()?)?);
+    append(&mut hash, &fs::read(env::current_exe()?)?);
     // Bind every SDK distribution file, including native libraries/plugins.
     let home = sdk
         .executable()
@@ -104,7 +112,7 @@ pub(super) fn key(
 }
 
 fn stable_recipe(
-    mut receipt: crate::jar_build::nfrt_launch_contract::NamedNfrtInvocationInput,
+    mut receipt: jar_build::nfrt_launch_contract::NamedNfrtInvocationInput,
 ) -> Result<String> {
     receipt.invocation_id.clear();
     receipt.projection_key.clear();
@@ -117,7 +125,7 @@ fn stable_recipe(
 }
 
 fn hash_sdk_tree(home: &Path, directory: &Path, hash: &mut Sha256) -> Result<()> {
-    let mut entries = fs::read_dir(directory)?.collect::<std::io::Result<Vec<_>>>()?;
+    let mut entries = fs::read_dir(directory)?.collect::<IoResult<Vec<_>>>()?;
     entries.sort_by_key(fs::DirEntry::file_name);
     for entry in entries {
         let path = entry.path();
@@ -271,10 +279,9 @@ pub(super) fn export(
     contract: &str,
     classes: &Path,
     sources: &Path,
-    receipts: &[&crate::source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt;
-         2],
+    receipts: &[&source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt; 2],
 ) -> Result<()> {
-    let Some(root) = std::env::var_os("SFM_AGENT_DERIVED_EXPORT_ROOT") else {
+    let Some(root) = env::var_os("SFM_AGENT_DERIVED_EXPORT_ROOT") else {
         return Ok(());
     };
     let root = PathBuf::from(root);
@@ -284,21 +291,38 @@ pub(super) fn export(
     );
     let staging = root.join(format!(
         ".stage-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_nanos()
+        process_id(),
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos()
     ));
     fs::create_dir(&staging)?;
-    let output = |source: &Path, name: &str, expected: &crate::source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt| -> Result<Output> {
-        let metadata = fs::metadata(source)?;
-        ensure!(metadata.is_file() && metadata.len() > 0 && metadata.len() <= LIMIT, "Export output bound invalid");
-        let bytes = fs::read(source)?;
-        ensure!(bytes.len() == expected.bytes && digest(&bytes) == expected.full_sha256.trim_start_matches("sha256:"), "Export bytes differ from the privately sealed fresh producer receipt");
-        let mut file = fs::OpenOptions::new().write(true).create_new(true).open(staging.join(name))?;
-        file.write_all(&bytes)?; file.sync_all()?;
-        Ok(Output { name: name.to_owned(), bytes: bytes.len() as u64, sha256: digest(&bytes) })
-    };
+    let output =
+        |source: &Path,
+         name: &str,
+         expected: &source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt|
+         -> Result<Output> {
+            let metadata = fs::metadata(source)?;
+            ensure!(
+                metadata.is_file() && metadata.len() > 0 && metadata.len() <= LIMIT,
+                "Export output bound invalid"
+            );
+            let bytes = fs::read(source)?;
+            ensure!(
+                bytes.len() == expected.bytes
+                    && digest(&bytes) == expected.full_sha256.trim_start_matches("sha256:"),
+                "Export bytes differ from the privately sealed fresh producer receipt"
+            );
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(staging.join(name))?;
+            file.write_all(&bytes)?;
+            file.sync_all()?;
+            Ok(Output {
+                name: name.to_owned(),
+                bytes: bytes.len() as u64,
+                sha256: digest(&bytes),
+            })
+        };
     let manifest = Manifest {
         schema: "sfm:immutable_derived_profile@1".to_owned(),
         key: key.to_owned(),

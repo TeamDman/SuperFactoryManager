@@ -32,6 +32,7 @@ use crate::release_review_text_diff::TEXT_DIFF_ALGORITHM_V1;
 use crate::release_review_text_diff::produce_text_diff;
 use crate::release_review_v1::SnapshotSideV1;
 use crate::release_review_v1::Utf8RangeV1;
+use gix::diff::blob;
 use sha2::Digest as _;
 use sha2::Sha256;
 use std::collections::BTreeMap;
@@ -40,6 +41,8 @@ use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::iter::once;
+use std::ops;
 use tree_sitter_patched_arborium::Node;
 
 pub const JAVA_STRUCTURED_DIFF_ALGORITHM_V1: &str =
@@ -212,7 +215,7 @@ impl<'a> StructuredSurfaceBuilder<'a> {
             .ok_or_else(|| eyre::eyre!("Java declaration has no exact source mapping to refine"))?;
         let length = original.surface_range.end_byte - original.surface_range.start_byte;
         let mut cursor = 0;
-        for range in changed.iter().chain(std::iter::once(&Utf8RangeV1 {
+        for range in changed.iter().chain(once(&Utf8RangeV1 {
             start_byte: length,
             end_byte: length,
         })) {
@@ -497,7 +500,7 @@ fn declaration_range(node: Node<'_>, kind: DeclarationKind) -> Utf8RangeV1 {
     }
 }
 
-fn declaration_name_ranges(node: Node<'_>, kind: DeclarationKind) -> Vec<std::ops::Range<usize>> {
+fn declaration_name_ranges(node: Node<'_>, kind: DeclarationKind) -> Vec<ops::Range<usize>> {
     if kind == DeclarationKind::Import {
         return Vec::new();
     }
@@ -511,7 +514,7 @@ fn declaration_name_ranges(node: Node<'_>, kind: DeclarationKind) -> Vec<std::op
     ranges
 }
 
-fn collect_field_name_ranges(node: Node<'_>, ranges: &mut Vec<std::ops::Range<usize>>) {
+fn collect_field_name_ranges(node: Node<'_>, ranges: &mut Vec<ops::Range<usize>>) {
     if node.kind() == "variable_declarator"
         && let Some(name) = node.child_by_field_name("name")
     {
@@ -599,7 +602,7 @@ fn normalized_node_hash(
     node: Node<'_>,
     source: &str,
     retained_range: &Utf8RangeV1,
-    replaced_ranges: &[std::ops::Range<usize>],
+    replaced_ranges: &[ops::Range<usize>],
 ) -> String {
     let mut normalized = String::new();
     append_normalized_node(
@@ -616,7 +619,7 @@ fn append_normalized_node(
     node: Node<'_>,
     source: &str,
     retained_range: &Utf8RangeV1,
-    replaced_ranges: &[std::ops::Range<usize>],
+    replaced_ranges: &[ops::Range<usize>],
     output: &mut String,
 ) {
     if node.start_byte() >= retained_range.end_byte || node.end_byte() <= retained_range.start_byte
@@ -1029,6 +1032,7 @@ fn changed_spans(
     // Bound worst-case character comparison work independently of output size.
     // Large declarations use the existing explicit text fallback, never a
     // misleading claim that an entire matched declaration changed structurally.
+
     if before.len().saturating_mul(after.len()) > 16_777_216 {
         return Err(StructuredBuildLimit {
             message: "Java changed-span refinement exceeds bounded comparison work".to_owned(),
@@ -1036,11 +1040,10 @@ fn changed_spans(
     }
     let before_lines = line_ranges(before);
     let after_lines = line_ranges(after);
-    let mut input = gix::diff::blob::InternedInput::<&str>::default();
+    let mut input = blob::InternedInput::<&str>::default();
     input.update_before(before_lines.iter().map(|range| &before[range.clone()]));
     input.update_after(after_lines.iter().map(|range| &after[range.clone()]));
-    let diff =
-        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Myers, &input);
+    let diff = blob::diff_with_slider_heuristics(blob::Algorithm::Myers, &input);
     let mut before_changes = Vec::new();
     let mut after_changes = Vec::new();
     for hunk in diff.hunks() {
@@ -1076,7 +1079,7 @@ fn changed_spans(
     Ok((before_changes, after_changes))
 }
 
-fn line_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
+fn line_ranges(text: &str) -> Vec<ops::Range<usize>> {
     let mut ranges = Vec::new();
     let mut start = 0;
     for (offset, character) in text.char_indices() {
@@ -1093,7 +1096,7 @@ fn line_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
     ranges
 }
 
-fn covering_range(lines: &[std::ops::Range<usize>]) -> Option<Utf8RangeV1> {
+fn covering_range(lines: &[ops::Range<usize>]) -> Option<Utf8RangeV1> {
     Some(Utf8RangeV1 {
         start_byte: lines.first()?.start,
         end_byte: lines.last()?.end,
@@ -1104,12 +1107,12 @@ fn character_changed_spans(before: &str, after: &str) -> (Vec<Utf8RangeV1>, Vec<
     let offsets = |text: &str| {
         text.char_indices()
             .map(|(offset, _)| offset)
-            .chain(std::iter::once(text.len()))
+            .chain(once(text.len()))
             .collect::<Vec<_>>()
     };
     let before_offsets = offsets(before);
     let after_offsets = offsets(after);
-    let mut input = gix::diff::blob::InternedInput::<&str>::default();
+    let mut input = blob::InternedInput::<&str>::default();
     input.update_before(
         before_offsets
             .windows(2)
@@ -1120,8 +1123,7 @@ fn character_changed_spans(before: &str, after: &str) -> (Vec<Utf8RangeV1>, Vec<
             .windows(2)
             .map(|pair| &after[pair[0]..pair[1]]),
     );
-    let diff =
-        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Myers, &input);
+    let diff = blob::diff_with_slider_heuristics(blob::Algorithm::Myers, &input);
     let mut before_changes = Vec::new();
     let mut after_changes = Vec::new();
     for hunk in diff.hunks() {

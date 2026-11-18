@@ -1,6 +1,8 @@
 #![cfg(test)]
 
 //! Real process checks for the startup event and builtin/filter boundaries.
+#[cfg(windows)]
+use std::os::windows::ffi::OsStringExt;
 use std::process::Command;
 
 const BINARY: &str = env!("CARGO_BIN_EXE_sfm-propagate-changes");
@@ -115,7 +117,6 @@ fn help_and_version_exit_before_startup_logging_or_file_creation() {
 #[cfg(windows)]
 #[test]
 fn non_unicode_input_exits_safely_before_logging() {
-    use std::os::windows::ffi::OsStringExt;
     let root = scratch();
     let file = root.join("must-not-be-created.ndjson");
     let argument = std::ffi::OsString::from_wide(&[0x0053, 0x0045, 0xd800, 0x0043]);

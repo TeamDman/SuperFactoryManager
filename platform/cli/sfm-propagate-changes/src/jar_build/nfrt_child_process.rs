@@ -3,6 +3,7 @@
 
 use super::nfrt_child_tool::NfrtChildCommand;
 use super::nfrt_preparation_phase::NfrtPreparationPhase;
+use crate::cancellation::CancellationToken;
 use crate::source_projection::nfrt_tool_sdk::NfrtToolSdk;
 use eyre::Result;
 use eyre::ensure;
@@ -11,6 +12,8 @@ use std::io::Write;
 use std::process::Child;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use std::process::id as process_id;
+use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -27,7 +30,7 @@ impl Drop for OwnedChild {
 pub(crate) fn execute_child(
     planned: NfrtChildCommand,
     sdk: &mut NfrtToolSdk,
-    cancellation: &crate::cancellation::CancellationToken,
+    cancellation: &CancellationToken,
 ) -> Result<String> {
     let node_label = NfrtPreparationPhase::safe_node(&planned.node_id);
     let _span = tracing::info_span!("nfrt_child", node = %node_label).entered();
@@ -39,7 +42,7 @@ pub(crate) fn execute_child(
 fn execute_checked_child(
     mut planned: NfrtChildCommand,
     sdk: &mut NfrtToolSdk,
-    cancellation: &crate::cancellation::CancellationToken,
+    cancellation: &CancellationToken,
 ) -> Result<String> {
     #[derive(facet::Facet)]
     struct Reply<'a> {
@@ -82,7 +85,7 @@ fn execute_checked_child(
         phase = "nfrt.child.spawn",
         event = "child_observed",
         child_pid = child.0.id(),
-        rust_pid = std::process::id(),
+        rust_pid = process_id(),
         measurement = "wall_duration",
         nested = true,
         "NFRT child process observed"
@@ -92,7 +95,7 @@ fn execute_checked_child(
         phase = "nfrt.child.lifetime",
         event = "child_exit",
         child_pid = child.0.id(),
-        rust_pid = std::process::id(),
+        rust_pid = process_id(),
         exit_code = ?status.code(),
         exit_success = status.success(),
         measurement = "wall_duration",
@@ -121,7 +124,7 @@ fn execute_checked_child(
 fn wait_for_child(
     child: &mut OwnedChild,
     node_id: &str,
-    cancellation: &crate::cancellation::CancellationToken,
+    cancellation: &CancellationToken,
 ) -> Result<ExitStatus> {
     eprintln!("NFRT child {} started pid={}", node_id, child.0.id());
     let started = Instant::now();
@@ -140,7 +143,7 @@ fn wait_for_child(
             eprintln!("NFRT child {} running: {}s", node_id, elapsed.as_secs());
             next_progress += Duration::from_secs(10);
         }
-        std::thread::sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(100));
     }
 }
 

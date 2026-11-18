@@ -21,11 +21,15 @@ use crate::cli::repo_root::get_repo_root;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeProjectFileId;
+use crate::paths::AppHome;
 use chrono::Utc;
 use color_eyre::owo_colors::OwoColorize;
 use facet::Facet;
 use figue as args;
 use std::ffi::OsStr;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use std::time::Duration;
 use tracing::info;
 
@@ -65,37 +69,30 @@ impl CurseforgeReleaseAmendArgs {
     /// # Errors
     ///
     /// Returns an error if release files cannot be resolved or amended.
-    pub fn invoke(self) -> eyre::Result<()> {
-        release_amend(
-            self.branch,
-            self.project,
-            self.api_key,
-            self.token,
-            self.op_secret,
-            self.safety_age,
-            self.dry_run,
-        )
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        release_amend(self, app_home)
     }
 }
 
 #[expect(clippy::too_many_lines, reason = "amend flow is intentionally linear")]
-fn release_amend(
-    branch: BranchSelector,
-    project: Option<u64>,
-    api_key: Option<String>,
-    token: Option<String>,
-    op_secret: Option<String>,
-    safety_age: Option<String>,
-    dry_run: bool,
-) -> eyre::Result<()> {
-    let branch_query = branch.into_query()?;
-    let project_id = resolve_project_id(project)?;
+fn release_amend(args: CurseforgeReleaseAmendArgs, app_home: &AppHome) -> eyre::Result<()> {
+    let CurseforgeReleaseAmendArgs {
+        branch,
+        project,
+        api_key,
+        token,
+        op_secret,
+        safety_age,
+        dry_run,
+    } = args;
+    let branch_query = branch.into_query(app_home)?;
+    let project_id = resolve_project_id(project, app_home)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
     let changelog_path = repo_root
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let changelog_section = read_changelog_section(&changelog_path, &mod_version)?;
@@ -109,7 +106,7 @@ fn release_amend(
     };
 
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
     let mut target_versions: Vec<(String, String)> = Vec::new();
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
@@ -259,8 +256,8 @@ fn release_amend(
     Ok(())
 }
 
-impl std::fmt::Debug for CurseforgeReleaseAmendArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeReleaseAmendArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeReleaseAmendArgs")
             .finish_non_exhaustive()
     }

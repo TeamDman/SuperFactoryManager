@@ -4,6 +4,7 @@ use crate::cli::jar::BranchSelector;
 use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
@@ -15,6 +16,7 @@ use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
+use std::fs::read;
 use std::io::Cursor;
 use std::io::Read;
 use std::path::Path;
@@ -51,9 +53,10 @@ impl DependencyArtifactAcceptArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let inventory = load_inventory(self.branch.clone(), cache_home)?;
+        let inventory = load_inventory(self.branch.clone(), cache_home, app_home)?;
         let report = accept_artifact(&inventory, &self)?;
         stdout_line(format!(
             "Accepted {}/{}: {} -> {} ({})",
@@ -200,7 +203,7 @@ fn split_target(target: &str) -> eyre::Result<(&str, Option<&str>)> {
 }
 
 fn select_component_index(
-    dependency: &crate::toolchain_lockfile_schema::version::v3::DependencyV3,
+    dependency: &DependencyV3,
     requested: Option<&str>,
 ) -> eyre::Result<usize> {
     if let Some(requested) = requested {
@@ -266,8 +269,7 @@ fn detect_metadata_path(artifact_path: &Path) -> eyre::Result<PathBuf> {
 
 fn read_zip_text_entry(path: &Path, entry_name: &Path) -> eyre::Result<String> {
     let entry_name = entry_name.to_string_lossy().replace('\\', "/");
-    let bytes =
-        std::fs::read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
+    let bytes = read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
     let mut archive = ZipArchive::new(Cursor::new(bytes))
         .wrap_err_with(|| format!("Failed to read zip archive {}", path.display()))?;
     let mut entry = archive

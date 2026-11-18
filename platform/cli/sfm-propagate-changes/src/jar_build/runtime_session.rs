@@ -1,13 +1,17 @@
 //! Launch ownership is separate from the mutable compiler-cache lock.
 use super::build_snapshot_receipt::BuildSnapshotReceipt;
-use super::build_snapshot_receipt::ensure_owned_directory;
 #[cfg(windows)]
 use super::build_snapshot_receipt::SharedRuntimeSnapshot;
+use super::build_snapshot_receipt::ensure_owned_directory;
 use super::runtime_session_receipt::RuntimeSessionReceipt;
 use super::runtime_session_receipt::safe_component;
 use super::runtime_slot::RuntimeSlot;
 #[cfg(windows)]
 use crate::cancellation::CancellationToken;
+#[cfg(windows)]
+use crate::file_identity;
+#[cfg(windows)]
+use crate::source_projection;
 #[cfg(windows)]
 use crate::source_projection::core_input_leases::DirectoryLeases;
 use eyre::ensure;
@@ -16,6 +20,8 @@ use std::collections::BTreeMap;
 #[cfg(windows)]
 use std::collections::BTreeSet;
 use std::fs;
+#[cfg(windows)]
+use std::io;
 use std::io::Write as _;
 use std::path::Path;
 #[cfg(windows)]
@@ -93,7 +99,9 @@ impl RuntimeSession {
 
     #[cfg(windows)]
     pub(crate) fn shared_roots(&self) -> Option<&[PathBuf]> {
-        self.shared_snapshot.as_ref().map(SharedRuntimeSnapshot::roots)
+        self.shared_snapshot
+            .as_ref()
+            .map(SharedRuntimeSnapshot::roots)
     }
 
     #[cfg(windows)]
@@ -122,7 +130,11 @@ impl RuntimeSession {
         // published files across the JVM lifetime and leaves mod/ empty.
         let slot_started = Instant::now();
         let slot = RuntimeSlot::claim(&snapshot.minecraft_dir, requested_slot, share_runtime)?;
-        tracing::info!(phase = "warm_session_slot_claim", elapsed_ms = slot_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_session_slot_claim",
+            elapsed_ms = slot_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         let parent = slot.data_dir.join("launches");
         ensure_owned_directory(&slot.data_dir, &parent)?;
         let directory = tempfile::Builder::new()
@@ -155,7 +167,11 @@ impl RuntimeSession {
         if matches!(&mod_source, RuntimeModSource::Private) {
             snapshot.materialize_roots(&receipt.mod_root(), roots)?;
         }
-        tracing::info!(phase = "warm_session_materialize", elapsed_ms = materialize_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_session_materialize",
+            elapsed_ms = materialize_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         receipt.write()?;
         let latest = snapshot.cache_dir.join("run").join(run_kind);
         ensure_owned_directory(&snapshot.cache_dir, &latest)?;
@@ -236,8 +252,7 @@ impl OwnedSessionInputs {
         for (path, (size, _)) in &self.files {
             let metadata = fs::symlink_metadata(path)?;
             ensure!(
-                metadata.is_file()
-                    && !crate::source_projection::candidate_lock::is_reparse(&metadata),
+                metadata.is_file() && !source_projection::candidate_lock::is_reparse(&metadata),
                 "owned GameTest input became a link or non-file"
             );
             fs::remove_file(path)?;
@@ -286,7 +301,7 @@ impl OwnedSessionInputs {
                 super::build_snapshot_receipt::checked_descendant(&self.session_dir, path)?;
                 let metadata = fs::symlink_metadata(path)?;
                 ensure!(
-                    !crate::source_projection::candidate_lock::is_reparse(&metadata),
+                    !source_projection::candidate_lock::is_reparse(&metadata),
                     "owned GameTest input contains a link or reparse point"
                 );
                 if metadata.is_dir() {
@@ -314,13 +329,13 @@ impl OwnedSessionInputs {
                         options.custom_flags(0o400_000)
                     };
                     let mut file = options.open(path)?;
-                    let identity = crate::file_identity::file_identity(&file)?;
+                    let identity = file_identity::file_identity(&file)?;
                     let mut hasher = blake3::Hasher::new();
-                    let size = std::io::copy(&mut file, &mut hasher)?;
+                    let size = io::copy(&mut file, &mut hasher)?;
                     ensure!(
                         size == metadata.len()
                             && file.metadata()?.len() == size
-                            && crate::file_identity::file_identity(&file)? == identity,
+                            && file_identity::file_identity(&file)? == identity,
                         "owned GameTest input changed while reading"
                     );
                     total = total
@@ -440,11 +455,20 @@ mod tests {
         assert!(!completed.join("launch-inputs/runtime.jar").exists());
         assert_eq!(fs::read(completed.join("run/console.log"))?, b"normal exit");
         assert_eq!(fs::read(live.join("mod/Main.class"))?, b"owned class");
-        assert_eq!(fs::read(live.join("launch-inputs/runtime.jar"))?, b"owned jar");
+        assert_eq!(
+            fs::read(live.join("launch-inputs/runtime.jar"))?,
+            b"owned jar"
+        );
         assert_eq!(fs::read(live.join("run/console.log"))?, b"still running");
         assert_eq!(fs::read(failed.join("mod/Main.class"))?, b"owned class");
-        assert_eq!(fs::read(failed.join("launch-inputs/runtime.jar"))?, b"owned jar");
-        assert_eq!(fs::read(failed.join("run/console.log"))?, b"failure diagnostics");
+        assert_eq!(
+            fs::read(failed.join("launch-inputs/runtime.jar"))?,
+            b"owned jar"
+        );
+        assert_eq!(
+            fs::read(failed.join("run/console.log"))?,
+            b"failure diagnostics"
+        );
         assert!(!live.join("run/immutable-input-retirement.json").exists());
         assert!(!failed.join("run/immutable-input-retirement.json").exists());
         drop(live_inputs);
@@ -602,10 +626,27 @@ mod tests {
             pin_url: None,
             pin_sha512: None,
         };
-        let snapshot = BuildSnapshotReceipt::publish(&minecraft, &cache, "1.19.2", &java, &project, "fixture-sdk")?;
-        fs::write(snapshot.snapshot_dir.join("project/classes/Main.class"), b"corrupt")?;
-        assert!(RuntimeSession::prepare(&snapshot, "runClientSmoke", &["classes"], None, None, false).is_err());
-        assert!(!cache.join("run/runClientSmoke/latest-session.json").exists());
+        let snapshot = BuildSnapshotReceipt::publish(
+            &minecraft,
+            &cache,
+            "1.19.2",
+            &java,
+            &project,
+            "fixture-sdk",
+        )?;
+        fs::write(
+            snapshot.snapshot_dir.join("project/classes/Main.class"),
+            b"corrupt",
+        )?;
+        assert!(
+            RuntimeSession::prepare(&snapshot, "runClientSmoke", &["classes"], None, None, false)
+                .is_err()
+        );
+        assert!(
+            !cache
+                .join("run/runClientSmoke/latest-session.json")
+                .exists()
+        );
         Ok(())
     }
 
@@ -734,7 +775,10 @@ mod tests {
         let home = fs::canonicalize(PathBuf::from(home))?;
         let java_executable = home.join("bin/java.exe");
         let javac = home.join("bin/javac.exe");
-        ensure!(java_executable.is_file() && javac.is_file(), "fixture SDK is incomplete");
+        ensure!(
+            java_executable.is_file() && javac.is_file(),
+            "fixture SDK is incomplete"
+        );
         let temporary = tempfile::tempdir()?;
         let minecraft = dunce::canonicalize(temporary.path())?;
         let cache = minecraft.join("build/sfm-toolchain/native-project/fixture");
@@ -763,7 +807,11 @@ mod tests {
                 .arg(&classes)
                 .arg(&source)
                 .output()?;
-            ensure!(output.status.success(), "owned javac failed: {}", String::from_utf8_lossy(&output.stderr));
+            ensure!(
+                output.status.success(),
+                "owned javac failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             Ok(())
         };
         let observe = |session: &RuntimeSession| -> eyre::Result<String> {
@@ -772,7 +820,11 @@ mod tests {
                 .arg(session.receipt.mod_root())
                 .arg("Main")
                 .output()?;
-            ensure!(output.status.success(), "owned JVM failed: {}", String::from_utf8_lossy(&output.stderr));
+            ensure!(
+                output.status.success(),
+                "owned JVM failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             Ok(String::from_utf8(output.stdout)?)
         };
         let build_lock = cache.join(".locks/build-cache.lock");
@@ -780,29 +832,68 @@ mod tests {
         compile("first-class")?;
         let first_hash = blake3::hash(&fs::read(classes.join("Main.class"))?);
         let first = BuildSnapshotReceipt::publish(
-            &minecraft, &cache, "1.19.2", &java, &project, "fixture-sdk",
+            &minecraft,
+            &cache,
+            "1.19.2",
+            &java,
+            &project,
+            "fixture-sdk",
         )?;
-        let first_live = RuntimeSession::prepare(&first, "runGameTestServer", &["classes"], None, Some(1), false)?;
-        fs::write(first_live.slot.data_dir.join("options.txt"), b"owned options")?;
+        let first_live = RuntimeSession::prepare(
+            &first,
+            "runGameTestServer",
+            &["classes"],
+            None,
+            Some(1),
+            false,
+        )?;
+        fs::write(
+            first_live.slot.data_dir.join("options.txt"),
+            b"owned options",
+        )?;
         fs::create_dir(first_live.slot.data_dir.join("world"))?;
-        fs::write(first_live.slot.data_dir.join("world/level.dat"), b"owned world")?;
+        fs::write(
+            first_live.slot.data_dir.join("world/level.dat"),
+            b"owned world",
+        )?;
         assert_eq!(observe(&first_live)?, "first-class");
         drop(producer);
-        let _next_producer = ArtifactLock::try_acquire(&build_lock, "second owned fixture compile")?
-            .ok_or_else(|| eyre::eyre!("first runtime session retained the compile lock"))?;
+        let _next_producer =
+            ArtifactLock::try_acquire(&build_lock, "second owned fixture compile")?
+                .ok_or_else(|| eyre::eyre!("first runtime session retained the compile lock"))?;
         compile("second-class")?;
         let second_hash = blake3::hash(&fs::read(classes.join("Main.class"))?);
         assert_ne!(first_hash, second_hash);
         let second = BuildSnapshotReceipt::publish(
-            &minecraft, &cache, "1.19.2", &java, &project, "fixture-sdk",
+            &minecraft,
+            &cache,
+            "1.19.2",
+            &java,
+            &project,
+            "fixture-sdk",
         )?;
         assert_ne!(first.snapshot_dir, second.snapshot_dir);
-        let second_live = RuntimeSession::prepare(&second, "runGameTestServer", &["classes"], None, Some(2), false)?;
+        let second_live = RuntimeSession::prepare(
+            &second,
+            "runGameTestServer",
+            &["classes"],
+            None,
+            Some(2),
+            false,
+        )?;
         assert_eq!(observe(&first_live)?, "first-class");
         assert_eq!(observe(&second_live)?, "second-class");
-        assert_eq!(fs::read(first_live.slot.data_dir.join("options.txt"))?, b"owned options");
-        assert_eq!(fs::read(first_live.slot.data_dir.join("world/level.dat"))?, b"owned world");
-        println!("live changed-class witness: first={first_hash} second={second_hash}; first session retained while second JVM observed its new class");
+        assert_eq!(
+            fs::read(first_live.slot.data_dir.join("options.txt"))?,
+            b"owned options"
+        );
+        assert_eq!(
+            fs::read(first_live.slot.data_dir.join("world/level.dat"))?,
+            b"owned world"
+        );
+        println!(
+            "live changed-class witness: first={first_hash} second={second_hash}; first session retained while second JVM observed its new class"
+        );
         Ok(())
     }
 }

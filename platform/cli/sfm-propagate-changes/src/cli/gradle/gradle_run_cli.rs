@@ -1,3 +1,4 @@
+use crate::cli::InvocationHomes;
 use crate::cli::jar::BranchSelector;
 use facet::Facet;
 use figue as args;
@@ -30,7 +31,7 @@ impl GradleRunArgs {
     /// # Errors
     ///
     /// Returns an error if any selected Gradle task fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.invoke_with_runtime()
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.invoke_with_runtime(homes.app_home(), homes.cache_home()?)
     }
 }

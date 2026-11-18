@@ -1,3 +1,6 @@
+use crate::jdk::list_jdks;
+use crate::jdk_preferences::JdkPreferenceRegistry;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 
@@ -8,8 +11,8 @@ pub struct JdkListArgs;
 impl JdkListArgs {
     /// # Errors
     /// Returns an error if preferences, discovery or output cannot be read.
-    pub fn invoke(self) -> eyre::Result<()> {
-        let preferences = crate::jdk_preferences::list()?;
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        let preferences = JdkPreferenceRegistry::new(app_home).list()?;
         if preferences.is_empty() {
             stdout_line("No machine-local JDK preferences registered.")?;
         } else {
@@ -22,7 +25,7 @@ impl JdkListArgs {
             }
         }
 
-        let jdks = crate::jdk::list_jdks()?;
+        let jdks = list_jdks()?;
         if jdks.is_empty() {
             stdout_line("No JDKs discovered.")?;
             return Ok(());

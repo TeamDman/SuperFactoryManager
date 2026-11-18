@@ -4,6 +4,7 @@ use super::dependency_add_cli::http_fetcher;
 use super::dependency_context::load_inventory;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
@@ -53,9 +54,10 @@ impl DependencyComponentAddArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let inventory = load_inventory(self.branch.clone(), cache_home)?;
+        let inventory = load_inventory(self.branch.clone(), cache_home, app_home)?;
         let add_args = DependencyAddArgs {
             id: self.dependency,
             branch: self.branch,

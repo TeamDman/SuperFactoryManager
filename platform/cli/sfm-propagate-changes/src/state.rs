@@ -1,7 +1,9 @@
-use crate::paths::APP_HOME;
+use crate::paths::AppHome;
 use crate::sfm_path::SfmPath;
 use eyre::Context;
 use facet::Facet;
+use std::fs::read_to_string;
+use std::fs::write;
 use tracing::debug;
 
 const STATE_FILE: &str = "state.styx";
@@ -39,15 +41,15 @@ impl State {
     /// # Errors
     ///
     /// Returns an error if the state file cannot be read or parsed.
-    pub fn load() -> eyre::Result<Self> {
-        let state_file = APP_HOME.file_path(STATE_FILE);
+    pub fn load(app_home: &AppHome) -> eyre::Result<Self> {
+        let state_file = app_home.file_path(STATE_FILE);
 
         if !state_file.exists() {
             debug!("State file does not exist, returning default state");
             return Ok(Self::default());
         }
 
-        let content = std::fs::read_to_string(&state_file).wrap_err("Failed to read state file")?;
+        let content = read_to_string(&state_file).wrap_err("Failed to read state file")?;
 
         let status = sfm_styx_state::decode(&content).wrap_err("Failed to parse state file")?;
         Ok(Self {
@@ -60,14 +62,14 @@ impl State {
     /// # Errors
     ///
     /// Returns an error if the state file cannot be written.
-    pub fn save(&self) -> eyre::Result<()> {
-        APP_HOME.ensure_dir()?;
+    pub fn save(&self, app_home: &AppHome) -> eyre::Result<()> {
+        app_home.ensure_dir()?;
 
-        let state_file = APP_HOME.file_path(STATE_FILE);
+        let state_file = app_home.file_path(STATE_FILE);
         let content = sfm_styx_state::encode((&self.status).into())
             .wrap_err("Failed to serialize state to Styx")?;
 
-        std::fs::write(&state_file, content).wrap_err("Failed to write state file")?;
+        write(&state_file, content).wrap_err("Failed to write state file")?;
 
         debug!(?state_file, "State saved");
         Ok(())
@@ -78,9 +80,9 @@ impl State {
     /// # Errors
     ///
     /// Returns an error if the state file cannot be written.
-    pub fn reset(&mut self) -> eyre::Result<()> {
+    pub fn reset(&mut self, app_home: &AppHome) -> eyre::Result<()> {
         self.status = Status::Idle;
-        self.save()
+        self.save(app_home)
     }
 }
 

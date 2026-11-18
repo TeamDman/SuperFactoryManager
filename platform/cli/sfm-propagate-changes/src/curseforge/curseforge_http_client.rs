@@ -8,6 +8,7 @@ use reqwest::blocking::RequestBuilder;
 use reqwest::header::HeaderMap;
 use reqwest::header::HeaderValue;
 use reqwest::header::USER_AGENT;
+use reqwest::redirect;
 use std::time::Duration;
 
 /// Credentials never escape through a raw client, redirects or arbitrary download URLs.
@@ -56,7 +57,7 @@ impl CurseforgeHttpClient {
         );
         Client::builder()
             .default_headers(headers)
-            .redirect(reqwest::redirect::Policy::none())
+            .redirect(redirect::Policy::none())
             .timeout(Duration::from_mins(2))
             .build()
             .wrap_err("Cannot build CurseForge HTTP client")

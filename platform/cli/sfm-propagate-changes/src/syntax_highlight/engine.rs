@@ -13,6 +13,7 @@ use super::SyntaxHighlightSpan;
 use crate::cancellation::CancellationToken;
 use arborium_highlight::Span as ArboriumSpan;
 use arborium_highlight::spans_to_flat_tokens;
+use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::time::Instant;
 use streaming_iterator::StreamingIterator;
@@ -101,7 +102,7 @@ enum SpanConstruction {
 /// Reusable Java highlighting engine. The grammar query, parser, query cursor,
 /// and bounded immutable-result cache all outlive individual requests.
 pub struct SyntaxHighlightEngine {
-    queries: std::collections::BTreeMap<String, Query>,
+    queries: BTreeMap<String, Query>,
     active_language: String,
     parser: Parser,
     cursor: QueryCursor,
@@ -132,7 +133,7 @@ impl SyntaxHighlightEngine {
             .set_language(&language)
             .map_err(|error| eyre::eyre!("Failed to load Arborium Java grammar: {error}"))?;
         Ok(Self {
-            queries: std::collections::BTreeMap::from([("java".to_owned(), query)]),
+            queries: BTreeMap::from([("java".to_owned(), query)]),
             active_language: "java".to_owned(),
             parser,
             cursor: QueryCursor::new(),
@@ -774,7 +775,7 @@ fn conservative_cache_retained_bytes(cache: &VecDeque<SyntaxHighlightCacheEntry>
     }
     cache
         .capacity()
-        .saturating_mul(std::mem::size_of::<SyntaxHighlightCacheEntry>())
+        .saturating_mul(size_of::<SyntaxHighlightCacheEntry>())
         .saturating_add(CONSERVATIVE_ALLOCATION_OVERHEAD_BYTES)
         .saturating_add(
             cache
@@ -789,7 +790,7 @@ fn conservative_vec_capacity_bytes<T>(capacity: usize) -> usize {
         0
     } else {
         capacity
-            .saturating_mul(std::mem::size_of::<T>())
+            .saturating_mul(size_of::<T>())
             .saturating_add(CONSERVATIVE_ALLOCATION_OVERHEAD_BYTES)
     }
 }

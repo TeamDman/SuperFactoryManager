@@ -1,3 +1,4 @@
+use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -18,7 +19,12 @@ impl GradleLogTldrArgs {
     /// # Errors
     ///
     /// Returns an error if the selected log directory cannot be summarized.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::gradle_cli::gradle_logs_tldr(self.latest, self.path)
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        let cache_home = if self.latest && self.path.is_none() {
+            Some(homes.cache_home()?)
+        } else {
+            None
+        };
+        super::gradle_cli::gradle_logs_tldr(self.latest, self.path, cache_home)
     }
 }

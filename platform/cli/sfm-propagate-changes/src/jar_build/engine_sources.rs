@@ -32,10 +32,11 @@ fn publish_catalog_platform_source(
     );
     if plans[0].loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         // The held NeoForm producer published inside its reader lifetime.
+
         let source = tree.with_extension("jar");
         eyre::ensure!(
-            crate::source_archive::matches_catalog_source_identity(&source, expected_sha256)?
-                && crate::source_archive::extracted_tree_matches_archive(&source, tree)?,
+            matches_catalog_source_identity(&source, expected_sha256)?
+                && extracted_tree_matches_archive(&source, tree)?,
             "held NeoForm source publication changed after consumption"
         );
         Ok(())
@@ -57,7 +58,7 @@ fn publish_checked_catalog_source_archive(
     );
     let bytes = fs::read(source)?;
     eyre::ensure!(
-        crate::source_archive::matches_catalog_source_identity(source, expected_sha256)?,
+        matches_catalog_source_identity(source, expected_sha256)?,
         "catalog platform source JAR differs from its locked SHA-256"
     );
     let jar = tree.with_extension("jar");
@@ -70,20 +71,20 @@ fn publish_checked_catalog_source_archive(
             metadata.is_file() && !metadata.file_type().is_symlink(),
             "catalog platform source destination is not a plain file"
         ),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
             let mut pending = tempfile::NamedTempFile::new_in(parent)?;
             pending.write_all(&bytes)?;
             pending.as_file().sync_all()?;
             match pending.persist_noclobber(&jar) {
                 Ok(_) => {}
-                Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {}
                 Err(error) => return Err(error.error.into()),
             }
         }
         Err(error) => return Err(error.into()),
     }
     eyre::ensure!(
-        crate::source_archive::matches_catalog_source_identity(&jar, expected_sha256)?,
+        matches_catalog_source_identity(&jar, expected_sha256)?,
         "existing catalog platform source JAR differs from its locked SHA-256"
     );
     let materialized = super::source_output_filetree::materialize(
@@ -648,7 +649,7 @@ fn collect_source_set_java_sources(
 
 fn collect_catalog_root_java_sources(
     context: &ExecutionContext<'_>,
-    declaration: crate::java_source_catalog::JavaSourceRootDeclaration,
+    declaration: java_source_catalog::JavaSourceRootDeclaration,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
     let source_root = declaration.resolve(&context.plan.minecraft_dir);
@@ -976,7 +977,7 @@ fn extract_zip_entry_to_path(zip_path: &Path, entry_name: &str, output: &Path) -
     }
     let mut file =
         File::create(output).wrap_err_with(|| format!("Failed to create {}", output.display()))?;
-    std::io::copy(&mut entry, &mut file)
+    io::copy(&mut entry, &mut file)
         .wrap_err_with(|| format!("Failed to extract {entry_name} to {}", output.display()))?;
     Ok(())
 }
@@ -1144,7 +1145,7 @@ fn resolve_current_minecraft_libraries(
         context.plan.recheck_named_inputs()?;
         let mut paths = Vec::new();
         for request in inputs.libraries() {
-            if !request.library_allowed_for_target(std::env::consts::OS, std::env::consts::ARCH)? {
+            if !request.library_allowed_for_target(env::consts::OS, env::consts::ARCH)? {
                 continue;
             }
             let relative = request
@@ -1265,8 +1266,8 @@ fn minecraft_library_jars_from_version_json(
         if !super::library_platform::allows(
             &artifact.path,
             &library.rules,
-            std::env::consts::OS,
-            std::env::consts::ARCH,
+            env::consts::OS,
+            env::consts::ARCH,
         )
         .map_err(|message| eyre::eyre!(message))?
         {

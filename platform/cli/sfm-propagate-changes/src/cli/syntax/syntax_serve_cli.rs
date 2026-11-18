@@ -7,7 +7,10 @@ use crate::syntax_highlight::SyntaxServerRuntimeSummary;
 use crate::syntax_highlight::run_syntax_server_runtime;
 use facet::Facet;
 use std::io::Read;
+use std::io::Result as IoResult;
 use std::io::Write;
+use std::io::stdin;
+use std::io::stdout as io_stdout;
 
 #[derive(Facet, Debug, Default)]
 pub struct SyntaxServeArgs;
@@ -20,7 +23,7 @@ impl SyntaxServeArgs {
     ///
     /// Returns an error when framed protocol I/O or engine startup fails.
     pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<CliOutput> {
-        let stdout = std::io::stdout();
+        let stdout = io_stdout();
         let mut writer = stdout.lock();
         let summary = self.invoke_with_io(
             SyntaxServerStdin,
@@ -80,7 +83,7 @@ impl SyntaxServeArgs {
 struct SyntaxServerStdin;
 
 impl Read for SyntaxServerStdin {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        std::io::stdin().lock().read(buf)
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        stdin().lock().read(buf)
     }
 }

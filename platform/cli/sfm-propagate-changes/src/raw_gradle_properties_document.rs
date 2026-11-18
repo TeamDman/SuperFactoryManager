@@ -8,6 +8,7 @@ use facet::Facet;
 use facet::Partial;
 use std::collections::BTreeMap;
 use std::collections::btree_map::Entry;
+use std::str::from_utf8;
 
 /// Unique literal property keys and decoded values, before SFM schema parsing.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,7 +20,7 @@ impl RawGradlePropertiesDocument {
     /// # Errors
     /// Rejects invalid UTF-8, unsupported property syntax and duplicate keys.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Self::parse(std::str::from_utf8(bytes).wrap_err("Gradle properties are not UTF-8")?)
+        Self::parse(from_utf8(bytes).wrap_err("Gradle properties are not UTF-8")?)
     }
 
     /// # Errors

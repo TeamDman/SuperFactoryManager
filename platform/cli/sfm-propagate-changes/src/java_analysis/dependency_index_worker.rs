@@ -27,16 +27,50 @@ use eyre::WrapErr;
 use facet::Facet;
 use std::borrow::Borrow;
 use std::collections::BTreeSet;
+use std::env::current_exe;
+use std::env::var_os;
+use std::fs;
+use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::BufWriter;
+use std::io::Result as IoResult;
 use std::io::Write;
+use std::iter::once;
+#[cfg(windows)]
+use std::mem::forget;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Child;
 use std::process::Command;
 use std::process::ExitStatus;
+#[cfg(windows)]
+use std::ptr::from_ref as ptr_from_ref;
+use std::str::from_utf8;
+use std::thread::sleep;
 use std::time::Duration;
+#[cfg(windows)]
+use windows::Win32::Foundation::CloseHandle;
+#[cfg(windows)]
+use windows::Win32::Foundation::HANDLE;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::AssignProcessToJobObject;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::CreateJobObjectW;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_PROCESS_MEMORY;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
+#[cfg(windows)]
+use windows::Win32::System::JobObjects::SetInformationJobObject;
+#[cfg(windows)]
+use windows::Win32::System::Threading::GetCurrentProcess;
 
 const WORKER_ENV: &str = "SFM_DEPENDENCY_SYMBOL_INDEX_WORKER_REQUEST";
 const WORKER_SCHEMA: &str = "sfm.dependency-symbol-index-worker/5";
@@ -63,7 +97,7 @@ impl DependencyIndexBuildArtifacts {
     pub(crate) fn empty(identity: &DependencySymbolIndexIdentity) -> eyre::Result<Self> {
         let temporary = tempfile::tempdir()?;
         let records_path = temporary.path().join("records.ndjson");
-        let mut writer = BufWriter::new(std::fs::File::create(&records_path)?);
+        let mut writer = BufWriter::new(File::create(&records_path)?);
         facet_json::to_writer_std(
             &mut writer,
             &DependencyJavaSymbolIndexStreamHeader::new(identity.clone()),
@@ -132,7 +166,7 @@ struct WorkerInvocation {
 ///
 /// Returns an error when the request or output cannot be read, indexed, or written.
 pub(crate) fn run_dependency_index_worker_from_env() -> eyre::Result<bool> {
-    let Some(request_path) = std::env::var_os(WORKER_ENV) else {
+    let Some(request_path) = var_os(WORKER_ENV) else {
         return Ok(false);
     };
     let request = read_worker_request(Path::new(&request_path))?;
@@ -141,7 +175,7 @@ pub(crate) fn run_dependency_index_worker_from_env() -> eyre::Result<bool> {
 }
 
 fn read_worker_request(path: &Path) -> eyre::Result<WorkerRequest> {
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let mut lines = BufReader::new(file).lines();
     let schema = next_worker_request_field(&mut lines, "schema")?;
     if schema != WORKER_SCHEMA {
@@ -150,7 +184,7 @@ fn read_worker_request(path: &Path) -> eyre::Result<WorkerRequest> {
     let pass = parse_worker_pass(&next_worker_request_field(&mut lines, "pass")?)?;
     let context_path = next_worker_request_field(&mut lines, "context")?;
     let context: JavaAnalysisContextOutput =
-        facet_json::from_str(&std::fs::read_to_string(context_path)?)?;
+        facet_json::from_str(&fs::read_to_string(context_path)?)?;
     let jdk_context = next_worker_request_field(&mut lines, "jdk-context")?;
     let resolution = next_worker_request_field(&mut lines, "resolution")?;
     let output_path = next_worker_request_field(&mut lines, "output")?;
@@ -194,7 +228,7 @@ fn read_worker_request(path: &Path) -> eyre::Result<WorkerRequest> {
 }
 
 fn next_worker_request_field(
-    lines: &mut impl Iterator<Item = std::io::Result<String>>,
+    lines: &mut impl Iterator<Item = IoResult<String>>,
     expected: &str,
 ) -> eyre::Result<String> {
     let line = lines
@@ -218,7 +252,7 @@ fn write_worker_request(
     request: &WorkerInvocation,
     context_path: &Path,
 ) -> eyre::Result<()> {
-    let file = std::fs::File::create(path)?;
+    let file = File::create(path)?;
     let mut writer = BufWriter::new(file);
     writeln!(writer, "{WORKER_SCHEMA}")?;
     write_worker_request_field(&mut writer, "pass", worker_pass_name(request.pass))?;
@@ -293,8 +327,8 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
     let source_texts = request
         .files
         .iter()
-        .map(|file| std::fs::read_to_string(&file.path))
-        .collect::<std::io::Result<Vec<_>>>()?;
+        .map(|file| fs::read_to_string(&file.path))
+        .collect::<IoResult<Vec<_>>>()?;
     let jdk_sources = if request.pass == WorkerPass::Types {
         JdkSourceDomainState::Disabled
     } else {
@@ -522,10 +556,7 @@ pub(crate) fn java_identifier_tokens(source: &str) -> BTreeSet<&str> {
 pub(crate) fn java_member_access_tokens(source: &str) -> BTreeSet<&str> {
     let mut tokens = BTreeSet::new();
     let mut token_start = None;
-    for (index, character) in source
-        .char_indices()
-        .chain(std::iter::once((source.len(), '\0')))
-    {
+    for (index, character) in source.char_indices().chain(once((source.len(), '\0'))) {
         let is_identifier = character == '_' || character == '$' || character.is_alphanumeric();
         match (token_start, is_identifier) {
             (None, true) => token_start = Some(index),
@@ -587,7 +618,7 @@ pub(crate) fn build_java_index_sharded(
             records_path,
             counts,
         }),
-        Err(error) if std::env::var_os(KEEP_FAILED_WORKDIR_ENV).is_some() => {
+        Err(error) if var_os(KEEP_FAILED_WORKDIR_ENV).is_some() => {
             let preserved = temporary.keep();
             Err(error.wrap_err(format!(
                 "preserved failed dependency-index work directory at {} because {KEEP_FAILED_WORKDIR_ENV} is set",
@@ -607,7 +638,7 @@ fn build_java_index_sharded_in_temp(
     temporary: &Path,
 ) -> eyre::Result<(PathBuf, DependencySymbolIndexCounts)> {
     let context_path = temporary.join("context.json");
-    let mut context_writer = BufWriter::new(std::fs::File::create(&context_path)?);
+    let mut context_writer = BufWriter::new(File::create(&context_path)?);
     facet_json::to_writer_std(&mut context_writer, &workspace.context)?;
     context_writer.flush()?;
     drop(context_writer);
@@ -617,7 +648,7 @@ fn build_java_index_sharded_in_temp(
         .write_worker_context(&jdk_context_path)?
         .then_some(jdk_context_path);
     let records_path = temporary.join("records.ndjson");
-    let mut records = BufWriter::new(std::fs::File::create(&records_path)?);
+    let mut records = BufWriter::new(File::create(&records_path)?);
     facet_json::to_writer_std(
         &mut records,
         &DependencyJavaSymbolIndexStreamHeader::new(identity.clone()),
@@ -701,12 +732,12 @@ fn run_resolution_pass(
     context_path: &Path,
     jdk_context_path: Option<&Path>,
     cancellation_token: &CancellationToken,
-    records: &mut BufWriter<std::fs::File>,
+    records: &mut BufWriter<File>,
     output_path: &Path,
     counts: &mut DependencySymbolIndexCounts,
     diagnostics_seen: &mut BTreeSet<String>,
 ) -> eyre::Result<()> {
-    let mut resolution = BufWriter::new(std::fs::File::create(output_path)?);
+    let mut resolution = BufWriter::new(File::create(output_path)?);
     writeln!(resolution, "{RESOLUTION_SCHEMA}")?;
     run_pass(
         pass,
@@ -729,7 +760,7 @@ fn write_resolution_index(
     path: &Path,
     definitions: &[JavaDependencyResolutionDefinition],
 ) -> eyre::Result<()> {
-    let mut writer = BufWriter::new(std::fs::File::create(path)?);
+    let mut writer = BufWriter::new(File::create(path)?);
     writeln!(writer, "{RESOLUTION_SCHEMA}")?;
     for definition in definitions {
         write_symbol_route(&mut writer, &definition.symbol, &definition.source_set)?;
@@ -740,7 +771,7 @@ fn write_resolution_index(
 }
 
 fn combine_resolution_files(inputs: &[&Path], output: &Path) -> eyre::Result<()> {
-    let mut writer = BufWriter::new(std::fs::File::create(output)?);
+    let mut writer = BufWriter::new(File::create(output)?);
     writeln!(writer, "{RESOLUTION_SCHEMA}")?;
     for input in inputs {
         copy_resolution_rows(input, &mut writer)?;
@@ -750,7 +781,7 @@ fn combine_resolution_files(inputs: &[&Path], output: &Path) -> eyre::Result<()>
 }
 
 fn copy_resolution_rows(path: &Path, writer: &mut impl Write) -> eyre::Result<()> {
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     let mut line = Vec::new();
     if reader.read_until(b'\n', &mut line)? == 0 {
@@ -799,15 +830,13 @@ fn limit_worker_diagnostics(diagnostics: &mut Vec<JavaAnalysisDiagnosticOutput>)
 /// enforce the ceiling.
 #[cfg(windows)]
 pub(crate) fn enforce_refresh_parent_memory_limit() -> eyre::Result<()> {
-    use windows::Win32::System::Threading::GetCurrentProcess;
-
     let memory_limit = create_memory_limit_job()?;
     set_job_memory_limit(&memory_limit, REFRESH_PARENT_MEMORY_LIMIT_BYTES, false)?;
     // SAFETY: `GetCurrentProcess` has no preconditions and returns a pseudo
     // handle valid for the lifetime of this process.
     let current_process = unsafe { GetCurrentProcess() };
     assign_process_to_memory_job(&memory_limit, current_process)?;
-    std::mem::forget(memory_limit);
+    forget(memory_limit);
     Ok(())
 }
 
@@ -828,8 +857,8 @@ fn run_pass(
     context_path: &Path,
     jdk_context_path: Option<&Path>,
     cancellation_token: &CancellationToken,
-    records: &mut BufWriter<std::fs::File>,
-    resolution: Option<&mut BufWriter<std::fs::File>>,
+    records: &mut BufWriter<File>,
+    resolution: Option<&mut BufWriter<File>>,
     counts: &mut DependencySymbolIndexCounts,
     diagnostics_seen: &mut BTreeSet<String>,
 ) -> eyre::Result<()> {
@@ -878,8 +907,8 @@ fn run_pass(
 }
 
 struct PassAccumulator<'a> {
-    records: &'a mut BufWriter<std::fs::File>,
-    resolution: Option<&'a mut BufWriter<std::fs::File>>,
+    records: &'a mut BufWriter<File>,
+    resolution: Option<&'a mut BufWriter<File>>,
     counts: &'a mut DependencySymbolIndexCounts,
     diagnostics_seen: &'a mut BTreeSet<String>,
     output: PassOutputMeasurements,
@@ -996,7 +1025,7 @@ fn run_pass_chunk(
         );
     }
     let output_bytes = consume_worker_output(&output_path, accumulator)?;
-    std::fs::remove_file(&request_path).wrap_err_with(|| {
+    fs::remove_file(&request_path).wrap_err_with(|| {
         format!(
             "Failed to remove consumed dependency symbol worker request {}",
             request_path.display()
@@ -1021,7 +1050,7 @@ fn run_worker(
     request_path: &Path,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<Option<ExitStatus>> {
-    let mut command = Command::new(std::env::current_exe()?);
+    let mut command = Command::new(current_exe()?);
     command.env(WORKER_ENV, request_path);
     let (mut child, _memory_limit) = spawn_memory_limited_worker(&mut command)?;
     loop {
@@ -1036,26 +1065,24 @@ fn run_worker(
             let _ = child.wait();
             cancellation_token.bail_if_cancelled()?;
         }
-        std::thread::sleep(Duration::from_millis(25));
+        sleep(Duration::from_millis(25));
     }
 }
 
 #[cfg(windows)]
-struct WorkerMemoryLimit(windows::Win32::Foundation::HANDLE);
+struct WorkerMemoryLimit(HANDLE);
 
 #[cfg(windows)]
 impl Drop for WorkerMemoryLimit {
     fn drop(&mut self) {
         // SAFETY: this handle was returned by `CreateJobObjectW`, remains owned
         // by this guard, and is closed exactly once here.
-        let _ = unsafe { windows::Win32::Foundation::CloseHandle(self.0) };
+        let _ = unsafe { CloseHandle(self.0) };
     }
 }
 
 #[cfg(windows)]
 fn create_memory_limit_job() -> eyre::Result<WorkerMemoryLimit> {
-    use windows::Win32::System::JobObjects::CreateJobObjectW;
-
     // SAFETY: null security attributes and no name request an ordinary private
     // job object; both optional arguments satisfy the Win32 contract.
     let handle = unsafe { CreateJobObjectW(None, None) }?;
@@ -1068,12 +1095,6 @@ fn set_job_memory_limit(
     bytes: usize,
     kill_on_close: bool,
 ) -> eyre::Result<()> {
-    use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    use windows::Win32::System::JobObjects::JOB_OBJECT_LIMIT_PROCESS_MEMORY;
-    use windows::Win32::System::JobObjects::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
-    use windows::Win32::System::JobObjects::JobObjectExtendedLimitInformation;
-    use windows::Win32::System::JobObjects::SetInformationJobObject;
-
     let mut information = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
     information.BasicLimitInformation.LimitFlags = if kill_on_close {
         JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_PROCESS_MEMORY
@@ -1081,9 +1102,8 @@ fn set_job_memory_limit(
         JOB_OBJECT_LIMIT_PROCESS_MEMORY
     };
     information.ProcessMemoryLimit = bytes;
-    let information_size =
-        u32::try_from(std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>())
-            .wrap_err("Job Object information size does not fit the Win32 API")?;
+    let information_size = u32::try_from(size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>())
+        .wrap_err("Job Object information size does not fit the Win32 API")?;
     // SAFETY: `job` owns a live Job Object handle, the pointer references the
     // declared information type for the duration of the call, and the byte
     // count is the exact size of that type.
@@ -1091,7 +1111,7 @@ fn set_job_memory_limit(
         SetInformationJobObject(
             job.0,
             JobObjectExtendedLimitInformation,
-            std::ptr::from_ref(&information).cast(),
+            ptr_from_ref(&information).cast(),
             information_size,
         )
     }?;
@@ -1099,12 +1119,7 @@ fn set_job_memory_limit(
 }
 
 #[cfg(windows)]
-fn assign_process_to_memory_job(
-    job: &WorkerMemoryLimit,
-    process: windows::Win32::Foundation::HANDLE,
-) -> eyre::Result<()> {
-    use windows::Win32::System::JobObjects::AssignProcessToJobObject;
-
+fn assign_process_to_memory_job(job: &WorkerMemoryLimit, process: HANDLE) -> eyre::Result<()> {
     // SAFETY: `job` owns a live Job Object handle and `process` is either the
     // current-process pseudo handle or a live child process handle.
     unsafe { AssignProcessToJobObject(job.0, process) }?;
@@ -1113,9 +1128,6 @@ fn assign_process_to_memory_job(
 
 #[cfg(windows)]
 fn spawn_memory_limited_worker(command: &mut Command) -> eyre::Result<(Child, WorkerMemoryLimit)> {
-    use std::os::windows::io::AsRawHandle;
-    use windows::Win32::Foundation::HANDLE;
-
     let memory_limit = create_memory_limit_job()?;
     set_job_memory_limit(&memory_limit, WORKER_MEMORY_LIMIT_BYTES, true)?;
     let mut child = command.spawn()?;
@@ -1182,7 +1194,7 @@ fn read_body(path: impl AsRef<Path>) -> eyre::Result<DependencyJavaSymbolIndexBo
 }
 
 fn append_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> eyre::Result<()> {
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     let mut line = Vec::new();
     if reader.read_until(b'\n', &mut line)? == 0 {
@@ -1210,7 +1222,7 @@ fn append_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> e
         let record = &line[separator + 1..];
         let emit = match record_kind {
             b"definition" => {
-                let record = std::str::from_utf8(record)?;
+                let record = from_utf8(record)?;
                 let (route, _) = split_worker_symbol_route(record, true)?;
                 accumulator.counts.definitions = accumulator.counts.definitions.saturating_add(1);
                 if let Some(writer) = accumulator.resolution.as_mut() {
@@ -1220,13 +1232,13 @@ fn append_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> e
                 true
             }
             b"usage" => {
-                let record = std::str::from_utf8(record)?;
+                let record = from_utf8(record)?;
                 split_worker_symbol_route(record, false)?;
                 accumulator.counts.usages = accumulator.counts.usages.saturating_add(1);
                 true
             }
             b"diagnostic" => {
-                let record = std::str::from_utf8(record)?;
+                let record = from_utf8(record)?;
                 if accumulator.diagnostics_seen.insert(record.to_owned()) {
                     accumulator.counts.diagnostics =
                         accumulator.counts.diagnostics.saturating_add(1);
@@ -1251,12 +1263,12 @@ fn append_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> e
 }
 
 fn consume_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> eyre::Result<u64> {
-    let output_bytes = std::fs::metadata(path)
+    let output_bytes = fs::metadata(path)
         .wrap_err_with(|| format!("Failed to measure worker spool {}", path.display()))?
         .len();
     accumulator.output.observe_worker_output(output_bytes)?;
     append_worker_output(path, accumulator)?;
-    std::fs::remove_file(path).wrap_err_with(|| {
+    fs::remove_file(path).wrap_err_with(|| {
         format!(
             "Failed to remove consumed dependency symbol worker spool {}",
             path.display()
@@ -1338,7 +1350,7 @@ fn read_resolution_body_filtered(
     path: impl AsRef<Path>,
     vocabulary: Option<(&BTreeSet<String>, &BTreeSet<String>)>,
 ) -> eyre::Result<Vec<JavaDependencyResolutionDefinition>> {
-    let file = std::fs::File::open(path)?;
+    let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     let mut line = Vec::new();
     if reader.read_until(b'\n', &mut line)? == 0 {
@@ -1360,7 +1372,7 @@ fn read_resolution_body_filtered(
         if line.is_empty() {
             continue;
         }
-        let record = std::str::from_utf8(&line)?;
+        let record = from_utf8(&line)?;
         let mut fields = record.split('\t');
         let kind = fields.next().unwrap_or_default();
         let owner = fields.next().unwrap_or_default();
@@ -1484,7 +1496,7 @@ fn parse_resolution_kind(value: &str) -> eyre::Result<JavaSymbolKind> {
 }
 
 fn write_body(path: &Path, body: &DependencyJavaSymbolIndexBody) -> eyre::Result<()> {
-    let file = std::fs::File::create(path)?;
+    let file = File::create(path)?;
     let mut writer = BufWriter::new(file);
     writeln!(writer, "{WORKER_OUTPUT_SCHEMA}")?;
     for definition in &body.definitions {

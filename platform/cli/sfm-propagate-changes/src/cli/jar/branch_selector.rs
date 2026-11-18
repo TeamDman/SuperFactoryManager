@@ -1,5 +1,7 @@
 use crate::branch_targets::BranchConjunction;
 use crate::branch_targets::BranchQuery;
+use crate::cli::curseforge::resolve_cached_popular_branch_query;
+use crate::paths::AppHome;
 use facet::Facet;
 use std::fmt;
 use std::ops::Deref;
@@ -26,10 +28,10 @@ impl BranchSelector {
     /// # Errors
     ///
     /// Returns an error when the selector expression is invalid.
-    pub fn into_query(self) -> eyre::Result<BranchQuery> {
+    pub fn into_query(self, app_home: &AppHome) -> eyre::Result<BranchQuery> {
         let trimmed = self.0.trim();
         if let Some(rest) = strip_popular_prefix(trimmed) {
-            let popular_query = crate::cli::curseforge::resolve_cached_popular_branch_query()?;
+            let popular_query = resolve_cached_popular_branch_query(app_home)?;
             let rest = rest.trim();
             if rest.is_empty() {
                 return Ok(popular_query);

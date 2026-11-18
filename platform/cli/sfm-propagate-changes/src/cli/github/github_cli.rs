@@ -3,16 +3,24 @@
 use super::GithubReleaseAmendArgs;
 use super::GithubReleaseArgs;
 use super::GithubReleaseNowArgs;
+use crate::branch_targets::BranchQuery;
 use crate::branch_targets::select_required_minecraft_versions;
 use crate::cli::jar::BranchSelector;
 use crate::cli::jar::get_jar_dir;
 use crate::cli::repo_root::get_repo_root;
+use crate::git_read::tag_names;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_prompt;
 use crate::worktree::parse_version;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
+use std::env::temp_dir;
 use std::ffi::OsStr;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::fs::write;
+use std::io::stdin;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -37,8 +45,8 @@ impl GithubArgs {
     /// # Errors
     ///
     /// Returns an error if the selected GitHub command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -62,9 +70,9 @@ impl GithubCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Release(args) => args.invoke(),
+            Self::Release(args) => args.invoke(app_home),
         }
     }
 }
@@ -73,10 +81,10 @@ impl GithubReleaseCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Now(args) => args.invoke(),
-            Self::Amend(args) => args.invoke(),
+            Self::Now(args) => args.invoke(app_home),
+            Self::Amend(args) => args.invoke(app_home),
         }
     }
 }
@@ -101,10 +109,11 @@ pub(super) fn release_now(
     repo: Option<String>,
     dry_run: bool,
     yes: bool,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
     let repo = resolve_repo(repo)?;
-    let repo_root = get_repo_root()?;
-    let jar_dir = get_jar_dir()?;
+    let repo_root = get_repo_root(app_home)?;
+    let jar_dir = get_jar_dir(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
     let changelog_path = repo_root
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
@@ -112,9 +121,9 @@ pub(super) fn release_now(
     let mod_version = read_mod_version(&gradle_properties)?;
     let release_title = release_title(&mod_version);
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let branch_query = branch.into_query()?;
+    let branch_query = branch.into_query(app_home)?;
     let branch_filter_text = branch_query.to_string();
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
     let release_tag = select_release_tag(&repo_root, &mod_version, &jars, &branch_query)?;
     let notes = read_changelog_section(&changelog_path, &mod_version)?;
     let notes_file = write_notes_file(&mod_version, &notes)?;
@@ -182,10 +191,11 @@ pub(super) fn release_amend(
     repo: Option<String>,
     dry_run: bool,
     yes: bool,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
     let repo = resolve_repo(repo)?;
-    let repo_root = get_repo_root()?;
-    let jar_dir = get_jar_dir()?;
+    let repo_root = get_repo_root(app_home)?;
+    let jar_dir = get_jar_dir(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
     let changelog_path = repo_root
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
@@ -193,9 +203,9 @@ pub(super) fn release_amend(
     let mod_version = read_mod_version(&gradle_properties)?;
     let release_title = release_title(&mod_version);
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let branch_query = branch.into_query()?;
+    let branch_query = branch.into_query(app_home)?;
     let branch_filter_text = branch_query.to_string();
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
     let release_tag = select_release_tag(&repo_root, &mod_version, &jars, &branch_query)?;
     let notes = read_changelog_section(&changelog_path, &mod_version)?;
     let notes_file = write_notes_file(&mod_version, &notes)?;
@@ -267,7 +277,7 @@ fn resolve_repo(repo: Option<String>) -> eyre::Result<String> {
 }
 
 fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {
-    let content = std::fs::read_to_string(gradle_properties)
+    let content = read_to_string(gradle_properties)
         .wrap_err_with(|| format!("Failed to read {}", gradle_properties.display()))?;
 
     let mod_version = content
@@ -286,7 +296,7 @@ fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {
 }
 
 fn read_changelog_section(changelog_path: &Path, mod_version: &str) -> eyre::Result<String> {
-    let lines: Vec<String> = std::fs::read_to_string(changelog_path)
+    let lines: Vec<String> = read_to_string(changelog_path)
         .wrap_err_with(|| format!("Failed to read changelog: {}", changelog_path.display()))?
         .lines()
         .map(ToString::to_string)
@@ -329,8 +339,8 @@ fn read_changelog_section(changelog_path: &Path, mod_version: &str) -> eyre::Res
 }
 
 fn write_notes_file(mod_version: &str, notes: &str) -> eyre::Result<PathBuf> {
-    let notes_file = std::env::temp_dir().join(format!("sfm-release-notes-{mod_version}.md"));
-    std::fs::write(&notes_file, notes)
+    let notes_file = temp_dir().join(format!("sfm-release-notes-{mod_version}.md"));
+    write(&notes_file, notes)
         .wrap_err_with(|| format!("Failed to write release notes: {}", notes_file.display()))?;
     Ok(notes_file)
 }
@@ -341,7 +351,7 @@ fn get_ordered_release_jars(jar_dir: &Path, mod_version: &str) -> eyre::Result<V
     }
 
     let suffix = format!("-{mod_version}.jar");
-    let mut jars: Vec<ReleaseJar> = std::fs::read_dir(jar_dir)?
+    let mut jars: Vec<ReleaseJar> = read_dir(jar_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {
@@ -393,9 +403,10 @@ fn get_ordered_release_jars(jar_dir: &Path, mod_version: &str) -> eyre::Result<V
 
 fn filter_release_jars_by_branch(
     jars: Vec<ReleaseJar>,
-    branch_query: &crate::branch_targets::BranchQuery,
+    branch_query: &BranchQuery,
+    app_home: &AppHome,
 ) -> eyre::Result<Vec<ReleaseJar>> {
-    let versions = select_required_minecraft_versions(branch_query)?;
+    let versions = select_required_minecraft_versions(branch_query, app_home)?;
     let filtered: Vec<ReleaseJar> = jars
         .into_iter()
         .filter(|jar| {
@@ -416,7 +427,7 @@ fn select_release_tag(
     repo_root: &Path,
     mod_version: &str,
     jars: &[ReleaseJar],
-    branch_query: &crate::branch_targets::BranchQuery,
+    branch_query: &BranchQuery,
 ) -> eyre::Result<String> {
     let tags = get_release_tags(repo_root, mod_version)?;
     let selected_mc_versions: Vec<&str> = jars.iter().map(|jar| jar.mc_version.as_str()).collect();
@@ -464,7 +475,7 @@ fn get_release_tags(repo_root: &Path, mod_version: &str) -> eyre::Result<Vec<Rel
     let pattern = format!("{mod_version}-*");
     let prefix = format!("{mod_version}-");
     let mut tags = Vec::new();
-    for tag in crate::git_read::tag_names(repo_root)? {
+    for tag in tag_names(repo_root)? {
         let Some(mc_version) = tag.strip_prefix(&prefix) else {
             continue;
         };
@@ -508,7 +519,7 @@ fn prompt_yes_no(message: &str) -> eyre::Result<bool> {
     stdout_prompt(format!("{message} "))?;
 
     let mut input = String::new();
-    std::io::stdin()
+    stdin()
         .read_line(&mut input)
         .wrap_err("Failed to read confirmation response")?;
 

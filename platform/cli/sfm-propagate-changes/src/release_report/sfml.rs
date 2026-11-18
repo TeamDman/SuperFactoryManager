@@ -1,6 +1,7 @@
 //! Display formatting and token colors grounded in SFM's SFML.g4 lexer.
 //! This is a presentation lexer, not a parser or program rewrite.
 use super::render::escape;
+use std::path::Path;
 
 pub(super) const KEYWORDS: &[&str] = &[
     // SFML.g4 case-insensitive letter tokens; generated from the repository grammar.
@@ -96,7 +97,7 @@ pub(super) const KEYWORDS: &[&str] = &[
 pub(super) fn applies(language: &str, id: &str) -> bool {
     matches!(language.to_ascii_lowercase().as_str(), "sfm" | "sfml")
         || id.ends_with("-sfml")
-        || std::path::Path::new(id)
+        || Path::new(id)
             .extension()
             .is_some_and(|ext| ext.eq_ignore_ascii_case("sfml"))
 }

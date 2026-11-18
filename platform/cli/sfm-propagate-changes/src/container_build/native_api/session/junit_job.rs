@@ -6,10 +6,19 @@ use super::json;
 use super::policy;
 use super::url;
 use super::write_new;
+use crate::container_build;
 use crate::container_build::ContainerTestReceipt;
 use crate::container_build::ContainerTestRequest;
 use crate::container_build::ContextManifest;
+use crate::jar_build;
+use crate::source_projection;
 use std::collections::BTreeMap;
+use std::fs::create_dir;
+use std::str::from_utf8;
+use std::time::Duration;
+use std::time::Instant;
+use tokio::runtime::Builder as RuntimeBuilder;
+use tokio::time;
 const OWNER: &str = "sfm-local-junit-v1";
 fn entrypoint(seconds: u64) -> Vec<String> {
     [
@@ -32,16 +41,16 @@ pub(crate) fn execute(
         .output
         .parent()
         .ok_or_else(|| eyre::eyre!("test output needs a parent"))?;
-    crate::source_projection::candidate_lock::checked_directory(parent)?;
-    crate::container_build::disk::check(parent, 8 * 1024 * 1024 * 1024)?;
-    let root = crate::source_projection::candidate_lock::checked_directory(&request.context)?;
-    let raw = crate::source_projection::core_catalog::read_bounded_input(
+    source_projection::candidate_lock::checked_directory(parent)?;
+    container_build::disk::check(parent, 8 * 1024 * 1024 * 1024)?;
+    let root = source_projection::candidate_lock::checked_directory(&request.context)?;
+    let raw = source_projection::core_catalog::read_bounded_input(
         &root,
         "context-manifest.json",
         32 * 1024 * 1024,
     )?;
     let manifest: ContextManifest = facet_json::from_slice(&raw)?;
-    crate::container_build::backend::verify_context(&root, &manifest)?;
+    container_build::backend::verify_context(&root, &manifest)?;
     eyre::ensure!(
         manifest.projection == request.projection,
         "test projection/context mismatch"
@@ -49,9 +58,7 @@ pub(crate) fn execute(
     let context = manifest
         .context_identity
         .ok_or_else(|| eyre::eyre!("test context binding missing"))?;
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
+    let runtime = RuntimeBuilder::new_current_thread().enable_all().build()?;
     runtime.block_on(run(request, &context, token))
 }
 async fn run(
@@ -87,7 +94,7 @@ async fn run(
         "test image requires matching verified SDK profile/context"
     );
     super::memory_probe::check(&request.engine_endpoint, &image, &engine, token).await?;
-    std::fs::create_dir(&request.output)?;
+    create_dir(&request.output)?;
     let target = SessionTarget {
         engine_endpoint: request.engine_endpoint.clone(),
         session: format!("sfm-session-junit-{:016x}", rand::random::<u64>()),
@@ -128,7 +135,7 @@ async fn run(
         error: None,
         artifacts: BTreeMap::new(),
     };
-    let started = std::time::Instant::now();
+    let started = Instant::now();
     let result = wait(request, &bound, context, token).await;
     if let Err(error) = result {
         receipt.error = Some(format!("{error:#}"));
@@ -223,8 +230,7 @@ async fn wait(
         url(&["containers", &target.session, "start"])?.path(),
     )
     .await?;
-    let deadline =
-        std::time::Instant::now() + std::time::Duration::from_secs(request.timeout_seconds + 15);
+    let deadline = Instant::now() + Duration::from_secs(request.timeout_seconds + 15);
     loop {
         token.bail_if_cancelled()?;
         let current = inspect(request, target, context).await?;
@@ -235,13 +241,13 @@ async fn wait(
         if !current.state.running {
             return Ok(());
         }
-        eyre::ensure!(std::time::Instant::now() < deadline, "JUnit job timed out");
-        crate::container_build::disk::check(&request.output, 8 * 1024 * 1024 * 1024)?;
+        eyre::ensure!(Instant::now() < deadline, "JUnit job timed out");
+        container_build::disk::check(&request.output, 8 * 1024 * 1024 * 1024)?;
         policy::engine(&target.engine_endpoint, false)
             .await?
             .store
             .check()?;
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        time::sleep(Duration::from_secs(5)).await;
     }
 }
 async fn finish(
@@ -285,9 +291,9 @@ async fn finish(
         {
             Ok(Some(bytes)) => {
                 if name == "junit-events.log" {
-                    match std::str::from_utf8(&bytes)
+                    match from_utf8(&bytes)
                         .map_err(eyre::Report::from)
-                        .and_then(crate::jar_build::junit_summary_from_log)
+                        .and_then(jar_build::junit_summary_from_log)
                     {
                         Ok(s) => receipt.summary = Some(s),
                         Err(e) => export_error = Some(e),
@@ -296,10 +302,9 @@ async fn finish(
                 if let Err(e) = write_new(&request.output.join(name), &bytes) {
                     export_error = Some(e);
                 } else {
-                    receipt.artifacts.insert(
-                        name.into(),
-                        crate::source_projection::provenance::sha256(&bytes),
-                    );
+                    receipt
+                        .artifacts
+                        .insert(name.into(), source_projection::provenance::sha256(&bytes));
                 }
             }
             Ok(None) => {}
@@ -328,7 +333,7 @@ async fn finish(
     eyre::ensure!(receipt.summary.is_some(), "JUnit summary missing");
     Ok(())
 }
-fn accounted(s: &crate::jar_build::JunitSummary) -> bool {
+fn accounted(s: &jar_build::JunitSummary) -> bool {
     s.tests_found > 0
         && s.containers_found > 0
         && s.containers_failed == 0

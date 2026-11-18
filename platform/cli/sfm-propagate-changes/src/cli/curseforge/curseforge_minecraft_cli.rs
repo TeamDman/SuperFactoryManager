@@ -1,6 +1,7 @@
 #![allow(clippy::doc_markdown)]
 
 use super::CurseforgeMinecraftVersionArgs;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -16,8 +17,8 @@ impl CurseforgeMinecraftArgs {
     /// # Errors
     ///
     /// Returns an error if the selected Minecraft metadata command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -33,9 +34,9 @@ impl CurseforgeMinecraftCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Version(args) => args.invoke(),
+            Self::Version(args) => args.invoke(app_home),
         }
     }
 }

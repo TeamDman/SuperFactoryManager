@@ -24,29 +24,30 @@ pub struct CatalogReleasePlanArgs {
 }
 
 impl CatalogReleasePlanArgs {
-
     pub(super) fn invoke(
         self,
         invocation_dir: &Path,
         cancellation: &CancellationToken,
     ) -> Result<CliOutput> {
         cancellation.bail_if_cancelled()?;
-        let request = {
-            let version = CatalogReleaseVersion::parse(&self.expected_mod_version)?;
-            let repository = match self.repo_root {
-                Some(root) if root.is_absolute() => root,
-                Some(root) => invocation_dir.join(root),
-                None => gix::discover(invocation_dir)
-                    .wrap_err("release planning requires a containing Git checkout or --repo-root")?
-                    .workdir()
-                    .ok_or_else(|| eyre::eyre!("release planning requires a worktree or --repo-root"))?
-                    .to_path_buf(),
-            };
-            CatalogReleaseRequest::new(&repository, self.projection, version)
-        }?;
+        let request = self.into_request(invocation_dir)?;
         Ok(CliOutput::facet(CatalogReleasePlan::prepare(
             &request,
             cancellation,
         )?))
+    }
+
+    pub(super) fn into_request(self, invocation_dir: &Path) -> Result<CatalogReleaseRequest> {
+        let version = CatalogReleaseVersion::parse(&self.expected_mod_version)?;
+        let repository = match self.repo_root {
+            Some(root) if root.is_absolute() => root,
+            Some(root) => invocation_dir.join(root),
+            None => gix::discover(invocation_dir)
+                .wrap_err("release planning requires a containing Git checkout or --repo-root")?
+                .workdir()
+                .ok_or_else(|| eyre::eyre!("release planning requires a worktree or --repo-root"))?
+                .to_path_buf(),
+        };
+        CatalogReleaseRequest::new(&repository, self.projection, version)
     }
 }

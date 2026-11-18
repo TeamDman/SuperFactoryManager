@@ -11,8 +11,10 @@ use std::fs::File;
 use std::io::ErrorKind;
 use std::io::Read;
 use std::io::Write;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 pub const DEPENDENCY_SYMBOL_INDEX_MANIFEST_SCHEMA: &str = "sfm.dependency-symbol-index-manifest/1";
 pub const DEPENDENCY_SYMBOL_INDEX_PAYLOAD_SCHEMA: &str = "sfm.dependency-symbol-index-payload/1";
@@ -373,9 +375,8 @@ impl DependencySymbolIndexStore {
         ) {
             return Ok(None);
         }
-        let manifest = match read_manifest(&layout.concrete.manifest) {
-            Ok(manifest) => manifest,
-            Err(_) => return Ok(None),
+        let Ok(manifest) = read_manifest(&layout.concrete.manifest) else {
+            return Ok(None);
         };
         let mut selected_inputs = source_inputs.to_vec();
         selected_inputs.sort();
@@ -422,7 +423,7 @@ impl DependencySymbolIndexStore {
         expected.validate()?;
         let layout = self.layout(expected)?;
         let (manifest, payload_bytes) = read_validated_entry(&layout.concrete.root, expected)?;
-        let payload_text = std::str::from_utf8(&payload_bytes)
+        let payload_text = from_utf8(&payload_bytes)
             .wrap_err("dependency symbol index payload is not UTF-8 JSON")?;
         let payload: DependencySymbolIndexPayload<T> = facet_json::from_str(payload_text)
             .wrap_err("Failed to decode dependency symbol index payload")?;
@@ -742,8 +743,8 @@ fn read_validated_manifest(
 
 fn read_manifest(path: &Path) -> eyre::Result<DependencySymbolIndexManifest> {
     let bytes = fs::read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    let input = std::str::from_utf8(&bytes)
-        .wrap_err_with(|| format!("{} is not UTF-8 JSON", path.display()))?;
+    let input =
+        from_utf8(&bytes).wrap_err_with(|| format!("{} is not UTF-8 JSON", path.display()))?;
     facet_json::from_str(input).wrap_err_with(|| {
         format!(
             "Failed to decode dependency index manifest {}",
@@ -889,7 +890,7 @@ fn validate_portable_origin(origin: &str) -> eyre::Result<()> {
         || origin.as_bytes().get(1) == Some(&b':')
         || Path::new(origin)
             .components()
-            .any(|component| !matches!(component, std::path::Component::Normal(_)))
+            .any(|component| !matches!(component, Component::Normal(_)))
     {
         eyre::bail!("dependency index source origin `{origin}` is not portable");
     }
@@ -1026,7 +1027,16 @@ mod tests {
     use super::super::dependency_index_identity::DependencySymbolIndexIdentityProjection;
     use super::super::dependency_index_identity::EffectiveDependencyLockProjection;
     use super::*;
+    use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
+    use crate::java_analysis::DependencyJavaSymbolIndexStreamHeader;
     use crate::java_analysis::DependencyResolutionSelection;
+    use crate::java_analysis::JavaSourceSpanOutput;
+    use crate::java_analysis::JavaSymbolDefinitionOutput;
+    use crate::java_analysis::JavaSymbolIdentityOutput;
+    use crate::java_analysis::JavaSymbolKind;
+    use crate::java_analysis::ResolutionConfidence;
+    use crate::java_analysis::scan_dependency_java_symbol_index;
+    use std::collections::BTreeSet;
     use std::sync::Arc;
     use std::sync::Barrier;
 
@@ -1242,16 +1252,6 @@ mod tests {
 
     #[test]
     fn prepared_stream_payload_is_hashed_published_and_located_without_buffering() {
-        use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
-        use crate::java_analysis::DependencyJavaSymbolIndexStreamHeader;
-        use crate::java_analysis::JavaSourceSpanOutput;
-        use crate::java_analysis::JavaSymbolDefinitionOutput;
-        use crate::java_analysis::JavaSymbolIdentityOutput;
-        use crate::java_analysis::JavaSymbolKind;
-        use crate::java_analysis::ResolutionConfidence;
-        use crate::java_analysis::scan_dependency_java_symbol_index;
-        use std::collections::BTreeSet;
-
         let directory = tempfile::tempdir().expect("cache root");
         let prepared = tempfile::NamedTempFile::new().expect("prepared payload");
         let store = DependencySymbolIndexStore::new(CacheHome(directory.path().to_path_buf()));

@@ -35,6 +35,7 @@ use super::UsageAtPositionRequest;
 use super::UsageAtPositionResult;
 use crate::cancellation::CancellationToken;
 use std::collections::BTreeMap;
+use std::error::Error as StdError;
 use std::fmt;
 
 pub const DEFAULT_SYMBOL_SERVER_MAX_PENDING_DEFINITIONS: usize = 8;
@@ -190,7 +191,7 @@ impl fmt::Display for SymbolServerConfigurationError {
     }
 }
 
-impl std::error::Error for SymbolServerConfigurationError {}
+impl StdError for SymbolServerConfigurationError {}
 
 struct PendingRequest {
     key: SymbolServerRequestKey,

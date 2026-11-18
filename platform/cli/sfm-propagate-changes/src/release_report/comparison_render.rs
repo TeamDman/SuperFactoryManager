@@ -7,6 +7,7 @@ use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
+use std::path::Path;
 
 pub(crate) fn render(
     report: &ComparisonReport,
@@ -108,7 +109,7 @@ fn diff_records(report: &ComparisonReport) -> (Vec<ReleaseReportCodeDiff>, Vec<(
                     "{} · {} · mode equality {:?}",
                     diff.path, diff.status, diff.mode_equal
                 ),
-                language: match std::path::Path::new(&diff.path)
+                language: match Path::new(&diff.path)
                     .extension()
                     .and_then(|value| value.to_str())
                 {

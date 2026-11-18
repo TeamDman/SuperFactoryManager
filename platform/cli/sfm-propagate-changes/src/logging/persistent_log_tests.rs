@@ -1,7 +1,11 @@
 use super::super::logging_init::configured_subscriber;
 use super::*;
+use crate::paths::AppHome;
 use std::collections::BTreeMap;
-use std::process::{Child, Command, Stdio};
+use std::env::temp_dir;
+use std::process::Child;
+use std::process::Command;
+use std::process::Stdio;
 use tracing::level_filters::LevelFilter;
 
 fn config(directory: &Path) -> LoggingConfig {
@@ -51,23 +55,27 @@ fn default_debug_file_preserves_terminal_and_explicit_level_configuration() -> R
             .map_err(|_| eyre::eyre!("fixture parse failed"))?
             .get_silent())
     };
-    let default = parse(&["jdk", "list"])?.logging_config()?;
+    let default = parse(&["jdk", "list"])?
+        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
     assert_eq!(default.default_directive, LevelFilter::INFO.into());
     assert_eq!(default.json_default_directive, LevelFilter::DEBUG.into());
     assert!(default.json_log_directory.is_some() && default.json_log_path.is_none());
     assert!(default.read_env_filter && default.json_read_env_filter);
-    let explicit = parse(&["--log-file", "fixture.ndjson", "jdk", "list"])?.logging_config()?;
+    let explicit = parse(&["--log-file", "fixture.ndjson", "jdk", "list"])?
+        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
     assert_eq!(
         explicit.json_log_path,
         Some(PathBuf::from("fixture.ndjson"))
     );
     assert!(explicit.json_log_directory.is_none());
     assert_eq!(explicit.json_default_directive, LevelFilter::INFO.into());
-    let warn = parse(&["--log-filter", "warn", "jdk", "list"])?.logging_config()?;
+    let warn = parse(&["--log-filter", "warn", "jdk", "list"])?
+        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
     assert_eq!(warn.default_directive, LevelFilter::WARN.into());
     assert_eq!(warn.json_default_directive, LevelFilter::WARN.into());
     assert!(!warn.read_env_filter && !warn.json_read_env_filter);
-    let debug = parse(&["--debug", "--log-filter", "error", "jdk", "list"])?.logging_config()?;
+    let debug = parse(&["--debug", "--log-filter", "error", "jdk", "list"])?
+        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
     assert_eq!(debug.default_directive, LevelFilter::DEBUG.into());
     assert_eq!(debug.json_default_directive, LevelFilter::DEBUG.into());
     assert!(!debug.read_env_filter && !debug.json_read_env_filter);

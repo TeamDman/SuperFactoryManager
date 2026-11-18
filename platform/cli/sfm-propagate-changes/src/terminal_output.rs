@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::io;
 use std::io::Write as _;
 // todo(2026-06-16) this may be the wrong abstraction - instead of forbidding println to promote this, our println scenarios should be converted to accept a Writer instead which a top-level cli thing can responsibly print or pass stdout to?
 
@@ -8,7 +9,7 @@ use std::io::Write as _;
 ///
 /// Returns an error when stdout cannot be written.
 pub fn stdout_line(value: impl Display) -> eyre::Result<()> {
-    let mut stdout = std::io::stdout().lock();
+    let mut stdout = io::stdout().lock();
     writeln!(stdout, "{value}")?;
     Ok(())
 }
@@ -19,7 +20,7 @@ pub fn stdout_line(value: impl Display) -> eyre::Result<()> {
 ///
 /// Returns an error when stdout cannot be written.
 pub fn stdout_blank_line() -> eyre::Result<()> {
-    let mut stdout = std::io::stdout().lock();
+    let mut stdout = io::stdout().lock();
     writeln!(stdout)?;
     Ok(())
 }
@@ -30,7 +31,7 @@ pub fn stdout_blank_line() -> eyre::Result<()> {
 ///
 /// Returns an error when stdout cannot be written or flushed.
 pub fn stdout_prompt(value: impl Display) -> eyre::Result<()> {
-    let mut stdout = std::io::stdout().lock();
+    let mut stdout = io::stdout().lock();
     write!(stdout, "{value}")?;
     stdout.flush()?;
     Ok(())
@@ -41,8 +42,8 @@ pub fn stdout_prompt(value: impl Display) -> eyre::Result<()> {
 /// # Errors
 ///
 /// Returns an error when stderr cannot be written or flushed.
-pub fn stderr_text(value: impl Display) -> std::io::Result<()> {
-    let mut stderr = std::io::stderr().lock();
+pub fn stderr_text(value: impl Display) -> io::Result<()> {
+    let mut stderr = io::stderr().lock();
     write!(stderr, "{value}")?;
     stderr.flush()
 }
@@ -53,7 +54,7 @@ pub fn stderr_text(value: impl Display) -> std::io::Result<()> {
 ///
 /// Returns an error when stderr cannot be written.
 pub fn stderr_line(value: impl Display) -> eyre::Result<()> {
-    let mut stderr = std::io::stderr().lock();
+    let mut stderr = io::stderr().lock();
     writeln!(stderr, "{value}")?;
     Ok(())
 }

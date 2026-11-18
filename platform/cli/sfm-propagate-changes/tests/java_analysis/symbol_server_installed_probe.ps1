@@ -3,7 +3,8 @@ param(
     [string] $Executable,
     [Parameter(Mandatory = $true)]
     [string] $RepoRoot,
-    [string] $Branch = "1.19.2",
+    [Parameter(Mandatory = $true)]
+    [string] $ProjectRoot,
     [string] $OutputPath,
     [ValidateRange(2, 1000)]
     [int] $WarmSampleCount = 24,
@@ -79,17 +80,15 @@ function Get-Sha256ContentHash {
     return "sha256:$([System.Convert]::ToHexString($digest).ToLowerInvariant())"
 }
 
-function Get-BranchJavaSourceTreeSnapshot {
+function Get-ProjectionJavaSourceTreeSnapshot {
     param([Parameter(Mandatory = $true)] [string] $Root)
     $canonicalRoot = [System.IO.Path]::GetFullPath($Root)
     $sourceBase = [System.IO.Path]::Combine(
         $canonicalRoot,
-        "platform",
-        "minecraft",
         "src"
     )
     if (-not (Test-Path -LiteralPath $sourceBase -PathType Container)) {
-        throw "Branch Java source base does not exist: $sourceBase"
+        throw "Projected Java source base does not exist: $sourceBase"
     }
 
     $files = @(
@@ -128,7 +127,7 @@ function Get-BranchJavaSourceTreeSnapshot {
     }
 
     return [pscustomobject] [ordered]@{
-        scope = "platform/minecraft/src/*/java/**/*.java"
+        scope = "src/*/java/**/*.java"
         file_count = $files.Count
         total_bytes = $totalBytes
         sha256 = "sha256:$([System.Convert]::ToHexString($digest).ToLowerInvariant())"
@@ -405,8 +404,20 @@ $failureEvidencePath = "$artifactBase.failure.json"
 foreach ($staleEvidencePath in @($structuredLogPath, $stderrEvidencePath, $failureEvidencePath)) {
     [System.IO.File]::Delete($staleEvidencePath)
 }
+$RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+$ProjectRoot = if ([System.IO.Path]::IsPathRooted($ProjectRoot)) {
+    [System.IO.Path]::GetFullPath($ProjectRoot)
+} else {
+    [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($RepoRoot, $ProjectRoot))
+}
+$projectRelative = [System.IO.Path]::GetRelativePath($RepoRoot, $ProjectRoot)
+if ([System.IO.Path]::IsPathRooted($projectRelative) -or
+    $projectRelative -eq ".." -or $projectRelative.StartsWith("..\") -or
+    $projectRelative.StartsWith("../")) {
+    throw "ProjectRoot must select a projection within RepoRoot."
+}
 $probeStage = "source-tree/before"
-$sourceTreeBefore = Get-BranchJavaSourceTreeSnapshot -Root $RepoRoot
+$sourceTreeBefore = Get-ProjectionJavaSourceTreeSnapshot -Root $ProjectRoot
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = [System.IO.Path]::GetFullPath($Executable)
 $executableVersion = (& $startInfo.FileName --version | Out-String).Trim()
@@ -425,8 +436,8 @@ $startInfo.ArgumentList.Add("--log-file")
 $startInfo.ArgumentList.Add($structuredLogPath)
 $startInfo.ArgumentList.Add("symbol")
 $startInfo.ArgumentList.Add("serve")
-$startInfo.ArgumentList.Add("--branch")
-$startInfo.ArgumentList.Add($Branch)
+$startInfo.ArgumentList.Add("--project-root")
+$startInfo.ArgumentList.Add($ProjectRoot)
 
 $process = [System.Diagnostics.Process]::new()
 $process.StartInfo = $startInfo
@@ -714,7 +725,7 @@ try {
         throw "Symbol worker left descendant processes alive: $($leakedDescendants -join ', ')."
     }
     $probeStage = "source-tree/after"
-    $sourceTreeAfter = Get-BranchJavaSourceTreeSnapshot -Root $RepoRoot
+    $sourceTreeAfter = Get-ProjectionJavaSourceTreeSnapshot -Root $ProjectRoot
     $sourceTreeEqual = (
         $sourceTreeBefore.file_count -eq $sourceTreeAfter.file_count -and
         $sourceTreeBefore.total_bytes -eq $sourceTreeAfter.total_bytes -and
@@ -771,10 +782,10 @@ try {
         )
     }
     $report = [ordered]@{
-        schema = "sfm.symbol-server-installed-probe/6"
+        schema = "sfm.symbol-server-installed-probe/7"
         executable = [System.IO.Path]::GetFileName($startInfo.FileName)
         executable_version = $executableVersion
-        branch = $Branch
+        project_root = $ProjectRoot
         cold = $cold
         cold_java_interaction_map = $coldInteractionMap
         warm_java_interaction_map = $warmInteractionMap
@@ -849,7 +860,7 @@ try {
             artifact_id = $probeArtifactId
             executable = $startInfo.FileName
             executable_version = $executableVersion
-            branch = $Branch
+            project_root = $ProjectRoot
             stage = $probeStage
             exception = [ordered]@{
                 message = $probeFailure.Exception.Message

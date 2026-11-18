@@ -25,6 +25,7 @@ use std::fs::File;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const PLAN_SCHEMA: &str = "sfm:source_release_provider_plan@1";
 const PLAN_SCOPE: &str = "read-only reviewed-provider-intent for one verified ten-JAR package; no credentials, remote checks, tag, upload, promotion or publication";
@@ -538,7 +539,7 @@ fn read_reviewed_changelog(path: &Path, expected_sha256: &str) -> Result<String>
         bytes.len() as u64 <= MAX_CHANGELOG_BYTES,
         "reviewed changelog exceeds the {MAX_CHANGELOG_BYTES}-byte limit"
     );
-    let text = std::str::from_utf8(&bytes)?;
+    let text = from_utf8(&bytes)?;
     ensure!(!text.trim().is_empty(), "reviewed changelog is empty");
     ensure!(
         sha256(&bytes) == expected_sha256,

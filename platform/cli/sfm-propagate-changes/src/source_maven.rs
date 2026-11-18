@@ -14,6 +14,7 @@ use crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3;
 use crate::toolchain_lockfile_schema::version::v3::MavenSourceDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::MavenSourceDerivedChecksV3;
 use crate::toolchain_lockfile_schema::version::v3::MavenSourceProviderV3;
+use std::path::Component;
 use std::path::Path;
 
 pub(crate) fn configure_maven_sources(
@@ -128,7 +129,7 @@ fn validate_roots(tree: &Path, roots: &[String]) -> eyre::Result<()> {
         if path.is_absolute()
             || path
                 .components()
-                .any(|component| !matches!(component, std::path::Component::Normal(_)))
+                .any(|component| !matches!(component, Component::Normal(_)))
         {
             eyre::bail!("Source root must be a relative normalized path: {root}");
         }

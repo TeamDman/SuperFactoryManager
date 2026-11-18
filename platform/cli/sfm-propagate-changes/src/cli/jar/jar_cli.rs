@@ -9,6 +9,7 @@ use super::JarPlanArgs;
 use super::JarUpdateClientsArgs;
 use super::JarUpdateServersArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
 
@@ -24,8 +25,12 @@ impl JarArgs {
     /// # Errors
     ///
     /// Returns an error if the selected jar command fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        self.command.invoke(cancellation_token)
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        self.command.invoke(cancellation_token, homes)
     }
 }
 
@@ -59,18 +64,24 @@ impl JarCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         match self {
-            JarCommand::Dir(args) => args.invoke(),
-            JarCommand::Plan(args) => args.invoke(cancellation_token),
-            JarCommand::Build(args) => args.invoke(cancellation_token),
-            JarCommand::Compare(args) => args.invoke(cancellation_token),
+            JarCommand::Dir(args) => args.invoke(homes.app_home()),
+            JarCommand::Plan(args) => args.invoke(cancellation_token, homes),
+            JarCommand::Build(args) => args.invoke(cancellation_token, homes),
+            JarCommand::Compare(args) => args.invoke(cancellation_token, homes.app_home()),
             JarCommand::CleanLoaderProbe(args) => args.invoke(cancellation_token),
-            JarCommand::AuditArtifacts(args) => args.invoke(cancellation_token),
-            JarCommand::Collect(args) => args.invoke(),
-            JarCommand::List(args) => args.invoke(),
-            JarCommand::UpdateClients(args) => args.invoke(),
-            JarCommand::UpdateServers(args) => args.invoke(),
+            JarCommand::AuditArtifacts(args) => {
+                args.invoke(cancellation_token, homes.app_home(), homes.cache_home()?)
+            }
+            JarCommand::Collect(args) => args.invoke(homes.app_home()),
+            JarCommand::List(args) => args.invoke(homes.app_home()),
+            JarCommand::UpdateClients(args) => args.invoke(homes.app_home()),
+            JarCommand::UpdateServers(args) => args.invoke(homes.app_home()),
         }
     }
 }

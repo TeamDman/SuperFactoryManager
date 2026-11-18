@@ -1,5 +1,6 @@
 //! Wall-duration observations only; instrumentation never reads or hashes inputs.
 use eyre::Result;
+use std::process::id as process_id;
 use std::time::Instant;
 
 pub(crate) struct NfrtPreparationPhase {
@@ -16,7 +17,7 @@ impl NfrtPreparationPhase {
         tracing::info!(
             event = "begin",
             phase,
-            rust_pid = std::process::id(),
+            rust_pid = process_id(),
             measurement = "wall_duration",
             nested = true,
             "nfrt_preparation_phase"
@@ -77,7 +78,7 @@ impl Drop for NfrtPreparationPhase {
             outcome = self.outcome,
             elapsed_us,
             elapsed_ms = whole_milliseconds,
-            rust_pid = std::process::id(),
+            rust_pid = process_id(),
             work_items = self.work_items,
             work_bytes = self.work_bytes,
             work_counts_known = self.work_counts_known,

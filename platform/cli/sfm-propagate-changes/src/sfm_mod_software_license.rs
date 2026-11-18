@@ -16,9 +16,11 @@ impl SfmModSoftwareLicense {
     pub const VALUE: &'static str = "Mozilla Public License Version 2.0";
 }
 
-impl From<SfmModSoftwareLicense> for ModSoftwareLicense {
-    fn from(_: SfmModSoftwareLicense) -> Self {
-        Self::new(SoftwareLicense::Mpl2_0)
+impl TryFrom<SfmModSoftwareLicense> for ModSoftwareLicense {
+    type Error = eyre::Report;
+
+    fn try_from(_: SfmModSoftwareLicense) -> Result<Self> {
+        Self::parse(SfmModSoftwareLicense::VALUE)
     }
 }
 
@@ -49,7 +51,12 @@ mod tests {
     #[test]
     fn witness_is_zero_sized_and_round_trips_through_generic_metadata() -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModSoftwareLicense>(), 0);
-        let value: ModSoftwareLicense = SfmModSoftwareLicense.into();
+        let value: Result<ModSoftwareLicense> = SfmModSoftwareLicense.try_into();
+        let value = value?;
+        assert_eq!(
+            value,
+            ModSoftwareLicense::parse(SfmModSoftwareLicense::VALUE)?
+        );
         assert_eq!(value.license(), &SoftwareLicense::Mpl2_0);
         assert_eq!(
             SfmModSoftwareLicense::try_from(&value)?,

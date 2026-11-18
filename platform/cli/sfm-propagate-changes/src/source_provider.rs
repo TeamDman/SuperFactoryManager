@@ -1,10 +1,14 @@
 use crate::dependency_inventory::AcquisitionStatus;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
+use crate::source_archive::archive_payload_sha256;
 use crate::source_archive::extracted_tree_matches_archive;
+use crate::source_binding::still_matches;
 use crate::source_decompile::completed_tree_matches;
 use crate::source_git::locked_git_tree_matches_commit;
+use crate::source_projection::provenance::sha256;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -155,10 +159,7 @@ impl<'a> SourceProviderView<'a> {
                     .source_binding_sha256
                     .as_deref()
                     .is_some_and(|digest| {
-                        !crate::source_binding::still_matches(
-                            &self.inventory.target.worktree_path,
-                            digest,
-                        )
+                        !still_matches(&self.inventory.target.worktree_path, digest)
                     })
                 {
                     return Ok(SourceStatus::Stale);
@@ -168,16 +169,14 @@ impl<'a> SourceProviderView<'a> {
                     .source_jar_sha256
                     .as_deref()
                     .is_none_or(|expected| {
-                        std::fs::read(&source_jar).is_ok_and(|bytes| {
-                            crate::source_projection::provenance::sha256(&bytes) == expected
-                        })
+                        fs::read(&source_jar).is_ok_and(|bytes| sha256(&bytes) == expected)
                     })
                     && provider
                         .derived_checks
                         .source_payload_sha256
                         .as_deref()
                         .is_none_or(|expected| {
-                            crate::source_archive::archive_payload_sha256(&source_jar)
+                            archive_payload_sha256(&source_jar)
                                 .is_ok_and(|actual| actual == expected)
                         });
                 if archive_matches_lock
@@ -244,10 +243,7 @@ impl<'a> SourceProviderView<'a> {
                     .source_binding_sha256
                     .as_deref()
                     .is_some_and(|digest| {
-                        !crate::source_binding::still_matches(
-                            &self.inventory.target.worktree_path,
-                            digest,
-                        )
+                        !still_matches(&self.inventory.target.worktree_path, digest)
                     })
                 {
                     Some("tracked shared source binding changed after selection")

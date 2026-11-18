@@ -12,7 +12,12 @@ use super::simplify_cli::SimplifyArgs;
 use super::source_cli::LegacySourceArgs;
 use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::output::CliOutput;
+#[cfg(test)]
+use crate::paths::AppHome;
+#[cfg(test)]
+use crate::paths::CacheHome;
 use eyre::Result;
 use facet::Facet;
 use figue::{self as args};
@@ -64,6 +69,7 @@ impl SourceArgs {
         self,
         cancellation: &CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> Result<CliOutput> {
         match self.command {
             SourceCommand::InspectPrepare(args) => args.invoke(cancellation),
@@ -71,14 +77,14 @@ impl SourceArgs {
             SourceCommand::References(args) => args.invoke(cancellation),
             SourceCommand::ReleaseReport(args) => args.invoke(cancellation),
             SourceCommand::Release(args) => args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::Oracle(args) => args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::Project(args) => args.invoke_in(cancellation, invocation_dir),
+            SourceCommand::Oracle(args) => args.invoke_in(cancellation, invocation_dir, homes),
+            SourceCommand::Project(args) => args.invoke_in(cancellation, invocation_dir, homes),
             SourceCommand::List(args) => args.invoke_in(invocation_dir),
             SourceCommand::Show(args) => args.invoke_in(invocation_dir),
             SourceCommand::Render(args) => args.invoke_in(invocation_dir),
             SourceCommand::Trace(args) => args.invoke_in(),
             SourceCommand::Simplify(args) => args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::Legacy(args) => args.invoke_in(cancellation, invocation_dir),
+            SourceCommand::Legacy(args) => args.invoke_in(cancellation, invocation_dir, homes),
         }
     }
 }
@@ -126,7 +132,14 @@ mod tests {
             ),
         };
         let error = args
-            .invoke_in(&CancellationToken::new(), temp.path())
+            .invoke_in(
+                &CancellationToken::new(),
+                temp.path(),
+                &InvocationHomes::new(
+                    AppHome(temp.path().join("settings")),
+                    Ok(CacheHome(temp.path().join("cache"))),
+                ),
+            )
             .unwrap_err();
         assert!(error.to_string().contains("use source project"));
         assert!(

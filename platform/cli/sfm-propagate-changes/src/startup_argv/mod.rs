@@ -1,4 +1,6 @@
 //! Redacted, Unicode-only startup evidence. No raw argument reaches tracing.
+
+use crate::cli;
 mod startup_arguments;
 mod startup_event_visitor;
 #[cfg(test)]
@@ -43,8 +45,8 @@ pub(crate) fn log<T: facet::Facet<'static>>(arguments: &[String]) -> eyre::Resul
 // Figue's failure renderer can include the original command line. Only successful
 // builtin displays (help/version/completions) may use its ordinary presentation.
 pub(crate) fn finish_parse(
-    outcome: figue::DriverOutcome<crate::cli::Cli>,
-) -> eyre::Result<ControlFlow<ExitCode, crate::cli::Cli>> {
+    outcome: figue::DriverOutcome<cli::Cli>,
+) -> eyre::Result<ControlFlow<ExitCode, cli::Cli>> {
     match without_help_suggestions(outcome).into_result() {
         Ok(output) => Ok(ControlFlow::Continue(output.value)),
         Err(error) => {

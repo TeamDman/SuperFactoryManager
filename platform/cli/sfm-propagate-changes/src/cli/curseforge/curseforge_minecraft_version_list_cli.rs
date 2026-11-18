@@ -6,9 +6,13 @@ use crate::cli::jar::BranchSelector;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeVersionRow;
+use crate::paths::AppHome;
 use crate::worktree::parse_version;
 use facet::Facet;
 use figue as args;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use tracing::info;
 
 /// Arguments for listing Minecraft game versions from CurseForge.
@@ -31,8 +35,8 @@ impl CurseforgeMinecraftVersionListArgs {
     /// # Errors
     ///
     /// Returns an error if Minecraft versions cannot be queried.
-    pub fn invoke(self) -> eyre::Result<()> {
-        list_minecraft_versions(self.branch, self.token, self.op_secret)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        list_minecraft_versions(self.branch, self.token, self.op_secret, app_home)
     }
 }
 
@@ -40,9 +44,10 @@ fn list_minecraft_versions(
     branch: BranchSelector,
     token: Option<String>,
     op_secret: Option<String>,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let branch_query = branch.into_query()?;
-    let selected_versions = select_required_minecraft_versions(&branch_query)?;
+    let branch_query = branch.into_query(app_home)?;
+    let selected_versions = select_required_minecraft_versions(&branch_query, app_home)?;
     let token_value = CurseforgeApiSecret::resolve(token, op_secret)?;
     let client = CurseforgeHttpClient::new(&token_value)?;
 
@@ -80,8 +85,8 @@ fn list_minecraft_versions(
     Ok(())
 }
 
-impl std::fmt::Debug for CurseforgeMinecraftVersionListArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeMinecraftVersionListArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeMinecraftVersionListArgs")
             .finish_non_exhaustive()
     }

@@ -1,11 +1,15 @@
+use crate::jdk_artifact_cache;
 use crate::paths::CacheHome;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
 use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use eyre::Context;
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
+use std::env;
 use std::fs;
+use std::iter::once;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -91,9 +95,8 @@ pub(crate) fn resolve_java_for_lockfile(
         JdkSource::Explicit(home) => resolve_java(Some(home), required_major),
         JdkSource::LegacyDiscovery => resolve_java(None, required_major),
         JdkSource::Pinned { pin, artifact } => {
-            let home = crate::jdk_artifact_cache::acquire_pinned_jbrsdk_zip(
-                pin, artifact, cache_root, offline,
-            )?;
+            let home =
+                jdk_artifact_cache::acquire_pinned_jbrsdk_zip(pin, artifact, cache_root, offline)?;
             resolve_pinned_java_from_verified_home(&home, pin, artifact)
         }
     }
@@ -122,34 +125,39 @@ pub(crate) fn resolve_exact_java_for_minecraft_dir(
     minecraft_dir: &Path,
     required_major: u32,
     explicit_java_home: Option<&Path>,
+    cache_home: &CacheHome,
 ) -> eyre::Result<ResolvedJava> {
     if let Some(home) = explicit_java_home {
-        let resolved = resolve_java(Some(home), required_major)?;
-        if resolved.major_version != required_major {
-            eyre::bail!(
-                "Java {} is required for this Prism runtime, but --java-home resolved Java {}",
-                required_major,
-                resolved.major_version
-            );
-        }
-        return Ok(resolved);
+        return resolve_exact_java_at_home(required_major, home);
     }
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
     let input = fs::read_to_string(&lockfile_path)
         .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-    let pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)?;
+    let pins = toolchain_lockfile_schema::read_jdk_pins(&input)?;
     let Some(pins) = pins else {
         return resolve_exact_java(required_major);
     };
-    let cache_root = CacheHome::current()?
-        .0
-        .join("minecraft-toolchain")
-        .join("jbrsdk");
+    let cache_root = cache_home.0.join("minecraft-toolchain").join("jbrsdk");
     resolve_java_for_lockfile(None, Some(&pins), required_major, &cache_root, false)
 }
 
+pub(crate) fn resolve_exact_java_at_home(
+    required_major: u32,
+    home: &Path,
+) -> eyre::Result<ResolvedJava> {
+    let resolved = resolve_java(Some(home), required_major)?;
+    if resolved.major_version != required_major {
+        eyre::bail!(
+            "Java {} is required for this Prism runtime, but --java-home resolved Java {}",
+            required_major,
+            resolved.major_version
+        );
+    }
+    Ok(resolved)
+}
+
 pub(crate) fn host_jbrsdk_platform() -> Option<&'static str> {
-    match (std::env::consts::OS, std::env::consts::ARCH) {
+    match (env::consts::OS, env::consts::ARCH) {
         ("windows", "x86_64") => Some("windows-x64"),
         ("windows", "aarch64") => Some("windows-aarch64"),
         ("linux", "x86_64") => Some("linux-x64"),
@@ -214,7 +222,7 @@ pub(crate) fn list_jdks() -> eyre::Result<Vec<JdkInstallation>> {
     );
 
     let mut jdks = Vec::with_capacity(home_results.len() + 1);
-    for result in home_results.into_iter().chain(std::iter::once(path_result)) {
+    for result in home_results.into_iter().chain(once(path_result)) {
         match result {
             Ok(x) => jdks.push(x),
             Err(e) => warn!("Failed to read JDK: {e:?}"),
@@ -436,7 +444,7 @@ fn discover_jdk_homes() -> Vec<(PathBuf, String)> {
 }
 
 fn push_child_directories(output: &mut Vec<(PathBuf, String)>, root: &Path, source: &str) {
-    let Ok(entries) = std::fs::read_dir(root) else {
+    let Ok(entries) = fs::read_dir(root) else {
         return;
     };
     for entry in entries.flatten() {
@@ -457,7 +465,7 @@ fn jdk_home_has_executables(home: &Path) -> bool {
 }
 
 fn env_path(name: &str) -> Option<PathBuf> {
-    std::env::var_os(name)
+    env::var_os(name)
         .filter(|value| !value.as_os_str().is_empty())
         .map(PathBuf::from)
 }

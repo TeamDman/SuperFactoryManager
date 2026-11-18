@@ -4,6 +4,7 @@
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
+use gix::diff::blob;
 use std::borrow::Cow;
 use std::ops::Range;
 use tree_sitter_patched_arborium::Node;
@@ -298,11 +299,10 @@ fn token_region(parsed: &ParsedJava, tokens: Range<usize>) -> Snippet {
 }
 
 pub(crate) fn compare(before: &ParsedJava, after: &ParsedJava) -> Comparison {
-    let mut input = gix::diff::blob::InternedInput::<&str>::default();
+    let mut input = blob::InternedInput::<&str>::default();
     input.update_before(before.atoms.iter().map(|atom| atom.key.as_str()));
     input.update_after(after.atoms.iter().map(|atom| atom.key.as_str()));
-    let diff =
-        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Histogram, &input);
+    let diff = blob::diff_with_slider_heuristics(blob::Algorithm::Histogram, &input);
     let equal_tokens = before
         .atoms
         .iter()

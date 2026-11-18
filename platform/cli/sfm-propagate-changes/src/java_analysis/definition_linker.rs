@@ -19,6 +19,8 @@ use super::ResolutionConfidence;
 use eyre::WrapErr;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::iter::once;
+use std::slice::from_ref as slice_from_ref;
 
 pub(crate) struct JavaDefinitionLinker {
     context: JavaAnalysisContextOutput,
@@ -98,7 +100,7 @@ impl RawMemberFact {
                 .raw_parameter_types
                 .iter()
                 .map(String::as_str)
-                .chain(std::iter::once(callable.raw_return_type.as_str()))
+                .chain(once(callable.raw_return_type.as_str()))
                 .collect(),
         }
     }
@@ -526,7 +528,7 @@ impl JavaDefinitionLinker {
             None
         };
         if let Some(candidate) = direct.or(imported_nested) {
-            return self.resolve_candidates(raw_name, std::slice::from_ref(&candidate), scope);
+            return self.resolve_candidates(raw_name, slice_from_ref(&candidate), scope);
         }
         if raw_name.contains('.') && raw_name.chars().next().is_some_and(char::is_lowercase) {
             return self.resolve_candidates(raw_name, &[raw_name.to_owned()], scope);

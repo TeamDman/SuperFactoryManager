@@ -3,9 +3,21 @@
 //! The immutable checkout's selector inputs are prepared once per test process;
 //! requested role bytes are freshly read and rendered for every caller.
 
+use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
+use super::core_catalog::CoreCatalog;
+use super::core_inputs::CORE_METADATA_PATH;
+use super::core_inputs::CORE_ROOT;
+use super::core_inputs::CoreProjectInputs;
 use super::core_inputs::CoreSelection;
+use super::core_inputs::MAX_CORE_FILE_BYTES;
+use super::core_inputs::render_core_input;
+use super::core_inputs::validate_collection_selection;
+use super::core_slice_test_support::read_bounded;
+use super::projection_catalog::SUPPORTED_TARGETS;
+use eyre::ensure;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 type ReleaseSelections = BTreeMap<String, (ProjectionContext, CoreSelection)>;
@@ -34,14 +46,6 @@ pub(super) fn release_project_role_outputs(
 }
 
 fn load_workspace_selections() -> eyre::Result<ReleaseSelections> {
-    use super::candidate_lock::checked_file;
-    use super::core_catalog::CoreCatalog;
-    use super::core_inputs::CORE_METADATA_PATH;
-    use super::core_inputs::CoreProjectInputs;
-    use super::core_slice_test_support::read_bounded;
-    use super::projection_catalog::SUPPORTED_TARGETS;
-    use std::collections::BTreeSet;
-
     let repository = workspace_repository();
     let catalog = CoreCatalog::load(repository, repository)?;
     let metadata = CoreProjectInputs::from_json(
@@ -69,14 +73,6 @@ pub(super) fn release_project_role_outputs_selected(
     selection: &super::core_inputs::CoreSelection,
     wanted: &std::collections::BTreeSet<String>,
 ) -> eyre::Result<std::collections::BTreeMap<String, Vec<u8>>> {
-    use super::candidate_lock::checked_file;
-    use super::core_inputs::CORE_ROOT;
-    use super::core_inputs::MAX_CORE_FILE_BYTES;
-    use super::core_inputs::render_core_input;
-    use super::core_inputs::validate_collection_selection;
-    use super::core_slice_test_support::read_bounded;
-    use eyre::ensure;
-
     validate_collection_selection(selection, context)?;
     let mut outputs = BTreeMap::new();
     for (output, selected) in &selection.inputs {

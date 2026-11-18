@@ -22,6 +22,9 @@ use super::sha256_content_hash;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
+use std::iter::once;
+use std::mem::take;
 use std::sync::Arc;
 use tree_sitter_patched_arborium::Node;
 
@@ -1109,8 +1112,8 @@ fn new_page_result(
         semantic_fingerprint,
         outcome: JavaInteractionMapOutcome::Success,
         document: DefinitionDocumentIdentityOutput::from(&request.document),
-        domains: std::mem::take(&mut complete.domains),
-        projections: std::mem::take(&mut complete.projections),
+        domains: take(&mut complete.domains),
+        projections: take(&mut complete.projections),
         regions: Vec::new(),
         classifications: Vec::new(),
         outlinks: Vec::new(),
@@ -1128,7 +1131,7 @@ fn new_page_result(
             next_inventory_offset: None,
             encoded_bytes: 0,
         },
-        diagnostics: std::mem::take(&mut complete.diagnostics),
+        diagnostics: take(&mut complete.diagnostics),
     }
 }
 
@@ -1490,10 +1493,7 @@ fn add_gap_regions(
     leaves.dedup();
     let mut cursor = 0;
     let mut gap_ordinal = 0_u64;
-    for (start, end) in leaves
-        .into_iter()
-        .chain(std::iter::once((source.len(), source.len())))
-    {
+    for (start, end) in leaves.into_iter().chain(once((source.len(), source.len()))) {
         if cursor < start {
             for (run_start, run_end, whitespace) in classified_runs(source, cursor, start) {
                 let semantic_kind = if whitespace {
@@ -2197,7 +2197,7 @@ fn enrich_dependency_source_span(
         for segment in relative.split('/') {
             native.push(segment);
         }
-        let Ok(source) = std::fs::read_to_string(native) else {
+        let Ok(source) = fs::read_to_string(native) else {
             continue;
         };
         if blake3_content_hash(&source) != span.source_hash {

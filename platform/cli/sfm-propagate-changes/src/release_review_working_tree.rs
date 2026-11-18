@@ -13,12 +13,19 @@ use crate::release_review_capture_io::read_disk;
 use crate::review_session_v1::sha256;
 use eyre::Context as _;
 use eyre::eyre;
+use gix::hash::ObjectId;
+use gix::objs;
+use gix::open;
 use sha1::Digest as _;
 use sha1::Sha1;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 const PATH_LIMIT: usize = 100_000;
 const LIST_LIMIT: u64 = 32 * 1024 * 1024;
@@ -98,7 +105,7 @@ pub fn scope_matches(
     cancellation: &CancellationToken,
 ) -> eyre::Result<(bool, String)> {
     saved.validate()?;
-    let budget = CaptureBudget::with_timeout(cancellation, std::time::Duration::from_secs(20));
+    let budget = CaptureBudget::with_timeout(cancellation, Duration::from_secs(20));
     let mut now = capture_observed(config, &budget, || {}, false)?.capture;
     // Commit identity is reported independently. Derived document IDs and clocks
     // are not part of the content projection; the original baseline still is.
@@ -122,7 +129,7 @@ fn capture_observed(
     let root =
         dunce::canonicalize(&config.repository_root).wrap_err("resolve capture repository")?;
     let git_root = budget.git(&root, &["rev-parse", "--show-toplevel"], None, 16 * 1024)?;
-    let git_root = PathBuf::from(std::str::from_utf8(&git_root)?.trim());
+    let git_root = PathBuf::from(from_utf8(&git_root)?.trim());
     if dunce::canonicalize(&git_root)? != root {
         return Err(eyre!("capture root must be the Git top-level"));
     }
@@ -172,8 +179,8 @@ fn capture_observed(
         id: String::new(),
         observed_head_commit: second.head,
         observed_head_tree: second.tree,
-        captured_at_unix_ms: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
+        captured_at_unix_ms: SystemTime::now()
+            .duration_since(UNIX_EPOCH)?
             .as_millis()
             .try_into()?,
         consistency: "verified_two_pass".into(),
@@ -263,7 +270,7 @@ fn resolve(
     {
         let repository = gix::open_opts(
             root,
-            gix::open::Options::isolated().config_overrides([
+            open::Options::isolated().config_overrides([
                 "gitoxide.objects.noReplace=true",
                 "gitoxide.objects.allocLimit=67108864",
             ]),
@@ -271,11 +278,11 @@ fn resolve(
         let object = if revision == "HEAD" {
             repository.find_object(repository.head_commit()?.id)?
         } else {
-            repository.find_object(gix::hash::ObjectId::from_hex(revision.as_bytes())?)?
+            repository.find_object(ObjectId::from_hex(revision.as_bytes())?)?
         };
         let target = match kind {
-            "commit" => gix::objs::Kind::Commit,
-            "tree" => gix::objs::Kind::Tree,
+            "commit" => objs::Kind::Commit,
+            "tree" => objs::Kind::Tree,
             _ => return Err(eyre!("unsupported capture revision kind: {kind}")),
         };
         let value = object.peel_to_kind(target)?.id.to_string();
@@ -290,7 +297,7 @@ fn resolve(
         None,
         256,
     )?;
-    let value = std::str::from_utf8(&bytes)?.trim();
+    let value = from_utf8(&bytes)?.trim();
     if value.len() != 40
         || !value
             .bytes()
@@ -376,8 +383,7 @@ fn index_entries(bytes: &[u8]) -> eyre::Result<BTreeMap<String, GitEntry>> {
 }
 
 fn records(bytes: &[u8]) -> eyre::Result<Vec<&str>> {
-    let text =
-        std::str::from_utf8(bytes).wrap_err("capture cannot represent non-UTF-8 Git paths")?;
+    let text = from_utf8(bytes).wrap_err("capture cannot represent non-UTF-8 Git paths")?;
     if !text.is_empty() && !text.ends_with('\0') {
         return Err(eyre!("truncated Git path listing"));
     }
@@ -508,7 +514,7 @@ fn observe(
                         entry.materialization = "oversized".into();
                         entry.diagnostic =
                             Some(format!("Text preview exceeds {TEXT_LIMIT}-byte limit"));
-                    } else if let Ok(text) = std::str::from_utf8(&bytes)
+                    } else if let Ok(text) = from_utf8(&bytes)
                         && !bytes.contains(&0)
                     {
                         entry.materialization = "utf8".into();
@@ -575,7 +581,7 @@ fn read_blobs(
         LIST_LIMIT,
     )?;
     let mut lengths = BTreeMap::new();
-    for line in std::str::from_utf8(&sizes)?.lines() {
+    for line in from_utf8(&sizes)?.lines() {
         let fields = line.split(' ').collect::<Vec<_>>();
         if fields.len() != 3 || fields[1] != "blob" || !objects.contains(fields[0]) {
             return Err(eyre!("unexpected Git blob size response"));
@@ -613,9 +619,7 @@ fn read_blobs(
             .iter()
             .position(|b| *b == b'\n')
             .ok_or_else(|| eyre!("truncated Git blob header"))?;
-        let fields = std::str::from_utf8(&cursor[..end])?
-            .split(' ')
-            .collect::<Vec<_>>();
+        let fields = from_utf8(&cursor[..end])?.split(' ').collect::<Vec<_>>();
         if fields.len() != 3 || fields[0] != expected || fields[1] != "blob" {
             return Err(eyre!("unexpected Git blob response"));
         }

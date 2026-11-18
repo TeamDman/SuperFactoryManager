@@ -4,6 +4,7 @@
 //! https://docs.modrinth.com/api/operations/createversion/
 //! https://modrinth.com/mod/super-factory-manager/versions Project ID - aecUorJQ
 
+use crate::branch_targets::BranchQuery;
 use crate::branch_targets::select_required_minecraft_versions;
 use crate::modrinth::MODRINTH_API_ROOT;
 use crate::modrinth::ModrinthAmendVersionPayload;
@@ -13,6 +14,7 @@ use crate::modrinth::ModrinthProjectVersionFile;
 use crate::modrinth::ModrinthReleasePlan;
 use crate::modrinth::ModrinthVersionUpload;
 use crate::modrinth::create_version;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_prompt;
 use crate::worktree::parse_version;
 use eyre::Context;
@@ -22,6 +24,10 @@ use sha1::Sha1;
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
+use std::fs::read;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::io::stdin;
 use std::path::Path;
 use std::path::PathBuf;
 use tracing::debug;
@@ -33,7 +39,7 @@ pub(super) fn prompt_yes_no(message: &str) -> eyre::Result<bool> {
     stdout_prompt(format!("{message} "))?;
 
     let mut input = String::new();
-    std::io::stdin()
+    stdin()
         .read_line(&mut input)
         .wrap_err("Failed to read confirmation response")?;
 
@@ -133,7 +139,7 @@ fn prepare_project_version(
         .and_then(OsStr::to_str)
         .ok_or_else(|| eyre::eyre!("Invalid jar filename: {}", plan.jar_path.display()))?
         .to_owned();
-    let file_bytes = std::fs::read(&plan.jar_path).wrap_err_with(|| {
+    let file_bytes = read(&plan.jar_path).wrap_err_with(|| {
         format!(
             "Failed to read jar for Modrinth upload: {}",
             plan.jar_path.display()
@@ -297,9 +303,10 @@ pub(super) fn build_release_plans(
 
 pub(super) fn filter_release_jars_by_branch(
     jars: Vec<PathBuf>,
-    branch_query: &crate::branch_targets::BranchQuery,
+    branch_query: &BranchQuery,
+    app_home: &AppHome,
 ) -> eyre::Result<Vec<PathBuf>> {
-    let versions = select_required_minecraft_versions(branch_query)?;
+    let versions = select_required_minecraft_versions(branch_query, app_home)?;
     let mut filtered = Vec::new();
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
@@ -334,7 +341,7 @@ fn loader_slugs_for(parsed: (u32, u32, u32)) -> Vec<&'static str> {
 }
 
 pub(super) fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {
-    let content = std::fs::read_to_string(gradle_properties)
+    let content = read_to_string(gradle_properties)
         .wrap_err_with(|| format!("Failed to read {}", gradle_properties.display()))?;
 
     let mod_version = content
@@ -353,7 +360,7 @@ pub(super) fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String>
 }
 
 fn read_changelog_section(changelog_path: &Path, mod_version: &str) -> eyre::Result<String> {
-    let lines: Vec<String> = std::fs::read_to_string(changelog_path)
+    let lines: Vec<String> = read_to_string(changelog_path)
         .wrap_err_with(|| format!("Failed to read changelog: {}", changelog_path.display()))?
         .lines()
         .map(ToString::to_string)
@@ -402,7 +409,7 @@ pub(super) fn get_ordered_release_jars(
     }
 
     let suffix = format!("-{mod_version}.jar");
-    let mut entries: Vec<(PathBuf, (u32, u32, u32), String)> = std::fs::read_dir(jar_dir)?
+    let mut entries: Vec<(PathBuf, (u32, u32, u32), String)> = read_dir(jar_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {

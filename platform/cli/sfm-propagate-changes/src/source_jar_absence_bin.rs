@@ -5,6 +5,7 @@ use sfm_propagate_changes::source_projection::manifest::SourceProjectionManifest
 use sfm_propagate_changes::source_projection::release_jar_absence::check_jar_reader;
 use sfm_propagate_changes::terminal_output::stdout_line;
 use std::collections::BTreeMap;
+use std::env::args_os;
 use std::ffi::OsString;
 use std::fs;
 use std::fs::File;
@@ -25,7 +26,7 @@ fn string_arg(args: &mut BTreeMap<String, OsString>, key: &str) -> eyre::Result<
 
 fn run() -> eyre::Result<()> {
     let mut values = BTreeMap::new();
-    let mut input = std::env::args_os().skip(1);
+    let mut input = args_os().skip(1);
     while let Some(option) = input.next() {
         if option == "--help" || option == "-h" {
             stdout_line(USAGE)?;

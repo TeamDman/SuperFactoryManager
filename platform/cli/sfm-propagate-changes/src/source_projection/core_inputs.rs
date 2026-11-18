@@ -32,9 +32,16 @@ use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Read as _;
+use std::iter::once;
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt as _;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use walkdir::WalkDir;
+#[cfg(windows)]
+use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
 
 pub const CORE_ROOT: &str = "platform/minecraft/core-liquid-template";
 pub const CORE_METADATA_PATH: &str = "platform/minecraft/core-liquid-template/project-inputs.json";
@@ -443,8 +450,7 @@ impl CoreInputSnapshot {
             .inputs
             .values()
             .flat_map(|selected| {
-                std::iter::once(selected.input.as_str())
-                    .chain(selected.reference_template.as_deref())
+                once(selected.input.as_str()).chain(selected.reference_template.as_deref())
             })
             .filter(|input| !self.files.contains_key(*input) && seen.insert(*input))
             .collect::<Vec<_>>();
@@ -676,7 +682,7 @@ pub(super) fn render_core_input_with(
     if java || selected.template {
         #[cfg(feature = "tracy")]
         let _span = tracing::info_span!("oracle_render_core_template").entered();
-        let source = std::str::from_utf8(&artifact.source_bytes)
+        let source = from_utf8(&artifact.source_bytes)
             .wrap_err_with(|| format!("core template `{}` is not UTF-8", selected.input))?;
         validate_core_template_selectors(source, output)?;
         if java {
@@ -699,7 +705,7 @@ pub(super) fn render_core_input_with(
         artifact.output_bytes = pinned_gradle_wrapper(&artifact.source_bytes)?;
     }
     if java || selected.template {
-        let source = std::str::from_utf8(&artifact.source_bytes)?.trim_start_matches('\u{feff}');
+        let source = from_utf8(&artifact.source_bytes)?.trim_start_matches('\u{feff}');
         artifact.related_references = Some(super::reference_annotations::associations(
             source,
             &artifact.source_path,
@@ -713,7 +719,7 @@ pub(super) fn render_core_input_with(
 fn pinned_gradle_wrapper(source: &[u8]) -> Result<Vec<u8>> {
     const ANCHOR: &str = "@rem Find java.exe";
     const BOOTSTRAP: &str = "@rem Select the exact lock-pinned JBRSDK from the guarded checkout cache.\n@rem This setlocal scope does not change the user environment.\nset \"JAVA_HOME=\"\nwhere pwsh.exe >NUL 2>&1\nif %ERRORLEVEL% neq 0 (\n  echo ERROR: PowerShell 7 ^(pwsh.exe^) is required to verify the pinned SFM JBRSDK. 1>&2\n  goto fail\n)\nfor /f \"usebackq delims=\" %%i in (`pwsh.exe -NoProfile -File \"%APP_HOME%\\gradle\\sfm-pinned-jbr.ps1\"`) do set \"JAVA_HOME=%%i\"\nif not defined JAVA_HOME (\n  echo ERROR: SFM could not verify the pinned JBRSDK for this projection. 1>&2\n  goto fail\n)\n";
-    let source = std::str::from_utf8(source).wrap_err("Gradle wrapper is not UTF-8")?;
+    let source = from_utf8(source).wrap_err("Gradle wrapper is not UTF-8")?;
     ensure!(
         source.matches(ANCHOR).count() == 1 && !source.contains("sfm-pinned-jbr.ps1"),
         "locked Gradle wrapper has an unexpected Java launcher shape"
@@ -752,7 +758,7 @@ pub(super) fn attach_reference_template_with_snapshot(
             None => read_selected_input(root, path)?,
         };
         ensure!(raw.len() <= 64 * 1024, "reference companion exceeds 64 KiB");
-        let source = std::str::from_utf8(&raw)?;
+        let source = from_utf8(&raw)?;
         ensure!(
             super::render_java_source(source, context)?.is_empty(),
             "reference companion must emit zero bytes"
@@ -975,7 +981,7 @@ fn portable_path(path: &Path) -> Result<String> {
     let parts = path
         .components()
         .map(|part| match part {
-            std::path::Component::Normal(name) => name
+            Component::Normal(name) => name
                 .to_str()
                 .ok_or_else(|| eyre::eyre!("core path is not UTF-8")),
             _ => Err(eyre::eyre!("core path is not an exact relative path")),
@@ -1106,8 +1112,6 @@ fn read_open_core_input(path: &Path, relative: &str) -> Result<Vec<u8>> {
         options.read(true);
         #[cfg(windows)]
         let () = {
-            use std::os::windows::fs::OpenOptionsExt as _;
-            use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
             options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0);
         };
         let file = options
@@ -1231,6 +1235,8 @@ fn reject_duplicate_object_keys(input: &str) -> Result<()> {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
 
     fn registry() -> BTreeSet<String> {
         BTreeSet::from(["alpha".to_owned(), "beta".to_owned()])
@@ -2174,7 +2180,6 @@ pub(super) mod tests {
     #[cfg(unix)]
     #[test]
     fn core_and_selected_inputs_refuse_symlinks() {
-        use std::os::unix::fs::symlink;
         let fixture = Fixture::new();
         let external = fixture._temp.path().join("external.java");
         fs::write(&external, b"class External {}\n").unwrap();

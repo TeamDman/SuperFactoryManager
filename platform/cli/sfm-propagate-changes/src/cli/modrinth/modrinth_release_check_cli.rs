@@ -10,6 +10,7 @@ use crate::cli::jar::BranchSelector;
 use crate::cli::jar::get_jar_dir;
 use crate::cli::repo_root::get_repo_root;
 use crate::modrinth::ModrinthHttpClient;
+use crate::paths::AppHome;
 use color_eyre::owo_colors::OwoColorize;
 use facet::Facet;
 use figue as args;
@@ -31,8 +32,8 @@ impl ModrinthReleaseCheckArgs {
     /// # Errors
     ///
     /// Returns an error if release metadata does not match historical project versions.
-    pub fn invoke(self) -> eyre::Result<()> {
-        check_release_metadata(self.branch, self.project)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        check_release_metadata(self.branch, self.project, app_home)
     }
 }
 
@@ -40,17 +41,21 @@ impl ModrinthReleaseCheckArgs {
     clippy::too_many_lines,
     reason = "metadata diff is easiest to read linearly"
 )]
-fn check_release_metadata(branch: BranchSelector, project: Option<String>) -> eyre::Result<()> {
+fn check_release_metadata(
+    branch: BranchSelector,
+    project: Option<String>,
+    app_home: &AppHome,
+) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let branch_query = branch.into_query()?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let branch_query = branch.into_query(app_home)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
 
     let plans = build_release_plans(&jars, &mod_version)?;
     let client = ModrinthHttpClient::new(None)?;

@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -14,7 +15,7 @@ impl ClientSetInstancesDirArgs {
     /// # Errors
     ///
     /// Returns an error if the instances directory cannot be validated or persisted.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::client_cli::set_instances_dir(&self.path)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::client_cli::set_instances_dir(&self.path, app_home)
     }
 }

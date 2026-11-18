@@ -3,8 +3,10 @@ use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::java_analysis::JavaSymbolGlob;
 use crate::java_analysis::SymbolListOutput;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue::{self as args};
+use std::env::current_dir;
 use std::path::Path;
 
 #[derive(Facet, Debug)]
@@ -20,9 +22,9 @@ impl SymbolListArgs {
     /// # Errors
     ///
     /// Returns an error when workspace resolution, parsing, or indexing fails.
-    pub fn invoke(self) -> eyre::Result<CliOutput> {
-        let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(&CancellationToken::new(), &invocation_dir)
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<CliOutput> {
+        let invocation_dir = current_dir()?;
+        self.invoke_in(&CancellationToken::new(), &invocation_dir, app_home)
     }
 
     /// Run symbol enumeration against an explicit invocation directory.
@@ -34,19 +36,17 @@ impl SymbolListArgs {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        app_home: &AppHome,
     ) -> eyre::Result<CliOutput> {
         let pattern = JavaSymbolGlob::new(self.pattern);
-        let resolved = self.workspace.resolve(invocation_dir)?;
+        let resolved = self.workspace.resolve(invocation_dir, app_home)?;
         let project_diagnostics = super::project_jdk_diagnostics(&resolved);
-        let project_root = resolved.project_root.clone();
-        let workspace = resolved.workspace;
         let result = super::build_query_index(
-            &workspace,
-            &resolved.branch,
-            project_root.as_deref(),
+            &resolved,
             false,
             super::DependencySymbolQuery::List(&pattern),
             cancellation_token,
+            app_home,
         )?;
         let mut report = result.index.list(&pattern);
         if let Some(dependency_index) = result.dependency_index {
@@ -79,7 +79,10 @@ mod tests {
     use crate::java_analysis::with_java_analysis_scenario_fixture;
     use crate::paths::CacheHome;
     use crate::source_projection::core_catalog::write_project_catalog_fixture;
+    use std::fs;
     use std::io::Cursor;
+    use std::io::Error as IoError;
+    use std::io::ErrorKind;
     use std::io::Write as _;
     use std::path::PathBuf;
     use zip::ZipWriter;
@@ -116,17 +119,23 @@ mod tests {
             source_root: Vec::new(),
             classpath_mode: None,
             java_home: None,
+            cache_root: None,
         };
         (temporary, workspace)
     }
 
     #[test]
     fn generated_project_queries_use_only_project_sources_and_no_dependency_index() {
+        let app_home_directory = tempfile::tempdir().expect("isolated application home");
+        let app_home = &AppHome(app_home_directory.path().to_path_buf());
         let (temporary, workspace) = generated_project_fixture();
         let project_root = temporary
             .path()
             .join("platform/minecraft/projections/1.19.2");
-        let resolved = workspace.clone().resolve(temporary.path()).unwrap();
+        let resolved = workspace
+            .clone()
+            .resolve(temporary.path(), app_home)
+            .unwrap();
         assert_eq!(resolved.workspace.context.branch, "project:1.19.2");
         assert!(resolved.generated_project);
         assert!(resolved.workspace.classpath_entries.is_empty());
@@ -135,7 +144,7 @@ mod tests {
             pattern: Some("example.Example".to_owned()),
             workspace: workspace.clone(),
         }
-        .invoke_in(&CancellationToken::new(), temporary.path())
+        .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
         .expect("generated-project symbol list");
         assert_eq!(list.exit_code(), 0);
         let list_json = list
@@ -155,7 +164,7 @@ mod tests {
             column: None,
             workspace: workspace.clone(),
         }
-        .invoke_in(&CancellationToken::new(), temporary.path())
+        .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
         .expect("generated-project definition");
         assert_eq!(definition.exit_code(), 0);
         let definition_json = definition
@@ -174,7 +183,7 @@ mod tests {
             column: None,
             workspace,
         }
-        .invoke_in(&CancellationToken::new(), temporary.path())
+        .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
         .expect("generated-project usages");
         let usage_json = usages
             .render(Some(OutputFormat::Json), false)
@@ -189,6 +198,8 @@ mod tests {
 
     #[test]
     fn generated_project_selector_queries_use_pinned_cached_classfiles() {
+        let app_home_directory = tempfile::tempdir().expect("isolated application home");
+        let app_home = &AppHome(app_home_directory.path().to_path_buf());
         let (temporary, workspace) = generated_project_fixture();
         let project_root = temporary
             .path()
@@ -241,7 +252,7 @@ mod tests {
                     column: None,
                     workspace: workspace.clone(),
                 }
-                .invoke_in(&CancellationToken::new(), temporary.path())
+                .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
                 .unwrap();
                 let json = definition
                     .render(Some(OutputFormat::Json), false)
@@ -259,7 +270,7 @@ mod tests {
                     column: None,
                     workspace,
                 }
-                .invoke_in(&CancellationToken::new(), temporary.path())
+                .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
                 .unwrap();
                 assert_eq!(usages.exit_code(), 0);
                 let json = usages
@@ -275,6 +286,8 @@ mod tests {
 
     #[test]
     fn generated_project_exact_member_selectors_use_pinned_cached_classfiles() {
+        let app_home_directory = tempfile::tempdir().expect("isolated application home");
+        let app_home = &AppHome(app_home_directory.path().to_path_buf());
         let (temporary, workspace) = generated_project_fixture();
         let project_root = temporary
             .path()
@@ -325,7 +338,7 @@ mod tests {
                         column: None,
                         workspace: workspace.clone(),
                     }
-                    .invoke_in(&CancellationToken::new(), temporary.path())
+                    .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
                     .unwrap()
                 };
                 for member in ["VALUE", "get()I", "get(I)I"] {
@@ -420,11 +433,16 @@ mod tests {
 
     #[test]
     fn generated_project_location_queries_do_not_acquire_branch_dependencies() {
+        let app_home_directory = tempfile::tempdir().expect("isolated application home");
+        let app_home = &AppHome(app_home_directory.path().to_path_buf());
         let (temporary, workspace) = generated_project_fixture();
         let project_root = temporary
             .path()
             .join("platform/minecraft/projections/1.19.2");
-        let resolved = workspace.clone().resolve(temporary.path()).unwrap();
+        let resolved = workspace
+            .clone()
+            .resolve(temporary.path(), app_home)
+            .unwrap();
         let source_file = resolved
             .workspace
             .files
@@ -446,7 +464,7 @@ mod tests {
             column: Some(class_column),
             workspace: workspace.clone(),
         }
-        .invoke_in(&CancellationToken::new(), temporary.path())
+        .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
         .expect("generated-project definition at location");
         let definition_json = definition
             .render(Some(OutputFormat::Json), false)
@@ -465,7 +483,7 @@ mod tests {
             column: Some(usage_column),
             workspace,
         }
-        .invoke_in(&CancellationToken::new(), temporary.path())
+        .invoke_in(&CancellationToken::new(), temporary.path(), app_home)
         .expect("generated-project usages at location");
         let usage_json = usages
             .render(Some(OutputFormat::Json), false)
@@ -481,25 +499,47 @@ mod tests {
 
     #[test]
     fn generated_project_queries_reject_missing_and_invalid_roots() {
+        let app_home_directory = tempfile::tempdir().expect("isolated application home");
+        let app_home = &AppHome(app_home_directory.path().to_path_buf());
         let (temporary, mut workspace) = generated_project_fixture();
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
+        let source_path = project_root.join("src/main/java/example/Example.java");
+        let source_before = fs::read(&source_path).unwrap();
+        let missing_root = temporary.path().join("missing-project");
         workspace.project_root = Some(PathBuf::from("missing-project"));
         let missing = workspace
             .clone()
-            .resolve(temporary.path())
+            .resolve(temporary.path(), app_home)
             .err()
             .expect("missing project root must fail");
-        assert!(format!("{missing:#}").contains("Failed to resolve generated project root"));
+        assert_eq!(
+            missing.downcast_ref::<IoError>().map(IoError::kind),
+            Some(ErrorKind::NotFound),
+            "{missing:#}"
+        );
+        assert_eq!(
+            missing.to_string(),
+            format!("cannot inspect directory '{}'", missing_root.display())
+        );
+        assert!(!missing_root.exists());
+        assert!(!temporary.path().join("sfm-toolchain-data").exists());
 
         workspace.project_root = Some(PathBuf::from("platform/minecraft/projections/1.19.2"));
-        std::fs::write(
+        fs::write(
             temporary.path().join("platform/minecraft/projections.json"),
             "not a projection catalog",
         )
         .unwrap();
         let invalid = workspace
-            .resolve(temporary.path())
+            .resolve(temporary.path(), app_home)
             .err()
             .expect("malformed project catalog must fail");
         assert!(format!("{invalid:#}").contains("could not parse projections catalog"));
+        assert!(!temporary.path().join("sfm-toolchain-data").exists());
+        assert!(!project_root.join(".gradle").exists());
+        assert!(!project_root.join("build").exists());
+        assert_eq!(fs::read(source_path).unwrap(), source_before);
     }
 }

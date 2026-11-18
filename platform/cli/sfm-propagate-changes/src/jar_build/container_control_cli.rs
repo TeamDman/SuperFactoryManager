@@ -2,10 +2,11 @@
 //! The fixed root-owned pin is an image build receipt, never a download recipe.
 #[cfg(target_os = "linux")]
 use eyre::ensure;
+use std::env;
 use std::path::PathBuf;
 
 pub(crate) fn selected() -> eyre::Result<Option<PathBuf>> {
-    let Some(requested) = std::env::var_os("SFM_CONTAINER_CONTROL_CLI_MANIFEST") else {
+    let Some(requested) = env::var_os("SFM_CONTAINER_CONTROL_CLI_MANIFEST") else {
         return Ok(None);
     };
     #[cfg(not(target_os = "linux"))]

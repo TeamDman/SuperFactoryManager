@@ -14,14 +14,15 @@ fn checked_projection_identity(
     root: &Path,
     key: &str,
     skip_source_checks: bool,
+    cache_home: Option<&CacheHome>,
 ) -> eyre::Result<BuildProjectIdentity> {
     use crate::source_projection::catalog_owned_project::collect_catalog_project;
     use crate::source_projection::catalog_owned_project::collect_development_invocation;
     use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
     use crate::source_projection::projection_catalog::ProjectionEnvironment;
     let phase = ProjectionPreparationPhase::start(key, "prepare_projection_identity");
-    let cwd = std::env::current_dir()?;
-    let loaded = crate::source_projection::core_catalog::CoreCatalog::load(root, &cwd)?;
+    let cwd = env::current_dir()?;
+    let loaded = source_projection::core_catalog::CoreCatalog::load(root, &cwd)?;
     let environment = loaded
         .catalog
         .0
@@ -49,10 +50,10 @@ fn checked_projection_identity(
         ProjectionEnvironment::Release => {
             let project = collected.check_current()?;
             let recipe =
-                crate::source_projection::frozen_recipe_project::select_frozen_recipe_for_project(
+                source_projection::frozen_recipe_project::select_frozen_recipe_for_project(
                     &project,
                 )?;
-            let frozen = prepare_named_frozen_recipe_project(project, &recipe)?;
+            let frozen = prepare_named_frozen_recipe_project(project, &recipe, cache_home)?;
             validate_first_named_compile(&frozen)?;
             BuildProjectIdentity::Catalog {
                 frozen: Arc::new(frozen),
@@ -120,6 +121,9 @@ fn invoke_projection_operation(
             match result {
                 Ok(Some(plan)) => plans.push(plan),
                 Ok(None) => {}
+                Err(error) if error.downcast_ref::<CacheHomeRequired>().is_some() => {
+                    return Err(error);
+                }
                 Err(error) => failures.push(format!("{key}: {error:#}")),
             }
         }
@@ -167,7 +171,12 @@ fn execute_projection_operation(
 ) -> eyre::Result<Option<BuildPlan>> {
     let phase = ProjectionPreparationPhase::start(key, "prepare_native_operation");
     cancellation.bail_if_cancelled()?;
-    let identity = checked_projection_identity(root, key, options.skip_source_checks)?;
+    let identity = checked_projection_identity(
+        root,
+        key,
+        options.skip_source_checks,
+        options.cache_home.as_ref(),
+    )?;
     if let ProjectionOperation::Run(kind, _) = operation {
         ensure_projection_smoke_supported(
             kind,
@@ -288,7 +297,7 @@ fn execute_projection_identity_operation(
             let required_major = if let Some(project) = identity.named_project() {
                 u32::from(project.receipt().tool_jvm_minimum)
             } else if let Some(target) = identity.development_target() {
-                crate::source_projection::native_project_target::native_tool_java_major(
+                source_projection::native_project_target::native_tool_java_major(
                     &target.receipt.target_id,
                     &target.receipt.minecraft_version,
                     target.receipt.java_major,
@@ -307,10 +316,11 @@ fn execute_projection_identity_operation(
                 planning.derived_cache_root = Some(selected.owner());
                 planning.pinned_sdk = Some(selected);
             } else {
-                let java = crate::jdk::resolve_exact_java_for_minecraft_dir(
+                let java = jdk::resolve_exact_java_for_minecraft_dir(
                     &minecraft_dir,
                     required_major,
                     None,
+                    &CacheHome(path.to_path_buf()),
                 )?;
                 let home = java.home.ok_or_else(|| {
                     eyre::eyre!(
@@ -392,11 +402,15 @@ fn execute_prepared_projection_operation(
             | ProjectionOperation::CatalogPlatformSources(_, _) => Ok(()),
             ProjectionOperation::Run(kind, run_options) => {
                 if run_options.client_hotswap_port.is_some() {
-                    crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
+                    jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
                 }
                 let snapshot_started = Instant::now();
                 let snapshot = publish_run_snapshot(&plan, cancellation)?;
-                tracing::info!(phase = "warm_run_snapshot_publish", elapsed_ms = snapshot_started.elapsed().as_millis(), "warm_run_stage");
+                tracing::info!(
+                    phase = "warm_run_snapshot_publish",
+                    elapsed_ms = snapshot_started.elapsed().as_millis(),
+                    "warm_run_stage"
+                );
                 let mut owned_log = None;
                 let result = if run_options.game_test_bisect.is_some() {
                     if let Some(held) = build_holds.as_deref_mut() {
@@ -417,9 +431,11 @@ fn execute_prepared_projection_operation(
                         kind,
                         run_options,
                         options.dry_run,
-                        &mut lock,
-                        &mut owned_log,
-                        build_holds,
+                        RunLaunchState {
+                            build_cache_lock: &mut lock,
+                            owned_console_log: &mut owned_log,
+                            build_holds,
+                        },
                     )
                 };
                 if matches!(kind, RunKind::GameTestPreview)
@@ -428,7 +444,11 @@ fn execute_prepared_projection_operation(
                 {
                     publish_owned_preview_console(&log, &plan.minecraft_dir)?;
                 }
-                tracing::info!(phase = "warm_run_execute_run", elapsed_ms = snapshot_started.elapsed().as_millis(), "warm_run_stage");
+                tracing::info!(
+                    phase = "warm_run_execute_run",
+                    elapsed_ms = snapshot_started.elapsed().as_millis(),
+                    "warm_run_stage"
+                );
                 result
             }
             ProjectionOperation::Test(test_options) => {
@@ -467,7 +487,11 @@ fn execute_prepared_projection_operation(
             target,
             cancellation,
         )?;
-        tracing::info!(phase = "warm_run_build", elapsed_ms = build_started.elapsed().as_millis(), "warm_run_stage");
+        tracing::info!(
+            phase = "warm_run_build",
+            elapsed_ms = build_started.elapsed().as_millis(),
+            "warm_run_stage"
+        );
         let mut held = held;
         consume(&context, Some(&mut held))?;
     }
@@ -484,8 +508,7 @@ fn preflight_projection_source_checks(
     if !skip {
         return Ok(());
     }
-    let loaded =
-        crate::source_projection::core_catalog::CoreCatalog::load(root, &std::env::current_dir()?)?;
+    let loaded = source_projection::core_catalog::CoreCatalog::load(root, &env::current_dir()?)?;
     for key in keys {
         let entry = loaded
             .catalog
@@ -493,8 +516,7 @@ fn preflight_projection_source_checks(
             .get(key)
             .ok_or_else(|| eyre::eyre!("projection not found: {key}"))?;
         eyre::ensure!(
-            entry.environment
-                == crate::source_projection::projection_catalog::ProjectionEnvironment::Dev,
+            entry.environment == source_projection::projection_catalog::ProjectionEnvironment::Dev,
             "--skip-source-checks requires development projections only; selected release projection: {key}"
         );
     }
@@ -511,6 +533,8 @@ mod invocation_source_policy_tests {
         let fixture = Fixture::new_for_target("1.19.2");
         let plan_json = fixture.repository().join("must-not-write-output-plan.json");
         let mut options = BuildOptions {
+            app_home: AppHome(fixture.repository().join("app-home")),
+            cache_home: None,
             selection: super::super::BuildSelection::Projection {
                 selector: "*".to_owned(),
                 repo_root: Some(fixture.repository().to_path_buf()),
@@ -585,6 +609,8 @@ mod invocation_source_policy_tests {
         }
         let plan_json = fixture.repository().join("must-not-write-plan.json");
         let options = BuildOptions {
+            app_home: AppHome(fixture.repository().join("app-home")),
+            cache_home: None,
             selection: super::super::BuildSelection::Projection {
                 selector: "*".to_owned(),
                 repo_root: Some(fixture.repository().to_path_buf()),

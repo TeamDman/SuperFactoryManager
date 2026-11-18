@@ -1,4 +1,5 @@
 use crate::cli::jar::BranchSelector;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -18,8 +19,8 @@ impl ServerLaunchArgs {
     /// # Errors
     ///
     /// Returns an error if selected tracked servers cannot be launched.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::server_cli::launch_servers(self.branch, self.java_home.as_deref())
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::server_cli::launch_servers(self.branch, self.java_home.as_deref(), app_home)
     }
 }
 

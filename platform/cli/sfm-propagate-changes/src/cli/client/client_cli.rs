@@ -10,19 +10,25 @@ use super::ClientSetLauncherArgs;
 use super::ClientSyncArgs;
 use crate::branch_targets::select_required_minecraft_versions;
 use crate::branch_targets::select_required_worktree_targets;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::BranchSelector;
 use crate::cli::jar::JarUpdateClientsArgs;
 use crate::cli::jar::resolve_client_mods_dir;
-use crate::paths::APP_HOME;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use crate::prism::PrismComponent;
 use crate::prism::PrismInstancePlan;
 use crate::prism::PrismLoaderSelection;
+use crate::prism::instance_plan_for_target;
 use crate::terminal_output::stdout_line;
 use crate::worktree::parse_version;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
 use glob::Pattern;
+use std::fs::create_dir_all;
+use std::fs::read_to_string;
+use std::fs::write;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
@@ -57,8 +63,8 @@ impl ClientArgs {
     /// # Errors
     ///
     /// Returns an error if the selected client command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(homes)
     }
 }
 
@@ -92,18 +98,18 @@ impl ClientCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
-            ClientCommand::Add(args) => args.invoke(),
-            ClientCommand::Remove(args) => args.invoke(),
-            ClientCommand::List(args) => args.invoke(),
-            ClientCommand::SetLauncher(args) => args.invoke(),
-            ClientCommand::GetLauncher(args) => args.invoke(),
-            ClientCommand::SetInstancesDir(args) => args.invoke(),
-            ClientCommand::GetInstancesDir(args) => args.invoke(),
-            ClientCommand::Sync(args) => args.invoke(),
-            ClientCommand::Open(args) => args.invoke(),
-            ClientCommand::Launch(args) => args.invoke(),
+            ClientCommand::Add(args) => args.invoke(homes.app_home()),
+            ClientCommand::Remove(args) => args.invoke(homes.app_home()),
+            ClientCommand::List(args) => args.invoke(homes.app_home()),
+            ClientCommand::SetLauncher(args) => args.invoke(homes.app_home()),
+            ClientCommand::GetLauncher(args) => args.invoke(homes.app_home()),
+            ClientCommand::SetInstancesDir(args) => args.invoke(homes.app_home()),
+            ClientCommand::GetInstancesDir(args) => args.invoke(homes.app_home()),
+            ClientCommand::Sync(args) => args.invoke(homes.app_home(), homes.cache_home()?),
+            ClientCommand::Open(args) => args.invoke(homes.app_home()),
+            ClientCommand::Launch(args) => args.invoke(homes.app_home()),
         }
     }
 }
@@ -113,22 +119,25 @@ impl ClientCommand {
 /// # Errors
 ///
 /// Returns an error if persistence cannot be read.
-pub fn load_client_targets() -> eyre::Result<Vec<ClientTarget>> {
-    load_targets(CLIENT_TARGETS_FILE)
+pub fn load_client_targets(app_home: &AppHome) -> eyre::Result<Vec<ClientTarget>> {
+    load_targets(CLIENT_TARGETS_FILE, app_home)
 }
 
-pub(super) fn save_client_targets(targets: &[ClientTarget]) -> eyre::Result<()> {
-    save_targets(CLIENT_TARGETS_FILE, targets)
+pub(super) fn save_client_targets(
+    targets: &[ClientTarget],
+    app_home: &AppHome,
+) -> eyre::Result<()> {
+    save_targets(CLIENT_TARGETS_FILE, targets, app_home)
 }
 
-pub(super) fn add_clients(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn add_clients(glob_pattern: &str, app_home: &AppHome) -> eyre::Result<()> {
     let matched_dirs = expand_directories(glob_pattern)?;
 
     if matched_dirs.is_empty() {
         eyre::bail!("No directories matched glob: {glob_pattern}");
     }
 
-    let mut targets = load_client_targets()?;
+    let mut targets = load_client_targets(app_home)?;
     let mut added = 0usize;
     let mut skipped = 0usize;
 
@@ -155,28 +164,28 @@ pub(super) fn add_clients(glob_pattern: &str) -> eyre::Result<()> {
     }
 
     targets.sort_by(|a, b| a.path.cmp(&b.path));
-    save_client_targets(&targets)?;
+    save_client_targets(&targets, app_home)?;
 
     info!("Added {added} client target(s), skipped {skipped}.");
     Ok(())
 }
 
-pub(super) fn remove_clients(glob_pattern: &str) -> eyre::Result<()> {
-    let mut targets = load_client_targets()?;
+pub(super) fn remove_clients(glob_pattern: &str, app_home: &AppHome) -> eyre::Result<()> {
+    let mut targets = load_client_targets(app_home)?;
     let before = targets.len();
 
     let matcher = build_matcher(glob_pattern)?;
     targets.retain(|target| !matcher.matches(&normalize_for_match(&target.path)));
 
     let removed = before.saturating_sub(targets.len());
-    save_client_targets(&targets)?;
+    save_client_targets(&targets, app_home)?;
 
     info!("Removed {removed} client target(s).");
     Ok(())
 }
 
-pub(super) fn list_clients(glob_pattern: &str) -> eyre::Result<()> {
-    let targets = load_client_targets()?;
+pub(super) fn list_clients(glob_pattern: &str, app_home: &AppHome) -> eyre::Result<()> {
+    let targets = load_client_targets(app_home)?;
     let matcher = build_matcher(glob_pattern)?;
 
     let filtered: Vec<ClientTarget> = targets
@@ -196,7 +205,7 @@ pub(super) fn list_clients(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn set_launcher(path: &Path) -> eyre::Result<()> {
+pub(super) fn set_launcher(path: &Path, app_home: &AppHome) -> eyre::Result<()> {
     let canonical = dunce::canonicalize(path)
         .wrap_err_with(|| format!("Failed to canonicalize launcher path: {}", path.display()))?;
 
@@ -204,33 +213,33 @@ pub(super) fn set_launcher(path: &Path) -> eyre::Result<()> {
         eyre::bail!("Launcher path is not a file: {}", canonical.display());
     }
 
-    APP_HOME.ensure_dir()?;
-    let launcher_file = APP_HOME.file_path(CLIENT_LAUNCHER_FILE);
+    app_home.ensure_dir()?;
+    let launcher_file = app_home.file_path(CLIENT_LAUNCHER_FILE);
 
-    std::fs::write(&launcher_file, canonical.display().to_string())
+    write(&launcher_file, canonical.display().to_string())
         .wrap_err_with(|| format!("Failed to write launcher file: {}", launcher_file.display()))?;
 
     info!(path = %canonical.display(), "Set client launcher path");
     Ok(())
 }
 
-pub(super) fn launch_clients(branch: BranchSelector) -> eyre::Result<()> {
-    let launcher = get_launcher_path()?;
-    let instances_dir = get_instances_dir_path()?;
+pub(super) fn launch_clients(branch: BranchSelector, app_home: &AppHome) -> eyre::Result<()> {
+    let launcher = get_launcher_path(app_home)?;
+    let instances_dir = get_instances_dir_path(app_home)?;
     let prism_data_dir = instances_dir.parent().ok_or_else(|| {
         eyre::eyre!(
             "Configured client instances directory has no parent data directory: {}",
             instances_dir.display()
         )
     })?;
-    let mut targets = load_client_targets()?;
+    let mut targets = load_client_targets(app_home)?;
 
     if targets.is_empty() {
         info!("No tracked clients. Use `sfm-propagate-changes client sync --branch <selector>`.");
         return Ok(());
     }
 
-    apply_branch_filter(&mut targets, branch)?;
+    apply_branch_filter(&mut targets, branch, app_home)?;
 
     if targets.is_empty() {
         info!("No tracked clients match the selected --branch filter.");
@@ -302,13 +311,13 @@ pub(super) fn launch_clients(branch: BranchSelector) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn get_launcher() -> eyre::Result<()> {
-    let launcher = get_launcher_path()?;
+pub(super) fn get_launcher(app_home: &AppHome) -> eyre::Result<()> {
+    let launcher = get_launcher_path(app_home)?;
     stdout_line(launcher.display())
 }
 
-pub(super) fn open_client_launcher() -> eyre::Result<()> {
-    let launcher = get_launcher_path()?;
+pub(super) fn open_client_launcher(app_home: &AppHome) -> eyre::Result<()> {
+    let launcher = get_launcher_path(app_home)?;
 
     let mut command = Command::new(&launcher);
 
@@ -323,8 +332,8 @@ pub(super) fn open_client_launcher() -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn set_instances_dir(path: &Path) -> eyre::Result<()> {
-    std::fs::create_dir_all(path)
+pub(super) fn set_instances_dir(path: &Path, app_home: &AppHome) -> eyre::Result<()> {
+    create_dir_all(path)
         .wrap_err_with(|| format!("Failed to create instances directory: {}", path.display()))?;
     let canonical = dunce::canonicalize(path).wrap_err_with(|| {
         format!(
@@ -337,10 +346,10 @@ pub(super) fn set_instances_dir(path: &Path) -> eyre::Result<()> {
         eyre::bail!("Instances path is not a directory: {}", canonical.display());
     }
 
-    APP_HOME.ensure_dir()?;
-    let instances_dir_file = APP_HOME.file_path(CLIENT_INSTANCES_DIR_FILE);
+    app_home.ensure_dir()?;
+    let instances_dir_file = app_home.file_path(CLIENT_INSTANCES_DIR_FILE);
 
-    std::fs::write(&instances_dir_file, canonical.display().to_string()).wrap_err_with(|| {
+    write(&instances_dir_file, canonical.display().to_string()).wrap_err_with(|| {
         format!(
             "Failed to write instances directory file: {}",
             instances_dir_file.display()
@@ -351,8 +360,8 @@ pub(super) fn set_instances_dir(path: &Path) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn get_instances_dir() -> eyre::Result<()> {
-    let instances_dir = get_instances_dir_path()?;
+pub(super) fn get_instances_dir(app_home: &AppHome) -> eyre::Result<()> {
+    let instances_dir = get_instances_dir_path(app_home)?;
     stdout_line(instances_dir.display())
 }
 
@@ -360,11 +369,13 @@ pub(super) fn sync_clients(
     branch: BranchSelector,
     loader_selection: PrismLoaderSelection,
     java_home: Option<&Path>,
+    app_home: &AppHome,
+    cache_home: &CacheHome,
 ) -> eyre::Result<()> {
-    let prism_instances_root = get_instances_dir_path()?;
-    let query = branch.into_query()?;
-    let targets_to_sync = select_required_worktree_targets(&query)?;
-    let mut targets = load_client_targets()?;
+    let prism_instances_root = get_instances_dir_path(app_home)?;
+    let query = branch.into_query(app_home)?;
+    let targets_to_sync = select_required_worktree_targets(&query, app_home)?;
+    let mut targets = load_client_targets(app_home)?;
     let mut created = 0usize;
     let mut added = 0usize;
     let mut existing = 0usize;
@@ -377,7 +388,7 @@ pub(super) fn sync_clients(
         let instance_dir = prism_instances_root.join(format!("sfm-{mc_version}"));
         let mods_dir = resolve_client_mods_dir(&instance_dir, &mc_version)?;
         let instance_plan =
-            crate::prism::instance_plan_for_target(&target, loader_selection, java_home)?;
+            instance_plan_for_target(&target, loader_selection, java_home, cache_home)?;
 
         if instance_dir.exists() {
             existing += 1;
@@ -385,7 +396,7 @@ pub(super) fn sync_clients(
             created += 1;
         }
 
-        std::fs::create_dir_all(&mods_dir).wrap_err_with(|| {
+        create_dir_all(&mods_dir).wrap_err_with(|| {
             format!(
                 "Failed to create client instance mods directory: {}",
                 mods_dir.display()
@@ -403,8 +414,8 @@ pub(super) fn sync_clients(
     }
 
     targets.sort_by(|a, b| a.path.cmp(&b.path));
-    save_client_targets(&targets)?;
-    JarUpdateClientsArgs.invoke()?;
+    save_client_targets(&targets, app_home)?;
+    JarUpdateClientsArgs.invoke(app_home)?;
 
     info!(
         "Synchronized client instances: created {created}, existing {existing}, newly tracked {added}."
@@ -430,9 +441,9 @@ fn write_prism_instance_metadata(
     );
     let mmc_pack = write_mmc_pack_json(plan);
 
-    std::fs::write(instance_dir.join("instance.cfg"), instance_cfg)
+    write(instance_dir.join("instance.cfg"), instance_cfg)
         .wrap_err_with(|| format!("Failed to write instance.cfg in {}", instance_dir.display()))?;
-    std::fs::write(instance_dir.join("mmc-pack.json"), mmc_pack).wrap_err_with(|| {
+    write(instance_dir.join("mmc-pack.json"), mmc_pack).wrap_err_with(|| {
         format!(
             "Failed to write mmc-pack.json in {}",
             instance_dir.display()
@@ -523,15 +534,15 @@ fn prism_path(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
-pub(super) fn get_launcher_path() -> eyre::Result<PathBuf> {
-    let launcher_file = APP_HOME.file_path(CLIENT_LAUNCHER_FILE);
+pub(super) fn get_launcher_path(app_home: &AppHome) -> eyre::Result<PathBuf> {
+    let launcher_file = app_home.file_path(CLIENT_LAUNCHER_FILE);
     if !launcher_file.exists() {
         eyre::bail!(
             "Client launcher not set. Use `sfm-propagate-changes client set-launcher <path>` first."
         );
     }
 
-    let content = std::fs::read_to_string(&launcher_file)
+    let content = read_to_string(&launcher_file)
         .wrap_err_with(|| format!("Failed to read launcher file: {}", launcher_file.display()))?;
     let path = PathBuf::from(content.trim());
 
@@ -545,15 +556,15 @@ pub(super) fn get_launcher_path() -> eyre::Result<PathBuf> {
     Ok(path)
 }
 
-pub(super) fn get_instances_dir_path() -> eyre::Result<PathBuf> {
-    let instances_dir_file = APP_HOME.file_path(CLIENT_INSTANCES_DIR_FILE);
+pub(super) fn get_instances_dir_path(app_home: &AppHome) -> eyre::Result<PathBuf> {
+    let instances_dir_file = app_home.file_path(CLIENT_INSTANCES_DIR_FILE);
     if !instances_dir_file.exists() {
         eyre::bail!(
             "Client instances directory not set. Use `sfm-propagate-changes client set-instances-dir <path>` first."
         );
     }
 
-    let content = std::fs::read_to_string(&instances_dir_file).wrap_err_with(|| {
+    let content = read_to_string(&instances_dir_file).wrap_err_with(|| {
         format!(
             "Failed to read instances directory file: {}",
             instances_dir_file.display()
@@ -581,9 +592,10 @@ pub(super) fn get_instances_dir_path() -> eyre::Result<PathBuf> {
 fn apply_branch_filter(
     targets: &mut Vec<ClientTarget>,
     branch: BranchSelector,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let query = branch.into_query()?;
-    let versions = select_required_minecraft_versions(&query)?;
+    let query = branch.into_query(app_home)?;
+    let versions = select_required_minecraft_versions(&query, app_home)?;
     targets.retain(|target| {
         versions
             .iter()
@@ -593,13 +605,13 @@ fn apply_branch_filter(
     Ok(())
 }
 
-fn load_targets(file_name: &str) -> eyre::Result<Vec<ClientTarget>> {
-    let path = APP_HOME.file_path(file_name);
+fn load_targets(file_name: &str, app_home: &AppHome) -> eyre::Result<Vec<ClientTarget>> {
+    let path = app_home.file_path(file_name);
     if !path.exists() {
         return Ok(Vec::new());
     }
 
-    let content = std::fs::read_to_string(&path)
+    let content = read_to_string(&path)
         .wrap_err_with(|| format!("Failed to read targets file: {}", path.display()))?;
 
     let mut out = Vec::new();
@@ -620,8 +632,8 @@ fn load_targets(file_name: &str) -> eyre::Result<Vec<ClientTarget>> {
     Ok(out)
 }
 
-fn save_targets(file_name: &str, targets: &[ClientTarget]) -> eyre::Result<()> {
-    APP_HOME.ensure_dir()?;
+fn save_targets(file_name: &str, targets: &[ClientTarget], app_home: &AppHome) -> eyre::Result<()> {
+    app_home.ensure_dir()?;
 
     let mut lines = Vec::with_capacity(targets.len());
     for target in targets {
@@ -634,8 +646,8 @@ fn save_targets(file_name: &str, targets: &[ClientTarget]) -> eyre::Result<()> {
         format!("{}\n", lines.join("\n"))
     };
 
-    let path = APP_HOME.file_path(file_name);
-    std::fs::write(&path, body)
+    let path = app_home.file_path(file_name);
+    write(&path, body)
         .wrap_err_with(|| format!("Failed to write targets file: {}", path.display()))?;
 
     info!(path = %path.display(), count = targets.len(), "Saved tracked targets");
@@ -705,4 +717,42 @@ fn extract_version_token(input: &str) -> Option<String> {
 
 pub(super) fn normalize_for_match(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tracked_clients_use_the_supplied_app_home() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let first = AppHome(temporary.path().join("first-home"));
+        let second = AppHome(temporary.path().join("second-home"));
+        let first_target = temporary.path().join("first-instance");
+        let second_target = temporary.path().join("second-instance");
+        save_client_targets(
+            &[ClientTarget {
+                path: first_target.clone(),
+                mc_version: "1.19.2".to_owned(),
+            }],
+            &first,
+        )?;
+        assert!(load_client_targets(&second)?.is_empty());
+        save_client_targets(
+            &[ClientTarget {
+                path: second_target.clone(),
+                mc_version: "1.20.1".to_owned(),
+            }],
+            &second,
+        )?;
+        let first_targets = load_client_targets(&first)?;
+        let second_targets = load_client_targets(&second)?;
+        assert_eq!(first_targets.len(), 1);
+        assert_eq!(first_targets[0].path, first_target);
+        assert_eq!(first_targets[0].mc_version, "1.19.2");
+        assert_eq!(second_targets.len(), 1);
+        assert_eq!(second_targets[0].path, second_target);
+        assert_eq!(second_targets[0].mc_version, "1.20.1");
+        Ok(())
+    }
 }

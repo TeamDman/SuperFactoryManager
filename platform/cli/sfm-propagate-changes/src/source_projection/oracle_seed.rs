@@ -33,10 +33,16 @@ use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::ffi::OsStr;
 use std::fs;
+use std::io::ErrorKind;
 use std::io::Write as _;
+use std::iter::once;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const MAX_OUTPUTS: usize = 8;
 
@@ -148,10 +154,8 @@ pub fn seed_missing(
         CORE_METADATA_PATH,
         MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_before)?,
-        &catalog.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_before)?, &catalog.registered_features)?;
     for output in &outputs {
         ensure!(
             !metadata.source_rules.contains_key(output)
@@ -313,10 +317,8 @@ pub fn seed_missing(
     }
     let metadata_after = append_rules(&metadata_before, &proposed_rules)?;
     ensure!(
-        CoreProjectInputs::from_json(
-            std::str::from_utf8(&metadata_after)?,
-            &catalog.registered_features
-        )? == proposed,
+        CoreProjectInputs::from_json(from_utf8(&metadata_after)?, &catalog.registered_features)?
+            == proposed,
         "Minimal metadata edit does not match the reviewed typed proposal"
     );
     let mut report = OracleSeedReport {
@@ -400,9 +402,7 @@ fn request_outputs(request: &OracleSeedRequest<'_>) -> Result<Vec<String>> {
     );
     let mut outputs = BTreeSet::new();
     let mut folded = BTreeSet::new();
-    for output in
-        std::iter::once(request.file).chain(request.output_aliases.iter().map(String::as_str))
-    {
+    for output in once(request.file).chain(request.output_aliases.iter().map(String::as_str)) {
         validate_projection_key(output)?;
         ensure!(
             in_scope(output),
@@ -454,7 +454,7 @@ fn verify_selection(
 
 /// Preserve every byte outside the newly inserted explicit rule entries.
 fn append_rules(before: &[u8], rules: &BTreeMap<String, Vec<InputVariant>>) -> Result<Vec<u8>> {
-    let mut text = std::str::from_utf8(before)?.to_owned();
+    let mut text = from_utf8(before)?.to_owned();
     for (section, source) in [("source_rules", true), ("project_files", false)] {
         let additions = rules
             .iter()
@@ -559,7 +559,7 @@ fn ensure_absent(core: &Path, relative: &str) -> Result<PathBuf> {
                     .is_some_and(|name| name.eq_ignore_ascii_case(component))
                 {
                     ensure!(
-                        name == std::ffi::OsStr::new(component),
+                        name == OsStr::new(component),
                         "Core seed path has a case alias at {relative}"
                     );
                 }
@@ -572,7 +572,7 @@ fn ensure_absent(core: &Path, relative: &str) -> Result<PathBuf> {
             Ok(_) => {
                 checked_directory(&candidate)?;
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == ErrorKind::NotFound => {
                 return Ok(components[index..]
                     .iter()
                     .fold(parent, |path, part| path.join(part)));
@@ -592,7 +592,7 @@ fn create_parents(core: &Path, relative: &str) -> Result<()> {
         parent.push(part);
         match fs::create_dir(&parent) {
             Ok(()) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
             Err(error) => return Err(error).wrap_err("Cannot create core seed parent"),
         }
         checked_directory(&parent)?;
@@ -620,7 +620,6 @@ fn apply_prepared(
     source.write_all(&prepared.bytes)?;
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt as _;
         source
             .as_file()
             .set_permissions(fs::Permissions::from_mode(prepared.mode & 0o777))?;
@@ -679,6 +678,8 @@ fn apply_prepared(
 
 #[cfg(test)]
 mod tests {
+    use super::super::context::ProjectionContext;
+    use super::super::core_inputs::BuildTargetMetadata;
     use super::super::core_inputs::SelectedCoreInput;
     use super::*;
 
@@ -727,9 +728,6 @@ mod tests {
 
     #[test]
     fn actual_selector_keeps_unwitnessed_target_omitted_after_source_creation() {
-        use super::super::context::ProjectionContext;
-        use super::super::core_inputs::BuildTargetMetadata;
-
         let metadata = CoreProjectInputs {
             schema_version: 1,
             targets: ["1.19.2", "1.19.4"]

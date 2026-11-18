@@ -1,7 +1,13 @@
+use super::ResolvedSymbolQueryWorkspace;
 use crate::artifact_lock::ArtifactLock;
 use crate::cancellation::CancellationToken;
 use crate::cli::Cli;
 use crate::cli::Command as CliCommand;
+use crate::cli::dependency::DependencyArgs;
+use crate::cli::dependency::DependencyCommand;
+use crate::cli::dependency::DependencySourceAcquireArgs;
+use crate::cli::dependency::DependencySourceArgs;
+use crate::cli::dependency::DependencySourceCommand;
 use crate::cli::global_args::GlobalArgs;
 use crate::cli::jar::BranchSelector;
 use crate::cli::output::CliOutput;
@@ -26,13 +32,17 @@ use crate::dependency_sources::acquire_selected_sources;
 use crate::dependency_sources::acquisition_targets;
 use crate::dependency_sources::preflight_sources;
 use crate::jar_build::Parallelism;
+use crate::jar_build::engine::select_branch_source_cache;
+use crate::jar_build::engine::select_project_source_cache;
 use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
 use crate::java_analysis::DefinitionDependencySourceRoot;
 use crate::java_analysis::DependencyIndexBuildArtifacts;
 use crate::java_analysis::DependencyJavaSourceOrigin;
 use crate::java_analysis::DependencyJavaSymbolIndexBody;
+use crate::java_analysis::DependencyJavaSymbolIndexScan;
 use crate::java_analysis::DependencyResolutionSelection;
 use crate::java_analysis::DependencySymbolIndexCompleteness;
+use crate::java_analysis::DependencySymbolIndexCounts;
 use crate::java_analysis::DependencySymbolIndexCreationMetadata;
 use crate::java_analysis::DependencySymbolIndexIdentity;
 use crate::java_analysis::DependencySymbolIndexInputStatus;
@@ -42,6 +52,7 @@ use crate::java_analysis::DependencySymbolIndexProbeStatus;
 use crate::java_analysis::DependencySymbolIndexQueryOutput;
 use crate::java_analysis::DependencySymbolIndexSourceInput;
 use crate::java_analysis::DependencySymbolIndexStore;
+use crate::java_analysis::JavaAnalysisContextOutput;
 use crate::java_analysis::JavaAnalysisDiagnosticOutput;
 use crate::java_analysis::JavaClasspathMode;
 use crate::java_analysis::JavaSourceWorkspace;
@@ -64,10 +75,13 @@ use crate::java_analysis::java_member_access_tokens;
 use crate::java_analysis::project_dependency_symbol_index_identity_with_locked_sources;
 use crate::java_analysis::scan_dependency_java_symbol_index;
 use crate::java_analysis::scan_generated_dependency_symbol;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::payload_fetcher::http_fetcher;
 use crate::source_projection::core_input_leases::DirectoryLeases;
 use crate::source_provider::SourceProviderKind;
+use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
+use crate::toolchain_lockfile_schema::parse_document;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3;
 use chrono::Utc;
@@ -76,6 +90,11 @@ use figue::ToArgs;
 use figue::{self as args};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::env::var_os;
+use std::fs::canonicalize;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -96,7 +115,7 @@ pub struct SymbolIndexStatusOutput {
     pub reason: String,
     pub refresh_command: String,
     pub acquisition_commands: Vec<String>,
-    pub counts: Option<crate::java_analysis::DependencySymbolIndexCounts>,
+    pub counts: Option<DependencySymbolIndexCounts>,
 }
 
 #[derive(Facet, Debug)]
@@ -147,6 +166,8 @@ pub struct SymbolIndexShowArgs {
 mod selected_cache_args_tests {
     use super::*;
     use crate::dependency_sources::SourceProviderPreflight;
+    use crate::source_projection::core_catalog::write_project_catalog_fixture;
+    use std::fs;
 
     #[test]
     fn materialized_classfile_stubs_do_not_request_legacy_platform_acquisition() {
@@ -229,6 +250,77 @@ mod selected_cache_args_tests {
             refresh.project_root,
             Some(PathBuf::from("D:/repo/projections/sfm-dev/mc-1.21.0"))
         );
+    }
+
+    #[test]
+    fn index_paths_resolve_against_the_supplied_invocation_directory() -> eyre::Result<()> {
+        let invocation = tempfile::tempdir()?;
+        for operation in ["show", "refresh"] {
+            let mut arguments = vec![
+                "--cache-root",
+                "managed cache",
+                operation,
+                "--project-root",
+                "selected projection",
+            ];
+            if operation == "refresh" {
+                arguments.extend(["--java-home", "exact jdk"]);
+            }
+            let mut parsed = figue::from_slice::<SymbolIndexArgs>(&arguments)
+                .into_result()?
+                .get_silent();
+            parsed.resolve_paths_in(invocation.path());
+            assert_eq!(
+                parsed.cache_root,
+                Some(invocation.path().join("managed cache"))
+            );
+            let project_root = match parsed.command {
+                SymbolIndexCommand::Refresh(refresh) => {
+                    assert_eq!(refresh.java_home, Some(invocation.path().join("exact jdk")));
+                    refresh.project_root
+                }
+                SymbolIndexCommand::Show(show) => show.project_root,
+            };
+            assert_eq!(
+                project_root,
+                Some(invocation.path().join("selected projection"))
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn relative_index_cache_preserves_guarded_ownership_admission() -> eyre::Result<()> {
+        let invocation = tempfile::tempdir()?;
+        write_project_catalog_fixture(invocation.path(), "fixture", "1.19.2")?;
+        let cache = invocation.path().join("unowned cache");
+        fs::create_dir(&cache)?;
+        let sentinel = cache.join("existing-input");
+        fs::write(&sentinel, b"preserve me")?;
+        let parsed = figue::from_slice::<SymbolIndexArgs>(&[
+            "--cache-root",
+            "unowned cache",
+            "show",
+            "--project-root",
+            "platform/minecraft/projections/fixture",
+        ])
+        .into_result()?
+        .get_silent();
+        let error = parsed
+            .invoke_in(
+                &CancellationToken::new(),
+                invocation.path(),
+                &AppHome(invocation.path().join("app-home")),
+            )
+            .err()
+            .ok_or_else(|| eyre::eyre!("unowned index cache was accepted"))?;
+        assert!(
+            error.to_string().contains("no valid tool-owned marker"),
+            "{error:#}"
+        );
+        assert_eq!(fs::read(&sentinel)?, b"preserve me");
+        assert_eq!(fs::read_dir(&cache)?.count(), 1);
+        Ok(())
     }
 
     #[test]
@@ -403,15 +495,35 @@ mod selected_cache_args_tests {
 }
 
 impl SymbolIndexArgs {
+    fn resolve_paths_in(&mut self, invocation_dir: &Path) {
+        let resolve = |path: &mut Option<PathBuf>| {
+            if let Some(path) = path
+                && path.is_relative()
+            {
+                *path = invocation_dir.join(&*path);
+            }
+        };
+        resolve(&mut self.cache_root);
+        match &mut self.command {
+            SymbolIndexCommand::Refresh(args) => {
+                resolve(&mut args.project_root);
+                resolve(&mut args.java_home);
+            }
+            SymbolIndexCommand::Show(args) => resolve(&mut args.project_root),
+        }
+    }
+
     /// # Errors
     ///
     /// Returns an error when branch resolution, acquisition, indexing, or
     /// immutable publication fails.
     pub fn invoke_in(
-        self,
+        mut self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        app_home: &AppHome,
     ) -> eyre::Result<CliOutput> {
+        self.resolve_paths_in(invocation_dir);
         let (branch, project_root) = match &self.command {
             SymbolIndexCommand::Refresh(args) => (&args.branch, &args.project_root),
             SymbolIndexCommand::Show(args) => (&args.branch, &args.project_root),
@@ -421,26 +533,30 @@ impl SymbolIndexArgs {
             "symbol index requires exactly one of --branch and --project-root"
         );
         let selected = if let Some(project_root) = project_root {
-            crate::jar_build::engine::select_project_source_cache(
+            select_project_source_cache(
                 project_root,
                 self.cache_root.as_deref(),
                 cancellation_token,
             )?
         } else {
-            crate::jar_build::engine::select_branch_source_cache(
+            select_branch_source_cache(
                 branch.as_ref().ok_or_else(|| {
                     eyre::eyre!("symbol index requires exactly one of --branch and --project-root")
                 })?,
                 self.cache_root.as_deref(),
                 cancellation_token,
+                app_home,
             )?
         };
         match self.command {
-            SymbolIndexCommand::Refresh(args) => {
-                args.invoke_in(cancellation_token, invocation_dir, selected.home().clone())
-            }
+            SymbolIndexCommand::Refresh(args) => args.invoke_in(
+                cancellation_token,
+                invocation_dir,
+                selected.home(),
+                app_home,
+            ),
             SymbolIndexCommand::Show(args) => {
-                args.invoke_in(invocation_dir, selected.home().clone())
+                args.invoke_in(invocation_dir, selected.home().clone(), app_home)
             }
         }
     }
@@ -451,7 +567,8 @@ impl SymbolIndexRefreshArgs {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
-        cache_home: CacheHome,
+        cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<CliOutput> {
         enforce_refresh_parent_memory_limit()?;
         cancellation_token.bail_if_cancelled()?;
@@ -463,48 +580,21 @@ impl SymbolIndexRefreshArgs {
             invocation_dir,
             cache_home.clone(),
             self.java_home.as_deref(),
+            app_home,
         )?;
         let branch = self
             .branch
             .clone()
             .unwrap_or_else(|| BranchSelector(resolved.inventory.target.branch.0.clone()));
         record_index_refresh_stage("resolve_context", &mut stage_started);
-        acquire_locked_index_artifact_sources(&resolved, cancellation_token)?;
-        record_index_refresh_stage("acquire_locked_artifacts", &mut stage_started);
+        let preflight = self.acquire_declared_sources(
+            &resolved,
+            &branch,
+            cancellation_token,
+            &mut stage_started,
+            app_home,
+        )?;
         let filter = SourceProviderFilter::default();
-        let mut preflight =
-            materialize_classfile_stub_source(&resolved, &filter, cancellation_token)?;
-        record_index_refresh_stage("prepare_classfile_stubs", &mut stage_started);
-        let missing_targets = preflight
-            .missing
-            .iter()
-            .filter(|missing| {
-                missing.acquirable && !is_minecraft_classfile_stub_target(&missing.target)
-            })
-            .map(|missing| missing.target.clone())
-            .collect::<BTreeSet<_>>();
-        if !missing_targets.is_empty() {
-            let mut targets = Vec::new();
-            for target in &missing_targets {
-                targets.extend(acquisition_targets(
-                    &resolved.inventory,
-                    Some(target),
-                    false,
-                    &filter,
-                )?);
-            }
-            acquire_selected_sources(
-                &resolved.inventory,
-                &targets,
-                &branch,
-                Parallelism::default(),
-                self.java_home.as_deref(),
-                cancellation_token,
-            )?;
-            preflight = preflight_resolved_index_sources(&resolved, &filter)?;
-        }
-
-        record_index_refresh_stage("acquire_declared_sources", &mut stage_started);
         cancellation_token.bail_if_cancelled()?;
         let mut held_platform_roots = hold_platform_source_roots(&preflight)?;
         held_platform_roots.recheck()?;
@@ -515,7 +605,7 @@ impl SymbolIndexRefreshArgs {
             DependencySymbolIndexCompleteness::Partial
         };
         let selected_source_inputs = source_inputs(&resolved.identity, &preflight)?;
-        if managed_source_roots(&preflight, &cache_home) && !self.rebuild {
+        if managed_source_roots(&preflight, cache_home) && !self.rebuild {
             let reusable = resolved.store.reusable_completed(
                 &resolved.identity,
                 &selected_source_inputs,
@@ -544,6 +634,93 @@ impl SymbolIndexRefreshArgs {
                 ));
             }
         }
+        let artifacts = self.build_selected_sources(
+            &resolved,
+            &preflight,
+            &branch,
+            invocation_dir,
+            cancellation_token,
+            app_home,
+        )?;
+        cancellation_token.bail_if_cancelled()?;
+        held_platform_roots.recheck()?;
+        let current = preflight_resolved_index_sources(&resolved, &filter)?;
+        ensure_platform_sources_unchanged(&preflight, &current)?;
+
+        let manifest = DependencySymbolIndexManifest::for_prepared_payload(
+            resolved.identity.clone(),
+            DependencySymbolIndexCreationMetadata {
+                created_at_utc: Utc::now().to_rfc3339(),
+                producer: format!("sfm-propagate-changes/{}", env!("CARGO_PKG_VERSION")),
+                refresh_duration_ms: u64::try_from(started.elapsed().as_millis())
+                    .unwrap_or(u64::MAX),
+            },
+            selected_source_inputs,
+            artifacts.counts().clone(),
+            completeness,
+            DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA,
+            artifacts.records_path(),
+        )?;
+        resolved.publish_refreshed(&branch, manifest, &artifacts, &preflight)
+    }
+
+    fn acquire_declared_sources(
+        &self,
+        resolved: &ResolvedIndexContext,
+        branch: &BranchSelector,
+        cancellation_token: &CancellationToken,
+        stage_started: &mut Instant,
+        app_home: &AppHome,
+    ) -> eyre::Result<SourcePreflight> {
+        acquire_locked_index_artifact_sources(resolved, cancellation_token)?;
+        record_index_refresh_stage("acquire_locked_artifacts", stage_started);
+        let filter = SourceProviderFilter::default();
+        let mut preflight =
+            materialize_classfile_stub_source(resolved, &filter, cancellation_token)?;
+        record_index_refresh_stage("prepare_classfile_stubs", stage_started);
+        let missing_targets = preflight
+            .missing
+            .iter()
+            .filter(|missing| {
+                missing.acquirable && !is_minecraft_classfile_stub_target(&missing.target)
+            })
+            .map(|missing| missing.target.clone())
+            .collect::<BTreeSet<_>>();
+        if !missing_targets.is_empty() {
+            let mut targets = Vec::new();
+            for target in &missing_targets {
+                targets.extend(acquisition_targets(
+                    &resolved.inventory,
+                    Some(target),
+                    false,
+                    &filter,
+                )?);
+            }
+            acquire_selected_sources(
+                &resolved.inventory,
+                &targets,
+                branch,
+                Parallelism::default(),
+                self.java_home.as_deref(),
+                cancellation_token,
+                app_home,
+            )?;
+            preflight = preflight_resolved_index_sources(resolved, &filter)?;
+        }
+
+        record_index_refresh_stage("acquire_declared_sources", stage_started);
+        Ok(preflight)
+    }
+
+    fn build_selected_sources(
+        &self,
+        resolved: &ResolvedIndexContext,
+        preflight: &SourcePreflight,
+        branch: &BranchSelector,
+        invocation_dir: &Path,
+        cancellation_token: &CancellationToken,
+        app_home: &AppHome,
+    ) -> eyre::Result<DependencyIndexBuildArtifacts> {
         let roots = preflight
             .roots
             .iter()
@@ -566,7 +743,7 @@ impl SymbolIndexRefreshArgs {
                 JavaSourceWorkspace::resolve_generated_dependency_roots(
                     project_root,
                     &roots,
-                    &cache_home.0,
+                    &resolved.cache_home.0,
                     self.java_home.as_deref(),
                 )?
             } else {
@@ -575,47 +752,13 @@ impl SymbolIndexRefreshArgs {
                     &roots,
                     JavaClasspathMode::Branch,
                     invocation_dir,
+                    app_home,
                 )?
             };
             apply_portable_origins(&mut workspace, &origins);
             build_dependency_index_sharded(&workspace, &resolved.identity, cancellation_token)?
         };
-        cancellation_token.bail_if_cancelled()?;
-        held_platform_roots.recheck()?;
-        let current = preflight_resolved_index_sources(&resolved, &filter)?;
-        ensure_platform_sources_unchanged(&preflight, &current)?;
-
-        let manifest = DependencySymbolIndexManifest::for_prepared_payload(
-            resolved.identity.clone(),
-            DependencySymbolIndexCreationMetadata {
-                created_at_utc: Utc::now().to_rfc3339(),
-                producer: format!("sfm-propagate-changes/{}", env!("CARGO_PKG_VERSION")),
-                refresh_duration_ms: u64::try_from(started.elapsed().as_millis())
-                    .unwrap_or(u64::MAX),
-            },
-            selected_source_inputs,
-            artifacts.counts().clone(),
-            completeness,
-            DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA,
-            artifacts.records_path(),
-        )?;
-        resolved
-            .store
-            .publish_prepared(&manifest, artifacts.records_path())?;
-        let probe = resolved.store.probe(&resolved.identity)?;
-        let output = status_output(
-            "refresh",
-            &branch,
-            &resolved,
-            &probe,
-            completeness,
-            Some(manifest.counts),
-            &preflight,
-        )?;
-        Ok(CliOutput::facet_with_status(
-            output,
-            status_for_probe(probe.status),
-        ))
+        Ok(artifacts)
     }
 }
 
@@ -718,13 +861,19 @@ fn apply_portable_origins(
 }
 
 impl SymbolIndexShowArgs {
-    fn invoke_in(self, invocation_dir: &Path, cache_home: CacheHome) -> eyre::Result<CliOutput> {
+    fn invoke_in(
+        self,
+        invocation_dir: &Path,
+        cache_home: CacheHome,
+        app_home: &AppHome,
+    ) -> eyre::Result<CliOutput> {
         let resolved = resolve_selected_index_context(
             self.branch.as_ref(),
             self.project_root.as_deref(),
             invocation_dir,
             cache_home,
             None,
+            app_home,
         )?;
         let branch = self
             .branch
@@ -764,11 +913,39 @@ impl SymbolIndexShowArgs {
 }
 
 struct ResolvedIndexContext {
+    cache_home: CacheHome,
     inventory: DependencyInventory,
     identity: DependencySymbolIndexIdentity,
     store: DependencySymbolIndexStore,
     locked_artifact_sources: Vec<LockedArtifactSource>,
     minecraft_classfile_stub_source: LockedMinecraftClassfileStubSource,
+}
+
+impl ResolvedIndexContext {
+    fn publish_refreshed(
+        &self,
+        branch: &BranchSelector,
+        manifest: DependencySymbolIndexManifest,
+        artifacts: &DependencyIndexBuildArtifacts,
+        preflight: &SourcePreflight,
+    ) -> eyre::Result<CliOutput> {
+        self.store
+            .publish_prepared(&manifest, artifacts.records_path())?;
+        let probe = self.store.probe(&self.identity)?;
+        let output = status_output(
+            "refresh",
+            branch,
+            self,
+            &probe,
+            manifest.completeness,
+            Some(manifest.counts),
+            preflight,
+        )?;
+        Ok(CliOutput::facet_with_status(
+            output,
+            status_for_probe(probe.status),
+        ))
+    }
 }
 
 fn acquire_locked_index_artifact_sources(
@@ -789,6 +966,7 @@ fn resolve_selected_index_context(
     invocation_dir: &Path,
     cache_home: CacheHome,
     java_home: Option<&Path>,
+    app_home: &AppHome,
 ) -> eyre::Result<ResolvedIndexContext> {
     if let Some(project_root) = project_root {
         eyre::ensure!(branch.is_none(), "select either branch or catalog project");
@@ -808,22 +986,28 @@ fn resolve_selected_index_context(
         &[],
         JavaClasspathMode::Branch,
         invocation_dir,
+        app_home,
     )?;
-    resolve_index_context_from_analysis(branch, &workspace.context, cache_home)
+    resolve_index_context_from_analysis(branch, &workspace.context, cache_home, app_home)
 }
 
 fn resolve_index_context_from_analysis(
     branch: &BranchSelector,
-    analysis_context: &crate::java_analysis::JavaAnalysisContextOutput,
+    analysis_context: &JavaAnalysisContextOutput,
     cache_home: CacheHome,
+    app_home: &AppHome,
 ) -> eyre::Result<ResolvedIndexContext> {
-    let inventory = DependencyInventory::load(&branch.clone().into_query()?, cache_home.clone())?;
+    let inventory = DependencyInventory::load(
+        &branch.clone().into_query(app_home)?,
+        cache_home.clone(),
+        app_home,
+    )?;
     resolve_index_context_with_inventory(inventory, analysis_context, cache_home)
 }
 
 fn resolve_index_context_with_inventory(
     mut inventory: DependencyInventory,
-    analysis_context: &crate::java_analysis::JavaAnalysisContextOutput,
+    analysis_context: &JavaAnalysisContextOutput,
     cache_home: CacheHome,
 ) -> eyre::Result<ResolvedIndexContext> {
     let minecraft_classfile_stub_source =
@@ -837,6 +1021,7 @@ fn resolve_index_context_with_inventory(
     )?;
     let identity = DependencySymbolIndexIdentity::from_projection(projection)?;
     Ok(ResolvedIndexContext {
+        cache_home: cache_home.clone(),
         inventory,
         identity,
         store: DependencySymbolIndexStore::new(cache_home),
@@ -856,13 +1041,15 @@ fn resolve_index_context_with_inventory(
 /// cannot be resolved from the supplied scenario inputs.
 pub fn scenario_dependency_index_inputs(
     branch: &BranchSelector,
-    analysis_context: &crate::java_analysis::JavaAnalysisContextOutput,
+    analysis_context: &JavaAnalysisContextOutput,
     cache_home: CacheHome,
+    app_home: &AppHome,
 ) -> eyre::Result<(
     DependencySymbolIndexIdentity,
     Vec<DependencySymbolIndexSourceInput>,
 )> {
-    let resolved = resolve_index_context_from_analysis(branch, analysis_context, cache_home)?;
+    let resolved =
+        resolve_index_context_from_analysis(branch, analysis_context, cache_home, app_home)?;
     let preflight = preflight_resolved_index_sources(&resolved, &SourceProviderFilter::default())?;
     let inputs = source_inputs(&resolved.identity, &preflight)?;
     Ok((resolved.identity, inputs))
@@ -956,29 +1143,17 @@ impl DependencySymbolQuery<'_> {
     reason = "query orchestration keeps the measured dependency/live stages and both migration paths explicit"
 )]
 pub(super) fn build_query_index(
-    workspace: &JavaSourceWorkspace,
-    branch: &BranchSelector,
-    project_root: Option<&Path>,
+    selection: &ResolvedSymbolQueryWorkspace,
     include_usages: bool,
     query: DependencySymbolQuery<'_>,
     cancellation_token: &CancellationToken,
+    app_home: &AppHome,
 ) -> eyre::Result<SymbolQueryIndex> {
-    let indexed_catalog_project = if let Some(project_root) = project_root {
-        let lockfile = project_root.join("sfm-toolchain.lock.json");
-        if lockfile.is_file() {
-            matches!(
-                crate::toolchain_lockfile_schema::parse_document(&std::fs::read_to_string(
-                    lockfile,
-                )?)?,
-                crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(_)
-                    | crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(_)
-            )
-        } else {
-            false
-        }
-    } else {
-        false
-    };
+    let workspace = &selection.workspace;
+    let branch = &selection.branch;
+    let project_root = selection.project_root.as_deref();
+    let cache_root = selection.cache_root.as_deref();
+    let indexed_catalog_project = catalog_project_has_dependency_index(project_root)?;
     if workspace.context.classpath_mode == JavaClasspathMode::Isolated && !indexed_catalog_project {
         let mut index = if !legacy_definition_pipeline_requested()
             && !include_usages
@@ -999,11 +1174,8 @@ pub(super) fn build_query_index(
             (project_root, query.exact_generated_selector())
             && !query.has_local_match(&index)
         {
-            let selected = crate::jar_build::engine::select_project_source_cache(
-                project_root,
-                None,
-                cancellation_token,
-            )?;
+            let selected =
+                select_project_source_cache(project_root, cache_root, cancellation_token)?;
             let scan = scan_generated_dependency_symbol(
                 project_root,
                 &selected.home().0,
@@ -1030,13 +1202,9 @@ pub(super) fn build_query_index(
 
     let mut timings = LiveQueryTimings::start(workspace.files.len());
     let selected = if let Some(project_root) = project_root {
-        crate::jar_build::engine::select_project_source_cache(
-            project_root,
-            None,
-            cancellation_token,
-        )?
+        select_project_source_cache(project_root, cache_root, cancellation_token)?
     } else {
-        crate::jar_build::engine::select_branch_source_cache(branch, None, cancellation_token)?
+        select_branch_source_cache(branch, cache_root, cancellation_token, app_home)?
     };
     let resolved = if let Some(project_root) = project_root {
         resolve_index_context_with_inventory(
@@ -1045,7 +1213,12 @@ pub(super) fn build_query_index(
             selected.home().clone(),
         )?
     } else {
-        resolve_index_context_from_analysis(branch, &workspace.context, selected.home().clone())?
+        resolve_index_context_from_analysis(
+            branch,
+            &workspace.context,
+            selected.home().clone(),
+            app_home,
+        )?
     };
     timings.finish(LiveQueryStage::ResolveContext);
     let _live_query_lock = ArtifactLock::acquire_with_cancellation(
@@ -1223,8 +1396,8 @@ pub(super) fn build_query_index(
         portable_path: probe.layout.portable.root,
         path: probe.layout.concrete.root.display().to_string(),
         reason: probe.reason,
-        refresh_command: render_refresh_command(branch, project_root)?,
-        acquisition_commands: acquisition_commands(&preflight, branch, project_root)?,
+        refresh_command: render_refresh_command(branch, project_root, cache_root)?,
+        acquisition_commands: acquisition_commands(&preflight, branch, project_root, cache_root)?,
     };
     Ok(SymbolQueryIndex {
         index,
@@ -1234,34 +1407,61 @@ pub(super) fn build_query_index(
     })
 }
 
+fn catalog_project_has_dependency_index(project_root: Option<&Path>) -> eyre::Result<bool> {
+    let Some(project_root) = project_root else {
+        return Ok(false);
+    };
+    let lockfile = project_root.join("sfm-toolchain.lock.json");
+    if !lockfile.is_file() {
+        return Ok(false);
+    }
+    Ok(matches!(
+        parse_document(&read_to_string(lockfile)?)?,
+        ToolchainLockfileDocument::V3(_) | ToolchainLockfileDocument::V4(_)
+    ))
+}
+
 /// Load the immutable dependency declarations needed by a correctness-first
 /// direct definition-at-position query. The later supervised provider can
 /// retain this body instead of rescanning it for each request.
 pub(super) fn load_definition_at_position_dependencies(
-    workspace: &JavaSourceWorkspace,
-    branch: &BranchSelector,
-    project_root: Option<&Path>,
+    selection: &ResolvedSymbolQueryWorkspace,
     cancellation_token: &CancellationToken,
+    app_home: &AppHome,
 ) -> eyre::Result<(
     Option<DependencyJavaSymbolIndexBody>,
     Option<DependencySymbolIndexQueryOutput>,
     Vec<DefinitionDependencySourceRoot>,
 )> {
-    if workspace.context.classpath_mode == JavaClasspathMode::Isolated {
+    let workspace = &selection.workspace;
+    let branch = &selection.branch;
+    let project_root = selection.project_root.as_deref();
+    let cache_root = selection.cache_root.as_deref();
+    if workspace.context.classpath_mode == JavaClasspathMode::Isolated
+        && !catalog_project_has_dependency_index(project_root)?
+    {
         return Ok((None, None, Vec::new()));
     }
 
     let selected = if let Some(project_root) = project_root {
-        crate::jar_build::engine::select_project_source_cache(
-            project_root,
-            None,
-            cancellation_token,
+        select_project_source_cache(project_root, cache_root, cancellation_token)?
+    } else {
+        select_branch_source_cache(branch, cache_root, cancellation_token, app_home)?
+    };
+    let resolved = if let Some(project_root) = project_root {
+        resolve_index_context_with_inventory(
+            DependencyInventory::load_project(project_root, selected.home().clone())?,
+            &workspace.context,
+            selected.home().clone(),
         )?
     } else {
-        crate::jar_build::engine::select_branch_source_cache(branch, None, cancellation_token)?
+        resolve_index_context_from_analysis(
+            branch,
+            &workspace.context,
+            selected.home().clone(),
+            app_home,
+        )?
     };
-    let resolved =
-        resolve_index_context_from_analysis(branch, &workspace.context, selected.home().clone())?;
     let _live_query_lock = ArtifactLock::acquire_with_cancellation(
         resolved.store.live_query_lock_path(),
         "direct definition-at-position query",
@@ -1300,8 +1500,8 @@ pub(super) fn load_definition_at_position_dependencies(
         portable_path: probe.layout.portable.root,
         path: probe.layout.concrete.root.display().to_string(),
         reason: probe.reason,
-        refresh_command: render_refresh_command(branch, None)?,
-        acquisition_commands: acquisition_commands(&preflight, branch, None)?,
+        refresh_command: render_refresh_command(branch, project_root, cache_root)?,
+        acquisition_commands: acquisition_commands(&preflight, branch, project_root, cache_root)?,
     };
     let source_roots = definition_dependency_source_roots(&preflight)?;
     Ok((loaded.map(|(_, body)| body), Some(evidence), source_roots))
@@ -1317,7 +1517,7 @@ fn definition_dependency_source_roots(
             Ok((
                 format!("dependency/{}/{}", root.identity, root.provider_id),
                 format!("dependency:{}", root.identity.replace('/', ":")),
-                std::fs::canonicalize(&root.root)?,
+                canonicalize(&root.root)?,
             ))
         })
         .collect::<eyre::Result<Vec<_>>>()?;
@@ -1340,7 +1540,7 @@ fn definition_dependency_source_roots(
 }
 
 fn legacy_definition_pipeline_requested() -> bool {
-    std::env::var_os(LEGACY_DEFINITION_PIPELINE_ENV)
+    var_os(LEGACY_DEFINITION_PIPELINE_ENV)
         .is_some_and(|value| value.to_string_lossy().eq_ignore_ascii_case("legacy"))
 }
 
@@ -1348,10 +1548,7 @@ fn load_dependency_query_scan(
     resolved: &ResolvedIndexContext,
     query: DependencySymbolQuery<'_>,
     retain_all_resolution_types: bool,
-) -> eyre::Result<(
-    DependencySymbolIndexManifest,
-    crate::java_analysis::DependencyJavaSymbolIndexScan,
-)> {
+) -> eyre::Result<(DependencySymbolIndexManifest, DependencyJavaSymbolIndexScan)> {
     let (manifest, payload_path) = resolved.store.validated_payload(
         &resolved.identity,
         DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA,
@@ -1381,7 +1578,7 @@ fn workspace_resolution_vocabulary(
     let mut identifiers = BTreeSet::new();
     let mut member_accesses = BTreeSet::new();
     for file in &workspace.files {
-        let source = std::fs::read_to_string(&file.absolute_path)?;
+        let source = read_to_string(&file.absolute_path)?;
         identifiers.extend(
             java_identifier_tokens(&source)
                 .into_iter()
@@ -1509,7 +1706,7 @@ fn hold_platform_source_roots(
             continue;
         }
         held.leases.prepare(&directory, "__sfm_source_reader__")?;
-        for entry in std::fs::read_dir(&directory)? {
+        for entry in read_dir(&directory)? {
             let entry = entry?;
             let kind = entry.file_type()?;
             eyre::ensure!(
@@ -1564,7 +1761,7 @@ fn managed_source_roots(preflight: &SourcePreflight, cache_home: &CacheHome) -> 
             && !root
                 .root
                 .components()
-                .any(|component| matches!(component, std::path::Component::ParentDir))
+                .any(|component| matches!(component, Component::ParentDir))
     })
 }
 
@@ -1642,7 +1839,7 @@ fn status_output(
     resolved: &ResolvedIndexContext,
     probe: &DependencySymbolIndexProbe,
     completeness: DependencySymbolIndexCompleteness,
-    counts: Option<crate::java_analysis::DependencySymbolIndexCounts>,
+    counts: Option<DependencySymbolIndexCounts>,
     preflight: &SourcePreflight,
 ) -> eyre::Result<SymbolIndexStatusOutput> {
     let project_root = resolved
@@ -1653,7 +1850,8 @@ fn status_output(
         .starts_with("project:")
         .then(|| resolved.inventory.lockfile_path.parent())
         .flatten();
-    let acquisition_commands = acquisition_commands(preflight, branch, project_root)?;
+    let cache_root = Some(resolved.cache_home.0.as_path());
+    let acquisition_commands = acquisition_commands(preflight, branch, project_root, cache_root)?;
     Ok(SymbolIndexStatusOutput {
         schema: SYMBOL_INDEX_STATUS_SCHEMA.to_owned(),
         operation: operation.to_owned(),
@@ -1664,7 +1862,7 @@ fn status_output(
         portable_path: probe.layout.portable.root.clone(),
         path: probe.layout.concrete.root.display().to_string(),
         reason: probe.reason.clone(),
-        refresh_command: render_refresh_command(branch, project_root)?,
+        refresh_command: render_refresh_command(branch, project_root, cache_root)?,
         acquisition_commands,
         counts,
     })
@@ -1674,6 +1872,7 @@ fn acquisition_commands(
     preflight: &SourcePreflight,
     branch: &BranchSelector,
     project_root: Option<&Path>,
+    cache_root: Option<&Path>,
 ) -> eyre::Result<Vec<String>> {
     let commands = preflight
         .missing
@@ -1682,27 +1881,25 @@ fn acquisition_commands(
             missing.acquirable && !is_minecraft_classfile_stub_target(&missing.target)
         })
         .map(|missing| {
-            if let Some(project_root) = project_root {
+            if project_root.is_some() || cache_root.is_some() {
                 let arguments = Cli {
                     global_args: GlobalArgs::default(),
-                    command: CliCommand::Dependency(crate::cli::dependency::DependencyArgs {
-                        command: crate::cli::dependency::DependencyCommand::Source(
-                            crate::cli::dependency::DependencySourceArgs {
-                                cache_root: None,
-                                command: crate::cli::dependency::DependencySourceCommand::Acquire(
-                                    crate::cli::dependency::DependencySourceAcquireArgs {
-                                        target: Some(missing.target.clone()),
-                                        all: false,
-                                        provider: None,
-                                        provider_id: None,
-                                        parallel: None,
-                                        branch: None,
-                                        project_root: Some(project_root.to_path_buf()),
-                                        java_home: None,
-                                    },
-                                ),
-                            },
-                        ),
+                    command: CliCommand::Dependency(DependencyArgs {
+                        command: DependencyCommand::Source(DependencySourceArgs {
+                            cache_root: cache_root.map(Path::to_path_buf),
+                            command: DependencySourceCommand::Acquire(
+                                DependencySourceAcquireArgs {
+                                    target: Some(missing.target.clone()),
+                                    all: false,
+                                    provider: None,
+                                    provider_id: None,
+                                    parallel: None,
+                                    branch: project_root.is_none().then(|| branch.clone()),
+                                    project_root: project_root.map(Path::to_path_buf),
+                                    java_home: None,
+                                },
+                            ),
+                        }),
                     }),
                     builtins: figue::FigueBuiltins::default(),
                 }
@@ -1730,12 +1927,13 @@ fn acquisition_commands(
 fn render_refresh_command(
     branch: &BranchSelector,
     project_root: Option<&Path>,
+    cache_root: Option<&Path>,
 ) -> eyre::Result<String> {
     let arguments = Cli {
         global_args: GlobalArgs::default(),
         command: CliCommand::Symbol(super::SymbolArgs {
             command: super::SymbolCommand::Index(SymbolIndexArgs {
-                cache_root: None,
+                cache_root: cache_root.map(Path::to_path_buf),
                 command: SymbolIndexCommand::Refresh(SymbolIndexRefreshArgs {
                     branch: project_root.is_none().then(|| branch.clone()),
                     project_root: project_root.map(Path::to_path_buf),

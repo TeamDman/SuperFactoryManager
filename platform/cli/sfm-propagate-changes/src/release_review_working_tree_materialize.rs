@@ -1,5 +1,6 @@
 //! Pure adapter from verified capture bytes to the existing portable review/comment kernel.
 
+use crate::release_review_capture;
 use crate::release_review_capture_io::TEXT_LIMIT;
 use crate::release_review_v1 as review;
 use crate::release_review_working_tree::WorkingTreeReviewConfig;
@@ -9,6 +10,7 @@ use crate::review_session_v1 as session;
 use crate::review_session_v2 as comments;
 use eyre::eyre;
 use std::path::Path;
+use std::str::from_utf8;
 
 pub const PRODUCER_ID: &str = "sfm.release-review.working-tree-materializer/1";
 
@@ -102,7 +104,7 @@ fn materialize_with_markers(
                 .map_or_else(|| session::sha256(&[]), |bytes| session::sha256(bytes));
             let text = bytes.as_ref().and_then(|bytes| {
                 (bytes.len() <= TEXT_LIMIT && !bytes.contains(&0))
-                    .then(|| std::str::from_utf8(bytes).ok().map(str::to_owned))
+                    .then(|| from_utf8(bytes).ok().map(str::to_owned))
                     .flatten()
             });
             let limitation = text
@@ -145,7 +147,7 @@ fn materialize_with_markers(
                 input
                     .capture
                     .id
-                    .strip_prefix(crate::release_review_capture::ID_PREFIX)
+                    .strip_prefix(release_review_capture::ID_PREFIX)
                     .ok_or_else(|| eyre!("invalid capture identity prefix"))?,
                 entry.path
             );

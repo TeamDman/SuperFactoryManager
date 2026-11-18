@@ -20,6 +20,7 @@ impl CatalogReleaseArgs {
     ) -> Result<CliOutput> {
         match self.command {
             CatalogReleaseCommand::Plan(args) => args.invoke(invocation_dir, cancellation),
+            CatalogReleaseCommand::Prepare(args) => args.invoke(invocation_dir, cancellation),
         }
     }
 }

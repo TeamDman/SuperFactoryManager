@@ -16,12 +16,20 @@ use eyre::bail;
 use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::env::current_dir;
 use std::fs;
 use std::io::ErrorKind;
 use std::io::Read as _;
+use std::iter::once;
+use std::mem::forget;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt as _;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 /// Kept inside each projected root. A different preset must use a different root.
 pub const MANIFEST_FILE: &str = ".sfm-source-projection-manifest.json";
@@ -357,7 +365,6 @@ fn sync_owned_projection(
         // staged file is renamed into place, so its mode is the output mode.
         #[cfg(unix)]
         if path == "gradlew" {
-            use std::os::unix::fs::PermissionsExt as _;
             fs::set_permissions(&staged, fs::Permissions::from_mode(0o755))
                 .wrap_err("could not make generated Gradle wrapper executable")?;
         }
@@ -429,7 +436,7 @@ fn inspect(
     let manifest_path = root.join(MANIFEST_FILE);
     let previous_manifest_bytes = read_manifest_if_present(&manifest_path)?;
     let previous = if let Some(bytes) = &previous_manifest_bytes {
-        let text = std::str::from_utf8(bytes).wrap_err("projection manifest is not UTF-8")?;
+        let text = from_utf8(bytes).wrap_err("projection manifest is not UTF-8")?;
         let manifest = ProjectionProvenance::from_json(text)
             .wrap_err("could not read existing source projection manifest")?;
         ensure!(
@@ -593,7 +600,7 @@ fn apply_staged(
                 retained.display()
             )));
         }
-        std::mem::forget(stage);
+        forget(stage);
         return Err(error.wrap_err(format!(
             "source projection rollback failed: {}; inspect staging directory '{}' immediately",
             rollback_errors.join("; "),
@@ -785,7 +792,7 @@ fn validate_catalog_case_components<'a>(paths: impl IntoIterator<Item = &'a str>
         for index in path
             .match_indices('/')
             .map(|(index, _)| index)
-            .chain(std::iter::once(path.len()))
+            .chain(once(path.len()))
         {
             let prefix = &path[..index];
             if let Some(previous) = prefixes.insert(prefix.to_ascii_lowercase(), prefix) {
@@ -944,7 +951,7 @@ fn absolute_root(root: &Path) -> Result<PathBuf> {
     let absolute = if root.is_absolute() {
         root.to_path_buf()
     } else {
-        std::env::current_dir()?.join(root)
+        current_dir()?.join(root)
     };
     ensure!(
         absolute.parent().is_some() && absolute.file_name().is_some(),
@@ -1074,7 +1081,6 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x0000_0400 != 0
     }
     #[cfg(not(windows))]
@@ -1086,11 +1092,11 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt as _;
 
     #[cfg(windows)]
     fn create_junction(link: &Path, target: &Path) {
-        use std::os::windows::fs::MetadataExt as _;
-
         let output = std::process::Command::new("cmd.exe")
             .args(["/d", "/c", "mklink", "/J"])
             .arg(link)
@@ -1412,8 +1418,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn generated_gradle_wrapper_is_executable() {
-        use std::os::unix::fs::PermissionsExt as _;
-
         let temporary = tempfile::tempdir().unwrap();
         let destination = temporary.path().join("generated");
         let files = BTreeMap::from([("gradlew".to_owned(), artifact("#!/bin/sh\n"))]);

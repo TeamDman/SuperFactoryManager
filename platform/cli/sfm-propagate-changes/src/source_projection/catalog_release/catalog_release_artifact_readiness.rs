@@ -6,4 +6,6 @@ use facet::Facet;
 #[repr(u8)]
 pub enum CatalogReleaseArtifactReadiness {
     NotAssessed,
+    /// Exact local receipt, current selected inputs and retained JAR bytes checked.
+    VerifiedLocalNativeReceipt,
 }

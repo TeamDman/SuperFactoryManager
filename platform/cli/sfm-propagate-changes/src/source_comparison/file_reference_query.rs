@@ -1,3 +1,4 @@
+use crate::source_projection;
 use facet::Facet;
 #[derive(Debug, Facet)]
 pub struct FileReferenceQuery {
@@ -10,7 +11,7 @@ pub struct FileReferenceQuery {
     pub source_path: Option<String>,
     pub source_sha256: Option<String>,
     pub related_references:
-        Option<crate::source_projection::reference_associations::ReferenceAssociations>,
+        Option<source_projection::reference_associations::ReferenceAssociations>,
 }
 impl FileReferenceQuery {
     /// Query only explicit captured evidence. No inference from names or comments.
@@ -35,7 +36,7 @@ impl FileReferenceQuery {
             links: related_references.as_ref().map_or_else(Vec::new, |a| {
                 a.references
                     .iter()
-                    .map(crate::source_projection::source_reference::SourceReference::url)
+                    .map(source_projection::source_reference::SourceReference::url)
                     .collect()
             }),
             related_references,

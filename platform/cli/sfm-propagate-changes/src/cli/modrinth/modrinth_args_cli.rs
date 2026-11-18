@@ -1,4 +1,5 @@
 use super::ModrinthReleaseArgs;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -14,8 +15,8 @@ impl ModrinthArgs {
     /// # Errors
     ///
     /// Returns an error if the selected Modrinth command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -31,9 +32,9 @@ impl ModrinthCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Release(args) => args.invoke(),
+            Self::Release(args) => args.invoke(app_home),
         }
     }
 }

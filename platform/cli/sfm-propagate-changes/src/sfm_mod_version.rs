@@ -1,7 +1,6 @@
 use crate::mod_version::ModVersion;
 use eyre::Result;
 use eyre::ensure;
-use semver::Version;
 
 /// Zero-sized evidence of one exact SFM version supplied as compile-time numbers.
 ///
@@ -12,11 +11,13 @@ use semver::Version;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SfmModVersion<const MAJOR: u64, const MINOR: u64, const PATCH: u64>;
 
-impl<const MAJOR: u64, const MINOR: u64, const PATCH: u64> From<SfmModVersion<MAJOR, MINOR, PATCH>>
-    for ModVersion
+impl<const MAJOR: u64, const MINOR: u64, const PATCH: u64>
+    TryFrom<SfmModVersion<MAJOR, MINOR, PATCH>> for ModVersion
 {
-    fn from(_: SfmModVersion<MAJOR, MINOR, PATCH>) -> Self {
-        Self::new(Version::new(MAJOR, MINOR, PATCH))
+    type Error = eyre::Report;
+
+    fn try_from(_: SfmModVersion<MAJOR, MINOR, PATCH>) -> Result<Self> {
+        Self::parse(&format!("{MAJOR}.{MINOR}.{PATCH}"))
     }
 }
 impl<const MAJOR: u64, const MINOR: u64, const PATCH: u64> TryFrom<&ModVersion>
@@ -51,7 +52,8 @@ mod tests {
     fn exact_version_witness_is_zero_sized_and_rejects_different_or_qualified_versions()
     -> Result<()> {
         assert_eq!(std::mem::size_of::<SfmModVersion<4, 35, 0>>(), 0);
-        let generic: ModVersion = SfmModVersion::<4, 35, 0>.into();
+        let generic: Result<ModVersion> = SfmModVersion::<4, 35, 0>.try_into();
+        let generic = generic?;
         assert_eq!(generic.to_string(), "4.35.0");
         assert!(SfmModVersion::<4, 35, 0>::try_from(generic).is_ok());
         for value in ["4.34.0", "4.35.0-dev", "4.35.0+build"] {

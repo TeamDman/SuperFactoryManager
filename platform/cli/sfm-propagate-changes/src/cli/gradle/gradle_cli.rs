@@ -3,7 +3,9 @@ use super::GradleLogListArgs;
 use super::GradleLogTldrArgs;
 use super::GradleRunArgs;
 use crate::branch_targets::discover_worktree_targets;
+use crate::cli::InvocationHomes;
 use crate::cli::git::status::assert_worktrees_clean_or_autocommit_generated;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stderr_text;
 use crate::terminal_output::stdout_blank_line;
@@ -17,9 +19,12 @@ use facet::Facet;
 use figue::{self as args};
 use humansize::DECIMAL;
 use humansize::format_size;
+use std::env::current_dir;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::fs;
+use std::io::Result as IoResult;
+use std::iter::once;
 use std::mem;
 use std::path::Path;
 use std::path::PathBuf;
@@ -32,6 +37,8 @@ use tokio::io::AsyncRead;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
+use tokio::runtime::Builder;
+use tokio::signal::ctrl_c;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
@@ -49,8 +56,8 @@ impl GradleArgs {
     /// # Errors
     ///
     /// Returns an error if the selected Gradle command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(homes)
     }
 }
 
@@ -334,7 +341,7 @@ fn format_log_summary(label: &str, output: &str, log_path: &Path) -> String {
 fn format_report(branches: &[BranchRun], tasks: &[GradleTask]) -> String {
     let mut widths = Vec::with_capacity(tasks.len() + 1);
     widths.push(
-        std::iter::once("mc version".len())
+        once("mc version".len())
             .chain(branches.iter().map(|b| b.branch.len()))
             .max()
             .unwrap_or("mc version".len()),
@@ -426,7 +433,7 @@ fn sanitize_for_path(input: &str) -> String {
     }
 }
 
-fn create_gradle_run_log_dir(tasks: &[String]) -> eyre::Result<PathBuf> {
+fn create_gradle_run_log_dir(tasks: &[String], cache_home: &CacheHome) -> eyre::Result<PathBuf> {
     let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
     let task_segment = tasks
         .iter()
@@ -445,10 +452,7 @@ fn create_gradle_run_log_dir(tasks: &[String]) -> eyre::Result<PathBuf> {
         format!("gradle_{timestamp}_{task_segment}")
     };
 
-    let run_dir = CacheHome::current()?
-        .0
-        .join("gradle-runs")
-        .join(run_dir_name);
+    let run_dir = cache_home.0.join("gradle-runs").join(run_dir_name);
     fs::create_dir_all(&run_dir).wrap_err_with(|| {
         format!(
             "Failed to create gradle run log directory: {}",
@@ -458,12 +462,12 @@ fn create_gradle_run_log_dir(tasks: &[String]) -> eyre::Result<PathBuf> {
     Ok(run_dir)
 }
 
-fn gradle_runs_dir() -> eyre::Result<PathBuf> {
-    Ok(CacheHome::current()?.0.join("gradle-runs"))
+fn gradle_runs_dir(cache_home: &CacheHome) -> PathBuf {
+    cache_home.0.join("gradle-runs")
 }
 
-fn latest_gradle_run_dir() -> eyre::Result<PathBuf> {
-    let runs_dir = gradle_runs_dir()?;
+fn latest_gradle_run_dir(cache_home: &CacheHome) -> eyre::Result<PathBuf> {
+    let runs_dir = gradle_runs_dir(cache_home);
 
     if !runs_dir.exists() {
         bail!("No gradle run logs exist yet: {}", runs_dir.display());
@@ -890,7 +894,7 @@ fn relativize_to_repo_root(path: PathBuf, repo_root: &Path) -> PathBuf {
 }
 
 fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok()?;
+    let cwd = current_dir().ok()?;
 
     let mut repo_root = None;
     for ancestor in cwd.ancestors() {
@@ -1230,7 +1234,7 @@ async fn collect_output<R>(
     reader: R,
     stream_logs_to_console: bool,
     log_path: PathBuf,
-) -> std::io::Result<String>
+) -> IoResult<String>
 where
     R: AsyncRead + Unpin,
 {
@@ -1341,7 +1345,7 @@ async fn run_gradle_task(
             })?;
             (status, false)
         }
-        signal_res = tokio::signal::ctrl_c() => {
+        signal_res = ctrl_c() => {
             if let Err(err) = signal_res {
                 warn!(
                     path = %minecraft_dir.display(),
@@ -1461,40 +1465,44 @@ impl GradleCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
-            Self::Run(args) => args.invoke(),
-            Self::Log(args) => args.invoke(),
+            Self::Run(args) => args.invoke(homes),
+            Self::Log(args) => args.invoke(homes),
         }
     }
 }
 
 impl GradleRunArgs {
-    pub(super) fn invoke_with_runtime(self) -> eyre::Result<()> {
-        let rt = tokio::runtime::Builder::new_multi_thread()
+    pub(super) fn invoke_with_runtime(
+        self,
+        app_home: &AppHome,
+        cache_home: &CacheHome,
+    ) -> eyre::Result<()> {
+        let rt = Builder::new_multi_thread()
             .enable_all()
             .build()
             .wrap_err("Failed to create tokio runtime")?;
 
-        rt.block_on(self.invoke_async())
+        rt.block_on(self.invoke_async(app_home, cache_home))
     }
 
     #[expect(
         clippy::too_many_lines,
         reason = "Control flow and report updates are clearest when kept together."
     )]
-    async fn invoke_async(self) -> eyre::Result<()> {
+    async fn invoke_async(self, app_home: &AppHome, cache_home: &CacheHome) -> eyre::Result<()> {
         if self.tasks.is_empty() {
             bail!("No tasks provided. Usage: sfm-propagate-changes gradle run <task1> <task2> ...");
         }
 
-        let targets = discover_worktree_targets()?;
+        let targets = discover_worktree_targets(app_home)?;
         let all_worktree_branches: Vec<String> = targets
             .iter()
             .map(|target| target.branch.to_string())
             .collect();
         let total_worktrees = targets.len();
-        let branch_query = self.branch.clone().into_query()?;
+        let branch_query = self.branch.clone().into_query(app_home)?;
         let mut excluded_worktree_branches = Vec::new();
         let mut worktrees = Vec::new();
 
@@ -1525,7 +1533,7 @@ impl GradleRunArgs {
             .map(|task| GradleTask::from_input(task))
             .collect();
 
-        let run_log_dir = create_gradle_run_log_dir(&self.tasks)?;
+        let run_log_dir = create_gradle_run_log_dir(&self.tasks, cache_home)?;
         info!("Gradle run logs: {}", run_log_dir.display());
 
         if tasks.iter().any(GradleTask::needs_generated_preflight) {
@@ -1827,35 +1835,42 @@ impl GradleLogsCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
-            Self::List(args) => args.invoke(),
-            Self::Tldr(args) => args.invoke(),
+            Self::List(args) => args.invoke(homes),
+            Self::Tldr(args) => args.invoke(homes),
         }
     }
 }
 
-pub(super) fn gradle_logs_list(latest: bool) -> eyre::Result<()> {
+pub(super) fn gradle_logs_list(latest: bool, cache_home: &CacheHome) -> eyre::Result<()> {
     if !latest {
         bail!("Only `--latest` is currently supported for `gradle log list`.");
     }
 
-    let run_dir = latest_gradle_run_dir()?;
+    let run_dir = latest_gradle_run_dir(cache_home)?;
     info!("Listing latest gradle logs from {}", run_dir.display());
     print_log_list(&run_dir)
 }
 
-pub(super) fn gradle_logs_tldr(latest: bool, path: Option<PathBuf>) -> eyre::Result<()> {
-    let run_dir = match (latest, path) {
-        (true, Some(_)) => {
-            bail!("Provide either `--latest` or `<path>`, not both.");
-        }
-        (true, None) => latest_gradle_run_dir()?,
-        (false, Some(path)) => path,
-        (false, None) => {
-            bail!("Provide `--latest` or a run directory path.");
-        }
-    };
+pub(super) fn gradle_logs_tldr(
+    latest: bool,
+    path: Option<PathBuf>,
+    cache_home: Option<&CacheHome>,
+) -> eyre::Result<()> {
+    let run_dir =
+        match (latest, path) {
+            (true, Some(_)) => {
+                bail!("Provide either `--latest` or `<path>`, not both.");
+            }
+            (true, None) => latest_gradle_run_dir(cache_home.ok_or_else(|| {
+                eyre::eyre!("Latest Gradle logs require the invocation cache home")
+            })?)?,
+            (false, Some(path)) => path,
+            (false, None) => {
+                bail!("Provide `--latest` or a run directory path.");
+            }
+        };
 
     if !run_dir.exists() {
         bail!("Run directory not found: {}", run_dir.display());

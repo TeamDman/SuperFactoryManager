@@ -8,7 +8,10 @@ use super::DependencyRemoveArgs;
 use super::DependencyShowArgs;
 use super::DependencySourceArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::BranchSelector;
+use crate::jar_build::engine::select_branch_source_cache;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
@@ -23,20 +26,26 @@ impl DependencyArgs {
     /// # Errors
     ///
     /// Returns an error if the selected dependency command fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         match self.command {
-            DependencyCommand::Source(args) => args.invoke(&cancellation_token),
-            DependencyCommand::Migrate(args) => args.invoke(cancellation_token),
+            DependencyCommand::Source(args) => args.invoke(&cancellation_token, app_home),
+            DependencyCommand::Migrate(args) => args.invoke(cancellation_token, app_home),
             DependencyCommand::Artifact(DependencyArtifactArgs {
                 command: super::DependencyArtifactCommand::Import(args),
             }) => args.invoke(&cancellation_token),
             other => {
-                let selected = crate::jar_build::engine::select_branch_source_cache(
+                let selected = select_branch_source_cache(
                     other.branch(),
                     None,
                     &cancellation_token,
+                    app_home,
                 )?;
-                other.invoke(cancellation_token, selected.home())
+                other.invoke(cancellation_token, selected.home(), app_home)
             }
         }
     }
@@ -99,17 +108,18 @@ impl DependencyCommand {
         self,
         cancellation_token: CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         match self {
-            Self::Add(args) => args.invoke(&cancellation_token, cache_home),
-            Self::Artifact(args) => args.invoke(&cancellation_token, cache_home),
-            Self::Component(args) => args.invoke(&cancellation_token, cache_home),
-            Self::List(args) => args.invoke(cancellation_token, cache_home),
-            Self::Migrate(args) => args.invoke(cancellation_token),
-            Self::Remove(args) => args.invoke(&cancellation_token, cache_home),
-            Self::Refresh(args) => args.invoke(&cancellation_token, cache_home),
-            Self::Show(args) => args.invoke(cancellation_token, cache_home),
-            Self::Source(args) => args.invoke(&cancellation_token),
+            Self::Add(args) => args.invoke(&cancellation_token, cache_home, app_home),
+            Self::Artifact(args) => args.invoke(&cancellation_token, cache_home, app_home),
+            Self::Component(args) => args.invoke(&cancellation_token, cache_home, app_home),
+            Self::List(args) => args.invoke(cancellation_token, cache_home, app_home),
+            Self::Migrate(args) => args.invoke(cancellation_token, app_home),
+            Self::Remove(args) => args.invoke(&cancellation_token, cache_home, app_home),
+            Self::Refresh(args) => args.invoke(&cancellation_token, cache_home, app_home),
+            Self::Show(args) => args.invoke(cancellation_token, cache_home, app_home),
+            Self::Source(args) => args.invoke(&cancellation_token, app_home),
         }
     }
 }

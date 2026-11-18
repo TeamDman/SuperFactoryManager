@@ -19,6 +19,7 @@ use std::fs;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const MAX_LOCK_BYTES: u64 = 1024 * 1024;
 
@@ -81,9 +82,8 @@ pub(super) fn read_candidate_lock(lock_path: &Path) -> Result<(SourceCandidateLo
         bytes.len() as u64 <= MAX_LOCK_BYTES,
         "candidate lock exceeds the {MAX_LOCK_BYTES}-byte limit"
     );
-    let lock = SourceCandidateLock::from_json(
-        std::str::from_utf8(&bytes).wrap_err("candidate lock is not UTF-8")?,
-    )?;
+    let lock =
+        SourceCandidateLock::from_json(from_utf8(&bytes).wrap_err("candidate lock is not UTF-8")?)?;
     Ok((lock, sha256(&bytes)))
 }
 
@@ -102,7 +102,7 @@ pub(super) fn verify_candidate_in(
     let mut report = lock.verify_in(repo_root, roots, lock_sha256)?;
     tracing::info!("frozen candidate inventory verified; checking deterministic sources");
     let manifest_bytes = fs::read(repo_root.join("platform/minecraft/source-projection.json"))?;
-    let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&manifest_bytes)?)?;
+    let manifest = SourceProjectionManifest::from_json(from_utf8(&manifest_bytes)?)?;
     let preset = manifest.preset(&lock.candidate_preset_id)?;
     for target in &lock.targets {
         cancellation.bail_if_cancelled()?;
@@ -185,10 +185,13 @@ mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
+    use crate::cli::InvocationHomes;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::LegacySourceArgs;
     use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceFrozenInventoryMatrixPreviewArgs;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use crate::source_projection::manifest::FrozenSourceBinding;
     use crate::source_projection::manifest::SCHEMA_VERSION;
     use crate::source_projection::sync::MANIFEST_FILE;
@@ -485,12 +488,16 @@ mod tests {
             let mut targets = Vec::new();
             let mut jar_hashes = BTreeSet::new();
             let cancellation = CancellationToken::new();
+            let homes = InvocationHomes::new(
+                AppHome(temp.path().join("settings")),
+                Ok(CacheHome(temp.path().join("cache"))),
+            );
             for id in FROZEN_TARGETS {
                 let root = external.join(id);
                 LegacySourceArgs {
                     command: LegacySourceCommand::Sync(frozen_project_args(&repo, id, &root)),
                 }
-                .invoke_in(&cancellation, &repo)
+                .invoke_in(&cancellation, &repo, &homes)
                 .unwrap();
                 frozen_project_args(&repo, id, &root)
                     .check_candidate_in(&cancellation, &repo)

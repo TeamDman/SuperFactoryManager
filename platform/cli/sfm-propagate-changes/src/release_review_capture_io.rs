@@ -5,6 +5,9 @@ use eyre::Context as _;
 use eyre::eyre;
 use std::fs::File;
 use std::fs::Metadata;
+#[cfg(windows)]
+use std::fs::OpenOptions;
+use std::io;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Path;
@@ -13,6 +16,8 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::thread::sleep;
+use std::thread::spawn;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -91,14 +96,14 @@ impl CaptureBudget {
             .stderr
             .take()
             .ok_or_else(|| eyre!("capture Git stderr unavailable"))?;
-        let out = std::thread::spawn(move || read_pipe(stdout, limit, &out_flag));
-        let err = std::thread::spawn(move || read_pipe(stderr, 1024 * 1024, &err_flag));
+        let out = spawn(move || read_pipe(stdout, limit, &out_flag));
+        let err = spawn(move || read_pipe(stderr, 1024 * 1024, &err_flag));
         let writer = if let Some(input) = input {
             let mut stdin = child
                 .stdin
                 .take()
                 .ok_or_else(|| eyre!("capture Git stdin unavailable"))?;
-            Some(std::thread::spawn(move || stdin.write_all(&input)))
+            Some(spawn(move || stdin.write_all(&input)))
         } else {
             None
         };
@@ -115,7 +120,7 @@ impl CaptureBudget {
             }
             match child.try_wait() {
                 Ok(Some(status)) => break Ok(status),
-                Ok(None) => std::thread::sleep(Duration::from_millis(5)),
+                Ok(None) => sleep(Duration::from_millis(5)),
                 Err(error) => {
                     let _ = child.kill();
                     let _ = child.wait();
@@ -151,16 +156,12 @@ impl CaptureBudget {
     }
 }
 
-fn read_pipe(
-    pipe: impl std::io::Read,
-    limit: u64,
-    overflow: &AtomicBool,
-) -> std::io::Result<Vec<u8>> {
+fn read_pipe(pipe: impl io::Read, limit: u64, overflow: &AtomicBool) -> io::Result<Vec<u8>> {
     let mut bytes = Vec::new();
     pipe.take(limit + 1).read_to_end(&mut bytes)?;
     if bytes.len() as u64 > limit {
         overflow.store(true, Ordering::Release);
-        return Err(std::io::Error::other("capture pipe byte limit exceeded"));
+        return Err(io::Error::other("capture pipe byte limit exceeded"));
     }
     Ok(bytes)
 }
@@ -188,7 +189,7 @@ pub(crate) fn read_disk(root: &Path, path: &str, budget: &CaptureBudget) -> eyre
     let mut location = root.to_path_buf();
     let mut parts = path.split('/').peekable();
     // Root is canonicalized and verified against Git's top-level before capture.
-    let root_handle = std::fs::OpenOptions::new()
+    let root_handle = OpenOptions::new()
         .read(true)
         .share_mode(1)
         .custom_flags(0x0200_0000 | 0x0020_0000)
@@ -201,14 +202,14 @@ pub(crate) fn read_disk(root: &Path, path: &str, budget: &CaptureBudget) -> eyre
     while let Some(part) = parts.next() {
         location.push(part);
         let leaf = parts.peek().is_none();
-        let handle = match std::fs::OpenOptions::new()
+        let handle = match OpenOptions::new()
             .read(true)
             .share_mode(1)
             .custom_flags(0x0200_0000 | 0x0020_0000)
             .open(&location)
         {
             Ok(handle) => handle,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 return Ok(DiskFile::Missing);
             }
             Err(error) => {

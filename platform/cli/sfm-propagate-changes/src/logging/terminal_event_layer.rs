@@ -4,7 +4,9 @@ use crate::logging::terminal_hyperlink::TerminalTextExt;
 use crate::logging::terminal_hyperlink::vscode_file_uri_for_path;
 use crate::logging::terminal_span_fields::TerminalSpanFields;
 use color_eyre::owo_colors::OwoColorize;
+use std::env;
 use std::fmt::Debug;
+use std::io;
 use std::io::Write;
 use std::path::Path;
 use tracing::Event;
@@ -56,12 +58,12 @@ where
 
         let decorate = {
             use std::io::IsTerminal as _;
-            std::io::stderr().is_terminal() && std::env::var_os("NO_COLOR").is_none()
+            io::stderr().is_terminal() && env::var_os("NO_COLOR").is_none()
         };
         let event_fields = &fields;
         let prefix = render_prefix(event, &ctx, event_fields, decorate);
-        let mut stderr = std::io::stderr().lock();
-        let e: std::io::Result<()> = (move || {
+        let mut stderr = io::stderr().lock();
+        let e: io::Result<()> = (move || {
             write!(stderr, "[")?;
             prefix(&mut stderr)?;
             write!(stderr, "] ")?;
@@ -77,7 +79,7 @@ fn write_event_body(
     writer: &mut impl Write,
     fields: &CapturedFields,
     fallback_message: &str,
-) -> std::io::Result<()> {
+) -> io::Result<()> {
     let progress_summary = fields
         .extra_fields
         .iter()
@@ -127,7 +129,7 @@ fn render_prefix<S: Subscriber + for<'lookup> LookupSpan<'lookup>, W: Write>(
     ctx: &Context<'_, S>,
     fields: &CapturedFields,
     decorate: bool,
-) -> impl FnOnce(&mut W) -> std::io::Result<()> {
+) -> impl FnOnce(&mut W) -> io::Result<()> {
     move |f| {
         let span_fields = TerminalSpanFields::from_scope(ctx, event);
 

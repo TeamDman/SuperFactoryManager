@@ -7,6 +7,9 @@ use crate::one_password::OnePasswordSecretReference;
 use chrono::Utc;
 use eyre::Context;
 use facet::Facet;
+use std::env;
+use std::fs::read_dir;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -103,7 +106,8 @@ fn auth_root() -> eyre::Result<PathBuf> {
         cfg!(windows),
         "Persistent discovery login currently requires Windows; use CURSEFORGE_CORE_API_KEY for an explicit process credential"
     );
-    // Do not use APP_HOME: its configurable/fallback path may be inside a repository.
+    // Keep credential storage independent of the configurable application home,
+    // which may be inside a repository.
     let dirs = directories_next::ProjectDirs::from("", "teamdman", "sfm-propagate-changes")
         .ok_or_else(|| eyre::eyre!("Cannot determine private credential storage directory"))?;
     Ok(dirs
@@ -113,9 +117,9 @@ fn auth_root() -> eyre::Result<PathBuf> {
 }
 
 fn lease_paths(root: &Path) -> eyre::Result<Vec<PathBuf>> {
-    let entries = match std::fs::read_dir(root) {
+    let entries = match read_dir(root) {
         Ok(entries) => entries,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
         Err(error) => return Err(error.into()),
     };
     let mut paths = Vec::new();
@@ -220,7 +224,7 @@ pub fn discovery_login(ttl: &str, op_secret: Option<&str>) -> eyre::Result<Strin
         &name,
         expires,
         payload.as_bytes(),
-        &std::env::current_exe()?,
+        &env::current_exe()?,
     )?;
     Ok(format!(
         "Discovery authenticated until {}. This expires the local lease, not the underlying API key.",

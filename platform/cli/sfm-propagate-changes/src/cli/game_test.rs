@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::run::RunClientPuppetArgs;
 use crate::cli::run::RunGameTestServerArgs;
@@ -52,12 +53,19 @@ impl GameTestArgs {
     /// # Errors
     ///
     /// Returns an error if `GameTest` execution or static cataloguing fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        let app_home = homes.app_home();
         match self.command {
-            GameTestCommand::RunClient(args) => args.invoke(cancellation_token),
-            GameTestCommand::RunServer(args) => args.invoke(cancellation_token),
+            GameTestCommand::RunClient(args) => args.invoke(cancellation_token, homes),
+            GameTestCommand::RunServer(args) => args.invoke(cancellation_token, homes),
             GameTestCommand::List(args) => SourceCatalogCommand::new(
-                args.options.into_options(BuildMode::Plan)?,
+                args.options
+                    .into_options(BuildMode::Plan, app_home)?
+                    .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::GameTest,
                     action: SourceCatalogAction::List,
@@ -66,7 +74,9 @@ impl GameTestArgs {
             )
             .invoke(),
             GameTestCommand::Show(args) => SourceCatalogCommand::new(
-                args.options.into_options(BuildMode::Plan)?,
+                args.options
+                    .into_options(BuildMode::Plan, app_home)?
+                    .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::GameTest,
                     action: SourceCatalogAction::Show { id: args.id },

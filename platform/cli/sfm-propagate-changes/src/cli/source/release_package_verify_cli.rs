@@ -31,6 +31,7 @@ use std::fs::File;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 const REPORT_SCHEMA: &str = "sfm:source_release_package_verification@1";
 const REPORT_SCOPE: &str = "verified-local-package-only; no promotion, tag or publication";
@@ -107,13 +108,11 @@ impl ReleasePackageVerifyArgs {
             sha256(&manifest_bytes) == self.completion_manifest_sha256,
             "completion manifest SHA-256 differs from --completion-manifest-sha256"
         );
-        let manifest: ReleasePackageManifest =
-            facet_json::from_str(std::str::from_utf8(&manifest_bytes)?)
-                .wrap_err("cannot parse strict release package manifest JSON")?;
+        let manifest: ReleasePackageManifest = facet_json::from_str(from_utf8(&manifest_bytes)?)
+            .wrap_err("cannot parse strict release package manifest JSON")?;
         let inventory_bytes = read_bounded(&root, INVENTORY_FILE)?;
-        let inventory: ReleaseInventory =
-            facet_json::from_str(std::str::from_utf8(&inventory_bytes)?)
-                .wrap_err("cannot parse strict release inventory JSON")?;
+        let inventory: ReleaseInventory = facet_json::from_str(from_utf8(&inventory_bytes)?)
+            .wrap_err("cannot parse strict release inventory JSON")?;
         validate_contract(&manifest, &inventory, &inventory_bytes)?;
         validate_directory_entries(&root, &manifest)?;
         for target in &manifest.targets {

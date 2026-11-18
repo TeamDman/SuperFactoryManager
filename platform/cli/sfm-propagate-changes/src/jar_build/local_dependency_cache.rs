@@ -2,6 +2,11 @@
 //! Full input identity plus rehashed output receipts replace marker/existence trust.
 //! Same-user malicious manifest forgery is outside this developer-cache authority.
 
+use std::env;
+#[cfg(windows)]
+use std::io::ErrorKind;
+#[cfg(windows)]
+use std::ptr::from_mut;
 #[cfg(target_os = "linux")]
 #[path = "local_dependency_linux.rs"]
 pub(super) mod linux;
@@ -338,7 +343,7 @@ impl LocalDependencyCache {
     ) -> Result<Option<(LocalDependencyManifest, PathBuf, Vec<File>, Vec<File>)>> {
         let pointer = self.directory.join("current.json");
         match fs::symlink_metadata(&pointer) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) if error.kind() == ErrorKind::NotFound => return Ok(None),
             result => {
                 result?;
             }
@@ -383,7 +388,7 @@ impl LocalDependencyCache {
 /// Decline reuse/publication rather than changing the established fresh policy.
 pub(super) fn environment_allows_reuse() -> bool {
     for name in ["_JAVA_OPTIONS", "JDK_ALTERNATE_VM"] {
-        if std::env::var_os(name).is_some() {
+        if env::var_os(name).is_some() {
             tracing::info!(
                 environment_name = name,
                 "local_dependency_cache_declined_inherited_jvm_control"
@@ -446,7 +451,7 @@ mod linux_environment_tests {
 #[cfg(windows)]
 fn open_pointer_for_update(target: &Path) -> Result<(File, bool)> {
     let existed = match fs::symlink_metadata(target) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(error) if error.kind() == ErrorKind::NotFound => false,
         Ok(metadata) => {
             ensure!(
                 metadata.is_file() && !is_reparse(&metadata),
@@ -513,7 +518,7 @@ fn persist_content_record(directory: &Path, prefix: &str, text: &str) -> Result<
     let path = directory.join(format!("{prefix}{digest}.json"));
     match fs::symlink_metadata(&path) {
         Ok(_) => (),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+        Err(error) if error.kind() == ErrorKind::NotFound => {
             // The cache holds a Windows directory lease that forbids rename and
             // deletion. NamedTempFile::persist_noclobber needs those operations,
             // so publish directly under the held producer lock instead. A
@@ -523,7 +528,7 @@ fn persist_content_record(directory: &Path, prefix: &str, text: &str) -> Result<
                     record.write_all(bytes)?;
                     record.sync_all()?;
                 }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => (),
                 Err(error) => return Err(error.into()),
             }
         }
@@ -706,8 +711,8 @@ fn ensure_single_link(file: &File) -> Result<()> {
         GetFileInformationByHandleEx(
             HANDLE(file.as_raw_handle()),
             FileStandardInfo,
-            std::ptr::from_mut(&mut information).cast(),
-            u32::try_from(std::mem::size_of_val(&information))?,
+            from_mut(&mut information).cast(),
+            u32::try_from(size_of_val(&information))?,
         )
     }?;
     ensure!(

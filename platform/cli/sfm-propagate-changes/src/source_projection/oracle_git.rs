@@ -12,10 +12,13 @@ use facet::Facet;
 use gix::bstr::ByteSlice;
 use gix::hash::ObjectId;
 use gix::objs::Kind;
+use gix::open::Options;
+use gix::refs::FullNameRef;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 const MAX_BLOB_BYTES: u64 = 64 * 1024 * 1024;
@@ -190,12 +193,10 @@ impl OracleGitRepository {
     /// # Errors
     /// Fails when the repository or its local configuration cannot be read.
     pub fn open(path: &Path) -> Result<Self> {
-        let options = gix::open::Options::isolated()
-            .strict_config(true)
-            .config_overrides([
-                "gitoxide.objects.noReplace=true",
-                "gitoxide.objects.allocLimit=67108864",
-            ]);
+        let options = Options::isolated().strict_config(true).config_overrides([
+            "gitoxide.objects.noReplace=true",
+            "gitoxide.objects.allocLimit=67108864",
+        ]);
         let mut repository = gix::open_opts(path, options)
             .wrap_err_with(|| format!("Cannot open local oracle repository {}", path.display()))?;
         // A repository-local namespace must not reinterpret an explicit full ref.
@@ -228,7 +229,7 @@ impl OracleGitRepository {
             full_ref.starts_with("refs/heads/") || full_ref.starts_with("refs/tags/"),
             "Oracle reference must be a full refs/heads/ or refs/tags/ name: {full_ref:?}"
         );
-        let _: &gix::refs::FullNameRef = full_ref
+        let _: &FullNameRef = full_ref
             .try_into()
             .wrap_err_with(|| format!("Invalid full oracle reference {full_ref:?}"))?;
         let reference = self
@@ -676,7 +677,7 @@ fn validate_prefix(prefix: &str) -> Result<()> {
 }
 
 fn checked_name(bytes: &[u8]) -> Result<&str> {
-    let name = std::str::from_utf8(bytes).wrap_err("Oracle path contains a non-UTF-8 name")?;
+    let name = from_utf8(bytes).wrap_err("Oracle path contains a non-UTF-8 name")?;
     ensure!(
         !name.is_empty() && name != "." && name != "..",
         "Unsafe oracle path component {name:?}"

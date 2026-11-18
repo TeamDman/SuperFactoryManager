@@ -677,11 +677,14 @@ mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
+    use crate::cli::InvocationHomes;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
     use crate::cli::source::LegacySourceArgs;
     use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceProjectArgs;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use crate::source_projection::candidate_lock::CandidateTargetLock;
     use crate::source_projection::candidate_lock::tests::Fixture as CandidateFixture;
     use crate::source_projection::manifest::SourceProjectionManifest;
@@ -1614,6 +1617,10 @@ mod tests {
             .unwrap_or(&git_source_repo)
             .replace('\\', "/");
         let scratch = tempfile::tempdir().unwrap();
+        let homes = InvocationHomes::new(
+            AppHome(scratch.path().join("settings")),
+            Ok(CacheHome(scratch.path().join("cache"))),
+        );
         let repo = scratch.path().join("repo");
         let clone = std::process::Command::new("git")
             .args(["clone", "--quiet", "--shared", "--sparse"])
@@ -1704,7 +1711,7 @@ mod tests {
                     gradle_overlay: Vec::new(),
                 }),
             }
-            .invoke_in(&CancellationToken::new(), &repo)
+            .invoke_in(&CancellationToken::new(), &repo, &homes)
             .unwrap();
             let properties = fs::read_to_string(root.join("gradle.properties")).unwrap();
             assert_eq!(
@@ -1796,7 +1803,7 @@ mod tests {
                     candidate_root: incomplete_roots,
                 }),
             }
-            .invoke_in(&CancellationToken::new(), &repo)
+            .invoke_in(&CancellationToken::new(), &repo, &homes)
             .unwrap_err()
             .to_string()
             .contains("local candidate roots do not match complete locked target matrix")

@@ -1,9 +1,9 @@
 pub mod audit;
 pub mod cache;
+pub mod check_everything;
 mod cli;
 #[cfg(test)]
 mod cli_to_args_tests;
-pub mod check_everything;
 pub mod client;
 pub mod container;
 pub mod curseforge;
@@ -15,8 +15,12 @@ pub mod global_args;
 pub mod gradle;
 pub mod hash;
 pub mod home;
+mod invocation_homes;
 pub mod jar;
 pub mod jdk;
+mod legacy_release_admission;
+#[cfg(test)]
+mod legacy_release_admission_tests;
 pub mod loader;
 pub mod modrinth;
 pub mod output;
@@ -35,3 +39,4 @@ pub mod test;
 mod test_preflight_args;
 
 pub use cli::*;
+pub use invocation_homes::InvocationHomes;

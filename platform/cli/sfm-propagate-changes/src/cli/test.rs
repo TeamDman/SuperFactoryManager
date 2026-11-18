@@ -1,4 +1,5 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::output::CliOutput;
 use crate::cli::run::RunTestArgs;
@@ -53,15 +54,22 @@ impl TestArgs {
     /// # Errors
     ///
     /// Returns an error if test execution or static cataloguing fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<CliOutput> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<CliOutput> {
         if let TestCommand::Preflight(args) = self.command {
-            return args.invoke(&cancellation_token);
+            return args.invoke(&cancellation_token, homes.cache_home()?);
         }
+        let app_home = homes.app_home();
         match self.command {
             TestCommand::Preflight(_) => unreachable!("handled above"),
-            TestCommand::Run(args) => args.invoke(cancellation_token),
+            TestCommand::Run(args) => args.invoke(cancellation_token, homes),
             TestCommand::List(args) => SourceCatalogCommand::new(
-                args.options.into_options(BuildMode::Plan)?,
+                args.options
+                    .into_options(BuildMode::Plan, app_home)?
+                    .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Test,
                     action: SourceCatalogAction::List,
@@ -70,7 +78,9 @@ impl TestArgs {
             )
             .invoke(),
             TestCommand::Show(args) => SourceCatalogCommand::new(
-                args.options.into_options(BuildMode::Plan)?,
+                args.options
+                    .into_options(BuildMode::Plan, app_home)?
+                    .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Test,
                     action: SourceCatalogAction::Show { id: args.id },

@@ -1,3 +1,4 @@
+use crate::cli::InvocationHomes;
 use crate::cli::gradle::GradleLogsCommand;
 use facet::Facet;
 use figue as args;
@@ -14,7 +15,7 @@ impl GradleLogArgs {
     /// # Errors
     ///
     /// Returns an error if the selected Gradle log command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(homes)
     }
 }

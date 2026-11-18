@@ -6,6 +6,7 @@ use eyre::ensure;
 use facet::Facet;
 use std::io::BufRead;
 use std::io::Write;
+use std::str::from_utf8;
 
 const MAX_FRAME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUESTS: u64 = 4096;
@@ -115,7 +116,7 @@ impl NfrtHostProtocol {
             "Host lifecycle does not accept another request"
         );
         let bytes = read_frame(input)?;
-        let request: NfrtHostRequest = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+        let request: NfrtHostRequest = facet_json::from_str(from_utf8(&bytes)?)?;
         ensure!(
             request.schema == "sfm:nfrt_host_request@1"
                 && request.contract_identity == self.contract_identity

@@ -4,6 +4,7 @@ use super::inputs::GENERATED_BANNER;
 use super::projection_catalog::SUPPORTED_TARGETS;
 use facet::Facet;
 use std::borrow::Cow;
+use std::str::from_utf8;
 
 const UTF8_BOM: &[u8] = b"\xEF\xBB\xBF";
 
@@ -272,7 +273,7 @@ fn is_known_text_path(path: &str) -> bool {
 }
 
 fn is_safe_utf8_text(bytes: &[u8]) -> bool {
-    std::str::from_utf8(bytes).is_ok()
+    from_utf8(bytes).is_ok()
         && !bytes
             .iter()
             .any(|byte| *byte < 0x20 && !matches!(*byte, b'\t' | b'\r' | b'\n'))

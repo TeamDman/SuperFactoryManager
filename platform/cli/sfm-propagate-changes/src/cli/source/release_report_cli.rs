@@ -1,5 +1,6 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::release_report::render;
 use crate::release_report::request::ReleaseReportRequest;
 use facet::Facet;
 use figue as args;
@@ -25,6 +26,6 @@ impl ReleaseReportArgs {
             asset_root: self.asset_root,
             output: self.output,
         };
-        crate::release_report::render(&request, cancellation).map(CliOutput::facet)
+        render(&request, cancellation).map(CliOutput::facet)
     }
 }

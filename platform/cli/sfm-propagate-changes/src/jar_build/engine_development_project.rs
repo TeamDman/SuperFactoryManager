@@ -3,7 +3,7 @@
 #[derive(Debug, Facet)]
 pub(crate) struct DevelopmentBuildReport {
     schema: String,
-    preparation: crate::source_projection::native_project_target::NativeProjectReceipt,
+    preparation: source_projection::native_project_target::NativeProjectReceipt,
     java_release: u32,
     tool_jvm_major: u32,
     actual_sdk_identity: String,
@@ -18,7 +18,7 @@ pub(crate) struct DevelopmentBuildReport {
 }
 
 fn prepare_development_identity(
-    project: crate::source_projection::catalog_owned_project::CatalogOwnedProject,
+    project: source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
 ) -> eyre::Result<BuildProjectIdentity> {
     use crate::source_projection::native_project_target::NativeProjectTarget;
@@ -89,7 +89,7 @@ mod projection_client_launch_tests {
 }
 
 pub(crate) fn invoke_development_project(
-    project: crate::source_projection::catalog_owned_project::CatalogOwnedProject,
+    project: source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
     options: &NamedCompileOptions,
     package: bool,
@@ -107,13 +107,15 @@ pub(crate) fn invoke_development_project(
         .clone();
     eyre::ensure!(
         !options.rebuild_shared_mcp
-            || (!package && options.isolated_project_cache.is_some()
+            || (!package
+                && options.isolated_project_cache.is_some()
                 && preparation.target_id == "1.19.2"
                 && preparation.minecraft_version == "1.19.2"),
         "shared MCP rebuild requires isolated dev 1.19.2 compile"
     );
     let derived_cache_root = selected_named_cache_owner(options, &identity, cancellation)?;
     let planning = NativePlanningOptions {
+        cache_home: options.cache_home.clone(),
         output_name: None,
         derived_cache_root,
         pinned_sdk: options.pinned_sdk.clone(),
@@ -440,7 +442,7 @@ mod development_project_tests {
             let observed = Rc::clone(&checks);
             let _observer =
                 source_check_observation::install(move |check| observed.borrow_mut().push(check));
-            let identity = checked_projection_identity(fixture.repository(), &key, skip)?;
+            let identity = checked_projection_identity(fixture.repository(), &key, skip, None)?;
             for _ in 0..4 {
                 identity.recheck()?;
             }

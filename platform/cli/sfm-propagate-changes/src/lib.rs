@@ -1,3 +1,9 @@
+use std::env;
+use std::process::ExitCode;
+#[cfg(windows)]
+use teamy_windows::console;
+#[cfg(windows)]
+use teamy_windows::string;
 pub mod artifact_lock;
 pub mod branch_targets;
 pub mod cancellation;
@@ -105,9 +111,13 @@ pub mod worktree;
 static TEST_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use crate::cli::Cli;
+#[cfg(test)]
+use crate::paths::AppHome;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::Utc;
+#[cfg(test)]
+use std::env::temp_dir;
 use std::ops::ControlFlow;
 
 /// Version string combining package version, git revision, and build time.
@@ -145,18 +155,18 @@ fn reject_stage_log_file_before_logging(cli: &Cli) -> eyre::Result<()> {
 /// # Errors
 ///
 /// This function will return an error if `color_eyre` installation, CLI parsing, logging initialization, or command execution fails.
-pub fn main() -> eyre::Result<std::process::ExitCode> {
+pub fn main() -> eyre::Result<ExitCode> {
     if java_analysis::run_live_definition_worker_from_env()? {
-        return Ok(std::process::ExitCode::SUCCESS);
+        return Ok(ExitCode::SUCCESS);
     }
     if java_analysis::run_dependency_index_worker_from_env()? {
-        return Ok(std::process::ExitCode::SUCCESS);
+        return Ok(ExitCode::SUCCESS);
     }
     // Install color_eyre for better error reports
     color_eyre::install()?;
     let cancellation_token = cancellation::install_ctrlc_handler()?;
 
-    let arguments = startup_argv::unicode_arguments(std::env::args_os())?;
+    let arguments = startup_argv::unicode_arguments(env::args_os())?;
     let parse_arguments = arguments.iter().skip(1).cloned().collect::<Vec<_>>();
     let version = version();
 
@@ -178,24 +188,30 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
     // before the command has checked its external checkout boundary.
     reject_stage_log_file_before_logging(&cli)?;
 
-    // Initialize logging
-    logging::init_logging(&cli.logging_config()?, &cancellation_token)?;
+    // Select ambient application paths once, before dispatching any operation.
+    let app_home = paths::AppHome::resolve()?;
+    let cache_home = paths::CacheHome::resolve(&app_home);
+    let homes = cli::InvocationHomes::new_selected(app_home, cache_home);
+
+    // Initialize logging under the same application home used by the command.
+    logging::init_logging(&cli.logging_config(homes.app_home())?, &cancellation_token)?;
     startup_argv::log::<Cli>(&arguments)?;
 
     #[cfg(windows)]
     {
         // Enable ANSI support on Windows
         // This fails in a pipe scenario, so we ignore the error
-        let _ = teamy_windows::console::enable_ansi_support();
+
+        let _ = console::enable_ansi_support();
 
         // Warn if UTF-8 is not enabled on Windows
         #[cfg(windows)]
-        teamy_windows::string::warn_if_utf8_not_enabled();
+        string::warn_if_utf8_not_enabled();
     };
 
     // Invoke whatever command was requested and render typed output once.
     let requested_output_format = cli.global_args.output_format;
-    let output = cli.invoke(cancellation_token).inspect_err(|_| {
+    let output = cli.invoke(cancellation_token, &homes).inspect_err(|_| {
         tracing::error!("Command failed; detailed error is written to stderr");
     })?;
     let exit_code = output.exit_code();
@@ -203,7 +219,7 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
         tracing::error!("Command output failed; detailed error is written to stderr");
     })?;
     tracing::debug!(?exit_code, "Command completed");
-    Ok(std::process::ExitCode::from(exit_code))
+    Ok(ExitCode::from(exit_code))
 }
 
 #[cfg(test)]
@@ -240,7 +256,9 @@ mod tests {
         let error = reject_stage_log_file_before_logging(&cli).unwrap_err();
         assert!(error.to_string().contains("rejects global --log-file"));
         assert!(reject_stage_log_file_before_logging(&stage_cli(None)).is_ok());
-        let logging = stage_cli(None).logging_config().unwrap();
+        let logging = stage_cli(None)
+            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .unwrap();
         assert!(logging.json_log_path.is_none() && logging.json_log_directory.is_none());
     }
 }

@@ -4,6 +4,7 @@ use super::CurseforgeReleaseAmendArgs;
 use super::CurseforgeReleaseCheckArgs;
 use super::CurseforgeReleaseNowArgs;
 use super::CurseforgeReleaseValidateArgs;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
 
@@ -19,8 +20,8 @@ impl CurseforgeReleaseArgs {
     /// # Errors
     ///
     /// Returns an error if the selected CurseForge release operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(app_home)
     }
 }
 
@@ -42,12 +43,12 @@ impl CurseforgeReleaseCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            Self::Check(args) => args.invoke(),
-            Self::Validate(args) => args.invoke(),
-            Self::Now(args) => args.invoke(),
-            Self::Amend(args) => args.invoke(),
+            Self::Check(args) => args.invoke(app_home),
+            Self::Validate(args) => args.invoke(app_home),
+            Self::Now(args) => args.invoke(app_home),
+            Self::Amend(args) => args.invoke(app_home),
         }
     }
 }

@@ -1,5 +1,7 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::jar_build::engine::junit_inputs::preflight;
+use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -13,8 +15,12 @@ pub struct TestPreflightArgs {
 }
 
 impl TestPreflightArgs {
-    pub(crate) fn invoke(self, cancel: &CancellationToken) -> eyre::Result<CliOutput> {
-        let report = crate::jar_build::engine::junit_inputs::preflight(&self.repo_root, cancel)?;
+    pub(crate) fn invoke(
+        self,
+        cancel: &CancellationToken,
+        cache_home: &CacheHome,
+    ) -> eyre::Result<CliOutput> {
+        let report = preflight(&self.repo_root, cancel, cache_home)?;
         let status = u8::from(!report.closure_complete);
         Ok(CliOutput::facet_with_status(report, status))
     }

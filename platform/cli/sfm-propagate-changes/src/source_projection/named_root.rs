@@ -12,11 +12,21 @@ use super::sync::validate_catalog_artifacts;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
+use gix::bstr::ByteSlice as _;
+use gix::index::State;
+use gix::open::Options;
+use gix::open::Permissions;
+use gix::open::permissions as open_permissions;
+use gix::sec::Permission;
+use gix::worktree::stack;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::ErrorKind;
 #[cfg(test)]
 use std::io::Write as _;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
@@ -108,7 +118,6 @@ pub(crate) fn catalog_projection_roots(
         destinations.insert(key.to_owned(), destination);
     }
     if !development_roots.is_empty() {
-        use gix::bstr::ByteSlice as _;
         let index = repository.index_or_empty()?;
         ensure!(
             !index.entries().iter().any(|entry| {
@@ -127,11 +136,11 @@ pub(crate) fn catalog_projection_roots(
     let mut path_bytes = 0;
     // check-ignore --no-index reads working-tree ignore files, not deleted
     // .gitignore blobs retained in the index. Use an empty mapping for parity.
-    let empty_index = gix::index::State::new(repository.object_hash());
+    let empty_index = State::new(repository.object_hash());
     let mut excludes = repository.excludes(
         &empty_index,
         None,
-        gix::worktree::stack::state::ignore::Source::WorktreeThenIdMappingIfNotSkipped,
+        stack::state::ignore::Source::WorktreeThenIdMappingIfNotSkipped,
     )?;
     let mut ignored = BTreeSet::new();
     for path in &policy_paths {
@@ -186,7 +195,7 @@ fn inspect_destination_chain(root: &Path, relative: &Path) -> Result<()> {
                     }
                 }
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
             Err(error) => return Err(error).wrap_err("cannot inspect catalog output parent"),
         }
         current.push(name);
@@ -195,7 +204,7 @@ fn inspect_destination_chain(root: &Path, relative: &Path) -> Result<()> {
                 metadata.is_dir() && !is_reparse(&metadata),
                 "catalog output root traverses a reparse point or non-directory"
             ),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
             Err(error) => return Err(error).wrap_err("cannot inspect catalog output component"),
         }
     }
@@ -210,13 +219,14 @@ fn inspect_destination_chain(root: &Path, relative: &Path) -> Result<()> {
 fn policy_repository(root: &Path) -> Result<gix::Repository> {
     // Preserve user/system ignore configuration, but never inherit repository,
     // index, namespace or object-database redirection through GIT_* variables.
-    let mut permissions = gix::open::Permissions::isolated();
-    permissions.config = gix::open::permissions::Config::all();
+
+    let mut permissions = Permissions::isolated();
+    permissions.config = open_permissions::Config::all();
     permissions.config.env = false;
     permissions.config.git_binary = true;
-    permissions.env.home = gix::sec::Permission::Allow;
-    permissions.env.xdg_config_home = gix::sec::Permission::Allow;
-    let repository = gix::open_opts(root, gix::open::Options::default().permissions(permissions))?;
+    permissions.env.home = Permission::Allow;
+    permissions.env.xdg_config_home = Permission::Allow;
+    let repository = gix::open_opts(root, Options::default().permissions(permissions))?;
     let reported = repository
         .workdir()
         .ok_or_else(|| eyre::eyre!("catalog generation requires a Git worktree"))?;
@@ -299,7 +309,6 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x0000_0400 != 0
     }
     #[cfg(not(windows))]
@@ -312,6 +321,8 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
 mod tests {
     use super::*;
     use crate::source_projection::core_inputs::CORE_ROOT;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
 
     struct Fixture {
         temp: tempfile::TempDir,
@@ -538,7 +549,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn named_destination_refuses_symlink_ancestors() {
-        use std::os::unix::fs::symlink;
         let fixture = Fixture::new();
         let external = tempfile::tempdir().unwrap();
         fs::create_dir_all(fixture.temp.path().join("platform/minecraft")).unwrap();

@@ -9,6 +9,7 @@ use crate::jdk::resolve_java_for_lockfile;
 use crate::payload_fetcher::PayloadFetcher;
 use crate::payload_fetcher::write_payload_atomically;
 use crate::source_cache::SourceCacheLayout;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::read_jdk_pins;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
 use crate::toolchain_lockfile_schema::version::v3::DecompileSourceDeclarationV3;
@@ -20,10 +21,12 @@ use sha2::Digest;
 use sha2::Sha256;
 use std::fs;
 use std::io::Read;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
+use std::str::from_utf8;
 use std::thread;
 use std::time::Duration;
 
@@ -38,8 +41,8 @@ const REQUIRED_JAVA_MAJOR: u32 = 17;
 
 pub(crate) fn configure_decompile_sources(
     inventory: &DependencyInventory,
-    component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
-    decompiler_component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+    component: &toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+    decompiler_component: &toolchain_lockfile_schema::version::v3::DependencyComponentV3,
     roots: Vec<String>,
 ) -> eyre::Result<DecompileSourceProviderV3> {
     let binary = inventory.artifact(component)?;
@@ -52,7 +55,7 @@ pub(crate) fn configure_decompile_sources(
 pub(crate) fn derive_locked_decompile_provider(
     inventory: &DependencyInventory,
     binary: &ArtifactV3,
-    decompiler_component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+    decompiler_component: &toolchain_lockfile_schema::version::v3::DependencyComponentV3,
     provider_id: &str,
     roots: Vec<String>,
 ) -> eyre::Result<DecompileSourceProviderV3> {
@@ -70,7 +73,7 @@ pub(crate) fn derive_locked_decompile_provider(
 pub(crate) fn derive_locked_decompile_provider_with_runtime(
     inventory: &DependencyInventory,
     binary: &ArtifactV3,
-    decompiler_component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+    decompiler_component: &toolchain_lockfile_schema::version::v3::DependencyComponentV3,
     provider_id: &str,
     roots: Vec<String>,
     runtime_identity: &str,
@@ -292,7 +295,7 @@ pub(crate) fn completed_tree_matches(tree: &Path, fingerprint: &str, roots: &[St
     let Ok(bytes) = fs::read(tree.join(INVENTORY_FILE)) else {
         return false;
     };
-    let Ok(encoded) = std::str::from_utf8(&bytes) else {
+    let Ok(encoded) = from_utf8(&bytes) else {
         return false;
     };
     let Ok(expected) = facet_json::from_str::<DecompileOutputInventory>(encoded) else {
@@ -381,7 +384,7 @@ fn validate_roots(tree: &Path, roots: &[String]) -> eyre::Result<()> {
         if path.is_absolute()
             || path
                 .components()
-                .any(|component| !matches!(component, std::path::Component::Normal(_)))
+                .any(|component| !matches!(component, Component::Normal(_)))
         {
             eyre::bail!("Decompiled source root must be a relative normalized path: {root}");
         }

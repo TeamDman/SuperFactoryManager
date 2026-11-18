@@ -2,17 +2,24 @@
 //! Selected source bytes remain test data, never new product dependencies.
 use super::BuildPlan;
 use crate::cancellation::CancellationToken;
-use crate::jar_build::build_snapshot_receipt::{
-    checked_descendant, ensure_owned_directory, read_bounded,
-};
-use crate::source_projection::candidate_lock::{checked_directory, is_reparse};
+use crate::jar_build::build_snapshot_receipt::checked_descendant;
+use crate::jar_build::build_snapshot_receipt::ensure_owned_directory;
+use crate::jar_build::build_snapshot_receipt::read_bounded;
+use crate::source_projection;
+use crate::source_projection::candidate_lock::checked_directory;
+use crate::source_projection::candidate_lock::is_reparse;
 use crate::source_projection::provenance::sha256;
-use eyre::{Result, ensure};
+use eyre::Result;
+use eyre::ensure;
 use facet::Facet;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::io::ErrorKind;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
 
 const MAX_FILE: u64 = 8 * 1024 * 1024;
 const MAX_TOTAL: u64 = 256 * 1024 * 1024;
@@ -115,11 +122,11 @@ impl Snapshot {
         cancel: &CancellationToken,
     ) -> Result<bool> {
         match fs::symlink_metadata(source) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound && !required => {
+            Err(error) if error.kind() == ErrorKind::NotFound && !required => {
                 let mut parent = source.parent();
                 while let Some(directory) = parent {
                     match fs::symlink_metadata(directory) {
-                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                        Err(error) if error.kind() == ErrorKind::NotFound => {
                             parent = directory.parent();
                         }
                         result => {
@@ -249,12 +256,12 @@ fn selected(plan: &BuildPlan) -> bool {
         .strip_prefix("sfm-4.34.0/mc-")
         .or_else(|| key.strip_prefix("sfm-4.35.0/mc-"));
     version.is_some_and(|version| {
-        crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+        source_projection::projection_catalog::SUPPORTED_TARGETS
             .iter()
             .any(|(target, _)| *target == version)
     }) && plan.named_project().is_some_and(|project| {
         project.project().receipt().environment
-            == crate::source_projection::projection_catalog::ProjectionEnvironment::Release
+            == source_projection::projection_catalog::ProjectionEnvironment::Release
     })
 }
 

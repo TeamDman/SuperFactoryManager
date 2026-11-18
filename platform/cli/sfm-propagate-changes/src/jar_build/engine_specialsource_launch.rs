@@ -87,7 +87,7 @@ fn reviewed_specialsource_recipe(key: &str) -> Option<ReviewedSpecialSourceRecip
 }
 
 fn reviewed_specialsource_project_recipe(
-    ownership: &crate::source_projection::catalog_owned_project::CatalogOwnedProjectReceipt,
+    ownership: &source_projection::catalog_owned_project::CatalogOwnedProjectReceipt,
 ) -> Option<ReviewedSpecialSourceRecipe> {
     use crate::source_projection::projection_catalog::ProjectionEnvironment;
 
@@ -108,24 +108,22 @@ fn reviewed_specialsource_project_recipe(
 
 fn require_reviewed_specialsource_identity(
     recipe: ReviewedSpecialSourceRecipe,
-    ownership: &crate::source_projection::catalog_owned_project::CatalogOwnedProjectReceipt,
+    ownership: &source_projection::catalog_owned_project::CatalogOwnedProjectReceipt,
     plan_minecraft_version: &str,
     plan_loader: &LoaderToolchainKind,
     released_identity: (&str, &str),
     sdk_compiler_major: (u32, u32),
 ) -> eyre::Result<()> {
-    crate::source_projection::projection_catalog::validate_projection_key(
-        &ownership.projection_key,
-    )?;
+    source_projection::projection_catalog::validate_projection_key(&ownership.projection_key)?;
     eyre::ensure!(
         ownership.project_dir
             == format!(
                 "{}/{}",
-                crate::source_projection::projection_catalog::PROJECTIONS_DIR,
+                source_projection::projection_catalog::PROJECTIONS_DIR,
                 ownership.projection_key
             )
             && ownership.environment
-                == crate::source_projection::projection_catalog::ProjectionEnvironment::Release
+                == source_projection::projection_catalog::ProjectionEnvironment::Release
             && ownership.target_id == recipe.target
             && ownership.minecraft_version == recipe.target
             && plan_minecraft_version == recipe.target
@@ -139,7 +137,7 @@ fn require_reviewed_specialsource_identity(
 }
 
 fn refuse_specialsource_jvm_overrides(
-    mut value: impl FnMut(&str) -> Option<std::ffi::OsString>,
+    mut value: impl FnMut(&str) -> Option<OsString>,
 ) -> eyre::Result<()> {
     for name in SPECIALSOURCE_JVM_OVERRIDE_NAMES {
         eyre::ensure!(
@@ -163,9 +161,9 @@ fn require_specialsource_normal_absolute_path(path: &Path) -> eyre::Result<&str>
     #[cfg(windows)]
     eyre::ensure!(
         !matches!(path.components().next(), Some(Component::Prefix(prefix))
-            if matches!(prefix.kind(), std::path::Prefix::Verbatim(_)
-                | std::path::Prefix::VerbatimDisk(_)
-                | std::path::Prefix::VerbatimUNC(_, _))),
+            if matches!(prefix.kind(), Prefix::Verbatim(_)
+                | Prefix::VerbatimDisk(_)
+                | Prefix::VerbatimUNC(_, _))),
         "reviewed SpecialSource refuses verbatim path spelling; no silent executable or argument normalization is performed"
     );
     let text = path
@@ -201,28 +199,28 @@ fn specialsource_dependency_arguments(
 }
 
 fn create_specialsource_diagnostic_directory(root: &Path, directory: &Path) -> eyre::Result<()> {
-    crate::source_projection::candidate_lock::checked_directory(root)?;
+    source_projection::candidate_lock::checked_directory(root)?;
     let relative = directory
         .strip_prefix(root)
         .wrap_err("reviewed SpecialSource diagnostic directory is outside its original cache")?;
     let mut current = root.to_path_buf();
     for part in relative.components() {
-        let std::path::Component::Normal(name) = part else {
+        let Component::Normal(name) = part else {
             eyre::bail!("reviewed SpecialSource diagnostic path contains traversal");
         };
         current.push(name);
         match fs::symlink_metadata(&current) {
             Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 match fs::create_dir(&current) {
                     Ok(()) => {}
-                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
                     Err(error) => return Err(error.into()),
                 }
             }
             Err(error) => return Err(error.into()),
         }
-        crate::source_projection::candidate_lock::checked_directory(&current)?;
+        source_projection::candidate_lock::checked_directory(&current)?;
     }
     Ok(())
 }
@@ -230,7 +228,7 @@ fn create_specialsource_diagnostic_directory(root: &Path, directory: &Path) -> e
 struct ReviewedSpecialSourceFile {
     path: PathBuf,
     held: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
     content_hash: ContentHash,
     bytes: u64,
     modified: SystemTime,
@@ -242,7 +240,7 @@ impl ReviewedSpecialSourceFile {
         let parent = path
             .parent()
             .ok_or_else(|| eyre::eyre!("reviewed SpecialSource input lacks a parent"))?;
-        crate::source_projection::candidate_lock::checked_directory(parent)?;
+        source_projection::candidate_lock::checked_directory(parent)?;
         require_named_regular_file(path, &fs::symlink_metadata(path)?)?;
         let mut held = File::open(path)?;
         let before = held.metadata()?;
@@ -251,7 +249,7 @@ impl ReviewedSpecialSourceFile {
             before.len() > 0 && before.len() <= SPECIALSOURCE_LOCAL_FILE_LIMIT,
             "reviewed SpecialSource input is empty or exceeds its bound"
         );
-        let identity = crate::file_identity::file_identity(&held)?;
+        let identity = file_identity::file_identity(&held)?;
         let modified = before.modified()?;
         let mut bytes = Vec::new();
         (&mut held)
@@ -262,12 +260,12 @@ impl ReviewedSpecialSourceFile {
             u64::try_from(bytes.len())? == before.len()
                 && after.len() == before.len()
                 && after.modified()? == modified
-                && crate::file_identity::file_identity(&held)? == identity,
+                && file_identity::file_identity(&held)? == identity,
             "reviewed SpecialSource input changed during its verified read"
         );
         let current = File::open(path)?;
         eyre::ensure!(
-            crate::file_identity::file_identity(&current)? == identity,
+            file_identity::file_identity(&current)? == identity,
             "reviewed SpecialSource input path was replaced during its verified read"
         );
         let content_hash = ContentHash::from_bytes(&bytes, expected.algorithm);
@@ -291,7 +289,7 @@ impl ReviewedSpecialSourceFile {
             current.identity == self.identity
                 && current.bytes == self.bytes
                 && current.modified == self.modified
-                && crate::file_identity::file_identity(&self.held)? == self.identity,
+                && file_identity::file_identity(&self.held)? == self.identity,
             "reviewed SpecialSource input identity changed before launch"
         );
         Ok(())
@@ -301,7 +299,7 @@ impl ReviewedSpecialSourceFile {
 struct RetainedSpecialSourceScratch {
     path: PathBuf,
     held: File,
-    identity: crate::file_identity::FileIdentity,
+    identity: file_identity::FileIdentity,
 }
 
 fn open_specialsource_directory(path: &Path) -> eyre::Result<File> {
@@ -319,12 +317,12 @@ fn open_specialsource_directory(path: &Path) -> eyre::Result<File> {
 
 impl RetainedSpecialSourceScratch {
     fn create() -> eyre::Result<Self> {
-        let root = std::env::temp_dir();
+        let root = env::temp_dir();
         eyre::ensure!(
             specialsource_path_utf16_units(&root)? + 32 < SPECIALSOURCE_LAUNCH_CWD_LIMIT,
             "reviewed SpecialSource temp root cannot provide a bounded short cwd"
         );
-        crate::source_projection::candidate_lock::checked_directory(&root)?;
+        source_projection::candidate_lock::checked_directory(&root)?;
         let owner = tempfile::Builder::new()
             .prefix("sfm-ss-")
             .tempdir_in(&root)?;
@@ -336,9 +334,9 @@ impl RetainedSpecialSourceScratch {
             specialsource_path_utf16_units(&path)? < SPECIALSOURCE_LAUNCH_CWD_LIMIT,
             "reviewed SpecialSource created scratch exceeds the cwd bound; retained for inspection"
         );
-        crate::source_projection::candidate_lock::checked_directory(&path)?;
+        source_projection::candidate_lock::checked_directory(&path)?;
         let held = open_specialsource_directory(&path)?;
-        let identity = crate::file_identity::file_identity(&held)?;
+        let identity = file_identity::file_identity(&held)?;
         let scratch = Self {
             path,
             held,
@@ -349,11 +347,11 @@ impl RetainedSpecialSourceScratch {
     }
 
     fn recheck_empty(&self) -> eyre::Result<()> {
-        crate::source_projection::candidate_lock::checked_directory(&self.path)?;
+        source_projection::candidate_lock::checked_directory(&self.path)?;
         let current = open_specialsource_directory(&self.path)?;
         eyre::ensure!(
-            crate::file_identity::file_identity(&self.held)? == self.identity
-                && crate::file_identity::file_identity(&current)? == self.identity
+            file_identity::file_identity(&self.held)? == self.identity
+                && file_identity::file_identity(&current)? == self.identity
                 && fs::read_dir(&self.path)?.next().is_none(),
             "reviewed SpecialSource scratch was replaced or is no longer empty"
         );
@@ -426,9 +424,8 @@ impl SpecialSourceLaunchReceipt {
         let bytes = facet_json::to_string_pretty(self)?;
         // tempfile::keep uses a direct Win32 attribute call; retain the
         // checked extended-length spelling for filesystem operations only.
-        let directory = crate::source_projection::candidate_lock::checked_directory(Path::new(
-            &self.diagnostic_cwd,
-        ))?;
+        let directory =
+            source_projection::candidate_lock::checked_directory(Path::new(&self.diagnostic_cwd))?;
         let owner = tempfile::Builder::new()
             .prefix("sfm-specialsource-launch-")
             .suffix(".json")
@@ -460,8 +457,8 @@ struct OwnedDependencyRemapOutput<'a> {
 }
 #[cfg(not(target_os = "linux"))]
 struct OwnedDependencyRemapOutput<'a> {
-    _unavailable: std::convert::Infallible,
-    _lifetime: std::marker::PhantomData<&'a ()>,
+    unavailable: convert::Infallible,
+    _lifetime: PhantomData<&'a ()>,
 }
 impl OwnedDependencyRemapOutput<'_> {
     fn require(
@@ -491,7 +488,7 @@ impl OwnedDependencyRemapOutput<'_> {
         #[cfg(not(target_os = "linux"))]
         {
             let _ = (context, output, diagnostic, mapping);
-            match self._unavailable {}
+            match self.unavailable {}
         }
     }
     fn root(&self) -> &Path {
@@ -501,7 +498,7 @@ impl OwnedDependencyRemapOutput<'_> {
         }
         #[cfg(not(target_os = "linux"))]
         {
-            match self._unavailable {}
+            match self.unavailable {}
         }
     }
 }
@@ -545,7 +542,7 @@ impl ExecutionContext<'_> {
         if let Some(owned) = owned {
             owned.require(self, output, diagnostic_dir, mapping)?;
             match fs::symlink_metadata(output) {
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => (),
                 _ => {
                     eyre::bail!("owned remap output already exists or cannot be checked");
                 }
@@ -613,7 +610,7 @@ impl ExecutionContext<'_> {
             specialsource_path_utf16_units(&self.plan.java.executable)? < 260,
             "reviewed SpecialSource requires a verified normal short SDK executable spelling; no executable normalization is performed"
         );
-        refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
+        refuse_specialsource_jvm_overrides(|name| env::var_os(name))?;
         let tool = self.artifact(ArtifactId::from("tool-specialsource"))?;
         let request = prepared.coordinate(SPECIALSOURCE_REVIEWED_COORDINATE, false)?;
         eyre::ensure!(
@@ -679,7 +676,7 @@ impl ExecutionContext<'_> {
             "reviewed SpecialSource Main-Class changed"
         );
         require_specialsource_normal_absolute_path(diagnostic_dir)?;
-        crate::source_projection::candidate_lock::checked_directory(&original_output_root)?;
+        source_projection::candidate_lock::checked_directory(&original_output_root)?;
         create_specialsource_diagnostic_directory(&original_output_root, diagnostic_dir)?;
         let scratch = RetainedSpecialSourceScratch::create()?;
         let cache_identity = self
@@ -693,7 +690,7 @@ impl ExecutionContext<'_> {
                 && cache_identity.bytes().all(|byte| byte.is_ascii_hexdigit()),
             "reviewed SpecialSource requires the original named cache digest"
         );
-        let classpath_arg = join_classpath(std::slice::from_ref(&tool.cache_path));
+        let classpath_arg = join_classpath(from_ref(&tool.cache_path));
         let mut java_args = vec!["-cp".to_owned(), classpath_arg.clone(), main_class.clone()];
         java_args.extend(args.iter().cloned());
         let argfile_contents = java_args
@@ -748,9 +745,7 @@ impl ExecutionContext<'_> {
             transport_argfile: require_specialsource_normal_absolute_path(transport.path())?
                 .to_owned(),
             argfile_bytes: argfile_contents.len(),
-            argfile_sha256: crate::source_projection::provenance::sha256(
-                argfile_contents.as_bytes(),
-            ),
+            argfile_sha256: source_projection::provenance::sha256(argfile_contents.as_bytes()),
             child_created: false,
             child_pid: None,
             io_error_kind: None,
@@ -766,7 +761,7 @@ impl ExecutionContext<'_> {
             if let Some(owned) = owned {
                 owned.require(self, output, diagnostic_dir, mapping)?;
             }
-            refuse_specialsource_jvm_overrides(|name| std::env::var_os(name))?;
+            refuse_specialsource_jvm_overrides(|name| env::var_os(name))?;
             super::java_trust::JavaTrust::recheck_optional(java_trust.as_ref())?;
             tool_file.recheck()?;
             input_file.recheck()?;
@@ -816,7 +811,7 @@ impl ExecutionContext<'_> {
             Err(error) => {
                 if receipt.child_created {
                     "capture_failed".clone_into(&mut receipt.phase);
-                    if let Some(io_error) = error.downcast_ref::<std::io::Error>() {
+                    if let Some(io_error) = error.downcast_ref::<io::Error>() {
                         receipt.io_error_kind = Some(format!("{:?}", io_error.kind()));
                         receipt.raw_os_error = io_error.raw_os_error();
                     }

@@ -1,5 +1,7 @@
 //! Immutable, portable working-tree source evidence. No filesystem IO occurs here.
 
+use crate::release_review_v1;
+use crate::review_session_v1;
 use eyre::eyre;
 use facet::Facet;
 use std::collections::BTreeMap;
@@ -48,8 +50,8 @@ impl WorkingTreeCaptureV1 {
     /// Rejects missing or inconsistent content/source authority without consulting the filesystem.
     pub fn validate_against(
         &self,
-        lane: &crate::review_session_v1::RevisionLaneV1,
-        review: &crate::release_review_v1::ReleaseReviewDocumentV1,
+        lane: &review_session_v1::RevisionLaneV1,
+        review: &release_review_v1::ReleaseReviewDocumentV1,
     ) -> eyre::Result<()> {
         use crate::release_review_v1::MaterializationV1;
         use crate::release_review_v1::SnapshotSideV1;
@@ -188,7 +190,7 @@ impl WorkingTreeCaptureV1 {
             frame(&mut bytes, if entry.executable { "true" } else { "false" });
             frame(&mut bytes, &entry.materialization);
         }
-        format!("{ID_PREFIX}{}", crate::review_session_v1::sha256(&bytes))
+        format!("{ID_PREFIX}{}", review_session_v1::sha256(&bytes))
     }
 
     /// Validate source authority and hash binding without reading a local checkout.

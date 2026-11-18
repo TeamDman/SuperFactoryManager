@@ -1,4 +1,6 @@
 use super::LoaderListArgs;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
 
@@ -14,8 +16,8 @@ impl LoaderArgs {
     /// # Errors
     ///
     /// Returns an error if the selected loader command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, app_home: &AppHome, cache_home: &CacheHome) -> eyre::Result<()> {
+        self.command.invoke(app_home, cache_home)
     }
 }
 
@@ -31,9 +33,9 @@ impl LoaderCommand {
     /// # Errors
     ///
     /// This function will return an error if loader metadata cannot be listed.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome, cache_home: &CacheHome) -> eyre::Result<()> {
         match self {
-            LoaderCommand::List(args) => args.invoke(),
+            LoaderCommand::List(args) => args.invoke(app_home, cache_home),
         }
     }
 }

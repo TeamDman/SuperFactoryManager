@@ -20,13 +20,20 @@ use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
 use eyre::Context as _;
+use std::fs;
+use std::fs::File;
+use std::fs::Metadata;
 use std::io;
 use std::io::Read;
 use std::io::Seek as _;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use zip::ZipArchive;
 
 const MAX_PINNED_JARS: usize = 128;
@@ -71,7 +78,7 @@ pub(crate) fn scan_generated_dependency_symbol(
 ) -> eyre::Result<GeneratedDependencyTypeScan> {
     let qualified_name = selector.owner();
     let lock_path = project_root.join("sfm-toolchain.lock.json");
-    let input = std::fs::read_to_string(&lock_path)
+    let input = fs::read_to_string(&lock_path)
         .wrap_err_with(|| format!("Failed to read {}", lock_path.display()))?;
     let pins = read_generated_jar_pins(&input)?;
     let entry_name = format!("{}.class", qualified_name.replace('.', "/"));
@@ -137,7 +144,7 @@ pub(crate) fn scan_generated_dependency_symbol(
         }
         // Validate the whole pinned JAR before treating an absent class as a
         // complete negative result. A stale JAR can omit the queried class.
-        let mut file = std::fs::File::open(&path)?;
+        let mut file = File::open(&path)?;
         let actual = hash_cached_jar(&mut file, artifact.hash.algorithm)?;
         if actual != artifact.hash {
             complete = false;
@@ -258,9 +265,7 @@ fn read_generated_jar_pins(input: &str) -> eyre::Result<Vec<GeneratedJarPin>> {
     Ok(pins)
 }
 
-fn generated_v3_pins(
-    lockfile: crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
-) -> Vec<GeneratedJarPin> {
+fn generated_v3_pins(lockfile: ArtifactLockfileV3) -> Vec<GeneratedJarPin> {
     lockfile
         .artifacts
         .into_iter()
@@ -286,7 +291,7 @@ fn class_symbol(qualified_name: &str, kind: JavaSymbolKind) -> JavaSymbolIdentit
     }
 }
 
-fn cached_artifact_path(cache_root: &Path, portable: &Path) -> Option<std::path::PathBuf> {
+fn cached_artifact_path(cache_root: &Path, portable: &Path) -> Option<PathBuf> {
     let relative = portable.strip_prefix(CACHE_PREFIX).ok()?;
     if relative
         .components()
@@ -308,7 +313,7 @@ fn cached_path_contains_reparse_point(cache_root: &Path, path: &Path) -> io::Res
         .into_iter()
         .rev()
     {
-        match std::fs::symlink_metadata(component) {
+        match fs::symlink_metadata(component) {
             Ok(metadata) if is_reparse_point(&metadata) => return Ok(true),
             Ok(_) => {}
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
@@ -318,10 +323,9 @@ fn cached_path_contains_reparse_point(cache_root: &Path, path: &Path) -> io::Res
     Ok(false)
 }
 
-fn is_reparse_point(metadata: &std::fs::Metadata) -> bool {
+fn is_reparse_point(metadata: &Metadata) -> bool {
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x400 != 0
     }
     #[cfg(not(windows))]
@@ -339,11 +343,8 @@ fn unavailable(coordinate: &str, reason: &str) -> JavaAnalysisDiagnosticOutput {
     }
 }
 
-fn hash_cached_jar(
-    file: &mut std::fs::File,
-    algorithm: ContentHashAlgorithm,
-) -> eyre::Result<ContentHash> {
-    let mut reader = std::io::BufReader::new(file);
+fn hash_cached_jar(file: &mut File, algorithm: ContentHashAlgorithm) -> eyre::Result<ContentHash> {
+    let mut reader = io::BufReader::new(file);
     let mut buffer = [0_u8; 16 * 1024];
     let mut blake3 = blake3::Hasher::new();
     let mut sha1 = sha1::Sha1::default();
@@ -516,7 +517,7 @@ fn pool_utf8<'a>(pool: &ClassConstantPool<'a>, index: usize) -> eyre::Result<&'a
         .copied()
         .flatten()
         .ok_or_else(|| eyre::eyre!("invalid constant-pool UTF-8 index"))?;
-    Ok(std::str::from_utf8(bytes)?)
+    Ok(from_utf8(bytes)?)
 }
 
 fn skip_attributes(bytes: &[u8], cursor: &mut usize, count: usize) -> eyre::Result<()> {
@@ -925,7 +926,11 @@ mod tests {
     fn real_generated_1192_and_1211_roots_resolve_pinned_types() {
         let minecraft =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../minecraft/projections/sfm-4.34.0");
-        let cache = crate::paths::CacheHome::resolve().unwrap();
+        let cache = crate::paths::CacheHome(
+            std::env::var_os("SFM_TEST_CACHE_HOME")
+                .expect("set SFM_TEST_CACHE_HOME to an offline fixture cache")
+                .into(),
+        );
         for (version, qualified_name) in [
             ("1.19.2", "org.spongepowered.asm.mixin.Mixin"),
             ("1.21.1", "com.google.gson.Gson"),

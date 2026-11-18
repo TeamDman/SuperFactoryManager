@@ -1,6 +1,8 @@
+use crate::cli::InvocationHomes;
+use crate::container_build::ContainerBuildProfile;
 use crate::container_build::ContainerBuildRequest;
 use crate::container_build::ContainerEngine;
-use crate::paths::CacheHome;
+use crate::container_build::ContainerTransport;
 use facet::Facet;
 use figue as args;
 use std::path::Path;
@@ -13,7 +15,7 @@ pub struct ContainerBuildArgs {
     pub projection: String,
     /// Runtime is lean/prebuilt; tests and developer retain SDK, compiled tests and public fixtures.
     #[facet(default, args::named)]
-    pub profile: crate::container_build::ContainerBuildProfile,
+    pub profile: ContainerBuildProfile,
     /// Source checkout; defaults to Git discovery from the invocation directory.
     #[facet(default, args::named)]
     pub repo_root: Option<PathBuf>,
@@ -32,7 +34,7 @@ pub struct ContainerBuildArgs {
     #[facet(default, args::named)]
     pub engine: ContainerEngine,
     #[facet(default, args::named)]
-    pub transport: crate::container_build::ContainerTransport,
+    pub transport: ContainerTransport,
     #[facet(default, args::named)]
     pub engine_endpoint: Option<PathBuf>,
     /// Local image tag. This command never pushes it.
@@ -56,7 +58,11 @@ pub struct ContainerBuildArgs {
 }
 
 impl ContainerBuildArgs {
-    pub(crate) fn into_request(self, invocation: &Path) -> eyre::Result<ContainerBuildRequest> {
+    pub(crate) fn into_request(
+        self,
+        invocation: &Path,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<ContainerBuildRequest> {
         let absolute = |path: PathBuf| {
             if path.is_absolute() {
                 path
@@ -81,7 +87,7 @@ impl ContainerBuildArgs {
             toolchain_lock: self.toolchain_lock.map(absolute),
             cache_root: match self.cache_root {
                 Some(path) => absolute(path),
-                None => CacheHome::current()?.0.clone(),
+                None => homes.cache_home()?.0.clone(),
             },
             platform: self.platform,
             engine: self.engine,

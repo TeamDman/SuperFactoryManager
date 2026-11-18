@@ -1,4 +1,5 @@
 use super::ContainerEngine;
+use crate::source_projection;
 use eyre::ensure;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -27,7 +28,7 @@ impl ContainerBuildRequest {
     /// # Errors
     /// Rejects unsupported platforms, unsafe tags or budgets.
     pub fn validate(&self) -> eyre::Result<()> {
-        crate::source_projection::projection_catalog::validate_projection_key(&self.projection)?;
+        source_projection::projection_catalog::validate_projection_key(&self.projection)?;
         ensure!(
             !self.projection.contains(['*', '?', '[']),
             "container build requires one exact projection"

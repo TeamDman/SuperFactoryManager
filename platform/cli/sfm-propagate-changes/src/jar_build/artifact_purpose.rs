@@ -1,5 +1,5 @@
 use facet::Facet;
-
+use std::fmt;
 #[derive(Clone, Debug, Eq, Facet, Hash, Ord, PartialEq, PartialOrd)]
 #[facet(transparent)]
 pub(crate) struct ArtifactPurpose(pub String);
@@ -16,8 +16,8 @@ impl From<String> for ArtifactPurpose {
     }
 }
 
-impl std::fmt::Display for ArtifactPurpose {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for ArtifactPurpose {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }

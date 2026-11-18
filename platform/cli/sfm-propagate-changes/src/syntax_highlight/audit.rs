@@ -8,6 +8,7 @@ use super::SyntaxHighlightRequest;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
 use std::collections::BTreeMap;
+use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::process::Command;
@@ -164,7 +165,7 @@ fn inspect_file(
         exclude(group, "outside-root");
         return Ok(());
     }
-    let Ok(file) = std::fs::File::open(path) else {
+    let Ok(file) = File::open(path) else {
         exclude(group, "unreadable");
         return Ok(());
     };

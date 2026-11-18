@@ -13,9 +13,27 @@ use super::source_cli::run_project_gradle;
 use super::source_cli::validate_gradle_profile;
 use super::source_cli::validate_gradle_task;
 use crate::cancellation::CancellationToken;
+use crate::cli::InvocationHomes;
 use crate::cli::output::CliOutput;
+use crate::jar_build::NamedCompileOptions;
+use crate::jar_build::engine::NamedPinnedSdk;
+use crate::jar_build::engine::catalog_native_cache_path;
+use crate::jar_build::engine::preflight_named_cache_root;
+use crate::jar_build::engine::preflight_named_jar_output_name;
+use crate::jar_build::engine::select_named_pinned_sdk;
+use crate::jar_build::invoke_development_project;
+use crate::jar_build::invoke_named_compile;
+use crate::jar_build::invoke_named_jar;
+use crate::jar_build::preflight_named_neoform_recipe;
+use crate::jar_build::prepare_named_frozen_recipe_project;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
+#[cfg(test)]
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
+use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::candidate_lock::checked_file;
+use crate::source_projection::catalog_owned_project::collect_catalog_project;
+use crate::source_projection::catalog_owned_project::collect_development_invocation;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::core_inputs::CORE_METADATA_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
@@ -24,7 +42,13 @@ use crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES;
 use crate::source_projection::core_inputs::collect_core_artifacts;
 use crate::source_projection::core_inputs::discover_core_source_files;
 use crate::source_projection::core_inputs::select_core_inputs;
+use crate::source_projection::manifestation::manifest_selected;
+use crate::source_projection::manifestation::render_selected;
 use crate::source_projection::named_root::catalog_projection_root;
+use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
+use crate::source_projection::native_project_target::development_native_loader;
+use crate::source_projection::native_project_target::native_tool_java_major;
+use crate::source_projection::native_project_target::validate_collected_native_profile;
 use crate::source_projection::projection_catalog::ProjectionEnvironment;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::sync::CatalogProjectionIdentity;
@@ -41,6 +65,8 @@ use std::fs;
 use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 #[path = "core_project_sources.rs"]
@@ -155,7 +181,7 @@ impl CoreProjectSelectionArgs {
 }
 
 fn discover_source_repo_root(invocation_dir: &Path) -> Result<PathBuf> {
-    let output = std::process::Command::new("git")
+    let output = Command::new("git")
         .arg("-C")
         .arg(invocation_dir)
         .args(["rev-parse", "--show-toplevel"])
@@ -165,8 +191,8 @@ fn discover_source_repo_root(invocation_dir: &Path) -> Result<PathBuf> {
         output.status.success() && output.stdout.len() <= 16 * 1024,
         "cannot discover the SFM checkout from this directory; pass --repo-root"
     );
-    let text = std::str::from_utf8(&output.stdout)
-        .wrap_err("discovered Git root is not UTF-8; pass --repo-root")?;
+    let text =
+        from_utf8(&output.stdout).wrap_err("discovered Git root is not UTF-8; pass --repo-root")?;
     let root = PathBuf::from(text.trim_end_matches(['\r', '\n']));
     ensure!(
         root.is_absolute(),
@@ -280,6 +306,7 @@ impl CoreProjectArgs {
         self,
         cancellation: &CancellationToken,
         invocation_dir: &Path,
+        homes: &InvocationHomes,
     ) -> Result<CliOutput> {
         let mut command = self.command;
         let selected = match &mut command {
@@ -300,36 +327,46 @@ impl CoreProjectArgs {
         }
         let (args, mode, operation) = match command {
             CoreProjectCommand::Manifest(args) => {
-                let (root, rendered) = crate::source_projection::manifestation::render_selected(
+                let (root, rendered) = render_selected(
                     &args.repo_root,
                     invocation_dir,
                     &args.file,
                     &args.projection,
                     cancellation,
                 )?;
-                return Ok(CliOutput::facet(
-                    crate::source_projection::manifestation::manifest_selected(
-                        &root,
-                        &rendered,
-                        &args.allow_dirty,
-                        args.dry_run,
-                    )?,
-                ));
+                return Ok(CliOutput::facet(manifest_selected(
+                    &root,
+                    &rendered,
+                    &args.allow_dirty,
+                    args.dry_run,
+                )?));
             }
             CoreProjectCommand::Compile(args) => {
-                return invoke_native_compile(&args, cancellation, invocation_dir);
+                return invoke_native_compile(&args, cancellation, invocation_dir, homes);
             }
             CoreProjectCommand::Sources(args) => {
-                return released_sources::invoke(&args, cancellation, invocation_dir);
+                return released_sources::invoke(&args, cancellation, invocation_dir, homes);
             }
             CoreProjectCommand::Jar(args) => {
-                return invoke_native_jar(&args, cancellation, invocation_dir);
+                return invoke_native_jar(&args, cancellation, invocation_dir, homes);
             }
             CoreProjectCommand::Build(args) => {
-                return invoke_gradle(args, false, cancellation, invocation_dir);
+                return invoke_gradle(
+                    args,
+                    false,
+                    cancellation,
+                    invocation_dir,
+                    homes.cache_home()?,
+                );
             }
             CoreProjectCommand::Run(args) => {
-                return invoke_gradle(args, true, cancellation, invocation_dir);
+                return invoke_gradle(
+                    args,
+                    true,
+                    cancellation,
+                    invocation_dir,
+                    homes.cache_home()?,
+                );
             }
             CoreProjectCommand::DryRun(args) => (args, SyncMode::DryRun, "dry_run"),
             CoreProjectCommand::Check(args) => (args, SyncMode::Check, "check"),
@@ -344,12 +381,9 @@ impl CoreProjectArgs {
         )?;
         if mode == SyncMode::Check {
             // Match native compile: generated source scans must reject unowned files.
-            let checked = crate::source_projection::catalog_owned_project::collect_catalog_project(
-                args.root()?,
-                invocation_dir,
-                &args.projection,
-            )?
-            .check_current()?;
+
+            let checked = collect_catalog_project(args.root()?, invocation_dir, &args.projection)?
+                .check_current()?;
             ensure!(
                 checked.receipt().project_inputs_sha256 == report.project_inputs_sha256,
                 "named source check metadata changed after generation",
@@ -363,6 +397,7 @@ fn invoke_native_compile(
     args: &CoreProjectCompileArgs,
     cancellation: &CancellationToken,
     invocation_dir: &Path,
+    homes: &InvocationHomes,
 ) -> Result<CliOutput> {
     ensure!(
         args.output_name.is_none(),
@@ -401,7 +436,7 @@ fn invoke_native_compile(
                 == report.context_identity,
         "named compile catalog changed after generation"
     );
-    let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+    let collected = collect_catalog_project(
         args.project.root()?,
         invocation_dir,
         &args.project.projection,
@@ -415,10 +450,12 @@ fn invoke_native_compile(
         sdk.recheck(args, &loaded, invocation_dir, cancellation)?,
         "selected Java changed after generation; retry with the current lock"
     );
-    let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
-    let result = crate::jar_build::invoke_named_compile(
+    let frozen =
+        prepare_named_frozen_recipe_project(checked, recipe, homes.available_cache_home())?;
+    let result = invoke_named_compile(
         frozen,
-        &crate::jar_build::NamedCompileOptions {
+        &NamedCompileOptions {
+            cache_home: homes.available_cache_home().cloned(),
             java_home: sdk.home,
             cache_root: Some(sdk.cache_root),
             pinned_sdk: sdk.pinned,
@@ -436,6 +473,7 @@ fn invoke_native_jar(
     args: &CoreProjectCompileArgs,
     cancellation: &CancellationToken,
     invocation_dir: &Path,
+    homes: &InvocationHomes,
 ) -> Result<CliOutput> {
     ensure!(
         args.isolated_project_cache.is_none() && !args.rebuild_shared_mcp,
@@ -451,7 +489,7 @@ fn invoke_native_jar(
     let recipe = args.released_recipe.as_deref().ok_or_else(|| {
         eyre::eyre!("native jar requires exactly one of --released-recipe or --dependency-profile")
     })?;
-    crate::jar_build::engine::preflight_named_jar_output_name(args.output_name.as_deref())?;
+    preflight_named_jar_output_name(args.output_name.as_deref())?;
     cancellation.bail_if_cancelled()?;
     // Refuse unsupported target/recipe before dev generation or external effects.
     let initial = CoreCatalog::load(args.project.root()?, invocation_dir)?;
@@ -473,7 +511,7 @@ fn invoke_native_jar(
                 == report.context_identity,
         "named jar catalog changed after generation"
     );
-    let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+    let collected = collect_catalog_project(
         args.project.root()?,
         invocation_dir,
         &args.project.projection,
@@ -487,11 +525,13 @@ fn invoke_native_jar(
         sdk.recheck(args, &loaded, invocation_dir, cancellation)?,
         "selected Java changed after generation; retry with the current lock"
     );
-    let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
+    let frozen =
+        prepare_named_frozen_recipe_project(checked, recipe, homes.available_cache_home())?;
     frozen.recheck(false)?;
-    let result = crate::jar_build::invoke_named_jar(
+    let result = invoke_named_jar(
         frozen,
-        &crate::jar_build::NamedCompileOptions {
+        &NamedCompileOptions {
+            cache_home: homes.available_cache_home().cloned(),
             java_home: sdk.home,
             cache_root: Some(sdk.cache_root),
             pinned_sdk: sdk.pinned,
@@ -521,7 +561,7 @@ fn invoke_native_development(
         "--released-recipe and --dependency-profile are mutually exclusive"
     );
     ensure!(
-        profile == crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE,
+        profile == NATIVE_DEPENDENCY_PROFILE,
         "native development build requires the declared rust-toolchain profile"
     );
     if let Some(label) = args.isolated_project_cache.as_deref() {
@@ -550,18 +590,13 @@ fn invoke_native_development(
         entry.environment == ProjectionEnvironment::Dev,
         "development native admission requires a development projection"
     );
-    crate::source_projection::native_project_target::development_native_loader(
-        entry.target_id()?,
-        &entry.minecraft_version,
-    )?;
-    let collected = crate::source_projection::catalog_owned_project::collect_development_invocation(
+    development_native_loader(entry.target_id()?, &entry.minecraft_version)?;
+    let collected = collect_development_invocation(
         args.project.root()?,
         invocation_dir,
         &args.project.projection,
     )?;
-    crate::source_projection::native_project_target::validate_collected_native_profile(
-        &collected, profile,
-    )?;
+    validate_collected_native_profile(&collected, profile)?;
     let sdk = select_native_sdk(args, &initial, invocation_dir, cancellation)?;
     cancellation.bail_if_cancelled()?;
     // Verify the complete source snapshot once after guarded sync. This owner
@@ -571,29 +606,28 @@ fn invoke_native_development(
         sdk.recheck(args, &initial, invocation_dir, cancellation)?,
         "selected Java changed after generation; retry with the current lock"
     );
-    Ok(CliOutput::facet(
-        crate::jar_build::invoke_development_project(
-            checked,
-            profile,
-            &crate::jar_build::NamedCompileOptions {
-                java_home: sdk.home,
-                cache_root: Some(sdk.cache_root),
-                pinned_sdk: sdk.pinned,
-                isolated_project_cache: args.isolated_project_cache.clone(),
-                rebuild_shared_mcp: args.rebuild_shared_mcp,
-                explain_rebuild: args.explain_rebuild,
-                wait_for_build_lock: args.wait_for_build_lock,
-            },
-            package,
-            cancellation,
-        )?,
-    ))
+    Ok(CliOutput::facet(invoke_development_project(
+        checked,
+        profile,
+        &NamedCompileOptions {
+            cache_home: None,
+            java_home: sdk.home,
+            cache_root: Some(sdk.cache_root),
+            pinned_sdk: sdk.pinned,
+            isolated_project_cache: args.isolated_project_cache.clone(),
+            rebuild_shared_mcp: args.rebuild_shared_mcp,
+            explain_rebuild: args.explain_rebuild,
+            wait_for_build_lock: args.wait_for_build_lock,
+        },
+        package,
+        cancellation,
+    )?))
 }
 
 struct NativeSdkSelection {
     home: PathBuf,
     cache_root: PathBuf,
-    pinned: Option<Arc<crate::jar_build::engine::NamedPinnedSdk>>,
+    pinned: Option<Arc<NamedPinnedSdk>>,
     required_major: u32,
 }
 
@@ -605,10 +639,8 @@ impl NativeSdkSelection {
         invocation_dir: &Path,
         cancellation: &CancellationToken,
     ) -> Result<bool> {
-        let current_root = crate::jar_build::engine::catalog_native_cache_path(
-            &selected.repo_root,
-            args.cache_root.as_deref(),
-        );
+        let current_root =
+            catalog_native_cache_path(&selected.repo_root, args.cache_root.as_deref());
         if current_root != self.cache_root {
             return Ok(false);
         }
@@ -635,50 +667,37 @@ fn select_native_sdk(
 ) -> Result<NativeSdkSelection> {
     let entry = selected.catalog.entry(&args.project.projection)?;
     let metadata_bytes = read_project_metadata(&selected.repo_root)?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &selected.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &selected.registered_features)?;
     let compiler_major = metadata
         .targets
         .get(entry.target_id()?)
         .ok_or_else(|| eyre::eyre!("missing named build target"))?
         .java_major;
-    let required_major = crate::source_projection::native_project_target::native_tool_java_major(
-        entry.target_id()?,
-        &entry.minecraft_version,
-        compiler_major,
-    )?;
+    let required_major =
+        native_tool_java_major(entry.target_id()?, &entry.minecraft_version, compiler_major)?;
     let project = selected
         .repo_root
         .join(selected.catalog.project_dir(&args.project.projection)?);
-    let root = crate::jar_build::engine::catalog_native_cache_path(
-        &selected.repo_root,
-        args.cache_root.as_deref(),
-    );
-    if args.java_home.is_none() {
-        if let Some(pinned) = crate::jar_build::engine::select_named_pinned_sdk(
+    let root = catalog_native_cache_path(&selected.repo_root, args.cache_root.as_deref());
+    if args.java_home.is_none()
+        && let Some(pinned) = select_named_pinned_sdk(
             &root,
             &selected.repo_root,
             &project,
             required_major,
             cancellation,
-        )? {
-            return Ok(NativeSdkSelection {
-                home: pinned.home().to_path_buf(),
-                cache_root: pinned.cache_root().to_path_buf(),
-                pinned: Some(pinned),
-                required_major,
-            });
-        }
+        )?
+    {
+        return Ok(NativeSdkSelection {
+            home: pinned.home().to_path_buf(),
+            cache_root: pinned.cache_root().to_path_buf(),
+            pinned: Some(pinned),
+            required_major,
+        });
     }
     let home = resolve_native_sdk_home(args, selected, invocation_dir)?;
-    let cache_root = crate::jar_build::engine::preflight_named_cache_root(
-        &root,
-        &selected.repo_root,
-        &project,
-        &home,
-    )?;
+    let cache_root = preflight_named_cache_root(&root, &selected.repo_root, &project, &home)?;
     Ok(NativeSdkSelection {
         home,
         cache_root,
@@ -697,25 +716,27 @@ fn resolve_native_sdk_home(
     }
     let entry = selected.catalog.entry(&args.project.projection)?;
     let metadata_bytes = read_project_metadata(&selected.repo_root)?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &selected.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &selected.registered_features)?;
     let compiler_major = metadata
         .targets
         .get(entry.target_id()?)
         .ok_or_else(|| eyre::eyre!("missing named build target"))?
         .java_major;
-    let tool_major = crate::source_projection::native_project_target::native_tool_java_major(
-        entry.target_id()?,
-        &entry.minecraft_version,
-        compiler_major,
-    )?;
+    let tool_major =
+        native_tool_java_major(entry.target_id()?, &entry.minecraft_version, compiler_major)?;
     let project_root = selected
         .repo_root
         .join(selected.catalog.project_dir(&args.project.projection)?);
-    let resolved = resolve_exact_java_for_minecraft_dir(&project_root, tool_major, None)
-        .wrap_err("cannot select the projection's JDK; synchronize its lock or pass --java-home")?;
+    let cache_home = CacheHome(catalog_native_cache_path(
+        &selected.repo_root,
+        args.cache_root.as_deref(),
+    ));
+    let resolved =
+        resolve_exact_java_for_minecraft_dir(&project_root, tool_major, None, &cache_home)
+            .wrap_err(
+                "cannot select the projection's JDK; synchronize its lock or pass --java-home",
+            )?;
     let home = resolved.home.as_deref().ok_or_else(|| {
         eyre::eyre!(
             "selected Java {} has no JDK home; install a verified JDK or pass --java-home",
@@ -726,7 +747,6 @@ fn resolve_native_sdk_home(
 }
 
 fn preflight_native_sdk_home(path: &Path, invocation_dir: &Path) -> Result<PathBuf> {
-    use crate::source_projection::candidate_lock::checked_directory;
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
@@ -767,7 +787,7 @@ fn preflight_named_compile_recipe(
     minecraft_version: &str,
     recipe: &str,
 ) -> Result<()> {
-    if crate::jar_build::preflight_named_neoform_recipe(target, minecraft_version, recipe)? {
+    if preflight_named_neoform_recipe(target, minecraft_version, recipe)? {
         return Ok(());
     }
     preflight_named_forge_recipe(target, minecraft_version, recipe)
@@ -876,6 +896,7 @@ fn invoke_gradle(
     run: bool,
     cancellation: &CancellationToken,
     invocation_dir: &Path,
+    cache_home: &CacheHome,
 ) -> Result<CliOutput> {
     cancellation.bail_if_cancelled()?;
     let task = args
@@ -911,10 +932,8 @@ fn invoke_gradle(
         sha256(&metadata_bytes) == report.project_inputs_sha256,
         "core build metadata changed after generation"
     );
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &loaded.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &loaded.registered_features)?;
     let java_major = u32::from(
         metadata
             .targets
@@ -929,8 +948,12 @@ fn invoke_gradle(
             invocation_dir.join(path)
         }
     });
-    let resolved =
-        resolve_exact_java_for_minecraft_dir(&project_root, java_major, explicit_home.as_deref())?;
+    let resolved = resolve_exact_java_for_minecraft_dir(
+        &project_root,
+        java_major,
+        explicit_home.as_deref(),
+        cache_home,
+    )?;
     let home = resolved
         .home
         .as_deref()
@@ -988,7 +1011,7 @@ fn project_report(
     };
     let metadata_bytes = read_project_metadata(&loaded.repo_root)?;
     let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes).wrap_err("core project metadata is not UTF-8")?,
+        from_utf8(&metadata_bytes).wrap_err("core project metadata is not UTF-8")?,
         &loaded.registered_features,
     )?;
     let core = loaded.repo_root.join(CORE_ROOT);
@@ -1088,7 +1111,13 @@ mod tests {
     use crate::source_projection::core_inputs::BuildTargetMetadata;
     use crate::source_projection::core_inputs::InputPredicate;
     use crate::source_projection::core_inputs::InputVariant;
-    use std::process::Command;
+
+    fn unavailable_cache_homes() -> InvocationHomes {
+        InvocationHomes::new(
+            AppHome(PathBuf::from("fixture-settings")),
+            Err(eyre::eyre!("fixture cache unavailable")),
+        )
+    }
 
     #[test]
     fn omitted_project_root_selects_only_a_valid_current_checkout() -> Result<()> {
@@ -1156,8 +1185,10 @@ mod tests {
         );
         let mut explicit = base.to_vec();
         explicit.extend([
-            "--java-home", "C:/selected-jdk",
-            "--cache-root", "C:/sfm cache fixture",
+            "--java-home",
+            "C:/selected-jdk",
+            "--cache-root",
+            "C:/sfm cache fixture",
         ]);
         let parsed = figue::from_slice::<CoreProjectCompileArgs>(&explicit).unwrap();
         assert_eq!(parsed.java_home, Some(PathBuf::from("C:/selected-jdk")));
@@ -1216,9 +1247,14 @@ mod tests {
             .to_string();
         assert!(invalid.contains("ASCII label"), "{invalid}");
         args.isolated_project_cache = Some("pinned_rebuild_1".to_owned());
-        let package = invoke_native_jar(&args, &cancellation, Path::new("."))
-            .unwrap_err()
-            .to_string();
+        let package = invoke_native_jar(
+            &args,
+            &cancellation,
+            Path::new("."),
+            &unavailable_cache_homes(),
+        )
+        .unwrap_err()
+        .to_string();
         assert!(package.contains("compile-only"), "{package}");
         args.isolated_project_cache = None;
         args.rebuild_shared_mcp = true;
@@ -1246,22 +1282,37 @@ mod tests {
             wait_for_build_lock: false,
         };
         let cancellation = CancellationToken::new();
-        let invalid = invoke_native_jar(&args, &cancellation, Path::new("."))
-            .unwrap_err()
-            .to_string();
+        let invalid = invoke_native_jar(
+            &args,
+            &cancellation,
+            Path::new("."),
+            &unavailable_cache_homes(),
+        )
+        .unwrap_err()
+        .to_string();
         assert!(invalid.contains("fresh JAR name"), "{invalid}");
 
         args.output_name = Some("historical-check.jar".to_owned());
-        let compile = invoke_native_compile(&args, &cancellation, Path::new("."))
-            .unwrap_err()
-            .to_string();
+        let compile = invoke_native_compile(
+            &args,
+            &cancellation,
+            Path::new("."),
+            &unavailable_cache_homes(),
+        )
+        .unwrap_err()
+        .to_string();
         assert!(compile.contains("only supported"), "{compile}");
 
         args.released_recipe = None;
         args.dependency_profile = Some("rust-toolchain".to_owned());
-        let development = invoke_native_jar(&args, &cancellation, Path::new("."))
-            .unwrap_err()
-            .to_string();
+        let development = invoke_native_jar(
+            &args,
+            &cancellation,
+            Path::new("."),
+            &unavailable_cache_homes(),
+        )
+        .unwrap_err()
+        .to_string();
         assert!(
             development.contains("requires a released recipe"),
             "{development}"
@@ -1288,9 +1339,19 @@ mod tests {
         let cancellation = CancellationToken::new();
         for package in [false, true] {
             let result = if package {
-                invoke_native_jar(&args, &cancellation, Path::new("."))
+                invoke_native_jar(
+                    &args,
+                    &cancellation,
+                    Path::new("."),
+                    &unavailable_cache_homes(),
+                )
             } else {
-                invoke_native_compile(&args, &cancellation, Path::new("."))
+                invoke_native_compile(
+                    &args,
+                    &cancellation,
+                    Path::new("."),
+                    &unavailable_cache_homes(),
+                )
             };
             let error = result.unwrap_err().to_string();
             assert!(error.contains("mutually exclusive"), "{error}");
@@ -1301,10 +1362,15 @@ mod tests {
             ..args
         };
         assert!(
-            invoke_native_jar(&missing, &cancellation, Path::new("."))
-                .unwrap_err()
-                .to_string()
-                .contains("requires exactly one")
+            invoke_native_jar(
+                &missing,
+                &cancellation,
+                Path::new("."),
+                &unavailable_cache_homes()
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("requires exactly one")
         );
     }
 
@@ -1328,14 +1394,9 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(error.contains("synchronize its lock"), "{error}");
-        let missing = select_native_sdk(
-            &args,
-            &selected,
-            temp.path(),
-            &CancellationToken::new(),
-        )
-        .err()
-        .expect("an absent generated lock cannot select a pinned SDK");
+        let missing = select_native_sdk(&args, &selected, temp.path(), &CancellationToken::new())
+            .err()
+            .expect("an absent generated lock cannot select a pinned SDK");
         assert!(missing.to_string().contains("sfm-toolchain.lock.json"));
         assert!(!selected.repo_root.join("sfm-toolchain-data").exists());
 
@@ -1343,27 +1404,38 @@ mod tests {
         fs::create_dir_all(jdk.join("bin")).unwrap();
         fs::create_dir_all(jdk.join("lib")).unwrap();
         for relative in [
-            if cfg!(windows) { "bin/java.exe" } else { "bin/java" },
-            if cfg!(windows) { "bin/javac.exe" } else { "bin/javac" },
+            if cfg!(windows) {
+                "bin/java.exe"
+            } else {
+                "bin/java"
+            },
+            if cfg!(windows) {
+                "bin/javac.exe"
+            } else {
+                "bin/javac"
+            },
             "release",
             "lib/modules",
         ] {
             fs::write(jdk.join(relative), b"fixture").unwrap();
         }
         args.java_home = Some(jdk.clone());
-        assert!(resolve_native_sdk_home(&args, &selected, temp.path())
-            .unwrap()
-            .ends_with("jdk"));
-        let explicit = select_native_sdk(
-            &args,
-            &selected,
-            temp.path(),
-            &CancellationToken::new(),
-        )
-        .unwrap();
+        assert!(
+            resolve_native_sdk_home(&args, &selected, temp.path())
+                .unwrap()
+                .ends_with("jdk")
+        );
+        let explicit =
+            select_native_sdk(&args, &selected, temp.path(), &CancellationToken::new()).unwrap();
         assert!(explicit.pinned.is_none());
-        assert_eq!(dunce::simplified(&explicit.home), dunce::simplified(&dunce::canonicalize(jdk).unwrap()));
-        assert_eq!(dunce::simplified(&explicit.cache_root), dunce::simplified(&selected.repo_root.join("sfm-toolchain-data")));
+        assert_eq!(
+            dunce::simplified(&explicit.home),
+            dunce::simplified(&dunce::canonicalize(jdk).unwrap())
+        );
+        assert_eq!(
+            dunce::simplified(&explicit.cache_root),
+            dunce::simplified(&selected.repo_root.join("sfm-toolchain-data"))
+        );
     }
 
     fn git(root: &Path, args: &[&str]) {
@@ -1535,7 +1607,14 @@ mod tests {
         let error = CoreProjectArgs {
             command: CoreProjectCommand::Check(args),
         }
-        .invoke_in(&CancellationToken::new(), temp.path())
+        .invoke_in(
+            &CancellationToken::new(),
+            temp.path(),
+            &InvocationHomes::new(
+                AppHome(temp.path().join("settings")),
+                Ok(CacheHome(temp.path().join("cache"))),
+            ),
+        )
         .unwrap_err()
         .to_string();
         assert!(
@@ -1668,8 +1747,14 @@ mod tests {
                 gradle_profile: profile.map(str::to_owned),
                 offline: true,
             };
-            let error =
-                invoke_gradle(args, false, &CancellationToken::new(), temp.path()).unwrap_err();
+            let error = invoke_gradle(
+                args,
+                false,
+                &CancellationToken::new(),
+                temp.path(),
+                &CacheHome(temp.path().join("cache")),
+            )
+            .unwrap_err();
             assert!(error.to_string().contains("Gradle"));
             assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 0);
         }

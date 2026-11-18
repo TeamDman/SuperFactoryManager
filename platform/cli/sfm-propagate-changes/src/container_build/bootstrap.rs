@@ -3,12 +3,17 @@ use super::context_file::ContextFile;
 use super::context_manifest::ContextManifest;
 use super::linux_toolchain_lock::LinuxToolchainLock;
 use crate::cancellation::CancellationToken;
+use crate::source_projection;
 use crate::source_projection::provenance::sha256;
 use std::collections::BTreeMap;
+use std::env;
+use std::fs;
 use std::io::Read as _;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
+use std::thread::sleep;
+use std::thread::spawn;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -26,7 +31,7 @@ fn run(
         .stdout
         .take()
         .ok_or_else(|| eyre::eyre!("bootstrap output missing"))?;
-    let reader = std::thread::spawn(move || {
+    let reader = spawn(move || {
         let mut bytes = Vec::new();
         pipe.take(32 * 1024 * 1024 + 1)
             .read_to_end(&mut bytes)
@@ -45,7 +50,7 @@ fn run(
         if let Some(status) = child.try_wait()? {
             break Ok(status);
         }
-        std::thread::sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(100));
     };
     let bytes = reader
         .join()
@@ -91,18 +96,18 @@ pub(super) fn build(
         .context
         .parent()
         .ok_or_else(|| eyre::eyre!("context requires parent"))?;
-    std::fs::create_dir_all(parent)?;
+    fs::create_dir_all(parent)?;
     let durable = parent.join(format!(".sfm-linux-tooling-{}", &identity[7..23]));
     let contract_path = durable.join("linux-toolchain.json");
     if contract_path.is_file() {
-        let bytes = std::fs::read(&contract_path)?;
+        let bytes = fs::read(&contract_path)?;
         let pin: LinuxToolchainLock = facet_json::from_slice(&bytes)?;
         eyre::ensure!(
             pin.source_lock_sha256 == initial.source_lock_sha256
                 && pin.cli_source_identity == main_identity,
             "cached Linux tooling provenance mismatch"
         );
-        let cli = crate::source_projection::core_catalog::read_bounded_input(
+        let cli = source_projection::core_catalog::read_bounded_input(
             &durable,
             &pin.cli_path,
             256 * 1024 * 1024,
@@ -118,7 +123,7 @@ pub(super) fn build(
         "incomplete prior bootstrap output exists; choose a fresh context parent"
     );
     let work = tempfile::tempdir_in(parent)?;
-    std::fs::write(
+    fs::write(
         work.path().join("export.py"),
         include_bytes!("bootstrap.py"),
     )?;
@@ -135,12 +140,12 @@ pub(super) fn build(
         ])
         .current_dir(request.repo_root.join("platform/cli").join(cli));
         let output = run(cmd, token, timeout.saturating_sub(start.elapsed()))?;
-        std::fs::write(
+        fs::write(
             work.path().join(format!("cargo-linux-{label}.json")),
             output,
         )?;
     }
-    let cargo_home = std::env::var_os("CARGO_HOME")
+    let cargo_home = env::var_os("CARGO_HOME")
         .map(PathBuf::from)
         .or_else(|| directories_next::UserDirs::new().map(|dirs| dirs.home_dir().join(".cargo")))
         .ok_or_else(|| eyre::eyre!("CARGO_HOME required for pinned bootstrap inputs"))?;
@@ -167,7 +172,7 @@ pub(super) fn build(
         .arg("--cargo-home")
         .arg(&cargo_home);
     run(python, token, timeout.saturating_sub(start.elapsed()))?;
-    let receipt_bytes = std::fs::read(context.join("tooling-context.json"))?;
+    let receipt_bytes = fs::read(context.join("tooling-context.json"))?;
     let receipt: super::tooling_receipt::ToolingReceipt = facet_json::from_slice(&receipt_bytes)?;
     eyre::ensure!(
         receipt.context_prepared
@@ -177,7 +182,7 @@ pub(super) fn build(
         "bootstrap source identity/completion mismatch"
     );
     for (path, expected) in &receipt.source_files {
-        let bytes = crate::source_projection::core_catalog::read_bounded_input(
+        let bytes = source_projection::core_catalog::read_bounded_input(
             &request.repo_root,
             path,
             16 * 1024 * 1024,
@@ -221,7 +226,7 @@ pub(super) fn build(
             authenticated_parents: BTreeMap::new(),
         },
     );
-    std::fs::write(
+    fs::write(
         context.join("context-manifest.json"),
         facet_json::to_string_pretty(&report)?,
     )?;
@@ -240,7 +245,7 @@ pub(super) fn build(
         Err(error) => {
             let log = build.context.join("build-progress.log");
             if log.is_file() {
-                std::fs::copy(
+                fs::copy(
                     log,
                     parent.join(format!("sfm-tooling-failure-{}.jsonl", &identity[7..23])),
                 )?;
@@ -291,13 +296,13 @@ pub(super) fn build(
         cli_sha256: sha256(&cli),
         cli_source_identity: main_identity,
     };
-    std::fs::create_dir(&durable)?;
-    std::fs::write(durable.join(&pin.cli_path), cli)?;
-    std::fs::write(
+    fs::create_dir(&durable)?;
+    fs::write(durable.join(&pin.cli_path), cli)?;
+    fs::write(
         durable.join("image-identity.json"),
         facet_json::to_string_pretty(&image)?,
     )?;
-    std::fs::write(&contract_path, facet_json::to_string_pretty(&pin)?)?;
+    fs::write(&contract_path, facet_json::to_string_pretty(&pin)?)?;
     tracing::info!(seconds=start.elapsed().as_secs(),digest=%image.manifest_digest,"Linux tooling bootstrap complete");
     Ok(contract_path)
 }

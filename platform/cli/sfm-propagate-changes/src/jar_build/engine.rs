@@ -1,4 +1,5 @@
 // todo(2026-06-16) file very large
+
 use super::ArtifactAuditOptions;
 use super::ArtifactId;
 use super::ArtifactPurpose;
@@ -33,18 +34,36 @@ use super::runtime_session::RuntimeSession;
 pub(super) use super::target_artifact_audit_report::TargetArtifactAuditReport;
 use crate::artifact_lock::ArtifactLock;
 use crate::artifact_lock::ArtifactReadLock;
+use crate::branch_targets;
 use crate::branch_targets::BranchName;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_required_worktree_targets;
 use crate::cancellation::CancellationToken;
+use crate::cli;
 use crate::colour::stable_color;
+use crate::file_identity;
+use crate::git_read;
+use crate::jar_build;
 use crate::java_analysis::is_excluded_java_source as is_excluded_source;
 use crate::java_analysis::read_version_source_excludes as read_source_excludes_for_minecraft_dir;
+use crate::java_source_catalog;
 use crate::java_source_catalog::JAVA_SOURCE_CATALOG;
 use crate::java_source_catalog::JavaBuildSourceGroup;
+use crate::jdk;
+use crate::jdk_artifact_cache;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
+use crate::paths::CacheHomeRequired;
+use crate::payload_fetcher;
+use crate::source_archive::archive_payload_sha256;
+use crate::source_archive::extracted_tree_matches_archive;
+use crate::source_archive::matches_catalog_source_identity;
+use crate::source_git::materialize_source_build_checkout;
+use crate::source_projection;
+use crate::source_projection::released_native_inputs::ReleasedExactByteRequirement;
 use crate::terminal_output::stdout_line;
+use crate::toolchain_lockfile_schema;
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use chrono::Local;
@@ -55,13 +74,21 @@ use rayon::prelude::*;
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use std::cmp::Ordering;
+use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::VecDeque;
+#[cfg(not(target_os = "linux"))]
+use std::convert;
+use std::env;
+use std::ffi::OsStr;
+use std::ffi::OsString;
+use std::fmt;
 use std::fmt::Write as _;
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::io;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
@@ -69,11 +96,23 @@ use std::io::IsTerminal as _;
 use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
+use std::iter::once;
+#[cfg(not(target_os = "linux"))]
+use std::marker::PhantomData;
+use std::num::NonZeroU16;
+use std::num::NonZeroU32;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::path::Prefix;
+use std::process::Child;
 use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use std::process::id as process_id;
+use std::slice::from_ref;
+use std::str::from_utf8;
+use std::sync;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -158,7 +197,7 @@ fn frozen_asset_index_name(id: &str, hash: &ContentHash) -> eyre::Result<String>
         hash.algorithm == ContentHashAlgorithm::Sha1,
         "Minecraft asset index requires a SHA-1 pin"
     );
-    crate::source_projection::promotion::validate_relative_path(id)?;
+    source_projection::promotion::validate_relative_path(id)?;
     eyre::ensure!(!id.contains('/'), "asset index id must be one component");
     Ok(format!("{id}-{}", hash.hex()))
 }
@@ -570,6 +609,9 @@ fn execute_targets_sequential(
         reports.push(report);
         match result {
             Ok(plan) => plans.push(plan),
+            Err(error) if error.downcast_ref::<CacheHomeRequired>().is_some() => {
+                return Err(error);
+            }
             Err(error) => {
                 tracing::error!(error = %error, "target_failed");
                 failures.push(TargetFailure::new(&target, &error));
@@ -710,11 +752,13 @@ fn execute_targets_parallel_with_cancellation(
         results.sort_by_key(|result| result.target_index);
 
         cancellation_token.bail_if_cancelled()?;
-        Ok(collect_target_execution_results(results))
+        collect_target_execution_results(results)
     })
 }
 
-fn collect_target_execution_results(results: Vec<TargetExecutionResult>) -> TargetExecutionSummary {
+fn collect_target_execution_results(
+    results: Vec<TargetExecutionResult>,
+) -> eyre::Result<TargetExecutionSummary> {
     let mut plans = Vec::new();
     let mut failures = Vec::new();
     let mut reports = Vec::new();
@@ -722,6 +766,9 @@ fn collect_target_execution_results(results: Vec<TargetExecutionResult>) -> Targ
         reports.push(result.report);
         match result.result {
             Ok(plan) => plans.push(plan),
+            Err(error) if error.downcast_ref::<CacheHomeRequired>().is_some() => {
+                return Err(error);
+            }
             Err(error) => {
                 tracing::error!(
                     branch = %result.target.branch,
@@ -732,11 +779,11 @@ fn collect_target_execution_results(results: Vec<TargetExecutionResult>) -> Targ
             }
         }
     }
-    TargetExecutionSummary {
+    Ok(TargetExecutionSummary {
         plans,
         failures,
         reports,
-    }
+    })
 }
 
 fn execute_build_target(
@@ -796,7 +843,7 @@ fn execute_prepared_run_target(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
     if run_options.client_hotswap_port.is_some() {
-        crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
+        jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
     }
     cancellation_token.bail_if_cancelled()?;
     write_last_plan_output(&plan)?;
@@ -873,7 +920,7 @@ fn publish_run_snapshot(
     super::nfrt_preparation_phase::NfrtPreparationPhase::run("snapshot.final_sdk_check", || {
         plan.recheck_named_sdk()
     })?;
-    let java = crate::jdk::ResolvedJava {
+    let java = jdk::ResolvedJava {
         executable: plan.java.executable.clone(),
         home: plan.java.home.clone(),
         version_output: plan.java.version_output.clone(),
@@ -917,13 +964,15 @@ fn publish_run_snapshot(
         (Vec::new(), plan.cache_dir.clone())
     };
     let snapshot = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
-        &plan.minecraft_dir,
-        &snapshot_cache_dir,
-        &plan.cache_dir,
-        plan.minecraft_version.as_str(),
-        &java,
-        &plan.cache_dir.join("project"),
-        (&plan.java.cache_identity(), &runtime_contract),
+        super::build_snapshot_receipt::BuildSnapshotPublicationRequest {
+            minecraft_dir: &plan.minecraft_dir,
+            cache_dir: &snapshot_cache_dir,
+            source_cache_dir: &plan.cache_dir,
+            minecraft_version: plan.minecraft_version.as_str(),
+            java: &java,
+            project_dir: &plan.cache_dir.join("project"),
+            identities: (&plan.java.cache_identity(), &runtime_contract),
+        },
         cancellation,
     )?;
     tracing::info!(receipt = %snapshot.receipt_path().display(),
@@ -1366,7 +1415,7 @@ pub(crate) fn invoke_compare(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
     cancellation_token.bail_if_cancelled()?;
-    let targets = select_required_worktree_targets(&options.branch)?;
+    let targets = select_required_worktree_targets(&options.branch, &options.app_home)?;
     cancellation_token.bail_if_cancelled()?;
     if targets.len() == 1 {
         return invoke_single_target_compare(options, &targets[0], cancellation_token);
@@ -1643,7 +1692,7 @@ pub(crate) fn invoke_artifact_audit(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
     cancellation_token.bail_if_cancelled()?;
-    let targets = select_required_worktree_targets(&options.branch)?;
+    let targets = select_required_worktree_targets(&options.branch, &options.app_home)?;
     cancellation_token.bail_if_cancelled()?;
     let total = targets.len();
     let ArtifactAuditExecutionSummary { reports, failures } =
@@ -1857,7 +1906,7 @@ fn audit_artifacts_for_target(
     let properties = read_properties(&properties_path)?;
     let minecraft_version = required_property(&properties, "minecraft_version")?;
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
-    let common_cache_dir = common_toolchain_cache_dir()?;
+    let common_cache_dir = common_toolchain_cache_dir(&options.cache_home);
     let report = audit_artifact_lockfile(
         &lockfile_path,
         &minecraft_dir,
@@ -2501,7 +2550,7 @@ impl TargetExecutionReport {
             duration,
             warning_count: diagnostics.warnings,
             error_count: diagnostics.errors,
-            bail_message: result.as_ref().err().map(std::string::ToString::to_string),
+            bail_message: result.as_ref().err().map(ToString::to_string),
         }
     }
 }
@@ -2547,6 +2596,7 @@ include!("engine_named_nfrt_compile.rs");
 include!("engine_named_jar.rs");
 include!("engine_named_sources.rs");
 include!("engine_catalog_release_packaging.rs");
+include!("engine_catalog_release_receipt.rs");
 include!("engine_named_sdk_launch.rs");
 include!("engine_plan.rs");
 include!("engine_projection_operation.rs");
@@ -2577,7 +2627,7 @@ pub(crate) fn release_jar_comparison_json(
             "JAR exceeds 128 MiB budget"
         );
         let bytes = fs::read(path)?;
-        let raw_hash = crate::source_projection::provenance::sha256(&bytes);
+        let raw_hash = source_projection::provenance::sha256(&bytes);
         let mut archive = ZipArchive::new(Cursor::new(bytes))?;
         eyre::ensure!(archive.len() <= 20000, "JAR exceeds entry budget");
         let mut metadata = BTreeMap::new();
@@ -2612,7 +2662,7 @@ pub(crate) fn release_jar_comparison_json(
         let metadata_bytes = facet_json::to_string(&metadata)?;
         Ok((
             raw_hash,
-            crate::source_projection::provenance::sha256(metadata_bytes.as_bytes()),
+            source_projection::provenance::sha256(metadata_bytes.as_bytes()),
         ))
     }
     let (baseline_sha, baseline_metadata_sha) = physical(baseline)?;

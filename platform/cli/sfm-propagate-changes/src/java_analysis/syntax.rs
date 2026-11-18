@@ -5,6 +5,7 @@ use super::JavaSourceSpanOutput;
 use arborium_java::language as java_language;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
 use std::ops::Range;
 use tree_sitter_patched_arborium::Node;
 use tree_sitter_patched_arborium::Parser;
@@ -57,7 +58,7 @@ impl JavaSyntaxFile {
     ) -> eyre::Result<Self> {
         let source = match &file.source_override {
             Some(source) => source.clone(),
-            None => std::fs::read_to_string(&file.absolute_path).map_err(|error| {
+            None => fs::read_to_string(&file.absolute_path).map_err(|error| {
                 eyre::eyre!(
                     "Failed to read Java source {}: {error}",
                     file.absolute_path.display()

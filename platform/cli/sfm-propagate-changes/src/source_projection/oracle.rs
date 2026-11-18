@@ -42,20 +42,25 @@ use super::sync::ProjectedArtifact;
 use super::sync::SyncMode;
 use super::sync::sync_catalog_projection;
 use crate::cancellation::CancellationToken;
+use crate::paths::CacheHome;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use gix::diff::blob;
 use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
+use std::env::current_exe;
 use std::fmt::Write as _;
 use std::fs;
 use std::io::Read as _;
 use std::io::Write as _;
+use std::path::Component;
 use std::path::Path;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 pub const ORACLES_PATH: &str = "platform/minecraft/projection-oracles.json";
@@ -443,10 +448,8 @@ fn status_with_inspections(
         CORE_METADATA_PATH,
         MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &catalog.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
     let selector = metadata.validated_selector(&catalog.registered_features)?;
     let git = OracleGitRepository::open(&catalog.repo_root)?;
     let core = catalog.repo_root.join(CORE_ROOT);
@@ -939,8 +942,9 @@ pub fn next(
     repo_root: &Path,
     invocation_dir: &Path,
     cancellation: &CancellationToken,
+    cache_home: &CacheHome,
 ) -> Result<OracleNext> {
-    next_with_index(repo_root, invocation_dir, cancellation, false)
+    next_with_index(repo_root, invocation_dir, cancellation, false, cache_home)
 }
 
 /// Run current comparisons through content-keyed cells. Cold initialization is
@@ -955,6 +959,7 @@ pub fn next_with_index(
     invocation_dir: &Path,
     cancellation: &CancellationToken,
     rebuild_index: bool,
+    cache_home: &CacheHome,
 ) -> Result<OracleNext> {
     cancellation.bail_if_cancelled()?;
     let catalog = CoreCatalog::load(repo_root, invocation_dir)?;
@@ -965,16 +970,14 @@ pub fn next_with_index(
     let repository_identity =
         sha256(format!("{}\0{}", catalog.repo_root.display(), common.display()).as_bytes());
     let renderer_identity = current_renderer_identity()?;
-    let home = crate::paths::CacheHome::resolve()?;
-    let candidate = home
+    let candidate = cache_home
         .join("oracle-comparison-index")
         .join(repository_identity.trim_start_matches("sha256:"));
     ensure!(
         candidate.is_absolute()
-            && !candidate.components().any(|part| matches!(
-                part,
-                std::path::Component::CurDir | std::path::Component::ParentDir
-            )),
+            && !candidate
+                .components()
+                .any(|part| matches!(part, Component::CurDir | Component::ParentDir)),
         "invalid oracle cache path"
     );
     let mut ancestor = candidate.as_path();
@@ -1059,7 +1062,7 @@ pub fn next_with_index(
 
 #[tracing::instrument(level = "info", skip_all, name = "oracle_renderer_identity")]
 fn current_renderer_identity() -> Result<String> {
-    let executable = std::env::current_exe()?;
+    let executable = current_exe()?;
     ensure!(
         fs::metadata(&executable)?.len() <= 512 * 1024 * 1024,
         "renderer executable exceeds identity limit"
@@ -1174,7 +1177,7 @@ pub fn diff(
             path == file && in_scope(path)
         })?;
     let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&read_bounded(
+        from_utf8(&read_bounded(
             &catalog.repo_root,
             CORE_METADATA_PATH,
             MAX_CORE_METADATA_BYTES,
@@ -1224,8 +1227,8 @@ pub fn diff(
 }
 
 pub(super) fn parse_bindings(bytes: &[u8]) -> Result<OracleBindings> {
-    let parsed: OracleBindings = facet_json::from_str(std::str::from_utf8(bytes)?)
-        .wrap_err("Cannot parse oracle bindings")?;
+    let parsed: OracleBindings =
+        facet_json::from_str(from_utf8(bytes)?).wrap_err("Cannot parse oracle bindings")?;
     validate_bindings(&parsed)?;
     Ok(parsed)
 }
@@ -1564,16 +1567,15 @@ fn bounded_diff(before: &[u8], after: &[u8]) -> Option<String> {
     if before.len().max(after.len()) > 256 * 1024 || before.contains(&0) || after.contains(&0) {
         return None;
     }
-    let before = std::str::from_utf8(before).ok()?;
-    let after = std::str::from_utf8(after).ok()?;
-    let input = gix::diff::blob::InternedInput::new(before, after);
+    let before = from_utf8(before).ok()?;
+    let after = from_utf8(after).ok()?;
+    let input = blob::InternedInput::new(before, after);
     let before_lines = before.lines().collect::<Vec<_>>();
     let after_lines = after.lines().collect::<Vec<_>>();
     let mut output = String::from("--- pinned oracle\n+++ fresh rendered output\n");
-    for hunk in
-        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Histogram, &input)
-            .hunks()
-            .take(100)
+    for hunk in blob::diff_with_slider_heuristics(blob::Algorithm::Histogram, &input)
+        .hunks()
+        .take(100)
     {
         let _ = writeln!(
             output,
@@ -1603,6 +1605,9 @@ fn bounded_diff(before: &[u8], after: &[u8]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::core_inputs::tests::Fixture;
+    use super::super::core_inputs::tests::context;
+    use super::super::projection_catalog::ProjectionEnvironment;
     #[test]
     fn renderer_identity_hashes_exact_bytes_not_length_or_timestamps() {
         let original = super::renderer_bytes_identity(b"renderer A");
@@ -1621,8 +1626,6 @@ mod tests {
     #[test]
     fn indexed_cells_equal_full_renderer_across_restart_edits_and_earlier_regressions() -> Result<()>
     {
-        use super::super::core_inputs::tests::Fixture;
-        use super::super::core_inputs::tests::context;
         let fixture = Fixture::new();
         let shared = "src/main/java/Shared.java";
         let source = b"{% if features.alpha %}\nclass Enabled {}\n{% else %}\nclass Shared {}\n{% endif %}\n";
@@ -2288,7 +2291,6 @@ mod tests {
 
     #[test]
     fn manifested_observation_checks_ownership_and_unowned_source_membership_without_writes() {
-        use super::super::projection_catalog::ProjectionEnvironment;
         let temp = tempfile::tempdir().unwrap();
         let initialized = super::super::release_baseline::frozen_git_command(temp.path())
             .args(["init", "--quiet"])

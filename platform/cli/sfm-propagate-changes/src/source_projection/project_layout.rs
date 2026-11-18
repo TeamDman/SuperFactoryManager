@@ -11,6 +11,7 @@ use std::fs;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 const ROOT_FILES: &[&str] = &[
@@ -188,7 +189,7 @@ pub(crate) fn append_project_name_override(
     let settings = artifacts
         .get_mut("settings.gradle")
         .ok_or_else(|| eyre::eyre!("missing Gradle input 'settings.gradle'"))?;
-    let source = std::str::from_utf8(&settings.source_bytes)
+    let source = from_utf8(&settings.source_bytes)
         .wrap_err("Gradle input 'settings.gradle' is not UTF-8")?;
     let newline = if source.contains("\r\n") {
         "\r\n"
@@ -363,7 +364,7 @@ fn artifact_text<'a>(
     let artifact = artifacts
         .get(path)
         .ok_or_else(|| eyre::eyre!("missing Gradle input '{path}'"))?;
-    std::str::from_utf8(&artifact.output_bytes)
+    from_utf8(&artifact.output_bytes)
         .wrap_err_with(|| format!("Gradle input '{path}' is not UTF-8"))
 }
 

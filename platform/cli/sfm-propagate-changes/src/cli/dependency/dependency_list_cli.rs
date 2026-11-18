@@ -6,6 +6,7 @@ use crate::dependency_inventory::kind_label;
 use crate::dependency_inventory::resolved_version;
 use crate::dependency_inventory::role_label;
 use crate::dependency_inventory::scope_label;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
@@ -28,8 +29,9 @@ impl DependencyListArgs {
         self,
         _cancellation_token: CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
-        let inventory = load_inventory(self.branch, cache_home)?;
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
         for line in format_inventory(&inventory)?.lines() {
             stdout_line(line)?;
         }

@@ -44,10 +44,16 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read as _;
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::result::Result as StdResult;
+use std::str::from_utf8;
 use std::sync::OnceLock;
+#[cfg(windows)]
+use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
 
 const RECEIPT_SCHEMA: &str = "sfm:catalog_owned_project@1";
 const MAX_SOURCE_ENTRIES: usize = 131_072;
@@ -177,6 +183,7 @@ impl CollectedCatalogProject {
     /// Apply the existing guarded development transaction using collected bytes.
     /// Release callers must use `check_current` instead. Fresh input checks bind
     /// profile validation, generation and returned ownership to one snapshot.
+    #[cfg(test)]
     pub(crate) fn prepare_development(self) -> Result<CatalogOwnedProject> {
         ensure!(
             self.identity.environment == ProjectionEnvironment::Dev,
@@ -878,10 +885,8 @@ fn collect_catalog_project_impl(
         CORE_METADATA_PATH,
         MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &loaded.registered_features,
-    )?;
+    let metadata =
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &loaded.registered_features)?;
     tracing::info!(
         projection_key,
         catalog_entries = loaded.catalog.0.len(),
@@ -1084,7 +1089,7 @@ const MAX_PARALLEL_RECHECK_READS: usize = 4;
 const RECHECK_BATCH_FILES: usize = 32;
 
 fn recheck_read_pool() -> Result<&'static rayon::ThreadPool> {
-    static POOL: OnceLock<std::result::Result<rayon::ThreadPool, String>> = OnceLock::new();
+    static POOL: OnceLock<StdResult<rayon::ThreadPool, String>> = OnceLock::new();
     POOL.get_or_init(|| {
         rayon::ThreadPoolBuilder::new()
             .num_threads(MAX_PARALLEL_RECHECK_READS)
@@ -1191,8 +1196,6 @@ fn read_prepared_catalog_input(path: &Path, relative: &str, limit: u64) -> Resul
     options.read(true);
     #[cfg(windows)]
     let () = {
-        use std::os::windows::fs::OpenOptionsExt as _;
-        use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
         options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0);
     };
     let file = options
@@ -1232,11 +1235,18 @@ fn portable_path(path: &Path) -> Result<String> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use super::super::core_features::CoreFeatureDefinitions;
     use super::super::core_inputs::InputPredicate;
     use super::super::core_inputs::InputVariant;
+    use super::super::projection_catalog::ProjectionCatalog;
     use super::super::projection_catalog::SUPPORTED_TARGETS;
+    use super::super::reference_associations::ReferenceAssociations;
     use super::*;
+    use std::cell::RefCell;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
     use std::process::Command;
+    use std::rc::Rc;
 
     const LOCKS: [(&str, &[u8]); 10] = [
         (
@@ -1564,9 +1574,6 @@ pub(crate) mod tests {
             original_key: &str,
             fixture_key: &str,
         ) -> Result<()> {
-            use super::super::core_features::CoreFeatureDefinitions;
-            use super::super::projection_catalog::ProjectionCatalog;
-
             let path = self
                 .temp
                 .path()
@@ -1717,9 +1724,6 @@ pub(crate) mod tests {
     #[test]
     fn development_invocation_verifies_once_or_skips_but_public_recheck_stays_strict() -> Result<()>
     {
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
         for skip in [false, true] {
             let fixture = Fixture::new_for_target("1.19.2");
             let key = Fixture::key(0, "dev");
@@ -2110,7 +2114,6 @@ pub(crate) mod tests {
     #[test]
     fn repeated_issue_declarations_are_read_once_per_pass_and_conflicts_are_rejected() -> Result<()>
     {
-        use super::super::reference_associations::ReferenceAssociations;
         let fixture = Fixture::new_for_target("1.19.2");
         let key = Fixture::key(0, "dev");
         let mut artifacts = fixture.collect(&key)?.artifacts;
@@ -2526,7 +2529,6 @@ pub(crate) mod tests {
     #[cfg(unix)]
     #[test]
     fn generated_src_symlinks_are_refused_even_when_not_owned_inputs() -> Result<()> {
-        use std::os::unix::fs::symlink;
         for directory in [true, false] {
             let fixture = Fixture::new();
             let key = Fixture::key(0, "release");

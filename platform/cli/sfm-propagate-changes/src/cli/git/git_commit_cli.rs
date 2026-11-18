@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use crate::worktree::Worktree;
 use crate::worktree::get_sorted_worktrees;
 use eyre::Context;
@@ -20,12 +21,12 @@ impl GitCommitArgs {
     /// # Errors
     ///
     /// Returns an error if the message is empty or if `git commit` fails in any worktree.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         if self.message.trim().is_empty() {
             bail!("Commit message cannot be empty");
         }
 
-        let worktrees = get_sorted_worktrees()?;
+        let worktrees = get_sorted_worktrees(app_home)?;
 
         if worktrees.is_empty() {
             info!("No worktrees found.");

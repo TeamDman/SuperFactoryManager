@@ -6,6 +6,8 @@ use crate::source_comparison::report::ComparisonReport;
 use crate::source_projection::provenance::sha256;
 use eyre::Result;
 use std::collections::BTreeMap;
+use std::path::Path;
+use std::str::from_utf8;
 
 fn record(
     id: String,
@@ -27,7 +29,7 @@ fn record(
     let extension = new_path
         .as_ref()
         .or(old_path.as_ref())
-        .and_then(|path| std::path::Path::new(path).extension())
+        .and_then(|path| Path::new(path).extension())
         .and_then(|ext| ext.to_str())
         .unwrap_or("(none)")
         .to_lowercase();
@@ -86,10 +88,8 @@ pub(super) fn comparison(report: &ComparisonReport) -> Result<ReviewPayload> {
             .map(|mut record| {
                 if diff.old_path == diff.new_path && diff.mode_equal != Some(false) {
                     record.whitespace_basis = diff.old_path.as_ref().and_then(|path| {
-                        let before =
-                            std::str::from_utf8(&report.left.files.get(path)?.bytes).ok()?;
-                        let after =
-                            std::str::from_utf8(&report.right.files.get(path)?.bytes).ok()?;
+                        let before = from_utf8(&report.left.files.get(path)?.bytes).ok()?;
+                        let after = from_utf8(&report.right.files.get(path)?.bytes).ok()?;
                         super::whitespace_review::basis(path, before, after)
                     });
                 }

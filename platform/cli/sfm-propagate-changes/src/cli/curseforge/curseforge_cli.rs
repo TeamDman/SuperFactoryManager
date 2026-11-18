@@ -20,7 +20,7 @@ use crate::curseforge::CurseforgeUploadResponse;
 use crate::curseforge::ResolvedMetadataPlan;
 use crate::curseforge::UploadMetadata;
 use crate::curseforge::UploadPlan;
-use crate::paths::APP_HOME;
+use crate::paths::AppHome;
 use crate::terminal_output::stdout_prompt;
 use crate::worktree::parse_version;
 use chrono::DateTime;
@@ -35,6 +35,9 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::io::stdin;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -55,7 +58,7 @@ pub(super) fn prompt_yes_no(message: &str) -> eyre::Result<bool> {
     stdout_prompt(format!("{message} "))?;
 
     let mut input = String::new();
-    std::io::stdin()
+    stdin()
         .read_line(&mut input)
         .wrap_err("Failed to read confirmation response")?;
 
@@ -82,13 +85,13 @@ pub(super) fn curseforge_files_url(project_id: CurseforgeProjectId) -> String {
     format!("{CURSEFORGE_AUTHORS_FILES_URL_PREFIX}/{project_id}/files")
 }
 
-pub(super) fn get_default_project_id() -> eyre::Result<CurseforgeProjectId> {
-    let path = APP_HOME.file_path(CURSEFORGE_DEFAULT_PROJECT_FILE);
+pub(super) fn get_default_project_id(app_home: &AppHome) -> eyre::Result<CurseforgeProjectId> {
+    let path = app_home.file_path(CURSEFORGE_DEFAULT_PROJECT_FILE);
     if !path.exists() {
         return Ok(CurseforgeProjectId(CURSEFORGE_DEFAULT_PROJECT_ID));
     }
 
-    let content = std::fs::read_to_string(&path)
+    let content = read_to_string(&path)
         .wrap_err_with(|| format!("Failed to read default project file: {}", path.display()))?;
 
     let trimmed = content.trim();
@@ -102,10 +105,13 @@ pub(super) fn get_default_project_id() -> eyre::Result<CurseforgeProjectId> {
         .wrap_err_with(|| format!("Invalid project id in default project file: '{trimmed}'"))
 }
 
-pub(super) fn resolve_project_id(project: Option<u64>) -> eyre::Result<CurseforgeProjectId> {
+pub(super) fn resolve_project_id(
+    project: Option<u64>,
+    app_home: &AppHome,
+) -> eyre::Result<CurseforgeProjectId> {
     match project {
         Some(project_id) => Ok(CurseforgeProjectId(project_id)),
-        None => get_default_project_id(),
+        None => get_default_project_id(app_home),
     }
 }
 
@@ -257,8 +263,9 @@ pub(super) fn build_upload_plans(
 pub(super) fn filter_release_jars_by_branch(
     jars: Vec<PathBuf>,
     branch_query: &BranchQuery,
+    app_home: &AppHome,
 ) -> eyre::Result<Vec<PathBuf>> {
-    let selected_versions = select_required_minecraft_versions(branch_query)?;
+    let selected_versions = select_required_minecraft_versions(branch_query, app_home)?;
     let mut filtered = Vec::new();
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?; // todo(2026-06-16) should we have a SfmJarName newtype?
@@ -484,7 +491,7 @@ pub(super) fn upload_project_file(
 }
 
 pub(super) fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {
-    let content = std::fs::read_to_string(gradle_properties)
+    let content = read_to_string(gradle_properties)
         .wrap_err_with(|| format!("Failed to read {}", gradle_properties.display()))?;
 
     let mod_version = content
@@ -506,7 +513,7 @@ pub(super) fn read_changelog_section(
     changelog_path: &Path,
     mod_version: &str,
 ) -> eyre::Result<String> {
-    let lines: Vec<String> = std::fs::read_to_string(changelog_path)
+    let lines: Vec<String> = read_to_string(changelog_path)
         .wrap_err_with(|| format!("Failed to read changelog: {}", changelog_path.display()))?
         .lines()
         .map(ToString::to_string)
@@ -555,7 +562,7 @@ pub(super) fn get_ordered_release_jars(
     }
 
     let suffix = format!("-{mod_version}.jar");
-    let mut entries: Vec<(PathBuf, (u32, u32, u32), String)> = std::fs::read_dir(jar_dir)?
+    let mut entries: Vec<(PathBuf, (u32, u32, u32), String)> = read_dir(jar_dir)?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {

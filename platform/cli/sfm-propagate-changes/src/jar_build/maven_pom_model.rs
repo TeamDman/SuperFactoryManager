@@ -2,6 +2,7 @@ use super::MavenCoordinate;
 use super::maven_pom_dependency::MavenPomDependency;
 use super::xml_node::XmlNode;
 use std::collections::BTreeMap;
+use std::mem::take;
 #[path = "maven_pom_resolution.rs"]
 mod resolution;
 use resolution::MavenPomResolution;
@@ -345,7 +346,7 @@ fn merge_management(
     state: &mut MavenPomResolution,
     read: &mut impl FnMut(&MavenCoordinate) -> eyre::Result<String>,
 ) -> eyre::Result<()> {
-    let inherited = std::mem::take(&mut model.managed);
+    let inherited = take(&mut model.managed);
     let management = xml
         .child("dependencyManagement")?
         .map(|n| n.child("dependencies"))

@@ -20,10 +20,14 @@ use crate::cli::repo_root::get_repo_root;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeGameVersionId;
 use crate::curseforge::CurseforgeHttpClient;
+use crate::paths::AppHome;
 use color_eyre::owo_colors::OwoColorize;
 use facet::Facet;
 use figue as args;
 use std::ffi::OsStr;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use tracing::info;
 
 /// Arguments for uploading release jars to CurseForge.
@@ -54,13 +58,14 @@ impl CurseforgeReleaseNowArgs {
     /// # Errors
     ///
     /// Returns an error if release jars cannot be uploaded.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         release_now(
             self.branch,
             self.project,
             self.token,
             self.op_secret,
             self.dry_run,
+            app_home,
         )
     }
 }
@@ -75,21 +80,22 @@ fn release_now(
     token: Option<String>,
     op_secret: Option<String>,
     dry_run: bool,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let branch_query = branch.into_query()?;
-    let project_id = resolve_project_id(project)?;
+    let branch_query = branch.into_query(app_home)?;
+    let project_id = resolve_project_id(project, app_home)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
     let changelog_path = repo_root
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let changelog_section = read_changelog_section(&changelog_path, &mod_version)?;
     let wrapped_changelog = format!("```\n{}\n```", changelog_section.trim());
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
 
     let game_version_index = if dry_run {
         None
@@ -227,8 +233,8 @@ fn release_now(
     Ok(())
 }
 
-impl std::fmt::Debug for CurseforgeReleaseNowArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeReleaseNowArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeReleaseNowArgs")
             .finish_non_exhaustive()
     }

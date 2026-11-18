@@ -1,14 +1,21 @@
 use bytes::Bytes;
 use http_body_util::BodyExt;
 use http_body_util::Full;
-pub(super) type Body = http_body_util::combinators::BoxBody<Bytes, std::io::Error>;
+use http_body_util::combinators;
+use hyper::client;
+use hyper_util::rt;
+use std::io::Error as IoError;
+use std::path::Path;
+#[cfg(windows)]
+use tokio::net;
+pub(super) type Body = combinators::BoxBody<Bytes, IoError>;
 pub(super) fn bytes_body(bytes: impl Into<Bytes>) -> Body {
     Full::new(bytes.into())
         .map_err(|never| match never {})
         .boxed()
 }
 pub(super) async fn request(
-    endpoint: &std::path::Path,
+    endpoint: &Path,
     method: &str,
     path: &str,
     body: Body,
@@ -23,7 +30,7 @@ pub(super) async fn request(
             text.starts_with(r"\\.\pipe\") && !text[9..].contains(['\\', '/']),
             "native API requires one local advertised Windows named pipe"
         );
-        tokio::net::windows::named_pipe::ClientOptions::new().open(endpoint)?
+        net::windows::named_pipe::ClientOptions::new().open(endpoint)?
     };
     #[cfg(unix)]
     let io = {
@@ -33,8 +40,7 @@ pub(super) async fn request(
         );
         tokio::net::UnixStream::connect(endpoint).await?
     };
-    let (mut sender, connection) =
-        hyper::client::conn::http1::handshake(hyper_util::rt::TokioIo::new(io)).await?;
+    let (mut sender, connection) = client::conn::http1::handshake(rt::TokioIo::new(io)).await?;
     let driver = tokio::spawn(connection);
     let request = hyper::Request::builder()
         .method(method)
@@ -59,11 +65,7 @@ pub(super) async fn request(
         }
     }
 }
-pub(super) async fn small(
-    endpoint: &std::path::Path,
-    method: &str,
-    path: &str,
-) -> eyre::Result<Vec<u8>> {
+pub(super) async fn small(endpoint: &Path, method: &str, path: &str) -> eyre::Result<Vec<u8>> {
     let mut received = request(endpoint, method, path, bytes_body(Bytes::new()), 0).await?;
     eyre::ensure!(
         received.response.status().is_success(),

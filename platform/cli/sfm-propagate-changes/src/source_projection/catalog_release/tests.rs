@@ -7,7 +7,10 @@ use super::catalog_release_fixture::inventory;
 use super::catalog_release_plan::CHANGELOG;
 use crate::cancellation::CancellationToken;
 use crate::cli::Cli;
+use crate::cli::InvocationHomes;
 use crate::cli::output::OutputFormat;
+use crate::paths::AppHome;
+use crate::paths::CacheHome;
 use crate::source_projection::catalog_owned_project::recheck_observation;
 use crate::source_projection::core_features::CoreFeatureDefinitions;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
@@ -44,7 +47,12 @@ fn invoke_cli(
         args.extend(["--repo-root", root]);
     }
     let cli = figue::from_slice::<Cli>(&args).into_result()?.get_silent();
-    let output = cli.invoke_in(CancellationToken::new(), invocation_dir)?;
+    let temporary = tempfile::tempdir()?;
+    let homes = InvocationHomes::new(
+        AppHome(temporary.path().join("settings")),
+        Ok(CacheHome(temporary.path().join("cache"))),
+    );
+    let output = cli.invoke_in(CancellationToken::new(), invocation_dir, &homes)?;
     assert_eq!(output.exit_code(), 0);
     output
         .render(Some(OutputFormat::Json), false)?

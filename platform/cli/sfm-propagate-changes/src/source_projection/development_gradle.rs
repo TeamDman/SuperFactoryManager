@@ -23,9 +23,12 @@ use sha1::Sha1;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use walkdir::WalkDir;
 
 pub const DEVELOPMENT_1194_CANONICAL_COMMIT: &str = "b046574be908e40d647858dedc872ab9c4305170";
@@ -306,8 +309,8 @@ pub fn verify_development_gradle_inputs(
         sha256(&provenance_bytes) == format!("sha256:{expected_provenance_sha256}"),
         "development Gradle provenance differs from the pinned SHA-256"
     );
-    let provenance_text = std::str::from_utf8(&provenance_bytes)
-        .wrap_err("development Gradle provenance is not UTF-8")?;
+    let provenance_text =
+        from_utf8(&provenance_bytes).wrap_err("development Gradle provenance is not UTF-8")?;
     let provenance: DevelopmentGradleProvenance = facet_json::from_str(provenance_text)
         .wrap_err("cannot parse development Gradle provenance")?;
     ensure!(
@@ -669,8 +672,6 @@ fn is_lower_hex(value: &str, len: usize) -> bool {
 
 #[cfg(unix)]
 fn verify_unix_mode(path: &Path, expected: &str) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
     let executable = fs::metadata(path)?.permissions().mode() & 0o111 != 0;
     ensure!(
         executable == (expected == "100755"),

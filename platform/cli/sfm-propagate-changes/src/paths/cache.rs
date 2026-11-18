@@ -1,13 +1,17 @@
+use super::AppHome;
+use super::CacheHomeSource;
+use super::SelectedCacheHome;
 use directories_next::ProjectDirs;
 use eyre::Context;
 use eyre::ensure;
+use std::env;
+use std::fs::read_to_string;
+use std::fs::symlink_metadata;
+use std::ops;
 #[cfg(windows)]
 use std::os::windows::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::LazyLock;
-
-static CACHE_DIR: LazyLock<eyre::Result<CacheHome>> = LazyLock::new(CacheHome::resolve);
 
 pub const CACHE_ROOT_FILE: &str = "cache_root.txt";
 pub const CACHE_ROOT_MARKER: &str = ".sfm-propagate-changes-cache-root";
@@ -49,16 +53,6 @@ pub(crate) fn portable_cache_relative(path: &Path) -> eyre::Result<Option<PathBu
 pub struct CacheHome(pub PathBuf);
 
 impl CacheHome {
-    /// Return the cache selection held for this process.
-    ///
-    /// # Errors
-    /// Returns the original resolution failure without selecting another directory.
-    pub fn current() -> eyre::Result<&'static Self> {
-        CACHE_DIR
-            .as_ref()
-            .map_err(|error| eyre::eyre!("Cannot resolve SFM cache root: {error:#}"))
-    }
-
     /// Resolve the `CacheHome` according to:
     /// * If [`super::APP_CACHE_ENV_VAR`] env var is set, use that directory
     /// * Otherwise use the persisted `cache root set` choice
@@ -67,13 +61,10 @@ impl CacheHome {
     /// # Errors
     ///
     /// This function will return an error if the cache directory cannot be determined.
-    pub fn resolve() -> eyre::Result<CacheHome> {
-        if let Some(fixture) = crate::java_analysis::current_scenario_fixture() {
-            return Ok(fixture.cache_home);
-        }
+    pub(crate) fn resolve(app_home: &AppHome) -> eyre::Result<SelectedCacheHome> {
         resolve_selected_cache_root(
-            std::env::var_os(super::APP_CACHE_ENV_VAR).map(PathBuf::from),
-            &super::APP_HOME.file_path(CACHE_ROOT_FILE),
+            env::var_os(super::APP_CACHE_ENV_VAR).map(PathBuf::from),
+            &app_home.file_path(CACHE_ROOT_FILE),
             || {
                 ProjectDirs::from("", "teamdman", super::APP_CACHE_DIR_NAME)
                     .map(|dirs| dirs.cache_dir().to_path_buf())
@@ -87,17 +78,20 @@ fn resolve_selected_cache_root(
     override_dir: Option<PathBuf>,
     config: &Path,
     default: impl FnOnce() -> eyre::Result<PathBuf>,
-) -> eyre::Result<CacheHome> {
+) -> eyre::Result<SelectedCacheHome> {
     if let Some(path) = override_dir {
         ensure!(
             path.is_absolute(),
             "{} must be an absolute path",
             super::APP_CACHE_ENV_VAR
         );
-        return Ok(CacheHome(path));
+        return Ok(SelectedCacheHome {
+            home: CacheHome(path),
+            source: CacheHomeSource::EnvironmentOverride,
+        });
     }
     if config.exists() {
-        let content = std::fs::read_to_string(config)
+        let content = read_to_string(config)
             .wrap_err_with(|| format!("Cannot read configured cache root: {}", config.display()))?;
         let path = PathBuf::from(content.trim());
         ensure!(
@@ -105,7 +99,7 @@ fn resolve_selected_cache_root(
             "Configured cache root is not an existing absolute directory: {}",
             path.display()
         );
-        let metadata = std::fs::symlink_metadata(&path)?;
+        let metadata = symlink_metadata(&path)?;
         ensure!(
             !metadata.file_type().is_symlink(),
             "Configured cache root must not be a link: {}",
@@ -118,16 +112,22 @@ fn resolve_selected_cache_root(
             path.display()
         );
         ensure!(
-            std::fs::read_to_string(path.join(CACHE_ROOT_MARKER))? == CACHE_ROOT_MARKER_CONTENT,
+            read_to_string(path.join(CACHE_ROOT_MARKER))? == CACHE_ROOT_MARKER_CONTENT,
             "Configured cache root has no valid SFM ownership marker: {}",
             path.display()
         );
-        return Ok(CacheHome(path));
+        return Ok(SelectedCacheHome {
+            home: CacheHome(path),
+            source: CacheHomeSource::PersistentSetting,
+        });
     }
-    Ok(CacheHome(default()?))
+    Ok(SelectedCacheHome {
+        home: CacheHome(default()?),
+        source: CacheHomeSource::PlatformDefault,
+    })
 }
 
-impl std::ops::Deref for CacheHome {
+impl ops::Deref for CacheHome {
     type Target = Path;
 
     fn deref(&self) -> &Self::Target {
@@ -180,29 +180,25 @@ mod tests {
         .unwrap();
         let config = temporary.path().join("cache_root.txt");
         std::fs::write(&config, configured.display().to_string()).unwrap();
-        assert_eq!(
+        let selected =
             resolve_selected_cache_root(None, &config, || panic!("default should stay lazy"))
-                .unwrap()
-                .0,
-            configured
-        );
-        assert_eq!(
-            resolve_selected_cache_root(Some(environment.clone()), &config, || panic!(
-                "default should stay lazy"
-            ))
-            .unwrap()
-            .0,
-            environment
-        );
+                .unwrap();
+        assert_eq!(selected.home.0, configured);
+        assert_eq!(selected.source, CacheHomeSource::PersistentSetting);
+        let selected = resolve_selected_cache_root(Some(environment.clone()), &config, || {
+            panic!("default should stay lazy")
+        })
+        .unwrap();
+        assert_eq!(selected.home.0, environment);
+        assert_eq!(selected.source, CacheHomeSource::EnvironmentOverride);
         std::fs::remove_file(config).unwrap();
-        assert_eq!(
-            resolve_selected_cache_root(None, &temporary.path().join("cache_root.txt"), || Ok(
-                default.clone()
-            ))
-            .unwrap()
-            .0,
-            default
-        );
+        let selected =
+            resolve_selected_cache_root(None, &temporary.path().join("cache_root.txt"), || {
+                Ok(default.clone())
+            })
+            .unwrap();
+        assert_eq!(selected.home.0, default);
+        assert_eq!(selected.source, CacheHomeSource::PlatformDefault);
     }
 
     #[test]

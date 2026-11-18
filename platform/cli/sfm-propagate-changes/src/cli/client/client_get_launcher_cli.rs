@@ -1,3 +1,4 @@
+use crate::paths::AppHome;
 use facet::Facet;
 
 /// Arguments for showing the configured client launcher path.
@@ -8,7 +9,7 @@ impl ClientGetLauncherArgs {
     /// # Errors
     ///
     /// Returns an error if the launcher path cannot be read or stdout cannot be written.
-    pub fn invoke(self) -> eyre::Result<()> {
-        super::client_cli::get_launcher()
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+        super::client_cli::get_launcher(app_home)
     }
 }

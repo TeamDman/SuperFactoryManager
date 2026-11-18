@@ -1,12 +1,13 @@
+use crate::source_projection;
 use facet::Facet;
 #[derive(Clone, Debug, Facet)]
 pub(crate) struct ReviewFile {
     #[facet(default, skip_serializing_if = Option::is_none)]
     pub old_related_references:
-        Option<crate::source_projection::reference_associations::ReferenceAssociations>,
+        Option<source_projection::reference_associations::ReferenceAssociations>,
     #[facet(default, skip_serializing_if = Option::is_none)]
     pub new_related_references:
-        Option<crate::source_projection::reference_associations::ReferenceAssociations>,
+        Option<source_projection::reference_associations::ReferenceAssociations>,
     #[facet(default, skip_serializing_if = Option::is_none)]
     pub whitespace_basis: Option<String>,
     pub id: String,

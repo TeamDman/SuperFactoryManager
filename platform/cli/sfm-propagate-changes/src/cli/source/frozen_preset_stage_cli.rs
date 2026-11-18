@@ -22,17 +22,25 @@ use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
 use figue::{self as args};
+use gix::index::entry::Flags;
+use gix::index::entry::Stage;
+use gix::open::Options;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::Read as _;
 use std::io::Write as _;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::id as process_id;
+use std::str::from_utf8;
 use std::time::SystemTime;
 
 const PREVIEW_MAX_BYTES: u64 = 96 * 1024 * 1024;
@@ -218,7 +226,7 @@ fn read_reviewed_preview(
         digest == reviewed_sha256,
         "frozen matrix preview SHA-256 differs from caller-reviewed digest"
     );
-    let text = std::str::from_utf8(&bytes).wrap_err("frozen matrix preview is not UTF-8")?;
+    let text = from_utf8(&bytes).wrap_err("frozen matrix preview is not UTF-8")?;
     let report: FrozenInventoryMatrixPreviewReport =
         facet_json::from_str(text).wrap_err("cannot parse frozen matrix preview")?;
     let canonical = facet_json::to_string_pretty(&report)?;
@@ -249,7 +257,7 @@ fn preflight_plan(
     );
     // Existing checked-in manifests mix compact and pretty JSON. Their exact
     // reviewed bytes matter here; only the newly staged output is canonicalized.
-    let mut manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&candidate_bytes)?)?;
+    let mut manifest = SourceProjectionManifest::from_json(from_utf8(&candidate_bytes)?)?;
     let id = &preview.release_preset_id;
     ensure!(
         manifest
@@ -369,7 +377,7 @@ fn apply_plan(
     ensure_plan_path(root, MANIFEST_PATH, true)?;
     let temp_relative = format!(
         "platform/minecraft/.source-projection.json.frozen-stage-{}-{}",
-        std::process::id(),
+        process_id(),
         SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)?
             .as_nanos()
@@ -465,7 +473,7 @@ fn ensure_candidate_quiescent(root: &Path, plan: &StagePlan) -> Result<()> {
     {
         ensure!(
             entry.starts_with(b"?? ")
-                && std::str::from_utf8(&entry[3..]).is_ok_and(|path| expected.contains(path)),
+                && from_utf8(&entry[3..]).is_ok_and(|path| expected.contains(path)),
             "candidate checkout gained an unexpected staged, unstaged or untracked edit during staging"
         );
     }
@@ -497,7 +505,7 @@ fn ensure_clean_candidate(root: &Path, commit: &str) -> Result<()> {
 }
 
 fn candidate_repository(root: &Path) -> Result<gix::Repository> {
-    let repository = gix::open_opts(root, gix::open::Options::isolated())?;
+    let repository = gix::open_opts(root, Options::isolated())?;
     let workdir = repository
         .workdir()
         .ok_or_else(|| eyre::eyre!("candidate requires a Git worktree"))?;
@@ -509,8 +517,6 @@ fn candidate_repository(root: &Path) -> Result<gix::Repository> {
 }
 
 fn ensure_unconcealed_index(root: &Path) -> Result<()> {
-    use gix::index::entry::Flags;
-    use gix::index::entry::Stage;
     // Reopen for each transaction checkpoint so concurrent index replacements
     // cannot be hidden by a retained in-memory index.
     let repository = candidate_repository(root)?;
@@ -552,8 +558,7 @@ fn ensure_plan_path(root: &Path, relative: &str, allow_file: bool) -> Result<()>
             .collect::<io::Result<Vec<_>>>()?
             .into_iter()
             .any(|name| {
-                name.to_string_lossy().eq_ignore_ascii_case(part)
-                    && name != std::ffi::OsStr::new(part)
+                name.to_string_lossy().eq_ignore_ascii_case(part) && name != OsStr::new(part)
             });
         ensure!(
             !colliding,
@@ -622,7 +627,6 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x0000_0400 != 0
     }
     #[cfg(not(windows))]

@@ -15,7 +15,10 @@ use facet::Facet;
 use figue::{self as args};
 use sha2::Digest as _;
 use std::fs;
+use std::io::ErrorKind;
 use std::io::Read;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as _;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -266,7 +269,6 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
         metadata.file_attributes() & 0x0000_0400 != 0
     }
     #[cfg(not(windows))]
@@ -341,7 +343,7 @@ fn pump(
     loop {
         cancellation_token.bail_if_cancelled()?;
         let read = match reader.read(&mut buffer) {
-            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) if error.kind() == ErrorKind::Interrupted => continue,
             result => result.wrap_err("cannot read input while hashing")?,
         };
         if read == 0 {
@@ -367,9 +369,12 @@ fn lower_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::InvocationHomes;
     use crate::cli::output::OutputFormat;
     use crate::jar_build::hash::ContentHash;
     use crate::jar_build::hash::ContentHashAlgorithm;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use std::io;
     use std::io::Cursor;
 
@@ -403,7 +408,14 @@ mod tests {
         .get_silent();
         assert!(matches!(&cli.command, crate::cli::Command::Hash(_)));
         let output = cli
-            .invoke_in(CancellationToken::new(), temp.path())
+            .invoke_in(
+                CancellationToken::new(),
+                temp.path(),
+                &InvocationHomes::new(
+                    AppHome(temp.path().join("settings")),
+                    Ok(CacheHome(temp.path().join("cache"))),
+                ),
+            )
             .unwrap();
         let json = output
             .render(Some(OutputFormat::Json), false)

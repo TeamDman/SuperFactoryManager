@@ -1,4 +1,6 @@
 use crate::cli::repo_root::get_repo_root;
+use crate::git_read;
+use crate::paths::AppHome;
 use crate::sfm_path::SfmPath;
 use crate::state::State;
 use crate::state::Status;
@@ -11,6 +13,7 @@ use dunce::canonicalize;
 use eyre::Context;
 use eyre::bail;
 use std::fmt::Write;
+use std::io;
 use std::io::BufRead;
 use std::io::IsTerminal;
 use std::path::Path;
@@ -96,12 +99,12 @@ fn is_ignored_generated_cache_entry(change: &str) -> bool {
 
 /// Check if there are merge conflicts in a worktree
 fn has_merge_conflicts(path: &Path) -> eyre::Result<bool> {
-    Ok(!crate::git_read::conflicted_paths(path)?.is_empty())
+    Ok(!git_read::conflicted_paths(path)?.is_empty())
 }
 
 /// Get the list of conflicted files in a worktree
 fn get_conflicted_files(path: &Path) -> eyre::Result<Vec<String>> {
-    crate::git_read::conflicted_paths(path)
+    git_read::conflicted_paths(path)
 }
 
 /// Get the list of staged files (changes to be committed) in a worktree
@@ -237,7 +240,7 @@ fn partition_conflicts(files: &[String]) -> (Vec<&String>, Vec<&String>) {
 
 /// Prompt user with Y/n question (defaults to yes)
 fn prompt_yes_no(question: &str) -> eyre::Result<bool> {
-    if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+    if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
         bail!(
             "Cannot prompt to auto-resolve merge conflicts because standard input/output is not a terminal. Resolve the conflicts manually, then rerun `sfm-propagate-changes git merge`."
         );
@@ -246,7 +249,7 @@ fn prompt_yes_no(question: &str) -> eyre::Result<bool> {
     stdout_prompt(format!("{question} [Y/n] "))?;
 
     let mut input = String::new();
-    std::io::stdin().lock().read_line(&mut input)?;
+    io::stdin().lock().read_line(&mut input)?;
 
     let trimmed = input.trim();
     // Default to yes if empty, only false if explicitly "n" or "no"
@@ -366,7 +369,7 @@ fn try_auto_resolve_keep_ours_conflicts(path: &PathBuf) -> eyre::Result<bool> {
 
 /// Check if we're in the middle of a merge
 fn is_merging(path: &Path) -> eyre::Result<bool> {
-    crate::git_read::is_merging(path)
+    git_read::is_merging(path)
 }
 
 /// Result of checking if a merge would have conflicts
@@ -550,15 +553,15 @@ fn commit_merge(source: &Worktree, dest: &Worktree) -> eyre::Result<()> {
 /// # Errors
 ///
 /// Returns an error if any step of the propagation fails.
-pub fn run(options: PropagateOptions) -> eyre::Result<()> {
-    let repo_root = get_repo_root()?;
-    let mut state = State::load()?;
+pub fn run(options: PropagateOptions, app_home: &AppHome) -> eyre::Result<()> {
+    let repo_root = get_repo_root(app_home)?;
+    let mut state = State::load(app_home)?;
 
     info!(?repo_root, "Starting propagation");
 
     match &state.status {
         Status::Idle => {
-            run_idle_state(&repo_root, &mut state, &options)?;
+            run_idle_state(&repo_root, &mut state, &options, app_home)?;
         }
         Status::MergingWithConflict {
             source_branch,
@@ -576,8 +579,8 @@ pub fn run(options: PropagateOptions) -> eyre::Result<()> {
             // Check if still merging
             if !is_merging(&dest_path.0)? {
                 info!("No longer in a merge state. Resetting to idle and starting over.");
-                state.reset()?;
-                return run(options);
+                state.reset(app_home)?;
+                return run(options, app_home);
             }
 
             // Check if there are still conflicts
@@ -611,8 +614,8 @@ pub fn run(options: PropagateOptions) -> eyre::Result<()> {
             commit_merge(&source, &dest)?;
 
             // Reset state and continue
-            state.reset()?;
-            return run(options);
+            state.reset(app_home)?;
+            return run(options, app_home);
         }
     }
 
@@ -647,6 +650,7 @@ fn run_idle_state(
     repo_root: &PathBuf,
     state: &mut State,
     options: &PropagateOptions,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
     // Get all worktrees
     let mut worktrees = get_worktrees(repo_root)?;
@@ -771,7 +775,7 @@ fn run_idle_state(
                 dest_branch: dest.branch.clone(),
                 dest_path: SfmPath::from(dest.path.clone()),
             };
-            state.save()?;
+            state.save(app_home)?;
 
             let error_msg = format_conflict_error(&dest.path, &dest.branch)?;
             bail!("{}", error_msg);

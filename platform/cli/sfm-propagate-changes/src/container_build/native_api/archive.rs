@@ -1,8 +1,10 @@
 use super::super::context_manifest::ContextManifest;
 use crate::cancellation::CancellationToken;
+use crate::source_projection;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::provenance::sha256;
 use sha2::Digest as _;
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -14,7 +16,7 @@ pub(super) fn header(path: &str, size: u64, executable: bool) -> eyre::Result<[u
         bytes[..text.len()].copy_from_slice(text.as_bytes());
         Ok(())
     }
-    crate::source_projection::promotion::validate_relative_path(path)?;
+    source_projection::promotion::validate_relative_path(path)?;
     let mut block = [0_u8; 512];
     if path.len() <= 100 {
         block[..path.len()].copy_from_slice(path.as_bytes());
@@ -88,7 +90,7 @@ pub(super) fn prepare(
     }
     let manifest = facet_json::to_string_pretty(report)?;
     let data = manifest.as_bytes();
-    let original = std::fs::read(checked_file(root, "context-manifest.json")?)?;
+    let original = fs::read(checked_file(root, "context-manifest.json")?)?;
     eyre::ensure!(
         sha256(&original) == sha256(data),
         "context manifest changed during archive"

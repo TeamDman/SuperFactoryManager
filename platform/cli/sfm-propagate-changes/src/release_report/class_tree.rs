@@ -9,6 +9,7 @@ use crate::source_projection::provenance::sha256;
 use eyre::Result;
 use eyre::ensure;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -265,7 +266,7 @@ fn class_rows(
 ) -> Result<(Packages, BTreeMap<String, usize>)> {
     let mut packages: BTreeMap<String, Vec<(String, usize, usize, usize)>> = BTreeMap::new();
     let mut states: BTreeMap<String, usize> = BTreeMap::new();
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = BTreeSet::new();
     for row in &data.classes {
         cancel.bail_if_cancelled()?;
         ensure!(

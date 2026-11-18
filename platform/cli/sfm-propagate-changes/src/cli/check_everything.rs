@@ -1,9 +1,12 @@
 //! Resumable catalog-scoped synchronization and validation.
+
 use crate::artifact_lock::ArtifactLock;
 use crate::artifact_lock::ArtifactLockWaitPolicy;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::jar_build::java_trust::JavaTrust;
 use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::projection_catalog::ProjectionEntry;
 use eyre::Context;
 use eyre::ensure;
 use facet::Facet;
@@ -12,15 +15,21 @@ use rayon::prelude::*;
 use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
+use std::env::current_exe;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::fs::{self};
 use std::io::Read;
 use std::io::Write;
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
+use std::process::id as process_id;
+#[cfg(windows)]
+use std::ptr::null_mut;
 use std::thread;
 use std::time::Duration;
 
@@ -183,10 +192,6 @@ impl CheckEverythingArgs {
     ///
     /// # Errors
     /// Rejects invalid selection, inaccessible checked inputs, lock contention, or receipt I/O.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "selection, guarded scheduling and summary publication form one command boundary"
-    )]
     pub fn invoke_in(
         self,
         cancellation: &CancellationToken,
@@ -289,27 +294,14 @@ impl CheckEverythingArgs {
         let ctx = ContextState {
             root,
             state_root: state_root.clone(),
-            exe: std::env::current_exe()?,
+            exe: current_exe()?,
             filter: self.headless_filter,
             recipe: self.released_recipe,
             min_free_bytes: self.min_free_bytes,
             fresh: self.fresh,
         };
         let mut rows = Vec::new();
-        if mode != RunMode::Matrix {
-            let mut stopped = false;
-            for key in &selected {
-                for stage in &stages {
-                    if stopped {
-                        rows.push(skipped(key, *stage, "stopped after first failed stage"));
-                        continue;
-                    }
-                    let result = run_one(&ctx, key, *stage, cancellation);
-                    stopped = !is_success(&result);
-                    rows.push(result);
-                }
-            }
-        } else {
+        if mode == RunMode::Matrix {
             if stages.contains(&Stage::Check) {
                 let pool = rayon::ThreadPoolBuilder::new()
                     .num_threads(self.read_workers)
@@ -344,7 +336,21 @@ impl CheckEverythingArgs {
                     rows.push(row);
                 }
             }
+        } else {
+            let mut stopped = false;
+            for key in &selected {
+                for stage in &stages {
+                    if stopped {
+                        rows.push(skipped(key, *stage, "stopped after first failed stage"));
+                        continue;
+                    }
+                    let result = run_one(&ctx, key, *stage, cancellation);
+                    stopped = !is_success(&result);
+                    rows.push(result);
+                }
+            }
         }
+
         let mut summary = Summary {
             schema: SCHEMA.to_owned(),
             manifest,
@@ -358,7 +364,7 @@ impl CheckEverythingArgs {
         };
         let runs = state_root.join("runs");
         fs::create_dir_all(&runs)?;
-        let path = runs.join(format!("summary-{}-{}.json", stamp(), std::process::id()));
+        let path = runs.join(format!("summary-{}-{}.json", stamp(), process_id()));
         summary.path = path.display().to_string();
         write_new_json(&path, &summary)?;
         let exit = u8::from(summary.failed + summary.blocked + summary.skipped > 0);
@@ -367,7 +373,7 @@ impl CheckEverythingArgs {
 }
 
 fn select_keys(
-    catalog: &BTreeMap<String, crate::source_projection::projection_catalog::ProjectionEntry>,
+    catalog: &BTreeMap<String, ProjectionEntry>,
     selector: &str,
 ) -> eyre::Result<Vec<String>> {
     let pattern = glob::Pattern::new(selector)?;
@@ -390,7 +396,7 @@ fn select_keys(
     Ok(keys)
 }
 
-fn selection_pattern<'a>(projection: &'a str, mode: RunMode) -> eyre::Result<&'a str> {
+fn selection_pattern(projection: &str, mode: RunMode) -> eyre::Result<&str> {
     if projection.is_empty() {
         ensure!(
             mode == RunMode::Matrix,
@@ -582,7 +588,7 @@ fn execute_one(
         &Started {
             schema: SCHEMA.to_owned(),
             identity: identity.clone(),
-            pid: std::process::id(),
+            pid: process_id(),
             at_utc: started.clone(),
         },
     )?;
@@ -728,7 +734,6 @@ fn next_attempt(dir: &Path, identity: &str) -> eyre::Result<usize> {
 
 fn output_available(prior: &Receipt, stage: Stage, project: &Path) -> eyre::Result<bool> {
     match stage {
-        Stage::Sync => Ok(true),
         Stage::Jar => {
             let (Some(path), Some(hash)) = (&prior.artifact_path, &prior.artifact_sha256) else {
                 return Ok(false);
@@ -739,7 +744,7 @@ fn output_available(prior: &Receipt, stage: Stage, project: &Path) -> eyre::Resu
             let output = project.join("build/sfm-toolchain/native-project");
             Ok(output.is_dir() && fs::read_dir(output)?.next().is_some())
         }
-        Stage::Check | Stage::Headless => Ok(true),
+        Stage::Sync | Stage::Check | Stage::Headless => Ok(true),
     }
 }
 
@@ -851,16 +856,16 @@ fn operation(
     command
         .stdout(Stdio::from(file))
         .stderr(Stdio::from(stderr));
-    if stage == Stage::Jar {
-        if let Err(error) = preserve_generated_jar(ctx, key, &libs) {
-            return (
-                "blocked".to_owned(),
-                format!("cannot safely preserve prior generated JAR: {error:#}"),
-                None,
-                None,
-                None,
-            );
-        }
+    if stage == Stage::Jar
+        && let Err(error) = preserve_generated_jar(ctx, key, &libs)
+    {
+        return (
+            "blocked".to_owned(),
+            format!("cannot safely preserve prior generated JAR: {error:#}"),
+            None,
+            None,
+            None,
+        );
     }
     let mut child = match command.spawn() {
         Ok(child) => child,
@@ -1063,10 +1068,7 @@ fn input_state(
     stage: Stage,
 ) -> eyre::Result<BTreeMap<String, String>> {
     let mut fingerprints = BTreeMap::new();
-    fingerprints.insert(
-        "java_trust".to_owned(),
-        crate::jar_build::java_trust::JavaTrust::environment_identity()?,
-    );
+    fingerprints.insert("java_trust".to_owned(), JavaTrust::environment_identity()?);
     let core = "platform/minecraft/core-liquid-template";
     let project_relative = project
         .strip_prefix(&ctx.root)?
@@ -1231,7 +1233,7 @@ fn write_new_json<T: for<'a> Facet<'a>>(path: &Path, value: &T) -> eyre::Result<
     ensure!(!path.exists(), "receipt collision: {}", path.display());
     let temporary = path.with_extension(format!(
         "writing-{}-{}",
-        std::process::id(),
+        process_id(),
         chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
     ));
     let mut file = OpenOptions::new()
@@ -1256,7 +1258,6 @@ fn free_bytes(path: &Path) -> eyre::Result<u64> {
             free: *mut u64,
         ) -> i32;
     }
-    use std::os::windows::ffi::OsStrExt;
     let drive = path
         .ancestors()
         .last()
@@ -1268,14 +1269,8 @@ fn free_bytes(path: &Path) -> eyre::Result<u64> {
         .collect::<Vec<_>>();
     let mut available = 0_u64;
     // SAFETY: the null-terminated path and output pointer remain live for this call.
-    let ok = unsafe {
-        GetDiskFreeSpaceExW(
-            wide.as_ptr(),
-            &raw mut available,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-        )
-    };
+    let ok =
+        unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &raw mut available, null_mut(), null_mut()) };
     ensure!(ok != 0, "cannot measure free space for {}", path.display());
     Ok(available)
 }
@@ -1290,7 +1285,6 @@ mod tests {
 
     #[test]
     fn selects_project_or_version_patterns() {
-        use crate::source_projection::projection_catalog::ProjectionEntry;
         let _type_check: Option<ProjectionEntry> = None;
         let pattern = glob::Pattern::new("sfm-dev/*").unwrap();
         assert!(pattern.matches("sfm-dev/mc-1.21.1"));
@@ -1352,7 +1346,6 @@ mod tests {
 #[cfg(test)]
 mod resume_tests {
     use super::*;
-    use crate::source_projection::projection_catalog::ProjectionEntry;
     use crate::source_projection::projection_catalog::ProjectionEnvironment;
 
     #[test]

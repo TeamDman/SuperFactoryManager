@@ -12,6 +12,7 @@ use super::authenticated_minecraft_inputs::MinecraftCompileDownload;
 use super::nfrt_requests::NfrtArtifactRequest;
 use super::nfrt_requests::NfrtRequestCatalog;
 use crate::jdk::ResolvedJava;
+use crate::source_projection;
 use crate::source_projection::frozen_recipe_project::FrozenRecipeProject;
 use crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement;
 use crate::source_projection::nfrt_child_identity_supplement::NfrtChildRequest;
@@ -26,6 +27,10 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::io::Read;
+use std::iter::once;
+use std::path::Path;
+use std::result::Result as StdResult;
+use std::str::from_utf8;
 use std::sync::Arc;
 
 #[cfg(test)]
@@ -324,9 +329,9 @@ impl NfrtExportPlan {
         reason = "Bind every development source, profile, tool and dependency role before publishing a transfer."
     )]
     pub(crate) fn prepare_development(
-        project: &crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner<'_>,
+        project: &source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner<'_>,
         dependencies: &Arc<
-            crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies,
+            source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies,
         >,
         supplement: &NfrtChildIdentitySupplement,
         selected_java: &ResolvedJava,
@@ -398,7 +403,7 @@ impl NfrtExportPlan {
             .filter(|row| row.configuration == "transitiveRuntime")
             .cloned()
             .collect();
-        let parent_coordinates = std::iter::once(NFRT.to_owned())
+        let parent_coordinates = once(NFRT.to_owned())
             .chain(
                 target
                     .parents
@@ -463,7 +468,7 @@ impl NfrtExportPlan {
                 .joined_steps_in_original_order
                 .iter()
                 .map(facet_json::to_string)
-                .collect::<std::result::Result<Vec<_>, _>>()?,
+                .collect::<StdResult<Vec<_>, _>>()?,
             ordered_dependency_rows: roles,
             ordered_runtime_roots: roots,
             ordered_transitive_runtime_rows: runtime,
@@ -569,7 +574,7 @@ impl NfrtExportPlan {
             "NFRT exporter reordered source consumer tools"
         );
         children.extend(supplement.source_library_requests(false)?);
-        let parent_coordinates = std::iter::once(NFRT.to_owned())
+        let parent_coordinates = once(NFRT.to_owned())
             .chain(target.parents.iter().map(|value| value.coordinate.clone()))
             .collect::<Vec<_>>();
         let mut originals = Vec::new();
@@ -612,7 +617,7 @@ impl NfrtExportPlan {
             .joined_steps_in_original_order
             .iter()
             .map(facet_json::to_string)
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+            .collect::<StdResult<Vec<_>, _>>()?;
         let input = NamedNfrtInvocationInput {
             schema: "sfm:named_nfrt_invocation_input@1".to_owned(),
             invocation_id: invocation_id.to_owned(),
@@ -811,7 +816,7 @@ impl NfrtExportPlan {
         self.supplement
             .verify_parent_bytes(coordinate, raw, false)?;
         let bytes = bounded_source_config(raw)?;
-        let config: UserdevSourceLibraries = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+        let config: UserdevSourceLibraries = facet_json::from_str(from_utf8(&bytes)?)?;
         let mut library_coordinates = config.libraries;
         let recipe_parents = self
             .originals
@@ -840,8 +845,7 @@ impl NfrtExportPlan {
             false,
         )?;
         let recipe_bytes = bounded_source_config(recipe_raw)?;
-        let recipe: NeoformSourceLibraries =
-            facet_json::from_str(std::str::from_utf8(&recipe_bytes)?)?;
+        let recipe: NeoformSourceLibraries = facet_json::from_str(from_utf8(&recipe_bytes)?)?;
         let joined = recipe
             .libraries
             .get("joined")
@@ -1307,12 +1311,12 @@ fn sdk_transfer(java: &ResolvedJava, raw: &[u8], minimum: u16) -> Result<NfrtToo
     })
 }
 
-fn configured_target(root: &std::path::Path, target: &str) -> Result<ReviewedTarget> {
-    let bytes = crate::source_projection::core_catalog::read_bounded_catalog_input(
+fn configured_target(root: &Path, target: &str) -> Result<ReviewedTarget> {
+    let bytes = source_projection::core_catalog::read_bounded_catalog_input(
         root,
         BUILD_CONFIGURATION_PATH,
     )?;
-    let document: BuildConfiguration = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+    let document: BuildConfiguration = facet_json::from_str(from_utf8(&bytes)?)?;
     ensure!(
         document.schema == "sfm:nfrt_build_configuration@1",
         "unsupported NFRT build configuration"
@@ -1332,16 +1336,14 @@ fn configured_target(root: &std::path::Path, target: &str) -> Result<ReviewedTar
 }
 
 fn configured_released_target(
-    root: &std::path::Path,
+    root: &Path,
     target: &str,
     recipe_id: &str,
 ) -> Result<ReviewedTarget> {
-    if recipe_id
-        != crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
-    {
+    if recipe_id != source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE {
         return configured_target(root, target);
     }
-    let bytes = crate::source_projection::core_catalog::read_bounded_catalog_input(
+    let bytes = source_projection::core_catalog::read_bounded_catalog_input(
         root,
         HISTORICAL_2612_CONFIGURATION_PATH,
     )?;
@@ -1349,7 +1351,7 @@ fn configured_released_target(
         sha256(&bytes) == HISTORICAL_2612_CONFIGURATION_SHA256,
         "historical NFRT configuration changed"
     );
-    let document: BuildConfiguration = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+    let document: BuildConfiguration = facet_json::from_str(from_utf8(&bytes)?)?;
     ensure!(
         document.schema == "sfm:nfrt_historical_2612_build_configuration@1"
             && document.targets.len() == 1,
@@ -1543,7 +1545,6 @@ pub(super) mod tests {
     use crate::source_projection::core_inputs::CoreProjectInputs;
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
-    use std::path::Path;
 
     const RECIPES: &str =
         include_str!("../../../../../docs/tasks/sfm-core-released-native-adapter-review.json");

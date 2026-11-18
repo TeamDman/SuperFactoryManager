@@ -6,8 +6,12 @@ use super::super::read_popular_minecraft_versions;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeProjectFileItem;
+use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use tracing::info;
 
 /// Arguments for listing CurseForge project files.
@@ -38,13 +42,14 @@ impl CurseforgeProjectFileListArgs {
     /// # Errors
     ///
     /// Returns an error if CurseForge project files cannot be queried.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         list_project_files(
             self.project,
             self.api_key,
             self.token,
             self.op_secret,
             self.popular,
+            app_home,
         )
     }
 }
@@ -55,14 +60,15 @@ fn list_project_files(
     token: Option<String>,
     op_secret: Option<String>,
     popular: bool,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let project_id = resolve_project_id(project)?;
+    let project_id = resolve_project_id(project, app_home)?;
     let (key, credential_source) = CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
     let client = CurseforgeHttpClient::new_core_api(key)?;
     let mut files = fetch_project_files(&client, project_id, &credential_source)?;
 
     if popular {
-        let popular_versions = read_popular_minecraft_versions()?;
+        let popular_versions = read_popular_minecraft_versions(app_home)?;
         files.retain(|file| {
             file.game_versions.iter().any(|version| {
                 popular_versions
@@ -119,8 +125,8 @@ fn print_file(file: &CurseforgeProjectFileItem) {
     );
 }
 
-impl std::fmt::Debug for CurseforgeProjectFileListArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeProjectFileListArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeProjectFileListArgs")
             .finish_non_exhaustive()
     }

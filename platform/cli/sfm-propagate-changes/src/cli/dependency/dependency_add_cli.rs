@@ -5,12 +5,14 @@ use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeModLoader;
 use crate::curseforge::CurseforgeProjectFileId;
+use crate::curseforge::CurseforgeProjectFileItem;
 use crate::curseforge::CurseforgeProjectId;
 use crate::curseforge::CurseforgeProjectMetadata;
 use crate::curseforge::file_matches_version_and_loader;
 use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 pub(super) use crate::payload_fetcher::PayloadFetcher as ArtifactFetcher;
 pub(super) use crate::payload_fetcher::http_fetcher;
@@ -37,6 +39,9 @@ use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use facet::Facet;
 use figue as args;
 use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use std::path::PathBuf;
 
 #[derive(Facet)]
@@ -108,9 +113,10 @@ impl DependencyAddArgs {
         self,
         cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
-        let inventory = load_inventory(self.branch.clone(), cache_home)?;
+        let inventory = load_inventory(self.branch.clone(), cache_home, app_home)?;
         let report = match selected_add_source(&self)? {
             DependencyAddSource::Maven => {
                 add_dependency(inventory, &self, cancellation_token, &http_fetcher()?)?
@@ -742,7 +748,7 @@ fn curseforge_target_context(
 }
 
 fn validate_curseforge_file(
-    file: &crate::curseforge::CurseforgeProjectFileItem,
+    file: &CurseforgeProjectFileItem,
     project_id: CurseforgeProjectId,
     file_id: CurseforgeProjectFileId,
     minecraft_version: &str,
@@ -992,8 +998,8 @@ impl MavenCoordinate {
 #[path = "dependency_add_tests.rs"]
 mod tests;
 
-impl std::fmt::Debug for DependencyAddArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for DependencyAddArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("DependencyAddArgs").finish_non_exhaustive()
     }
 }

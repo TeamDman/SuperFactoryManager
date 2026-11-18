@@ -4,6 +4,7 @@ use crate::branch_targets::discover_worktree_targets;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
 use crate::dependency_inventory::DependencyInventory;
+use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
@@ -51,26 +52,27 @@ impl DependencySourceCacheArgs {
         self,
         _cancellation_token: &CancellationToken,
         cache_home: &CacheHome,
+        app_home: &AppHome,
     ) -> eyre::Result<()> {
         match self.command {
-            DependencySourceCacheCommand::Audit(args) => args.invoke(cache_home),
-            DependencySourceCacheCommand::Cleanup(args) => args.invoke(cache_home),
+            DependencySourceCacheCommand::Audit(args) => args.invoke(cache_home, app_home),
+            DependencySourceCacheCommand::Cleanup(args) => args.invoke(cache_home, app_home),
         }
     }
 }
 
 impl DependencySourceCacheAuditArgs {
-    fn invoke(self, cache_home: &CacheHome) -> eyre::Result<()> {
-        let inventory = load_inventory(self.branch, cache_home)?;
-        let references = discovered_git_cache_references(cache_home)?;
+    fn invoke(self, cache_home: &CacheHome, app_home: &AppHome) -> eyre::Result<()> {
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
+        let references = discovered_git_cache_references(cache_home, app_home)?;
         render_git_cache_audit(&audit_git_cache(&inventory, &references)?)
     }
 }
 
 impl DependencySourceCacheCleanupArgs {
-    fn invoke(self, cache_home: &CacheHome) -> eyre::Result<()> {
-        let inventory = load_inventory(self.branch, cache_home)?;
-        let references = discovered_git_cache_references(cache_home)?;
+    fn invoke(self, cache_home: &CacheHome, app_home: &AppHome) -> eyre::Result<()> {
+        let inventory = load_inventory(self.branch, cache_home, app_home)?;
+        let references = discovered_git_cache_references(cache_home, app_home)?;
         let audit = audit_git_cache(&inventory, &references)?;
         render_git_cache_audit(&audit)?;
         ensure_cleanup_is_safe(&references)?;
@@ -110,9 +112,10 @@ struct UnverifiedLockfile {
 
 fn discovered_git_cache_references(
     cache_home: &CacheHome,
+    app_home: &AppHome,
 ) -> eyre::Result<DiscoveredGitCacheReferences> {
     let mut result = DiscoveredGitCacheReferences::default();
-    for target in discover_worktree_targets()? {
+    for target in discover_worktree_targets(app_home)? {
         if !lockfile_path(&target).is_file() {
             continue;
         }

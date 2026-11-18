@@ -9,6 +9,7 @@ use crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDepe
 use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
 use crate::source_projection::prepared_dependency_inputs::PreparedArtifactRequest;
 use crate::source_projection::prepared_dependency_inputs::PreparedDependencyInputs;
+use crate::toolchain_lockfile_schema;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
 use eyre::Result;
 use eyre::ensure;
@@ -42,8 +43,10 @@ impl NfrtArtifactRequest {
         match self {
             Self::Released(request) => request.exact_transport_url(),
             Self::Development { pin, .. } => match pin.provenance {
-                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven
-                | crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp => pin.url.as_deref(),
+                toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven
+                | toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp => {
+                    pin.url.as_deref()
+                }
                 _ => None,
             },
         }
@@ -108,9 +111,12 @@ impl NfrtRequestCatalog {
                         && request.artifact_index() == *index,
                     "development transport metadata lost its catalog binding"
                 );
-                Ok((pin.hash, matches!(pin.provenance,
-                    crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven
-                    | crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp)))
+                Ok((
+                    pin.hash,
+                    matches!(pin.provenance,
+                    toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven
+                    | toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp),
+                ))
             }
             _ => eyre::bail!("NeoForm transport request belongs to another source authority"),
         }

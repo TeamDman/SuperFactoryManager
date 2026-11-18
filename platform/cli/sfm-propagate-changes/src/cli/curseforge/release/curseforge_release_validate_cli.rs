@@ -16,10 +16,15 @@ use crate::cli::jar::get_jar_dir;
 use crate::cli::repo_root::get_repo_root;
 use crate::curseforge::CurseforgeApiSecret;
 use crate::curseforge::CurseforgeHttpClient;
+use crate::paths::AppHome;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+use std::fs::read;
 use tracing::info;
 
 /// Arguments for validating remote CurseForge files against local release jars.
@@ -50,13 +55,14 @@ impl CurseforgeReleaseValidateArgs {
     /// # Errors
     ///
     /// Returns an error if remote file hashes do not match local release jars.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
         validate_release_hashes(
             self.branch,
             self.project,
             self.api_key,
             self.token,
             self.op_secret,
+            app_home,
         )
     }
 }
@@ -67,17 +73,18 @@ fn validate_release_hashes(
     api_key: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
+    app_home: &AppHome,
 ) -> eyre::Result<()> {
-    let branch_query = branch.into_query()?;
-    let project_id = resolve_project_id(project)?;
+    let branch_query = branch.into_query(app_home)?;
+    let project_id = resolve_project_id(project, app_home)?;
 
-    let repo_root = get_repo_root()?;
+    let repo_root = get_repo_root(app_home)?;
     let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
-    let jar_dir = get_jar_dir()?;
+    let jar_dir = get_jar_dir(app_home)?;
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_branch(all_jars, &branch_query)?;
+    let jars = filter_release_jars_by_branch(all_jars, &branch_query, app_home)?;
 
     let (core_key, credential_source) =
         CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
@@ -90,7 +97,7 @@ fn validate_release_hashes(
 
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
-        let local_bytes = std::fs::read(&jar)
+        let local_bytes = read(&jar)
             .wrap_err_with(|| format!("Failed to read local jar for hashing: {}", jar.display()))?;
         let local_sha1 = sha1_hex(&local_bytes);
 
@@ -174,8 +181,8 @@ fn validate_release_hashes(
     Ok(())
 }
 
-impl std::fmt::Debug for CurseforgeReleaseValidateArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for CurseforgeReleaseValidateArgs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("CurseforgeReleaseValidateArgs")
             .finish_non_exhaustive()
     }

@@ -1,13 +1,18 @@
 //! Read-only ledger materialization. The result is an observation, not saveable authority.
 
 use crate::cancellation::CancellationToken;
+use crate::release_review_capture_io;
 use crate::release_review_capture_io::CaptureBudget;
+use crate::release_review_git;
 use crate::release_review_ledger::Document;
 use crate::release_review_ledger::GitReference;
 use crate::release_review_ledger::ReviewLedger;
 use crate::release_review_ledger::TargetLane;
 use crate::release_review_ledger::{self as ledger};
+use crate::release_review_materialize;
 use crate::release_review_v1 as review;
+use crate::release_review_working_tree;
+use crate::release_review_working_tree_materialize;
 use crate::review_session_v1 as session;
 use eyre::eyre;
 use facet::Facet;
@@ -15,8 +20,11 @@ use sha1::Digest as _;
 use sha1::Sha1;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::iter::once;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
+use std::time::Instant;
 
 #[derive(Debug, Facet)]
 pub struct Resolution {
@@ -36,7 +44,7 @@ pub fn resolve(
     roots: &BTreeMap<String, PathBuf>,
     cancellation: &CancellationToken,
 ) -> eyre::Result<Resolution> {
-    let started = std::time::Instant::now();
+    let started = Instant::now();
     ledger::validate(ledger)?;
     let mut result = ledger.state.clone();
     result.schema = review::OBSERVATION_SCHEMA.into();
@@ -46,7 +54,7 @@ pub fn resolve(
         let root = roots
             .get(&target.id)
             .ok_or_else(|| eyre!("missing authorized target root: {}", target.id))?;
-        let target_started = std::time::Instant::now();
+        let target_started = Instant::now();
         let mut current = resolve_target(target, root, review_path, cancellation)?;
         tracing::info!(phase = "target_materialization", lane = %target.id,
             elapsed_ms = target_started.elapsed().as_millis(),
@@ -140,7 +148,7 @@ pub fn resolve(
 fn validate_observation(
     result: &review::ReleaseReviewDocumentV1,
 ) -> eyre::Result<review::ReleaseReviewDocumentV1> {
-    let started = std::time::Instant::now();
+    let started = Instant::now();
     let canonical = review::to_canonical_json(result)?;
     let document = review::parse(&canonical)?;
     tracing::info!(
@@ -169,12 +177,9 @@ fn resolve_target(
                 "scoped Git ledger targets are not yet supported; refusing to ignore scope"
             ));
         }
-        let mut domain = crate::release_review_git::produce_git_review_domain(
-            root,
-            &target.before_commit,
-            after,
-        )
-        .map_err(|error| eyre!(error))?;
+        let mut domain =
+            release_review_git::produce_git_review_domain(root, &target.before_commit, after)
+                .map_err(|error| eyre!(error))?;
         // A new export retains the old review exclusion and adds its own identity.
         // Do not erase a rename crossing an exclusion boundary: its source side is
         // needed to explain the included destination (and vice versa).
@@ -183,13 +188,13 @@ fn resolve_target(
                 !target
                     .excluded_paths
                     .iter()
-                    .chain(std::iter::once(&evidence))
+                    .chain(once(&evidence))
                     .any(|excluded| excluded_path(path.as_bytes(), excluded.as_bytes()))
             })
         });
-        return crate::release_review_materialize::materialize_observation(
+        return release_review_materialize::materialize_observation(
             &domain,
-            &crate::release_review_materialize::ReleaseReviewMaterializeConfig {
+            &release_review_materialize::ReleaseReviewMaterializeConfig {
                 repository_root: root.into(),
                 lane_id: target.id.clone(),
                 repository_id: target.repository_id.clone(),
@@ -202,7 +207,7 @@ fn resolve_target(
             },
         );
     }
-    let config = crate::release_review_working_tree::WorkingTreeReviewConfig {
+    let config = release_review_working_tree::WorkingTreeReviewConfig {
         repository_root: root.into(),
         lane_id: target.id.clone(),
         repository_id: target.repository_id.clone(),
@@ -212,14 +217,13 @@ fn resolve_target(
         include_untracked: target.include_untracked,
         review_evidence_path: evidence,
     };
-    let capture_started = std::time::Instant::now();
-    let input = crate::release_review_working_tree::capture(&config, cancellation)?;
+    let capture_started = Instant::now();
+    let input = release_review_working_tree::capture(&config, cancellation)?;
     tracing::info!(phase = "working_tree_capture", lane = %target.id,
         elapsed_ms = capture_started.elapsed().as_millis(), entries = input.capture.entries.len(),
         "Review resolution phase completed");
-    let materialize_started = std::time::Instant::now();
-    let result =
-        crate::release_review_working_tree_materialize::materialize_observation(&config, input)?;
+    let materialize_started = Instant::now();
+    let result = release_review_working_tree_materialize::materialize_observation(&config, input)?;
     tracing::info!(phase = "working_tree_materialization", lane = %target.id,
         elapsed_ms = materialize_started.elapsed().as_millis(),
         "Review resolution phase completed");
@@ -322,7 +326,7 @@ fn hydrate_history(
         let body = if let Some(text) = contents.get(evidence.sha256.as_str()) {
             Some((*text).to_owned())
         } else if let Some(reference) = reference {
-            let candidates: std::collections::BTreeSet<_> = ledger
+            let candidates: BTreeSet<_> = ledger
                 .targets
                 .iter()
                 .filter(|target| target.repository_id == reference.repository_id)
@@ -369,7 +373,7 @@ fn read_historical_git(
         None,
         1024,
     )?;
-    if std::str::from_utf8(&actual)?.trim() != reference.blob {
+    if from_utf8(&actual)?.trim() != reference.blob {
         return Err(eyre!(
             "historical Git commit/path does not identify the recorded blob"
         ));
@@ -378,7 +382,7 @@ fn read_historical_git(
         root,
         &["cat-file", "blob", &reference.blob],
         None,
-        crate::release_review_capture_io::FILE_LIMIT,
+        release_review_capture_io::FILE_LIMIT,
     )
 }
 

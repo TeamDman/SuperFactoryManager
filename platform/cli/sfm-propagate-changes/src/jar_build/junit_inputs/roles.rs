@@ -16,6 +16,7 @@ use crate::source_projection::core_inputs::CoreSelection;
 use crate::source_projection::core_inputs::render_core_input;
 use crate::source_projection::core_inputs::validate_collection_selection;
 use std::collections::BTreeSet;
+use std::str::from_utf8;
 
 pub(super) fn check(
     report: &mut PreflightReport,
@@ -159,7 +160,7 @@ pub(super) fn exclusion_role(
         role.path,
         role.sha256
     );
-    let patterns: Vec<_> = std::str::from_utf8(&artifact.output_bytes)?
+    let patterns: Vec<_> = from_utf8(&artifact.output_bytes)?
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))

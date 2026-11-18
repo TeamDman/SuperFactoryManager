@@ -11,10 +11,13 @@ use super::read_symbol_server_client_frame;
 use super::write_symbol_server_frame;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
+use std::collections::VecDeque;
 use std::io::Read;
+use std::io::Result as IoResult;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::mpsc;
+use std::thread::Builder as ThreadBuilder;
 use std::time::Duration;
 
 const SYMBOL_SERVER_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(10);
@@ -120,9 +123,9 @@ fn spawn_symbol_server_reader<R: Read + Send + 'static>(
     mut reader: R,
     maximum_frame_bytes: usize,
     events_tx: &mpsc::Sender<RuntimeEvent>,
-) -> std::io::Result<()> {
+) -> IoResult<()> {
     let reader_tx = events_tx.clone();
-    std::thread::Builder::new()
+    ThreadBuilder::new()
         .name("sfm-symbol-server-reader".to_owned())
         .spawn(move || {
             loop {
@@ -363,7 +366,7 @@ fn apply_effects<W: Write>(
     engine: &Arc<DefinitionAtPositionEngine>,
     events_tx: &mpsc::Sender<RuntimeEvent>,
 ) -> eyre::Result<()> {
-    let mut pending = std::collections::VecDeque::from(effects);
+    let mut pending = VecDeque::from(effects);
     while let Some(effect) = pending.pop_front() {
         match effect {
             SymbolServerEffect::Send(frame) => {
@@ -376,7 +379,7 @@ fn apply_effects<W: Write>(
                 let key = SymbolServerRequestKey::from(request.as_ref());
                 let engine = Arc::clone(engine);
                 let events_tx = events_tx.clone();
-                let spawn = std::thread::Builder::new()
+                let spawn = ThreadBuilder::new()
                     .name(format!("sfm-symbol-definition-{}", key.request_id))
                     .spawn(move || {
                         let analyzed =
@@ -416,7 +419,7 @@ fn apply_effects<W: Write>(
                 let key = SymbolServerRequestKey::from(request.as_ref());
                 let engine = Arc::clone(engine);
                 let events_tx = events_tx.clone();
-                let spawn = std::thread::Builder::new()
+                let spawn = ThreadBuilder::new()
                     .name(format!("sfm-symbol-usage-at-position-{}", key.request_id))
                     .spawn(move || {
                         let analyzed = engine
@@ -456,7 +459,7 @@ fn apply_effects<W: Write>(
                 let key = SymbolServerRequestKey::from(request.as_ref());
                 let engine = Arc::clone(engine);
                 let events_tx = events_tx.clone();
-                let spawn = std::thread::Builder::new()
+                let spawn = ThreadBuilder::new()
                     .name(format!("sfm-java-interaction-map-{}", key.request_id))
                     .spawn(move || {
                         let analyzed = engine.analyze_interaction_map_with_telemetry(

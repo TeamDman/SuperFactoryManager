@@ -7,12 +7,20 @@ use crate::toolchain_lockfile_schema::version::v3::GitSourceDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::GitSourceDerivedChecksV3;
 use crate::toolchain_lockfile_schema::version::v3::GitSourceProviderV3;
 use gix::bstr::ByteSlice;
+use gix::hash;
+use gix::progress;
+use gix::remote::Direction;
+use gix::remote::ref_map;
+use gix::url::Scheme;
+use gix::url::parse as parse_git_url;
 use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::io::Read;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
 use std::sync::atomic::AtomicBool;
 
 /// Canonicalizes the HTTPS remote spelling used to select a managed bare repository.
@@ -24,9 +32,9 @@ use std::sync::atomic::AtomicBool;
 ///
 /// Returns an error when the remote is invalid, non-HTTPS, credential-bearing, or incomplete.
 pub fn canonical_https_remote(remote: &str) -> eyre::Result<String> {
-    let mut url = gix::url::parse(remote.as_bytes().as_bstr())
+    let mut url = parse_git_url(remote.as_bytes().as_bstr())
         .map_err(|error| eyre::eyre!("Invalid Git remote '{remote}': {error}"))?;
-    if url.scheme != gix::url::Scheme::Https {
+    if url.scheme != Scheme::Https {
         eyre::bail!("Git source remotes must use HTTPS: {remote}");
     }
     if url.user.is_some() || url.password.is_some() {
@@ -209,7 +217,7 @@ fn open_bare_repository_for_remote(
     cancellation_token.bail_if_cancelled()?;
     let _lock = acquire_repository_lock(repository_path)?;
     let repository = open_or_clone_bare_repository(remote, repository_path)?;
-    let id = gix::hash::ObjectId::from_hex(commit.as_bytes())
+    let id = hash::ObjectId::from_hex(commit.as_bytes())
         .map_err(|error| eyre::eyre!("Invalid locked Git commit '{commit}': {error}"))?;
     if repository.find_commit(id).is_err() {
         fetch_managed_references(&repository, remote, cancellation_token)?;
@@ -224,7 +232,7 @@ fn verify_repository_contains_locked_commit(
     repository_path: &Path,
     commit: &str,
 ) -> eyre::Result<()> {
-    let id = gix::hash::ObjectId::from_hex(commit.as_bytes())
+    let id = hash::ObjectId::from_hex(commit.as_bytes())
         .map_err(|error| eyre::eyre!("Invalid locked Git commit '{commit}': {error}"))?;
     repository.find_commit(id).map_err(|error| {
         eyre::eyre!(
@@ -286,7 +294,7 @@ fn open_or_clone_bare_repository(
             .map_err(|error| eyre::eyre!("Failed to prepare bare clone of {remote}: {error}"))?;
         let interrupted = AtomicBool::new(false);
         let (repository, _) = clone
-            .fetch_only(gix::progress::Discard, &interrupted)
+            .fetch_only(progress::Discard, &interrupted)
             .map_err(|error| eyre::eyre!("Failed to clone {remote}: {error:?}"))?;
         Ok(repository)
     }
@@ -301,7 +309,7 @@ pub(crate) fn materialize_source_build_checkout(
 ) -> eyre::Result<()> {
     let repository =
         open_bare_repository_for_remote(remote, repository_path, commit, cancellation_token)?;
-    let commit_id = gix::hash::ObjectId::from_hex(commit.as_bytes())?;
+    let commit_id = hash::ObjectId::from_hex(commit.as_bytes())?;
     let commit = repository.find_commit(commit_id)?;
     materialize_tree(
         &repository,
@@ -329,25 +337,20 @@ fn fetch_managed_references(
                 "+refs/heads/*:refs/remotes/origin/*",
                 "+refs/tags/*:refs/tags/*",
             ],
-            gix::remote::Direction::Fetch,
+            Direction::Fetch,
         )
         .map_err(|error| eyre::eyre!("Failed to configure managed Git fetch refspec: {error}"))?;
-    let connection = remote
-        .connect(gix::remote::Direction::Fetch)
-        .map_err(|error| {
-            eyre::eyre!("Failed to connect managed Git fetch from {remote_url}: {error}")
-        })?;
+    let connection = remote.connect(Direction::Fetch).map_err(|error| {
+        eyre::eyre!("Failed to connect managed Git fetch from {remote_url}: {error}")
+    })?;
     let interrupted = AtomicBool::new(false);
     let prepared = connection
-        .prepare_fetch(
-            gix::progress::Discard,
-            gix::remote::ref_map::Options::default(),
-        )
+        .prepare_fetch(progress::Discard, ref_map::Options::default())
         .map_err(|error| {
             eyre::eyre!("Failed to prepare managed Git fetch from {remote_url}: {error}")
         })?;
     prepared
-        .receive(gix::progress::Discard, &interrupted)
+        .receive(progress::Discard, &interrupted)
         .map_err(|error| {
             eyre::eyre!("Failed to fetch managed Git repository {remote_url}: {error}")
         })?;
@@ -369,14 +372,13 @@ pub(crate) fn acquire_locked_git_sources(
         cancellation_token,
     )?;
     let _tree_lock = acquire_tree_lock(&output)?;
-    let commit = gix::hash::ObjectId::from_hex(provider.derived_checks.commit.as_bytes()).map_err(
-        |error| {
+    let commit =
+        hash::ObjectId::from_hex(provider.derived_checks.commit.as_bytes()).map_err(|error| {
             eyre::eyre!(
                 "Invalid locked Git commit '{}': {error}",
                 provider.derived_checks.commit
             )
-        },
-    )?;
+        })?;
     let commit = repository.find_commit(commit).map_err(|error| {
         eyre::eyre!(
             "Failed to read locked Git commit {}: {error}",
@@ -442,7 +444,7 @@ pub(crate) fn locked_git_tree_matches_commit(
     let Ok(repository) = gix::open(repository_path) else {
         return false;
     };
-    let Ok(commit_id) = gix::hash::ObjectId::from_hex(commit.as_bytes()) else {
+    let Ok(commit_id) = hash::ObjectId::from_hex(commit.as_bytes()) else {
         return false;
     };
     let Ok(commit_object) = repository.find_commit(commit_id) else {
@@ -458,7 +460,7 @@ const COMPLETION_FILE: &str = ".sfm-git-commit";
 
 fn materialize_tree(
     repository: &gix::Repository,
-    tree: gix::hash::ObjectId,
+    tree: hash::ObjectId,
     output: &Path,
     commit: &str,
     roots: &[String],
@@ -482,7 +484,7 @@ fn materialize_tree(
         .map_err(|error| eyre::eyre!("Failed to read Git tree entry: {error}"))?
     {
         cancellation_token.bail_if_cancelled()?;
-        let relative = std::str::from_utf8(entry.relative_path().as_ref())
+        let relative = from_utf8(entry.relative_path().as_ref())
             .map_err(|_error| eyre::eyre!("Git tree contains a non-UTF-8 source path"))?;
         let path = checked_relative_path(relative)?;
         if path == Path::new(COMPLETION_FILE) {
@@ -526,7 +528,7 @@ fn materialize_tree(
 
 fn git_tree_matches_commit(
     repository: &gix::Repository,
-    source_tree: gix::hash::ObjectId,
+    source_tree: hash::ObjectId,
     output: &Path,
     commit: &str,
     roots: &[String],
@@ -545,7 +547,7 @@ fn git_tree_matches_commit(
         .next_entry()
         .map_err(|error| eyre::eyre!("Failed to read locked Git tree entry: {error}"))?
     {
-        let relative = std::str::from_utf8(entry.relative_path().as_ref())
+        let relative = from_utf8(entry.relative_path().as_ref())
             .map_err(|_error| eyre::eyre!("Git source tree contains a non-UTF-8 path"))?;
         let path = checked_relative_path(relative)?;
         if path == Path::new(COMPLETION_FILE) {
@@ -623,7 +625,7 @@ fn checked_relative_path(value: &str) -> eyre::Result<PathBuf> {
         || path.is_absolute()
         || path
             .components()
-            .any(|part| !matches!(part, std::path::Component::Normal(_)))
+            .any(|part| !matches!(part, Component::Normal(_)))
     {
         eyre::bail!("Git source tree contains an unsafe path: {value}");
     }
