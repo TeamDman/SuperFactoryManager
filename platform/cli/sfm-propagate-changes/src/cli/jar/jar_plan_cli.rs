@@ -7,6 +7,7 @@ use crate::jar_build::BuildOptions;
 use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Arguments for resolving the clean-slate jar build graph.
 #[derive(Facet, Debug, Clone)]
@@ -25,8 +26,9 @@ impl JarPlanArgs {
         self,
         mode: BuildMode,
         app_home: &AppHome,
+        invocation_dir: &Path,
     ) -> eyre::Result<BuildOptions> {
-        let mut options = self.options.into_options(mode, app_home)?;
+        let mut options = self.options.into_options(mode, app_home, invocation_dir)?;
         options.output_name = self.output_name;
         Ok(options)
     }
@@ -37,9 +39,10 @@ impl JarPlanArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
-        let mut options = self.into_options(BuildMode::Plan, homes.app_home())?;
+        let mut options = self.into_options(BuildMode::Plan, homes.app_home(), invocation_dir)?;
         options.cache_home = homes.available_cache_home().cloned();
         BuildCommand::new(options, cancellation_token).invoke()
     }

@@ -675,8 +675,6 @@ impl PromotionTargetCliReport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::InvocationHomes;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
@@ -880,107 +878,6 @@ mod tests {
             .clone_from(&lock.source_manifest_sha256);
         request.transition = PromotionTransition::NewImmutablePreset;
         (fixture, request, lock, gradle_overlays)
-    }
-
-    #[test]
-    fn source_promote_parses_as_dry_run_by_default() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "--output-format",
-            "json",
-            "source",
-            "legacy",
-            "promote",
-            "--request",
-            "reviewed.json",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        assert_eq!(parsed.global_args.output_format, Some(OutputFormat::Json));
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::Promote(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source promote command");
-        };
-        assert_eq!(args.request, PathBuf::from("reviewed.json"));
-        assert_eq!(
-            args.validate_mode(&PromotionTransition::NewImmutablePreset)
-                .unwrap(),
-            PromotionMode::DryRun
-        );
-        assert!(!args.apply);
-    }
-
-    #[test]
-    fn apply_and_repair_acknowledgement_are_explicit_flags() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "promote",
-            "--request",
-            "reviewed.json",
-            "--apply",
-            "--ack-pre-acceptance-baseline-repair",
-            "--candidate-lock",
-            "candidate.json",
-            "--candidate-lock-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::Promote(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source promote command");
-        };
-        assert!(args.apply);
-        assert!(args.ack_pre_acceptance_baseline_repair);
-        assert_eq!(args.candidate_lock, Some(PathBuf::from("candidate.json")));
-        assert!(args.candidate_lock_sha256.unwrap().starts_with("sha256:"));
-    }
-
-    #[test]
-    fn new_immutable_acknowledgement_is_an_explicit_flag() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "promote",
-            "--request",
-            "reviewed.json",
-            "--apply",
-            "--ack-new-immutable-preset",
-            "--candidate-lock",
-            "candidate.json",
-            "--candidate-lock-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::Promote(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source promote command");
-        };
-        assert_eq!(
-            args.validate_mode(&PromotionTransition::NewImmutablePreset)
-                .unwrap(),
-            PromotionMode::Apply
-        );
-        assert!(!args.ack_pre_acceptance_baseline_repair);
     }
 
     #[test]

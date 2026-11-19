@@ -44,7 +44,7 @@ fn main() -> Result<()> {
     let context = loaded.context(&args[1])?;
     let metadata = CoreProjectInputs::from_json(
         &fs::read_to_string(repo.join(CORE_METADATA_PATH))?,
-        &loaded.registered_features,
+        &loaded.feature_registry,
     )?;
     let core = repo.join(CORE_ROOT);
     let selection = select_core_inputs(&metadata, &context, &discover_core_source_files(&core)?)?;

@@ -9,6 +9,7 @@
 use super::candidate_lock::checked_directory;
 #[cfg(not(windows))]
 use super::candidate_lock::checked_file;
+use super::catalog_project_metadata::CatalogProjectMetadata;
 use super::context::ProjectionContext;
 use super::core_catalog::CoreCatalog;
 use super::core_catalog::MAX_CATALOG_INPUT_BYTES;
@@ -16,14 +17,12 @@ use super::core_features::FEATURE_DEFINITIONS_PATH;
 use super::core_inputs::BuildTargetMetadata;
 use super::core_inputs::CORE_METADATA_PATH;
 use super::core_inputs::CORE_ROOT;
-use super::core_inputs::CoreProjectInputs;
 use super::core_inputs::CoreSelection;
 use super::core_inputs::MAX_CORE_FILE_BYTES;
 use super::core_inputs::MAX_CORE_METADATA_BYTES;
 use super::core_inputs::MAX_CORE_PROJECTION_BYTES;
 use super::core_inputs::collect_core_artifacts;
 use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
 use super::named_root::catalog_projection_root;
 pub(crate) use super::preparation_progress::ProjectionPreparationPhase;
 use super::projection_catalog::CATALOG_PATH;
@@ -50,7 +49,7 @@ use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::result::Result as StdResult;
-use std::str::from_utf8;
+use std::sync::Arc;
 use std::sync::OnceLock;
 #[cfg(windows)]
 use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
@@ -95,10 +94,10 @@ pub struct CatalogOwnedFileReceipt {
 /// Private fields prevent callers from substituting an arbitrary source map.
 #[derive(Debug)]
 pub struct CollectedCatalogProject {
-    loaded: CoreCatalog,
+    loaded: Arc<CoreCatalog>,
     context: ProjectionContext,
     identity: CatalogProjectionIdentity,
-    metadata_bytes: Vec<u8>,
+    metadata_bytes: Arc<[u8]>,
     core: PathBuf,
     source_inventory: BTreeSet<String>,
     selection: CoreSelection,
@@ -330,6 +329,16 @@ impl CollectedCatalogProject {
     pub fn check_current(self) -> Result<CatalogOwnedProject> {
         #[cfg(test)]
         source_check_observation::notify("check_current");
+        let (project_root, source_inventory) = self.check_generated_files()?;
+        self.finish_ownership(
+            &project_root,
+            &source_inventory,
+            "read_only_selected_input_ownership_not_native_build",
+        )
+    }
+
+    /// Compare current generated files and their membership with the authored snapshot.
+    pub(super) fn check_generated_files(&self) -> Result<(PathBuf, BTreeSet<String>)> {
         let projection_key = self.identity.projection_key.clone();
         let phase = ProjectionPreparationPhase::start(&projection_key, "check_generated_ownership");
         let project_root = catalog_projection_root(
@@ -362,13 +371,8 @@ impl CollectedCatalogProject {
         read_phase.complete();
         let source_inventory = inspect_generated_sources(&project_root, &self.artifacts)?;
         self.recheck_authored_snapshot()?;
-        let project = self.finish_ownership(
-            &project_root,
-            &source_inventory,
-            "read_only_selected_input_ownership_not_native_build",
-        )?;
         phase.complete();
-        Ok(project)
+        Ok((project_root, source_inventory))
     }
 
     fn finish_ownership(
@@ -411,8 +415,8 @@ impl CollectedCatalogProject {
                     .catalog
                     .project_dir(&self.identity.projection_key)?,
             )?,
-            catalog_sha256: self.loaded.catalog_sha256.clone(),
-            feature_definitions_sha256: self.loaded.feature_definitions_sha256.clone(),
+            catalog_sha256: self.loaded.catalog_sha256().to_owned(),
+            feature_definitions_sha256: self.loaded.feature_definitions_sha256().to_owned(),
             project_inputs_sha256: sha256(&self.metadata_bytes),
             authored_source_inventory_sha256: inventory_digest(&self.source_inventory)?,
             generated_source_inventory_sha256: inventory_digest(source_inventory)?,
@@ -451,23 +455,30 @@ impl CollectedCatalogProject {
         );
         let mut reader = CheckedInputReader::default();
         ensure!(
-            self.loaded.catalog_sha256
-                == sha256(&reader.read(
+            reader
+                .read(
                     &self.loaded.repo_root,
                     CATALOG_PATH,
                     MAX_CATALOG_INPUT_BYTES
-                )?)
-                && self.loaded.feature_definitions_sha256
-                    == sha256(&reader.read(
+                )?
+                .as_slice()
+                == self.loaded.catalog_bytes()
+                && reader
+                    .read(
                         &self.loaded.repo_root,
                         FEATURE_DEFINITIONS_PATH,
                         MAX_CATALOG_INPUT_BYTES
-                    )?)
-                && reader.read(
-                    &self.loaded.repo_root,
-                    CORE_METADATA_PATH,
-                    MAX_CORE_METADATA_BYTES
-                )? == self.metadata_bytes
+                    )?
+                    .as_slice()
+                    == self.loaded.feature_definitions_bytes()
+                && reader
+                    .read(
+                        &self.loaded.repo_root,
+                        CORE_METADATA_PATH,
+                        MAX_CORE_METADATA_BYTES
+                    )?
+                    .as_slice()
+                    == self.metadata_bytes.as_ref()
                 && discover_core_source_files(&self.core)? == self.source_inventory,
             "catalog authored metadata or source inventory changed during collection"
         );
@@ -587,18 +598,26 @@ impl CatalogOwnedProject {
             "retained authority repository or core root changed"
         );
         ensure!(
-            sha256(&reader.read(self.repo_root(), CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?)
-                == self.collected.loaded.catalog_sha256
-                && sha256(&reader.read(
-                    self.repo_root(),
-                    FEATURE_DEFINITIONS_PATH,
-                    MAX_CATALOG_INPUT_BYTES
-                )?) == self.collected.loaded.feature_definitions_sha256
-                && reader.read(
-                    self.repo_root(),
-                    CORE_METADATA_PATH,
-                    MAX_CORE_METADATA_BYTES
-                )? == self.collected.metadata_bytes,
+            reader
+                .read(self.repo_root(), CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?
+                .as_slice()
+                == self.collected.loaded.catalog_bytes()
+                && reader
+                    .read(
+                        self.repo_root(),
+                        FEATURE_DEFINITIONS_PATH,
+                        MAX_CATALOG_INPUT_BYTES
+                    )?
+                    .as_slice()
+                    == self.collected.loaded.feature_definitions_bytes()
+                && reader
+                    .read(
+                        self.repo_root(),
+                        CORE_METADATA_PATH,
+                        MAX_CORE_METADATA_BYTES
+                    )?
+                    .as_slice()
+                    == self.collected.metadata_bytes.as_ref(),
             "retained authority catalog context metadata changed"
         );
         // Keep the existing current destination and Git ownership policy. It
@@ -851,7 +870,8 @@ pub fn collect_catalog_project(
     invocation_dir: &Path,
     projection_key: &str,
 ) -> Result<CollectedCatalogProject> {
-    collect_catalog_project_impl(repo_root, invocation_dir, projection_key, true)
+    let metadata = CatalogProjectMetadata::load(CoreCatalog::load(repo_root, invocation_dir)?)?;
+    collect_catalog_project_impl(&metadata, projection_key, true)
 }
 
 /// Internal collection for an invocation which performs its complete ownership
@@ -861,7 +881,8 @@ pub(crate) fn collect_development_invocation(
     invocation_dir: &Path,
     projection_key: &str,
 ) -> Result<CollectedCatalogProject> {
-    let collected = collect_catalog_project_impl(repo_root, invocation_dir, projection_key, false)?;
+    let metadata = CatalogProjectMetadata::load(CoreCatalog::load(repo_root, invocation_dir)?)?;
+    let collected = collect_catalog_project_impl(&metadata, projection_key, false)?;
     ensure!(
         collected.environment() == ProjectionEnvironment::Dev,
         "invocation source snapshots require a development projection"
@@ -869,32 +890,22 @@ pub(crate) fn collect_development_invocation(
     Ok(collected)
 }
 
-fn collect_catalog_project_impl(
-    repo_root: &Path,
-    invocation_dir: &Path,
+pub(super) fn collect_catalog_project_impl(
+    metadata: &CatalogProjectMetadata,
     projection_key: &str,
     verify_collection: bool,
 ) -> Result<CollectedCatalogProject> {
     let phase = ProjectionPreparationPhase::start(projection_key, "collect_catalog_project");
-    let metadata_phase = ProjectionPreparationPhase::start(projection_key, "read_catalog_metadata");
-    let loaded = CoreCatalog::load(repo_root, invocation_dir)?;
+    let loaded = &metadata.catalog;
     let context = loaded.context(projection_key)?;
     let identity = CatalogProjectionIdentity::from_catalog(&loaded.catalog, projection_key)?;
-    let metadata_bytes = read_checked(
-        &loaded.repo_root,
-        CORE_METADATA_PATH,
-        MAX_CORE_METADATA_BYTES,
-    )?;
-    let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &loaded.registered_features)?;
     tracing::info!(
         projection_key,
         catalog_entries = loaded.catalog.0.len(),
-        registered_features = loaded.registered_features.len(),
-        project_inputs_bytes = metadata_bytes.len(),
+        registered_features = loaded.feature_registry.names().len(),
+        project_inputs_bytes = metadata.bytes.len(),
         "Projection catalog metadata validated"
     );
-    metadata_phase.complete();
     let core = checked_directory(&loaded.repo_root.join(CORE_ROOT))?;
     let inventory_phase =
         ProjectionPreparationPhase::start(projection_key, "discover_authored_source_inventory");
@@ -902,7 +913,7 @@ fn collect_catalog_project_impl(
     inventory_phase.complete_with_counts(source_inventory.len(), 0);
     let selection_phase =
         ProjectionPreparationPhase::start(projection_key, "select_projection_inputs");
-    let selection = select_core_inputs(&metadata, &context, &source_inventory)?;
+    let selection = metadata.select(&context, &source_inventory)?;
     selection_phase.complete_with_counts(selection.inputs.len(), 0);
     let render_phase =
         ProjectionPreparationPhase::start(projection_key, "read_and_render_selected_inputs");
@@ -924,10 +935,10 @@ fn collect_catalog_project_impl(
     );
     render_phase.complete_with_counts(artifacts.len(), source_bytes + output_bytes);
     let collected = CollectedCatalogProject {
-        loaded,
+        loaded: Arc::clone(loaded),
         context,
         identity,
-        metadata_bytes,
+        metadata_bytes: Arc::clone(&metadata.bytes),
         core,
         source_inventory,
         selection,
@@ -1054,7 +1065,7 @@ fn add_budget(total: &mut u64, bytes: usize) -> Result<()> {
     feature = "tracy",
     tracing::instrument(name = "catalog.read_checked", level = "info", skip_all)
 )]
-fn read_checked(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
+pub(super) fn read_checked(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
     CheckedInputReader::default().read(root, relative, limit)
 }
 
@@ -1235,12 +1246,13 @@ fn portable_path(path: &Path) -> Result<String> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::super::core_features::CoreFeatureDefinitions;
+    use super::super::core_inputs::CoreProjectInputs;
     use super::super::core_inputs::InputPredicate;
     use super::super::core_inputs::InputVariant;
     use super::super::projection_catalog::ProjectionCatalog;
     use super::super::projection_catalog::SUPPORTED_TARGETS;
     use super::super::reference_associations::ReferenceAssociations;
+    use super::super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use super::*;
     use std::cell::RefCell;
     #[cfg(unix)]
@@ -1578,8 +1590,9 @@ pub(crate) mod tests {
                 .temp
                 .path()
                 .join(super::super::core_features::FEATURE_DEFINITIONS_PATH);
-            let mut definitions = CoreFeatureDefinitions::from_json(&fs::read_to_string(&path)?)?;
-            for (name, definition) in &original.definitions.0 {
+            let mut definitions =
+                SfmProjectionFeatureRegistry::from_json(&fs::read_to_string(&path)?)?;
+            for (name, definition) in &original.feature_registry.0 {
                 ensure!(
                     !definitions.0.contains_key(name),
                     "fixture feature collision: {name}"
@@ -1587,10 +1600,9 @@ pub(crate) mod tests {
                 definitions.0.insert(name.clone(), definition.clone());
             }
             definitions.validate()?;
-            let registered = definitions.registered_names();
             let catalog_path = self.temp.path().join(CATALOG_PATH);
             let mut catalog =
-                ProjectionCatalog::from_json(&fs::read_to_string(&catalog_path)?, &registered)?;
+                ProjectionCatalog::from_json(&fs::read_to_string(&catalog_path)?, &definitions)?;
             let original_entry = original
                 .catalog
                 .0
@@ -1607,7 +1619,7 @@ pub(crate) mod tests {
             entry.features.clone_from(&original_entry.features);
             definitions.validate_entry(entry)?;
             fs::write(path, facet_json::to_string_pretty(&definitions)?)?;
-            fs::write(catalog_path, catalog.to_json(&registered)?)?;
+            fs::write(catalog_path, catalog.to_json(&definitions)?)?;
             Ok(())
         }
         /// Replace only one target's selected project role in this temp fixture.
@@ -1688,7 +1700,9 @@ pub(crate) mod tests {
                 );
             }
             self.metadata
-                .validate(&BTreeSet::from(["review_toggle".to_owned()]))?;
+                .validate(&SfmProjectionFeatureRegistry::test_registry([
+                    "review_toggle",
+                ]))?;
             fs::write(
                 self.temp.path().join(CORE_METADATA_PATH),
                 facet_json::to_string_pretty(&self.metadata)?,

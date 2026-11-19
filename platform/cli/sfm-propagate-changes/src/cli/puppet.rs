@@ -11,6 +11,7 @@ use crate::jar_build::SourceCatalogCommand;
 use crate::jar_build::SourceCatalogQuery;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Discover and run SFM game-puppet definitions.
@@ -94,12 +95,18 @@ impl PuppetArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         let app_home = homes.app_home();
         match self.command {
             PuppetCommand::Run(args) => invoke_game_puppet(
-                args.options,
+                || {
+                    Ok(args
+                        .options
+                        .into_options(BuildMode::Build, app_home, invocation_dir)?
+                        .with_cache_home(homes.available_cache_home()))
+                },
                 &args.puppet,
                 args.game_test,
                 args.width,
@@ -110,11 +117,11 @@ impl PuppetArgs {
                 args.control_cli_source_root,
                 args.java_max_heap_mib,
                 cancellation_token,
-                homes,
+                invocation_dir,
             ),
             PuppetCommand::List(args) => SourceCatalogCommand::new(
                 args.options
-                    .into_options(BuildMode::Plan, app_home)?
+                    .into_options(BuildMode::Plan, app_home, invocation_dir)?
                     .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Puppet,
@@ -125,7 +132,7 @@ impl PuppetArgs {
             .invoke(),
             PuppetCommand::Show(args) => SourceCatalogCommand::new(
                 args.options
-                    .into_options(BuildMode::Plan, app_home)?
+                    .into_options(BuildMode::Plan, app_home, invocation_dir)?
                     .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Puppet,
@@ -134,8 +141,8 @@ impl PuppetArgs {
                 cancellation_token,
             )
             .invoke(),
-            PuppetCommand::Artifacts(args) => args.invoke(),
-            PuppetCommand::Matrix(args) => args.invoke(&cancellation_token, homes),
+            PuppetCommand::Artifacts(args) => args.invoke(invocation_dir),
+            PuppetCommand::Matrix(args) => args.invoke(&cancellation_token, invocation_dir, homes),
         }
     }
 }

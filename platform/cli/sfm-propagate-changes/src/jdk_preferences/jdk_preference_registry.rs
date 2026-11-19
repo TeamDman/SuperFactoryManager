@@ -255,6 +255,7 @@ fn release_property<'a>(release: &'a str, key: &str) -> Option<&'a str> {
 }
 
 fn inspect_home(id: &str, requested: &Path) -> eyre::Result<JdkPreference> {
+    ensure!(requested.is_absolute(), "JDK home must be absolute");
     ensure!(
         requested.is_dir(),
         "JDK home is not a directory: {}",

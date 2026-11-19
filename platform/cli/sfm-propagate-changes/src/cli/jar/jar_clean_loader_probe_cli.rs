@@ -1,8 +1,10 @@
 use crate::cancellation::CancellationToken;
 use crate::jar_build::CleanLoaderProbeCommand;
 use crate::jar_build::CleanLoaderProbeOptions;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -66,7 +68,11 @@ impl JarCleanLoaderProbeArgs {
     /// # Errors
     ///
     /// Returns an error when arguments, artifact inspection, installation, or launch proof fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        self,
+        cancellation_token: CancellationToken,
+        invocation_dir: &Path,
+    ) -> eyre::Result<()> {
         CleanLoaderProbeCommand::new(
             CleanLoaderProbeOptions {
                 release_jar: self.release_jar,
@@ -88,7 +94,7 @@ impl JarCleanLoaderProbeArgs {
             },
             cancellation_token,
         )
-        .invoke()
+        .invoke(&InvocationDirectory::new(invocation_dir)?)
     }
 }
 

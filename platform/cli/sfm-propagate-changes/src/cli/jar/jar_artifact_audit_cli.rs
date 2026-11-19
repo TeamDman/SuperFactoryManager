@@ -6,8 +6,10 @@ use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use crate::paths::AppHome;
 use crate::paths::CacheHome;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Options for auditing locked SFM toolchain artifacts.
@@ -39,12 +41,18 @@ impl JarArtifactAuditArgs {
         self,
         app_home: &AppHome,
         cache_home: &CacheHome,
+        invocation_dir: &Path,
     ) -> eyre::Result<ArtifactAuditOptions> {
+        let directory = InvocationDirectory::new(invocation_dir)?;
         Ok(ArtifactAuditOptions {
             app_home: app_home.clone(),
             cache_home: cache_home.clone(),
             branch: self.branch.into_query(app_home)?,
-            report_json: self.report_json,
+            report_json: self
+                .report_json
+                .as_deref()
+                .map(|path| directory.resolve(path))
+                .transpose()?,
             require_portable_artifacts: self.require_portable_artifacts,
             error_action: self.error_action,
             parallelism: Parallelism::from_cli(self.parallel)?,
@@ -57,10 +65,14 @@ impl JarArtifactAuditArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         app_home: &AppHome,
         cache_home: &CacheHome,
     ) -> eyre::Result<()> {
-        ArtifactAuditCommand::new(self.into_options(app_home, cache_home)?, cancellation_token)
-            .invoke()
+        ArtifactAuditCommand::new(
+            self.into_options(app_home, cache_home, invocation_dir)?,
+            cancellation_token,
+        )
+        .invoke()
     }
 }

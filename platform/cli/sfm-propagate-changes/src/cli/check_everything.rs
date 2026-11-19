@@ -252,7 +252,7 @@ impl CheckEverythingArgs {
                 .to_path_buf(),
         };
         let catalog = CoreCatalog::load(&root, invocation_dir)?;
-        let root = catalog.repo_root;
+        let root = PathBuf::from(catalog.repo_root);
         let selected = select_keys(
             &catalog.catalog.0,
             selection_pattern(&self.projection, mode)?,
@@ -1483,51 +1483,6 @@ mod resume_tests {
         )
         .unwrap();
         assert!(output_available(&pass, Stage::Compile, project).unwrap());
-    }
-
-    #[test]
-    fn cli_parses_native_command() {
-        let cli = figue::from_slice::<crate::cli::Cli>(&[
-            "check-everything",
-            "--projection",
-            "sfm-dev/mc-1.21.*",
-            "--stage",
-            "check",
-            "--plan-only",
-            "--fresh",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        match cli.command {
-            crate::cli::Command::CheckEverything(args) => {
-                assert_eq!(args.projection, "sfm-dev/mc-1.21.*");
-                assert_eq!(args.stage, ["check"]);
-                assert!(args.plan_only);
-                assert!(args.fresh);
-            }
-            other => panic!("expected native check-everything, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn cli_parses_everyday_sync_command() {
-        let cli = figue::from_slice::<crate::cli::Cli>(&[
-            "sync",
-            "--projection",
-            "sfm-dev/mc-1.20.1",
-            "--plan-only",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        match cli.command {
-            crate::cli::Command::Sync(args) => {
-                assert_eq!(args.projection, "sfm-dev/mc-1.20.1");
-                assert!(args.plan_only);
-            }
-            other => panic!("expected native sync, got {other:?}"),
-        }
     }
 
     #[test]

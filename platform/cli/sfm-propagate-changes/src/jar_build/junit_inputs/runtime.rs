@@ -30,24 +30,22 @@ pub(in crate::jar_build::engine) fn enforce_selected(
     cancel: &CancellationToken,
 ) -> eyre::Result<()> {
     let jar_build::BuildSelection::Projection {
-        selector,
         repo_root,
+        projections,
     } = &options.selection
     else {
         return Ok(());
     };
-    let (root, keys) =
-        jar_build::projection_selection::select_projections(repo_root.as_deref(), selector)?;
-    let ids: Vec<_> = keys
+    let ids: Vec<_> = projections
         .iter()
-        .filter_map(|key| authority_target(key).map(str::to_owned))
+        .filter_map(|projection| authority_target(projection.as_str()).map(str::to_owned))
         .collect();
     if ids.is_empty() {
         return Ok(());
     }
     let cache_home = options.cache_home.as_ref().ok_or(CacheHomeRequired)?;
     let report = preflight::run(
-        &root,
+        repo_root.as_path(),
         &super::super::common_toolchain_cache_dir(cache_home).join("maven"),
         Some(&ids),
         cancel,

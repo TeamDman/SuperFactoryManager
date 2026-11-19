@@ -1,11 +1,14 @@
 # Persistent CLI diagnostics
 
-Ordinary parsed SFM commands allocate a DEBUG NDJSON run file under the existing
-application state home: `$SFM_PROPAGATE_CHANGES_HOME/logs`, or the platform SFM
-configuration home’s `logs` directory when that override is absent. The terminal
-keeps its existing INFO default. Existing `--debug`, `--log-filter` and `RUST_LOG`
-precedence is retained. Explicit `--log-file` keeps its selected location and
-existing INFO default unless a level is selected.
+Ordinary parsed SFM commands allocate a DEBUG NDJSON run file in `logs` under
+the selected cache home. Cache selection checks the
+`SFM_PROPAGATE_CHANGES_CACHE` override, the persisted cache-root setting, and
+the platform default in that order. If cache selection fails, logs go under
+the application home so settings and cache repair can still run.
+
+The terminal uses INFO by default. Explicit `--log-file` uses INFO unless a
+level is selected. Relative log destinations resolve from the invocation
+directory. The `--debug`, `--log-filter` and `RUST_LOG` precedence is unchanged.
 
 Each run writes directly to a unique UTC timestamp/PID/random `run-*.ndjson`.
 Historical files are never renamed or pruned. `latest.json` is a small discovery
@@ -32,10 +35,10 @@ stop the command before command work. For cooperating SFM writers, unknown exist
 nonregular pointer/lock paths fail without replacement. The discovery lock does
 not exclude a same-account program that bypasses this protocol; such a program
 can race a pointer update. Run files are never renamed by discovery updates.
-The application-home path must be trusted. New automatic Unix log directories
+The selected log destination must be trusted. New automatic Unix log directories
 are created as 0700; existing directories must be user-owned without group/world
 write permission, and unsafe permissions are rejected without modification.
-Windows inherits the application-home ACL; its permission/locking behavior has
+Windows inherits the parent directory ACL; its permission/locking behavior has
 not yet been qualified. A failed initialization
 may leave an allocated empty run and pointer staging metadata; these are retained.
 Runtime formatter/write failures continue to use tracing’s stderr diagnostics.
@@ -44,7 +47,7 @@ power-loss durability. Normal errors and cancellation retain prior records;
 panic/forced exit may leave the final record incomplete. Explicit append keeps
 those bytes and adds a newline under the record lock before starting new events;
 readers may still need to skip the preserved invalid historical line. There is no retention
-limit or automatic cleanup.
+limit or automatic cleanup. `cache clean` preserves the `logs` directory.
 
 Help/version, parse failures and internal workers that return before logging
 initialization do not allocate a run log. Candidate-only `source legacy

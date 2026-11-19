@@ -1,10 +1,10 @@
+use super::InvocationHomes;
 use crate::cli::output::OutputFormat;
 use crate::logging::LoggingConfig;
-use crate::paths::AppHome;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue::{self as args};
 use std::path::PathBuf;
-use std::path::absolute;
 use std::str::FromStr;
 use tracing::level_filters::LevelFilter;
 
@@ -19,9 +19,10 @@ pub struct GlobalArgs {
     #[facet(default, args::named)]
     pub log_filter: Option<String>,
 
-    /// Write structured ndjson logs to this file or directory. If a directory is provided,
+    /// Write structured ndjson logs to this file or directory. Relative paths resolve
+    /// from the invocation directory. If a directory is provided,
     /// a unique filename will be generated there. Defaults to additive DEBUG NDJSON
-    /// run files under the SFM application home logs directory (latest.json identifies the latest).
+    /// run files in the selected SFM cache's logs directory (latest.json identifies the latest).
     #[facet(default, args::named)]
     pub log_file: Option<PathBuf>,
 
@@ -40,14 +41,19 @@ pub struct GlobalArgs {
 impl GlobalArgs {
     /// # Errors
     ///
-    /// This function will return an error if the log filter string is invalid.
-    pub fn logging_config(&self, app_home: &AppHome) -> eyre::Result<LoggingConfig> {
-        self.logging_config_with_default_file(app_home, true)
+    /// Returns an error when the log filter or destination cannot be resolved.
+    pub fn logging_config(
+        &self,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<LoggingConfig> {
+        self.logging_config_with_default_file(invocation_dir, homes, true)
     }
 
     pub(crate) fn logging_config_with_default_file(
         &self,
-        app_home: &AppHome,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
         default_file: bool,
     ) -> eyre::Result<LoggingConfig> {
         let explicit_filter = self.debug || self.log_filter.is_some();
@@ -56,11 +62,23 @@ impl GlobalArgs {
             (false, Some(filter)) => LevelFilter::from_str(filter)?,
             (false, None) => LevelFilter::INFO,
         };
-        let (json_log_path, json_log_directory) = match &self.log_file {
-            None if default_file => (None, Some(absolute(app_home.file_path("logs"))?)),
+        let log_file = self
+            .log_file
+            .as_deref()
+            .map(|path| invocation_dir.resolve(path))
+            .transpose()?;
+        let (json_log_path, json_log_directory) = match log_file {
+            None if default_file => {
+                // A failed cache selection must leave automatic logging and cache repair available.
+                let directory = homes.available_cache_home().map_or_else(
+                    || homes.app_home().file_path("logs"),
+                    |cache| cache.join("logs"),
+                );
+                (None, Some(invocation_dir.resolve(&directory)?))
+            }
             None => (None, None),
-            Some(path) if path.is_dir() => (None, Some(path.clone())),
-            Some(path) => (Some(path.clone()), None),
+            Some(path) if path.is_dir() => (None, Some(path)),
+            Some(path) => (Some(path), None),
         };
         Ok(LoggingConfig {
             default_directive: level.into(),

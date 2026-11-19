@@ -2,14 +2,17 @@ use crate::cancellation::CancellationToken;
 use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
+use crate::jar_build::BuildOptions;
 use crate::jar_build::GamePuppetKeepOpen;
 use crate::jar_build::JavaMaxHeapMib;
 use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
 use std::num::NonZeroU16;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Arguments for launching the Forge client and running selected SFM game puppet definitions.
@@ -62,10 +65,16 @@ impl RunGameTestPreviewArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         invoke_game_puppet(
-            self.options,
+            || {
+                Ok(self
+                    .options
+                    .into_options(BuildMode::Build, homes.app_home(), invocation_dir)?
+                    .with_cache_home(homes.available_cache_home()))
+            },
             &self.puppet,
             self.game_test,
             self.width,
@@ -76,7 +85,7 @@ impl RunGameTestPreviewArgs {
             self.control_cli_source_root,
             self.java_max_heap_mib,
             cancellation_token,
-            homes,
+            invocation_dir,
         )
     }
 }
@@ -92,7 +101,7 @@ impl RunGameTestPreviewArgs {
     reason = "Figue represents a named optional value as absent, bare, or supplied, and this boundary keeps every shared puppet launch input explicit for its CLI adapters."
 )]
 pub(crate) fn invoke_game_puppet(
-    options: JarBuildOptionsArgs,
+    prepare_build_options: impl FnOnce() -> eyre::Result<BuildOptions>,
     puppet: &str,
     game_test: Option<String>,
     width: Option<u16>,
@@ -103,10 +112,10 @@ pub(crate) fn invoke_game_puppet(
     control_cli_source_root: Option<PathBuf>,
     java_max_heap_mib: Option<u32>,
     cancellation_token: CancellationToken,
-    homes: &InvocationHomes,
+    invocation_dir: &Path,
 ) -> eyre::Result<()> {
     invoke_game_puppet_with_hotswap(
-        options,
+        prepare_build_options,
         puppet,
         game_test,
         width,
@@ -118,7 +127,7 @@ pub(crate) fn invoke_game_puppet(
         control_cli_source_root,
         java_max_heap_mib,
         cancellation_token,
-        homes,
+        invocation_dir,
     )
 }
 
@@ -129,7 +138,7 @@ pub(crate) fn invoke_game_puppet(
     reason = "Shared launch boundary preserves the existing puppet adapters and optional JDWP port."
 )]
 pub(crate) fn invoke_game_puppet_with_hotswap(
-    options: JarBuildOptionsArgs,
+    prepare_build_options: impl FnOnce() -> eyre::Result<BuildOptions>,
     puppet: &str,
     game_test: Option<String>,
     width: Option<u16>,
@@ -141,9 +150,8 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
     control_cli_source_root: Option<PathBuf>,
     java_max_heap_mib: Option<u32>,
     cancellation_token: CancellationToken,
-    homes: &InvocationHomes,
+    invocation_dir: &Path,
 ) -> eyre::Result<()> {
-    let app_home = homes.app_home();
     let java_max_heap_mib = java_max_heap_mib.map(JavaMaxHeapMib::new).transpose()?;
     let puppet_filter = puppet.trim();
     if puppet_filter.is_empty() {
@@ -153,10 +161,18 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
     let (preview_width, preview_height) = validate_viewport(width, height)?;
     let viewport_selection = normalize_viewport_selection(variant)?;
     let game_puppet_keep_open = GamePuppetKeepOpen::from_cli(keep_open)?;
+    let directory = InvocationDirectory::new(invocation_dir)?;
+    let control_cli_source_root = control_cli_source_root
+        .map(|path| {
+            if path.is_absolute() {
+                Ok(path)
+            } else {
+                directory.resolve(&path)
+            }
+        })
+        .transpose()?;
     RunCommand::with_run_options(
-        options
-            .into_options(BuildMode::Build, app_home)?
-            .with_cache_home(homes.available_cache_home()),
+        prepare_build_options()?,
         RunKind::GameTestPreview,
         RunOptions {
             java_max_heap_mib,

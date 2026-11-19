@@ -6,12 +6,12 @@ use crate::cancellation::CancellationToken;
 use crate::gradle_dot_properties_file_content::test_content;
 use crate::source_projection::catalog_owned_project::tests::Fixture;
 use crate::source_projection::core_features::CoreFeatureDefinition;
-use crate::source_projection::core_features::CoreFeatureDefinitions;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
 use crate::source_projection::projection_catalog::ProjectionCatalog;
 use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::Result;
 use std::collections::BTreeMap;
 use std::fs;
@@ -75,7 +75,7 @@ impl CatalogReleaseFixture {
         )?;
         let definitions_path = fixture.repository().join(FEATURE_DEFINITIONS_PATH);
         let mut definitions =
-            CoreFeatureDefinitions::from_json(&fs::read_to_string(&definitions_path)?)?;
+            SfmProjectionFeatureRegistry::from_json(&fs::read_to_string(&definitions_path)?)?;
         for name in [RELEASE_FEATURE, OTHER_RELEASE_FEATURE] {
             definitions.0.insert(
                 name.to_owned(),
@@ -116,15 +116,14 @@ impl CatalogReleaseFixture {
     }
 
     pub(super) fn set_features(&self, key: &str, features: &[&str]) -> Result<()> {
-        let definitions = CoreFeatureDefinitions::from_json(&fs::read_to_string(
+        let definitions = SfmProjectionFeatureRegistry::from_json(&fs::read_to_string(
             self.repository().join(FEATURE_DEFINITIONS_PATH),
         )?)?;
-        let registered = definitions.registered_names();
         let path = self.repository().join(CATALOG_PATH);
-        let mut catalog = ProjectionCatalog::from_json(&fs::read_to_string(&path)?, &registered)?;
+        let mut catalog = ProjectionCatalog::from_json(&fs::read_to_string(&path)?, &definitions)?;
         catalog.0.get_mut(key).unwrap().features =
             features.iter().map(|name| (*name).to_owned()).collect();
-        fs::write(path, catalog.to_json(&registered)?)?;
+        fs::write(path, catalog.to_json(&definitions)?)?;
         Ok(())
     }
 

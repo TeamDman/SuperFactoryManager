@@ -4,7 +4,6 @@ use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::core_catalog::read_bounded_catalog_input;
-use crate::source_projection::core_features::CoreFeatureDefinitions;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_METADATA_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
@@ -19,6 +18,7 @@ use crate::source_projection::projection_catalog::ProjectionCatalog;
 use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::render_java_source;
+use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use crate::source_projection::simplify::Comparison;
 use crate::source_projection::simplify::ComparisonClassification;
 use crate::source_projection::simplify::ParsedJava;
@@ -263,7 +263,7 @@ fn verify(
         usize::try_from(MAX_CORE_METADATA_BYTES)?,
     )?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.feature_registry)?;
     let git = OracleGitRepository::open(&catalog.repo_root)?;
     let (bindings, oracle_bindings_sha256) = if let Some(commit) = &args.baseline_commit {
         git.resolve_commit(commit)?;
@@ -379,8 +379,8 @@ fn verify(
         schema: "sfm:source_simplify_verify@1".into(),
         scope: "read_only_in_memory_java_whitespace_certificate_not_semantic_equivalence".into(),
         file: args.file.clone(),
-        catalog_sha256: catalog.catalog_sha256,
-        feature_definitions_sha256: catalog.feature_definitions_sha256,
+        catalog_sha256: catalog.catalog_sha256().to_owned(),
+        feature_definitions_sha256: catalog.feature_definitions_sha256().to_owned(),
         project_inputs_sha256: sha256(&metadata_bytes),
         oracle_bindings_sha256,
         all_oracles_verified,
@@ -409,12 +409,11 @@ fn oracle_location(
         let registry = git
             .file_at_commit(commit, FEATURE_DEFINITIONS_PATH)?
             .ok_or_else(|| eyre::eyre!("pinned commit has no feature definitions"))?;
-        let registry = CoreFeatureDefinitions::from_json(from_utf8(&registry.bytes)?)?;
+        let registry = SfmProjectionFeatureRegistry::from_json(from_utf8(&registry.bytes)?)?;
         let pinned = git
             .file_at_commit(commit, CATALOG_PATH)?
             .ok_or_else(|| eyre::eyre!("pinned commit has no projections catalog"))?;
-        let pinned =
-            ProjectionCatalog::from_json(from_utf8(&pinned.bytes)?, &registry.registered_names())?;
+        let pinned = ProjectionCatalog::from_json(from_utf8(&pinned.bytes)?, &registry)?;
         registry.validate_entry(pinned.entry(key)?)?;
         ensure!(
             pinned.context_identity(key)? == catalog.catalog.context_identity(key)?,

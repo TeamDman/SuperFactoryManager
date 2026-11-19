@@ -1,3 +1,4 @@
+use super::InvocationDirectory;
 use directories_next::ProjectDirs;
 use eyre::bail;
 use std::env;
@@ -28,15 +29,15 @@ impl AppHome {
     }
 
     /// Resolve the `AppHome` according to the same rules used previously:
-    /// * If [`super::APP_HOME_ENV_VAR`] env var is set, use that directory
+    /// * If [`super::APP_HOME_ENV_VAR`] env var is set, resolve it against the invocation directory
     /// * Otherwise use the platform `ProjectDirs::config_dir()`
     ///
     /// # Errors
     ///
     /// This function will return an error if the config directory cannot be determined.
-    pub(crate) fn resolve() -> eyre::Result<AppHome> {
-        if let Ok(override_dir) = env::var(super::APP_HOME_ENV_VAR) {
-            return Ok(AppHome(PathBuf::from(override_dir)));
+    pub(crate) fn resolve(invocation_dir: &InvocationDirectory<'_>) -> eyre::Result<AppHome> {
+        if let Some(override_dir) = env::var_os(super::APP_HOME_ENV_VAR) {
+            return Ok(AppHome(invocation_dir.resolve(Path::new(&override_dir))?));
         }
         if let Some(project_dirs) = ProjectDirs::from("", "teamdman", super::APP_HOME_DIR_NAME) {
             Ok(AppHome(project_dirs.config_dir().to_path_buf()))

@@ -4,6 +4,8 @@ use super::Parallelism;
 use crate::branch_targets::BranchQuery;
 use crate::paths::AppHome;
 use crate::paths::CacheHome;
+use crate::source_projection::ProjectionName;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
@@ -42,8 +44,8 @@ pub struct BuildOptions {
 pub enum BuildSelection {
     Worktree(BranchQuery),
     Projection {
-        selector: String,
-        repo_root: Option<PathBuf>,
+        repo_root: SfmRepoPath,
+        projections: Vec<ProjectionName>,
     },
 }
 

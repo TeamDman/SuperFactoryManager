@@ -449,8 +449,8 @@ fn status_with_inspections(
         MAX_CORE_METADATA_BYTES,
     )?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
-    let selector = metadata.validated_selector(&catalog.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.feature_registry)?;
+    let selector = metadata.validated_selector(&catalog.feature_registry)?;
     let git = OracleGitRepository::open(&catalog.repo_root)?;
     let core = catalog.repo_root.join(CORE_ROOT);
     let inventory = discover_core_source_files(&core)?;
@@ -510,8 +510,8 @@ fn status_with_inspections(
         ],
         excluded_paths: scope_exclusions(),
         binding_identity: sha256(&bytes),
-        catalog_identity: catalog.catalog_sha256,
-        feature_registry_identity: catalog.feature_definitions_sha256,
+        catalog_identity: catalog.catalog_sha256().to_owned(),
+        feature_registry_identity: catalog.feature_definitions_sha256().to_owned(),
         project_inputs_identity: sha256(&metadata_bytes),
         required_contexts: bindings.bindings.len(),
         compared_contexts: contexts.len(),
@@ -1182,7 +1182,7 @@ pub fn diff(
             CORE_METADATA_PATH,
             MAX_CORE_METADATA_BYTES,
         )?)?,
-        &catalog.registered_features,
+        &catalog.feature_registry,
     )?;
     let context = catalog.context(projection)?;
     let inventory = discover_core_source_files(&catalog.repo_root.join(CORE_ROOT))?;

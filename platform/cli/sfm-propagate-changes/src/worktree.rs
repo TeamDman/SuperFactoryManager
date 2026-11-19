@@ -3,6 +3,7 @@
 use crate::cli::repo_root::get_repo_root;
 use crate::paths::AppHome;
 use std::cmp::Ordering;
+use std::path::Path;
 use std::path::PathBuf;
 use std::str::from_utf8;
 
@@ -18,7 +19,7 @@ pub struct Worktree {
 /// # Errors
 ///
 /// Returns an error if repository or registered worktree metadata cannot be read.
-pub fn get_worktrees(repo_root: &PathBuf) -> eyre::Result<Vec<Worktree>> {
+pub fn get_worktrees(repo_root: &Path) -> eyre::Result<Vec<Worktree>> {
     let repository = gix::discover(repo_root)?;
     let mut worktrees = Vec::new();
     append_attached_worktree(&repository.main_repo()?, &mut worktrees)?;

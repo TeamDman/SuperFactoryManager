@@ -368,10 +368,6 @@ fn hash_file(path: &Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::source_projection::candidate_lock::tests::Fixture;
 
     fn fixture_args() -> (Fixture, ReleasePackageArgs) {
@@ -413,41 +409,6 @@ mod tests {
             output_root: scratch.join("package"),
         };
         (fixture, args)
-    }
-
-    #[test]
-    fn release_package_parses_explicit_inventory_lock_and_output() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-package",
-            "--repo-root",
-            "C:/reviewed/repo",
-            "--lock",
-            "candidate.json",
-            "--candidate-root",
-            "1.19.2=C:/candidate/1.19.2",
-            "--inventory",
-            "inventory.json",
-            "--candidate-lock-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "--output-root",
-            "C:/new-package",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleasePackage(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-package command");
-        };
-        assert_eq!(args.candidate.candidate_root.len(), 1);
-        assert_eq!(args.inventory, PathBuf::from("inventory.json"));
     }
 
     #[test]

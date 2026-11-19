@@ -36,27 +36,3 @@ impl ClientSyncArgs {
         )
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::ClientSyncArgs;
-
-    #[test]
-    fn client_sync_parses_explicit_java_home() {
-        let parsed = figue::from_slice::<ClientSyncArgs>(&[
-            "--branch",
-            "1.19.2",
-            "--java-home",
-            "test-jdk-17",
-        ])
-        .into_result()
-        .expect("client sync arguments should parse")
-        .get_silent();
-
-        assert_eq!(parsed.branch.as_ref(), "1.19.2");
-        assert_eq!(
-            parsed.java_home.as_deref(),
-            Some(std::path::Path::new("test-jdk-17"))
-        );
-    }
-}

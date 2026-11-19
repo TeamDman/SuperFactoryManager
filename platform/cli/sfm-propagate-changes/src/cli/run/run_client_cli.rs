@@ -7,6 +7,7 @@ use crate::jar_build::GamePuppetKeepOpen;
 use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
 use std::fs::canonicalize;
@@ -90,11 +91,12 @@ impl ProjectionClientOptions {
         kind: RunKind,
         run_options: RunOptions,
         cancellation: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         let app_home = homes.app_home();
         RunCommand::with_run_options(
-            self.into_options(BuildMode::Build, app_home)?
+            self.into_options(BuildMode::Build, app_home, invocation_dir)?
                 .with_cache_home(homes.available_cache_home()),
             kind,
             run_options,
@@ -109,14 +111,16 @@ impl RunClientArgs {
     ///
     /// Returns an error if planning, building, or launching fails.
     pub fn invoke(
-        self,
+        mut self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         if self.smoke && self.puppet.is_none() {
             self.validate_smoke_options()?;
         }
         self.validate_launch_handoff()?;
+        self.resolve_launch_paths(invocation_dir)?;
         let Self {
             options,
             runtime_slot,
@@ -139,9 +143,6 @@ impl RunClientArgs {
             mute,
             keep_open,
         } = self;
-        let inspection_workspace =
-            resolve_inspection_file(inspection_workspace, "--inspection-workspace")?;
-        let inspection_python = resolve_inspection_file(inspection_python, "--inspection-python")?;
         let client_hotswap_port = resolve_hotswap_port(hotswap, hotswap_port)?;
         if let Some(puppet) = puppet {
             if text_editor || input_diag || title_screen.is_some() || solo {
@@ -170,6 +171,7 @@ impl RunClientArgs {
                     ..RunOptions::default()
                 },
                 cancellation_token,
+                invocation_dir,
                 homes,
             );
         }
@@ -184,6 +186,7 @@ impl RunClientArgs {
                     ..RunOptions::default()
                 },
                 cancellation_token,
+                invocation_dir,
                 homes,
             );
         }
@@ -202,9 +205,31 @@ impl RunClientArgs {
                 ..RunOptions::default()
             },
             cancellation_token,
+            invocation_dir,
             homes,
         )
     }
+
+    fn resolve_launch_paths(&mut self, invocation_dir: &Path) -> eyre::Result<()> {
+        let directory = InvocationDirectory::new(invocation_dir)?;
+        self.inspection_workspace = resolve_inspection_file(
+            &directory,
+            self.inspection_workspace.as_deref(),
+            "--inspection-workspace",
+        )?;
+        self.inspection_python = resolve_inspection_file(
+            &directory,
+            self.inspection_python.as_deref(),
+            "--inspection-python",
+        )?;
+        self.control_cli_source_root = self
+            .control_cli_source_root
+            .as_deref()
+            .map(|path| directory.resolve(path))
+            .transpose()?;
+        Ok(())
+    }
+
     fn validate_launch_handoff(&self) -> eyre::Result<()> {
         eyre::ensure!(
             !self.share_runtime || self.runtime_slot.is_some(),
@@ -264,12 +289,17 @@ impl RunClientArgs {
     }
 }
 
-fn resolve_inspection_file(path: Option<PathBuf>, option: &str) -> eyre::Result<Option<PathBuf>> {
-    let path = path.map(canonicalize).transpose()?;
-    if let Some(path) = &path {
-        eyre::ensure!(path.is_file(), "{option} requires an existing file");
-    }
-    Ok(path)
+fn resolve_inspection_file(
+    directory: &InvocationDirectory<'_>,
+    path: Option<&Path>,
+    option: &str,
+) -> eyre::Result<Option<PathBuf>> {
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    let path = canonicalize(directory.resolve(path)?)?;
+    eyre::ensure!(path.is_file(), "{option} requires an existing file");
+    Ok(Some(path))
 }
 
 fn validate_inspection_launch(
@@ -309,7 +339,29 @@ fn resolve_hotswap_port(enabled: bool, port: Option<u16>) -> eyre::Result<Option
 
 #[cfg(test)]
 mod inspection_launch_tests {
+    use super::resolve_inspection_file;
     use super::validate_inspection_launch;
+    use crate::paths::InvocationDirectory;
+    use std::fs;
+    use std::path::Path;
+
+    #[test]
+    fn inspection_files_are_resolved_at_the_invocation_directory() -> eyre::Result<()> {
+        let invocation = tempfile::tempdir()?;
+        let directory = InvocationDirectory::new(invocation.path())?;
+        for (path, option) in [
+            ("workspace.json", "--inspection-workspace"),
+            ("python", "--inspection-python"),
+        ] {
+            let file = invocation.path().join(path);
+            fs::write(&file, b"fixture")?;
+            assert_eq!(
+                resolve_inspection_file(&directory, Some(Path::new(path)), option)?,
+                Some(file.canonicalize()?)
+            );
+        }
+        Ok(())
+    }
 
     #[test]
     fn prepared_workspace_opens_only_in_supported_client_handoffs() {

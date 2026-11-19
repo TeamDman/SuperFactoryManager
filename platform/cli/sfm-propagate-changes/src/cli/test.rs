@@ -11,6 +11,7 @@ use crate::jar_build::SourceCatalogCommand;
 use crate::jar_build::SourceCatalogQuery;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Discover and run Java `JUnit` tests.
 #[derive(Facet, Debug)]
@@ -57,6 +58,7 @@ impl TestArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<CliOutput> {
         if let TestCommand::Preflight(args) = self.command {
@@ -65,10 +67,10 @@ impl TestArgs {
         let app_home = homes.app_home();
         match self.command {
             TestCommand::Preflight(_) => unreachable!("handled above"),
-            TestCommand::Run(args) => args.invoke(cancellation_token, homes),
+            TestCommand::Run(args) => args.invoke(cancellation_token, invocation_dir, homes),
             TestCommand::List(args) => SourceCatalogCommand::new(
                 args.options
-                    .into_options(BuildMode::Plan, app_home)?
+                    .into_options(BuildMode::Plan, app_home, invocation_dir)?
                     .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Test,
@@ -79,7 +81,7 @@ impl TestArgs {
             .invoke(),
             TestCommand::Show(args) => SourceCatalogCommand::new(
                 args.options
-                    .into_options(BuildMode::Plan, app_home)?
+                    .into_options(BuildMode::Plan, app_home, invocation_dir)?
                     .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::Test,

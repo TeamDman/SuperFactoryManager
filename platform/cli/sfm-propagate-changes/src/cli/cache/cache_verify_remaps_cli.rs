@@ -64,22 +64,3 @@ impl CacheVerifyRemapsArgs {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn parses_explicit_remap_audit() {
-        let parsed = figue::from_slice::<super::super::CacheArgs>(&[
-            "verify-remaps",
-            "--project-root",
-            "C:/project",
-        ])
-        .into_result()
-        .expect("cache verify-remaps should parse")
-        .get_silent();
-        assert!(matches!(
-            parsed.command,
-            super::super::CacheCommand::VerifyRemaps(_)
-        ));
-    }
-}

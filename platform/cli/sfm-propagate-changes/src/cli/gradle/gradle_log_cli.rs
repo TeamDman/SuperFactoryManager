@@ -2,6 +2,7 @@ use crate::cli::InvocationHomes;
 use crate::cli::gradle::GradleLogsCommand;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Arguments for Gradle log inspection.
 #[derive(Facet, Debug)]
@@ -15,7 +16,7 @@ impl GradleLogArgs {
     /// # Errors
     ///
     /// Returns an error if the selected Gradle log command fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
-        self.command.invoke(homes)
+    pub fn invoke(self, invocation_dir: &Path, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(invocation_dir, homes)
     }
 }

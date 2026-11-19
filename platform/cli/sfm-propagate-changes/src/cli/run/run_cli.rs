@@ -7,6 +7,7 @@ use crate::cancellation::CancellationToken;
 use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Arguments for clean-slate build-backed run commands.
 #[derive(Facet, Debug)]
@@ -23,9 +24,11 @@ impl RunArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
-        self.command.invoke(cancellation_token, homes)
+        self.command
+            .invoke(cancellation_token, invocation_dir, homes)
     }
 }
 
@@ -52,14 +55,15 @@ impl RunCommand {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         match self {
-            RunCommand::Compile(args) => args.invoke(cancellation_token, homes),
-            RunCommand::Client(args) => args.invoke(cancellation_token, homes),
-            RunCommand::Server(args) => args.invoke(cancellation_token, homes),
-            RunCommand::Data(args) => args.invoke(cancellation_token, homes),
-            RunCommand::Hotswap(args) => args.invoke(cancellation_token, homes),
+            RunCommand::Compile(args) => args.invoke(cancellation_token, invocation_dir, homes),
+            RunCommand::Client(args) => args.invoke(cancellation_token, invocation_dir, homes),
+            RunCommand::Server(args) => args.invoke(cancellation_token, invocation_dir, homes),
+            RunCommand::Data(args) => args.invoke(cancellation_token, invocation_dir, homes),
+            RunCommand::Hotswap(args) => args.invoke(cancellation_token, invocation_dir, homes),
         }
     }
 }

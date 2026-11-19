@@ -13,8 +13,10 @@ use crate::cli::jar::BranchSelector;
 use crate::jar_build::engine::select_branch_source_cache;
 use crate::paths::AppHome;
 use crate::paths::CacheHome;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 #[derive(Facet, Debug)]
 pub struct DependencyArgs {
@@ -29,6 +31,7 @@ impl DependencyArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         let app_home = homes.app_home();
@@ -37,7 +40,10 @@ impl DependencyArgs {
             DependencyCommand::Migrate(args) => args.invoke(cancellation_token, app_home),
             DependencyCommand::Artifact(DependencyArtifactArgs {
                 command: super::DependencyArtifactCommand::Import(args),
-            }) => args.invoke(&cancellation_token),
+            }) => args.invoke(
+                &cancellation_token,
+                &InvocationDirectory::new(invocation_dir)?,
+            ),
             other => {
                 let selected = select_branch_source_cache(
                     other.branch(),

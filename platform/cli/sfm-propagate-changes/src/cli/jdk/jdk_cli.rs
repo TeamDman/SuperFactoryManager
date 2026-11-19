@@ -6,11 +6,9 @@ use super::JdkShowArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::InvocationHomes;
 use crate::cli::output::CliOutput;
-use crate::terminal_output::stdout_line;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
-use std::env::current_dir;
-use std::path::Path;
 
 /// Arguments for managed SDK installation, discovery and machine-local preferences.
 #[derive(Facet, Debug)]
@@ -24,24 +22,10 @@ impl JdkArgs {
     pub(crate) fn invoke_in(
         self,
         cancel: &CancellationToken,
-        invocation_dir: &Path,
+        invocation_dir: &InvocationDirectory<'_>,
         homes: &InvocationHomes,
     ) -> eyre::Result<CliOutput> {
-        match self.command {
-            JdkCommand::Install(args) => {
-                Ok(CliOutput::facet(args.install(cancel, invocation_dir)?))
-            }
-            command => {
-                command.invoke(homes)?;
-                Ok(CliOutput::none())
-            }
-        }
-    }
-
-    /// # Errors
-    /// Returns an error if the selected JDK command fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
-        self.command.invoke(homes)
+        self.command.invoke_in(cancel, invocation_dir, homes)
     }
 }
 
@@ -64,41 +48,23 @@ pub enum JdkCommand {
 impl JdkCommand {
     /// # Errors
     /// This function returns an error if JDK inspection or storage fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+    pub fn invoke_in(
+        self,
+        cancel: &CancellationToken,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<CliOutput> {
         match self {
             Self::Install(args) => {
-                let report = args.install(&CancellationToken::new(), &current_dir()?)?;
-                stdout_line(facet_json::to_string_pretty(&report)?)
+                return Ok(CliOutput::facet(
+                    args.install(cancel, invocation_dir.as_path())?,
+                ));
             }
-            Self::Add(args) => args.invoke(homes.app_home()),
+            Self::Add(args) => args.invoke_in(invocation_dir, homes.app_home()),
             Self::List(args) => args.invoke(homes.app_home()),
             Self::Remove(args) => args.invoke(homes.app_home()),
             Self::Show(args) => args.invoke(homes.app_home()),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::JdkArgs;
-    use super::JdkCommand;
-
-    #[test]
-    fn parses_jdk_preference_commands() {
-        let add = figue::from_slice::<JdkArgs>(&["add", "--id", "jbr17", "--home", "C:/JDK"])
-            .into_result()
-            .expect("jdk add should parse")
-            .get_silent();
-        assert!(matches!(add.command, JdkCommand::Add(_)));
-        for command in ["list", "remove", "show"] {
-            let argv = if command == "list" {
-                vec![command]
-            } else {
-                vec![command, "jbr17"]
-            };
-            figue::from_slice::<JdkArgs>(&argv)
-                .into_result()
-                .unwrap_or_else(|_| panic!("jdk {command} should parse"));
-        }
+        }?;
+        Ok(CliOutput::none())
     }
 }

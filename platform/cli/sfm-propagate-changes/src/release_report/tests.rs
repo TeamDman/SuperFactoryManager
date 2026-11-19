@@ -38,34 +38,6 @@ fn report_rejects_unknown_schema_and_preserves_existing_output() {
 }
 
 #[test]
-fn public_cli_requires_explicit_inputs() {
-    assert!(
-        figue::from_slice::<crate::cli::Cli>(&["source", "release-report"])
-            .into_result()
-            .is_err()
-    );
-    let cli = figue::from_slice::<crate::cli::Cli>(&[
-        "source",
-        "release-report",
-        "--manifest",
-        "input.json",
-        "--asset-root",
-        ".",
-        "--output",
-        "new.html",
-    ])
-    .into_result()
-    .unwrap()
-    .get_silent();
-    assert!(matches!(
-        cli.command,
-        crate::cli::Command::Source(crate::cli::source::SourceArgs {
-            command: crate::cli::source::SourceCommand::ReleaseReport(_)
-        })
-    ));
-}
-
-#[test]
 fn bad_image_hash_fails_before_creating_output() {
     let root = tempfile::tempdir().unwrap();
     std::fs::write(root.path().join("image.png"), b"\x89PNG\r\n\x1a\n").unwrap();

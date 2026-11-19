@@ -5,8 +5,10 @@ use crate::jar_build::CompareOptions;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use crate::paths::AppHome;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Options for comparing Gradle and Rust-built jars.
@@ -42,13 +44,30 @@ pub struct JarCompareArgs {
 }
 
 impl JarCompareArgs {
-    pub(crate) fn into_options(self, app_home: &AppHome) -> eyre::Result<CompareOptions> {
+    pub(crate) fn into_options(
+        self,
+        app_home: &AppHome,
+        invocation_dir: &Path,
+    ) -> eyre::Result<CompareOptions> {
+        let directory = InvocationDirectory::new(invocation_dir)?;
         Ok(CompareOptions {
             app_home: app_home.clone(),
             branch: self.branch.into_query(app_home)?,
-            gradle_jar: self.gradle_jar,
-            rust_jar: self.rust_jar,
-            report_json: self.report_json,
+            gradle_jar: self
+                .gradle_jar
+                .as_deref()
+                .map(|path| directory.resolve(path))
+                .transpose()?,
+            rust_jar: self
+                .rust_jar
+                .as_deref()
+                .map(|path| directory.resolve(path))
+                .transpose()?,
+            report_json: self
+                .report_json
+                .as_deref()
+                .map(|path| directory.resolve(path))
+                .transpose()?,
             strict_manifest: self.strict_manifest,
             error_action: self.error_action,
             parallelism: Parallelism::from_cli(self.parallel)?,
@@ -61,8 +80,13 @@ impl JarCompareArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         app_home: &AppHome,
     ) -> eyre::Result<()> {
-        CompareCommand::new(self.into_options(app_home)?, cancellation_token).invoke()
+        CompareCommand::new(
+            self.into_options(app_home, invocation_dir)?,
+            cancellation_token,
+        )
+        .invoke()
     }
 }

@@ -65,7 +65,6 @@ pub(crate) mod nfrt_preparation_phase;
 #[cfg(any(windows, target_os = "linux"))]
 mod nfrt_requests;
 mod parallelism;
-pub(crate) mod projection_selection;
 mod run_command;
 mod run_kind;
 mod run_options;

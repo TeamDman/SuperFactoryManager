@@ -22,6 +22,8 @@ use crate::payload_fetcher::http_fetcher;
 use crate::source_decompile::acquire_locked_decompiled_sources;
 use crate::source_git::acquire_locked_git_sources;
 use crate::source_maven::acquire_locked_maven_sources;
+use crate::source_projection::ProjectionName;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::source_provider::SourceProviderKind;
 use crate::source_provider::SourceProviderView;
 use crate::toolchain_lockfile_schema;
@@ -585,8 +587,8 @@ fn acquire_platform_sources(
         })?;
         (
             jar_build::BuildSelection::Projection {
-                selector: projection.to_owned(),
-                repo_root: Some(inventory.target.worktree_path.as_path().to_path_buf()),
+                repo_root: SfmRepoPath::try_from(inventory.target.worktree_path.as_path())?,
+                projections: vec![ProjectionName::parse(projection)?],
             },
             Some(inventory.cache_home.0.clone()),
             Some(home.to_path_buf()),

@@ -1622,7 +1622,7 @@ pub(super) mod tests {
                         &checked_file(repository, CORE_METADATA_PATH)?,
                         8 * 1024 * 1024,
                     )?)?,
-                    &catalog.registered_features,
+                    &catalog.feature_registry,
                 )?;
                 Ok((catalog, metadata))
             };

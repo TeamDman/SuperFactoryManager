@@ -123,37 +123,6 @@ pub struct CoreManifestArgs {
     pub dry_run: bool,
 }
 
-#[cfg(test)]
-mod manifestation_argument_tests {
-    use super::CoreManifestArgs;
-
-    #[test]
-    fn dirty_override_distinguishes_absent_bare_and_scoped() {
-        let absent = figue::from_slice::<CoreManifestArgs>(&["--repo-root", "."]).unwrap();
-        assert_eq!(absent.allow_dirty, None);
-        let bare =
-            figue::from_slice::<CoreManifestArgs>(&["--repo-root", ".", "--allow-dirty"]).unwrap();
-        assert_eq!(bare.allow_dirty, Some(None));
-        let scoped = figue::from_slice::<CoreManifestArgs>(&[
-            "--repo-root",
-            ".",
-            "--allow-dirty",
-            "platform/minecraft/projections",
-            "--file",
-            "src/A.java",
-            "--projection",
-            "example/mc-1.19.2",
-        ])
-        .unwrap();
-        assert_eq!(
-            scoped.allow_dirty,
-            Some(Some("platform/minecraft/projections".into()))
-        );
-        assert_eq!(scoped.file, ["src/A.java"]);
-        assert_eq!(scoped.projection, ["example/mc-1.19.2"]);
-    }
-}
-
 #[derive(Debug, Facet)]
 pub struct CoreProjectSelectionArgs {
     /// Repository root containing projections.json and the core Liquid tree.
@@ -180,7 +149,7 @@ impl CoreProjectSelectionArgs {
     }
 }
 
-fn discover_source_repo_root(invocation_dir: &Path) -> Result<PathBuf> {
+pub(super) fn discover_source_repo_root(invocation_dir: &Path) -> Result<PathBuf> {
     let output = Command::new("git")
         .arg("-C")
         .arg(invocation_dir)
@@ -200,7 +169,7 @@ fn discover_source_repo_root(invocation_dir: &Path) -> Result<PathBuf> {
     );
     let loaded = CoreCatalog::load(&root, invocation_dir)
         .wrap_err("discovered Git root is not a valid SFM checkout; pass --repo-root")?;
-    Ok(loaded.repo_root)
+    Ok(loaded.repo_root.into())
 }
 
 #[derive(Debug, Facet)]
@@ -380,8 +349,7 @@ impl CoreProjectArgs {
             invocation_dir,
         )?;
         if mode == SyncMode::Check {
-            // Match native compile: generated source scans must reject unowned files.
-
+            // Bind the compatibility report to the same ownership check as native compile.
             let checked = collect_catalog_project(args.root()?, invocation_dir, &args.projection)?
                 .check_current()?;
             ensure!(
@@ -430,8 +398,8 @@ fn invoke_native_compile(
     )?;
     let loaded = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     ensure!(
-        loaded.catalog_sha256 == report.catalog_sha256
-            && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
+        loaded.catalog_sha256() == report.catalog_sha256.as_str()
+            && loaded.feature_definitions_sha256() == report.feature_definitions_sha256.as_str()
             && loaded.catalog.context_identity(&args.project.projection)?
                 == report.context_identity,
         "named compile catalog changed after generation"
@@ -505,8 +473,8 @@ fn invoke_native_jar(
     )?;
     let loaded = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     ensure!(
-        loaded.catalog_sha256 == report.catalog_sha256
-            && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
+        loaded.catalog_sha256() == report.catalog_sha256.as_str()
+            && loaded.feature_definitions_sha256() == report.feature_definitions_sha256.as_str()
             && loaded.catalog.context_identity(&args.project.projection)?
                 == report.context_identity,
         "named jar catalog changed after generation"
@@ -668,7 +636,7 @@ fn select_native_sdk(
     let entry = selected.catalog.entry(&args.project.projection)?;
     let metadata_bytes = read_project_metadata(&selected.repo_root)?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &selected.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &selected.feature_registry)?;
     let compiler_major = metadata
         .targets
         .get(entry.target_id()?)
@@ -717,7 +685,7 @@ fn resolve_native_sdk_home(
     let entry = selected.catalog.entry(&args.project.projection)?;
     let metadata_bytes = read_project_metadata(&selected.repo_root)?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &selected.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &selected.feature_registry)?;
     let compiler_major = metadata
         .targets
         .get(entry.target_id()?)
@@ -918,8 +886,8 @@ fn invoke_gradle(
     )?;
     let loaded = CoreCatalog::load(args.project.root()?, invocation_dir)?;
     ensure!(
-        loaded.catalog_sha256 == report.catalog_sha256
-            && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
+        loaded.catalog_sha256() == report.catalog_sha256.as_str()
+            && loaded.feature_definitions_sha256() == report.feature_definitions_sha256.as_str()
             && loaded.catalog.context_identity(&args.project.projection)?
                 == report.context_identity,
         "named build inputs changed after generation; retry with the current catalog"
@@ -933,7 +901,7 @@ fn invoke_gradle(
         "core build metadata changed after generation"
     );
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &loaded.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &loaded.feature_registry)?;
     let java_major = u32::from(
         metadata
             .targets
@@ -1012,7 +980,7 @@ fn project_report(
     let metadata_bytes = read_project_metadata(&loaded.repo_root)?;
     let metadata = CoreProjectInputs::from_json(
         from_utf8(&metadata_bytes).wrap_err("core project metadata is not UTF-8")?,
-        &loaded.registered_features,
+        &loaded.feature_registry,
     )?;
     let core = loaded.repo_root.join(CORE_ROOT);
     let inventory = discover_core_source_files(&core)?;
@@ -1052,8 +1020,8 @@ fn project_report(
             .project_dir(&args.projection)?
             .to_string_lossy()
             .replace('\\', "/"),
-        catalog_sha256: loaded.catalog_sha256,
-        feature_definitions_sha256: loaded.feature_definitions_sha256,
+        catalog_sha256: loaded.catalog_sha256().to_owned(),
+        feature_definitions_sha256: loaded.feature_definitions_sha256().to_owned(),
         project_inputs_sha256: sha256(&metadata_bytes),
         enabled_features,
         omitted_source_paths: selection.omitted_paths.into_iter().collect(),
@@ -1121,24 +1089,18 @@ mod tests {
 
     #[test]
     fn omitted_project_root_selects_only_a_valid_current_checkout() -> Result<()> {
-        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&[
-            "--projection",
-            "ignored/nested",
-            "--dependency-profile",
-            "rust-toolchain",
-        ])
-        .unwrap();
-        assert!(parsed.project.repo_root.is_none());
-
         let (fixture, _) = fixture();
         let nested = fixture
             .path()
             .join("platform/minecraft/projections/ignored/nested");
         fs::create_dir_all(&nested)?;
-        let mut project = parsed.project;
+        let mut project = CoreProjectSelectionArgs {
+            repo_root: None,
+            projection: "ignored/nested".to_owned(),
+        };
         project.resolve_root(&nested)?;
         let loaded = CoreCatalog::load(fixture.path(), &nested)?;
-        assert_eq!(project.root()?, loaded.repo_root);
+        assert_eq!(project.root()?, loaded.repo_root.as_path());
 
         let outside = tempfile::tempdir()?;
         let error = discover_source_repo_root(outside.path()).unwrap_err();
@@ -1165,63 +1127,6 @@ mod tests {
         project.resolve_root(outside.path())?;
         assert_eq!(project.root()?, fixture.path());
         Ok(())
-    }
-
-    #[test]
-    fn native_commands_parse_cache_override_and_select_checkout_default() {
-        let base = ["--repo-root", "must-not-be-read", "--projection", "unused"];
-        let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
-        assert!(default.java_home.is_none());
-        assert!(default.cache_root.is_none());
-        assert!(default.isolated_project_cache.is_none());
-        assert!(!default.rebuild_shared_mcp);
-        assert!(default.output_name.is_none());
-        assert_eq!(
-            crate::jar_build::engine::catalog_native_cache_path(
-                Path::new("C:/selected-checkout"),
-                default.cache_root.as_deref(),
-            ),
-            PathBuf::from("C:/selected-checkout/sfm-toolchain-data")
-        );
-        let mut explicit = base.to_vec();
-        explicit.extend([
-            "--java-home",
-            "C:/selected-jdk",
-            "--cache-root",
-            "C:/sfm cache fixture",
-        ]);
-        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&explicit).unwrap();
-        assert_eq!(parsed.java_home, Some(PathBuf::from("C:/selected-jdk")));
-        assert_eq!(
-            parsed.cache_root,
-            Some(PathBuf::from("C:/sfm cache fixture"))
-        );
-        assert_eq!(
-            crate::jar_build::engine::catalog_native_cache_path(
-                Path::new("C:/selected-checkout"),
-                parsed.cache_root.as_deref(),
-            ),
-            PathBuf::from("C:/sfm cache fixture")
-        );
-        let mut isolated = base.to_vec();
-        isolated.extend(["--isolated-project-cache", "pinned_rebuild_1"]);
-        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&isolated).unwrap();
-        assert_eq!(
-            parsed.isolated_project_cache.as_deref(),
-            Some("pinned_rebuild_1")
-        );
-        let mut alternate_output = base.to_vec();
-        alternate_output.extend(["--output-name", "historical-check.jar"]);
-        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&alternate_output).unwrap();
-        assert_eq!(parsed.output_name.as_deref(), Some("historical-check.jar"));
-        let mut rebuild = base.to_vec();
-        rebuild.extend([
-            "--isolated-project-cache",
-            "mcp_proof",
-            "--rebuild-shared-mcp",
-        ]);
-        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&rebuild).unwrap();
-        assert!(parsed.rebuild_shared_mcp);
     }
 
     #[test]

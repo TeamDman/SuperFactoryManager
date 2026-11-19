@@ -227,7 +227,7 @@ object is selected automatically.
 
 The result contains provider payloads and proposed collection/tag records. Git status and an existing tag object are reported for review; these observations
 do not qualify source-to-commit binding or authorize tag creation. Preparation performs no copy,
-tag creation, provider request or publication. Normal application-home logging
+tag creation, provider request or publication. Normal cache-home logging
 remains enabled.
 
 ### Review one feature at a time

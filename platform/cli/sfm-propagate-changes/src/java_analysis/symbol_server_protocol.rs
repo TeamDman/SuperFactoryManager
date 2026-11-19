@@ -11,7 +11,6 @@ use super::definition_workspace_fingerprint;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::env::current_dir;
 use std::env::temp_dir;
 use std::error::Error as StdError;
 use std::fmt;
@@ -520,16 +519,12 @@ fn managed_source_path(
                 local.display()
             )
         })
-    } else if local.is_absolute() {
-        Ok(local)
     } else {
-        current_dir()
-            .map(|current| current.join(local))
-            .map_err(|error| {
-                eyre::eyre!(
-                    "failed to absolutize unavailable managed source root `{root_id}`: {error}"
-                )
-            })
+        eyre::ensure!(
+            local.is_absolute(),
+            "unavailable managed source root `{root_id}` requires an absolute temporary directory"
+        );
+        Ok(local)
     }
 }
 

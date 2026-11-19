@@ -4,9 +4,7 @@
 //! participates in loading a named projection's explicit template context.
 
 use super::candidate_lock::checked_directory;
-use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
-use super::core_features::CoreFeatureDefinitions;
 use super::core_features::FEATURE_DEFINITIONS_PATH;
 use super::projection_catalog::CATALOG_PATH;
 use super::projection_catalog::ProjectionCatalog;
@@ -16,30 +14,46 @@ use super::projection_catalog::ProjectionEntry;
 use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::SUPPORTED_TARGETS;
 use super::provenance::sha256;
+use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
+use super::sfm_repo_path::SfmRepoPath;
+pub(crate) use super::sfm_repo_path::read_bounded_input;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
+#[cfg(test)]
 use std::fs;
-use std::io::Read as _;
 use std::path::Path;
+#[cfg(test)]
 use std::path::PathBuf;
 use std::str::from_utf8;
+use std::sync::OnceLock;
 
 pub const MAX_CATALOG_INPUT_BYTES: u64 = 1024 * 1024;
 
 #[derive(Debug)]
 pub struct CoreCatalog {
-    pub repo_root: PathBuf,
+    pub repo_root: SfmRepoPath,
     pub catalog: ProjectionCatalog,
-    pub definitions: CoreFeatureDefinitions,
-    pub registered_features: BTreeSet<String>,
-    pub catalog_sha256: String,
-    pub feature_definitions_sha256: String,
+    pub feature_registry: SfmProjectionFeatureRegistry,
+    catalog_bytes: Box<[u8]>,
+    feature_definitions_bytes: Box<[u8]>,
+    catalog_sha256: OnceLock<String>,
+    feature_definitions_sha256: OnceLock<String>,
 }
 
 impl CoreCatalog {
+    /// Load an explicit checkout or discover the Git worktree containing the invocation.
+    ///
+    /// # Errors
+    /// Returns an error if discovery fails or the checkout's catalog is invalid.
+    pub(crate) fn load_for_invocation(
+        repo_root: Option<&Path>,
+        invocation_dir: &Path,
+    ) -> Result<Self> {
+        Self::load_path(SfmRepoPath::discover(repo_root, invocation_dir)?)
+    }
+
     /// Resolve an existing projection through its containing checkout's catalog.
     /// No generated-history file or version inferred from a directory name is used.
     ///
@@ -70,38 +84,76 @@ impl CoreCatalog {
     /// # Errors
     /// Rejects unsafe/reparse roots, oversized or malformed metadata, invalid
     /// keys/features, unsupported contexts and missing feature prerequisites.
-    #[tracing::instrument(level = "info", skip_all, name = "projection_catalog_load")]
     pub fn load(repo_root: &Path, invocation_dir: &Path) -> Result<Self> {
-        let candidate = if repo_root == Path::new(".") {
-            invocation_dir.to_path_buf()
-        } else if repo_root.is_absolute() {
-            repo_root.to_path_buf()
-        } else {
-            invocation_dir.join(repo_root)
-        };
-        let repo_root = checked_directory(&candidate).wrap_err("invalid source repository root")?;
-        let registry_bytes = read_bounded_catalog_input(&repo_root, FEATURE_DEFINITIONS_PATH)?;
+        Self::load_path(SfmRepoPath::resolve(repo_root, invocation_dir)?)
+    }
+
+    /// Read and validate the authored projection metadata at the checked root.
+    ///
+    /// # Errors
+    /// Rejects invalid, oversized, or inaccessible metadata.
+    #[tracing::instrument(level = "info", skip_all, name = "projection_catalog_load")]
+    pub fn load_path(repo_root: SfmRepoPath) -> Result<Self> {
+        let registry_bytes =
+            repo_root.read_metadata(FEATURE_DEFINITIONS_PATH, MAX_CATALOG_INPUT_BYTES)?;
+        let catalog_bytes = repo_root.read_metadata(CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?;
+        Self::from_captured_metadata(repo_root, catalog_bytes, registry_bytes)
+    }
+
+    pub(crate) fn from_captured_metadata(
+        repo_root: SfmRepoPath,
+        catalog_bytes: Vec<u8>,
+        registry_bytes: Vec<u8>,
+    ) -> Result<Self> {
+        ensure!(
+            catalog_bytes.len() as u64 <= MAX_CATALOG_INPUT_BYTES
+                && registry_bytes.len() as u64 <= MAX_CATALOG_INPUT_BYTES,
+            "catalog metadata exceeds the {MAX_CATALOG_INPUT_BYTES}-byte limit"
+        );
         let registry_text =
             from_utf8(&registry_bytes).wrap_err("core feature definitions are not UTF-8")?;
-        let definitions = CoreFeatureDefinitions::from_json(registry_text)?;
-        let registered_features = definitions.registered_names();
-        let catalog_bytes = read_bounded_catalog_input(&repo_root, CATALOG_PATH)?;
+        let feature_registry = SfmProjectionFeatureRegistry::from_json(registry_text)?;
         let catalog_text =
             from_utf8(&catalog_bytes).wrap_err("projections catalog is not UTF-8")?;
-        let catalog = ProjectionCatalog::from_json(catalog_text, &registered_features)?;
+        let catalog = ProjectionCatalog::from_json(catalog_text, &feature_registry)?;
         for (key, entry) in &catalog.0 {
-            definitions
+            feature_registry
                 .validate_entry(entry)
                 .wrap_err_with(|| format!("projection `{key}`"))?;
         }
         Ok(Self {
             repo_root,
             catalog,
-            definitions,
-            registered_features,
-            catalog_sha256: sha256(&catalog_bytes),
-            feature_definitions_sha256: sha256(&registry_bytes),
+            feature_registry,
+            catalog_bytes: catalog_bytes.into_boxed_slice(),
+            feature_definitions_bytes: registry_bytes.into_boxed_slice(),
+            catalog_sha256: OnceLock::new(),
+            feature_definitions_sha256: OnceLock::new(),
         })
+    }
+
+    #[must_use]
+    pub(crate) fn catalog_bytes(&self) -> &[u8] {
+        &self.catalog_bytes
+    }
+
+    #[must_use]
+    pub(crate) fn feature_definitions_bytes(&self) -> &[u8] {
+        &self.feature_definitions_bytes
+    }
+
+    /// SHA-256 provenance for the exact catalog bytes parsed at load time.
+    #[must_use]
+    pub fn catalog_sha256(&self) -> &str {
+        self.catalog_sha256
+            .get_or_init(|| sha256(self.catalog_bytes()))
+    }
+
+    /// SHA-256 provenance for the exact feature registry bytes parsed at load time.
+    #[must_use]
+    pub fn feature_definitions_sha256(&self) -> &str {
+        self.feature_definitions_sha256
+            .get_or_init(|| sha256(self.feature_definitions_bytes()))
     }
 
     /// Resolve the exact typed Liquid context of one safe catalog key.
@@ -124,7 +176,7 @@ impl CoreCatalog {
             preset: key.to_owned(),
             environment: entry.environment.as_str().to_owned(),
             projection_key: key.to_owned(),
-            features: entry.feature_flags(&self.registered_features)?,
+            features: entry.feature_flags(&self.feature_registry)?,
             targets,
         })
     }
@@ -137,25 +189,6 @@ impl CoreCatalog {
 /// including growth observed after the initial metadata inspection.
 pub fn read_bounded_catalog_input(root: &Path, relative: &str) -> Result<Vec<u8>> {
     read_bounded_input(root, relative, MAX_CATALOG_INPUT_BYTES)
-}
-
-pub(crate) fn read_bounded_input(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
-    let path = checked_file(root, relative)?;
-    let file =
-        fs::File::open(&path).wrap_err_with(|| format!("cannot open source input `{relative}`"))?;
-    ensure!(
-        file.metadata()?.len() <= limit,
-        "source input `{relative}` exceeds the {limit}-byte limit"
-    );
-    let mut bytes = Vec::new();
-    file.take(limit + 1)
-        .read_to_end(&mut bytes)
-        .wrap_err_with(|| format!("cannot read source input `{relative}`"))?;
-    ensure!(
-        bytes.len() as u64 <= limit,
-        "source input `{relative}` exceeds the {limit}-byte limit"
-    );
-    Ok(bytes)
 }
 
 /// Minimal catalog fixture for consumers of generated projects; no source or
@@ -177,7 +210,10 @@ pub(crate) fn write_project_catalog_fixture(
             features: vec![],
         },
     )]));
-    fs::write(repo.join(CATALOG_PATH), catalog.to_json(&BTreeSet::new())?)?;
+    fs::write(
+        repo.join(CATALOG_PATH),
+        catalog.to_json(&SfmProjectionFeatureRegistry::test_registry([]))?,
+    )?;
     let root = repo.join(catalog.project_dir(key)?);
     fs::create_dir_all(&root)?;
     Ok(root)
@@ -203,11 +239,17 @@ mod tests {
             .path()
             .join("platform/minecraft/projections/custom/mc-1.19.2");
         fs::create_dir_all(project.join("src")).unwrap();
+        let catalog_path = temp.path().join(CATALOG_PATH);
+        let original_catalog = fs::read(&catalog_path).unwrap();
         let (loaded, key) = CoreCatalog::for_project(&project).unwrap();
+        assert!(loaded.catalog_sha256.get().is_none());
+        assert!(loaded.feature_definitions_sha256.get().is_none());
         assert_eq!(key, "custom/mc-1.19.2");
         assert_eq!(loaded.context(&key).unwrap().minecraft_version, "1.21");
         assert!(CoreCatalog::for_project(&project.join("src")).is_err());
-        fs::remove_file(temp.path().join(CATALOG_PATH)).unwrap();
+        fs::remove_file(catalog_path).unwrap();
+        assert_eq!(loaded.catalog_sha256(), sha256(&original_catalog));
+        assert!(loaded.feature_definitions_sha256.get().is_none());
         assert!(CoreCatalog::for_project(&project).is_err());
     }
 

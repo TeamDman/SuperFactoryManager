@@ -207,7 +207,7 @@ fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<Sourc
         )?;
         let metadata = CoreProjectInputs::from_json(
             from_utf8(&bytes).wrap_err("core project metadata is not UTF-8")?,
-            &loaded.registered_features,
+            &loaded.feature_registry,
         )?;
         // Explicit non-Java rules suffice: no source inventory or asset body
         // is traversed/read to preview this single selected text template.
@@ -253,9 +253,9 @@ impl LoadedCatalog {
     fn inputs_report(&self) -> CatalogInputsReport {
         CatalogInputsReport {
             catalog_path: CATALOG_PATH.to_owned(),
-            catalog_sha256: self.catalog_sha256.clone(),
+            catalog_sha256: self.catalog_sha256().to_owned(),
             feature_definitions_path: FEATURE_DEFINITIONS_PATH.to_owned(),
-            feature_definitions_sha256: self.feature_definitions_sha256.clone(),
+            feature_definitions_sha256: self.feature_definitions_sha256().to_owned(),
         }
     }
 
@@ -269,7 +269,7 @@ impl LoadedCatalog {
             minecraft_version: entry.minecraft_version.clone(),
             environment: entry.environment.as_str().to_owned(),
             enabled_features,
-            feature_flags: entry.feature_flags(&self.registered_features)?,
+            feature_flags: entry.feature_flags(&self.feature_registry)?,
             context_identity: self.catalog.context_identity(key)?,
             project_dir: self
                 .catalog

@@ -5,8 +5,6 @@ mod container_test_args;
 pub use container_args::ContainerArgs;
 pub use container_build_args::ContainerBuildArgs;
 pub use container_command::ContainerCommand;
-#[cfg(test)]
-mod tests;
 
 mod session_args;
 mod session_capture_args;

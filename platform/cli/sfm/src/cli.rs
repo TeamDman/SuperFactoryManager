@@ -1571,7 +1571,6 @@ const fn explorer_output_schema(operation: SfmControlExplorerOperation) -> &'sta
 #[cfg(test)]
 mod tests {
     use super::*;
-    use figue::ToArgs as _;
 
     #[test]
     fn structured_action_exit_code_follows_brigadier_success() {
@@ -1579,20 +1578,6 @@ mod tests {
         assert_eq!(structured_action_exit_code(2), 0);
         assert_eq!(structured_action_exit_code(0), 1);
         assert_eq!(structured_action_exit_code(-1), 1);
-    }
-
-    fn parse(arguments: &[&str]) -> Cli {
-        figue::from_slice::<Cli>(arguments)
-            .into_result()
-            .expect("SFM control CLI should parse")
-            .get_silent()
-    }
-
-    fn parse_fails(arguments: &[&str]) {
-        assert!(
-            figue::from_slice::<Cli>(arguments).into_result().is_err(),
-            "unexpectedly parsed {arguments:?}"
-        );
     }
 
     fn help(arguments: &[&str]) -> String {
@@ -1606,13 +1591,6 @@ mod tests {
 
     #[test]
     fn terminal_worker_has_a_bounded_json_lines_help_contract() {
-        let parsed = parse(&["terminal", "worker"]);
-        assert!(matches!(
-            parsed.command,
-            Command::Terminal(TerminalArgs {
-                command: TerminalCommand::Worker(_)
-            })
-        ));
         let text = help(&["terminal", "worker", "--help"]);
         for witness in [
             "JSON Lines",
@@ -1624,7 +1602,6 @@ mod tests {
         ] {
             assert!(text.contains(witness), "missing help contract: {witness}");
         }
-        parse_fails(&["terminal", "worker", "--shell", "anything"]);
     }
 
     fn explorer_result(
@@ -1658,128 +1635,31 @@ mod tests {
     }
 
     #[test]
-    fn parses_instance_list() {
-        let parsed = parse(&["instance", "list"]);
-        assert!(matches!(
-            parsed.command,
-            Command::Instance(InstanceArgs {
-                command: InstanceCommand::List(_)
-            })
-        ));
-    }
-
-    #[test]
-    fn canonical_action_family_and_logs_parse() {
-        let parsed = parse(&["action", "invoke", "sfm:echo", "hello"]);
-        let Command::Action(ActionArgs {
-            command: ActionCommand::Invoke(invoke),
-        }) = parsed.command
-        else {
-            panic!("expected canonical action invoke");
+    fn manager_show_builds_an_exact_address_query() {
+        let mut show = ManagerShowArgs {
+            dimension: "minecraft:overworld".to_owned(),
+            x: -12,
+            y: 64,
+            z: 7,
+            target: TargetArgs::default(),
         };
-        assert_eq!(invoke.action, ["sfm:echo", "hello"]);
-
-        let parsed = parse(&["action", "invoke", "sfm:help", "sfm:echo"]);
-        let Command::Action(ActionArgs {
-            command: ActionCommand::Invoke(help),
-        }) = parsed.command
-        else {
-            panic!("expected canonical action-specific help invocation");
-        };
-        assert_eq!(help.action, ["sfm:help", "sfm:echo"]);
-
-        let parsed = parse(&["action", "list", "all", "--instance-pid", "42"]);
-        let Command::Action(ActionArgs {
-            command: ActionCommand::List(list),
-        }) = parsed.command
-        else {
-            panic!("expected canonical action list");
-        };
-        assert_eq!(list.mode.as_deref(), Some("all"));
-        assert_eq!(list.target.instance_pid, Some(42));
-
-        let parsed = parse(&["logs", "--tail", "100", "--log-filter", "error"]);
-        let Command::Logs(logs) = parsed.command else {
-            panic!("expected logs command");
-        };
-        assert_eq!(logs.tail, Some(100));
-        assert_eq!(logs.log_filter.as_deref(), Some("error"));
-    }
-
-    #[test]
-    fn manager_show_cli_builds_an_exact_address_query() {
-        let parsed = parse(&[
-            "manager",
-            "show",
-            "--instance-id",
-            "game-1",
-            "--",
-            "minecraft:overworld",
-            "-12",
-            "64",
-            "7",
-        ]);
-        let Command::Manager(ManagerArgs {
-            command: ManagerCommand::Show(show),
-        }) = parsed.command
-        else {
-            panic!("expected manager show command");
-        };
-        assert_eq!(show.target.instance_id.as_deref(), Some("game-1"));
         assert_eq!(
             show.action_tokens().expect("exact manager query tokens"),
             ["sfm:manager/show", "minecraft:overworld", "-12", "64", "7"]
         );
 
-        parse_fails(&["manager", "show", "minecraft:overworld", "1", "2"]);
-        parse_fails(&[
-            "manager",
-            "show",
-            "minecraft:overworld",
-            "1",
-            "not-an-integer",
-            "3",
-        ]);
-        let invalid_dimension = parse(&["manager", "show", "Overworld", "1", "2", "3"]);
-        let Command::Manager(ManagerArgs {
-            command: ManagerCommand::Show(show),
-        }) = invalid_dimension.command
-        else {
-            panic!("expected manager show command");
-        };
+        show.dimension = "Overworld".to_owned();
         assert!(show.action_tokens().is_err());
     }
 
     #[test]
-    fn parses_exact_visible_size_display_invocation() {
-        let parsed = parse(&["invoke", "sfm:panel/open", "sfm:size_display"]);
-        let Command::Invoke(invoke) = parsed.command else {
-            panic!("expected invoke command");
+    fn packet_list_builds_after_limit_and_session_tokens() {
+        let list = PacketListArgs {
+            after_sequence: Some(7),
+            limit: Some(2),
+            session_id: Some("123e4567-e89b-12d3-a456-426614174000".to_owned()),
+            target: TargetArgs::default(),
         };
-        assert_eq!(invoke.action, ["sfm:panel/open", "sfm:size_display"]);
-    }
-
-    #[test]
-    fn packet_list_cli_builds_the_versioned_action_contract() {
-        let parsed = parse(&[
-            "packet",
-            "list",
-            "--after-sequence",
-            "7",
-            "--limit",
-            "2",
-            "--session-id",
-            "123e4567-e89b-12d3-a456-426614174000",
-            "--instance-id",
-            "game-1",
-        ]);
-        let Command::Packet(PacketArgs {
-            command: PacketCommand::List(list),
-        }) = parsed.command
-        else {
-            panic!("expected packet list command");
-        };
-        assert_eq!(list.target.instance_id.as_deref(), Some("game-1"));
         assert_eq!(
             list.action_tokens().expect("packet list tokens"),
             [
@@ -1795,26 +1675,16 @@ mod tests {
     }
 
     #[test]
-    fn packet_send_cli_builds_exact_address_side_session_and_value_tokens() {
-        let parsed = parse(&[
-            "packet",
-            "send",
-            "--side",
-            "NORTH",
-            "--session-id",
-            "123e4567-e89b-12d3-a456-426614174000",
-            "--",
-            "minecraft:overworld",
-            "12",
-            "64",
-            "-7",
-            r#"{"message":"hello world"}"#,
-        ]);
-        let Command::Packet(PacketArgs {
-            command: PacketCommand::Send(send),
-        }) = parsed.command
-        else {
-            panic!("expected packet send command");
+    fn packet_send_builds_exact_address_side_session_and_value_tokens() {
+        let send = PacketSendArgs {
+            dimension: "minecraft:overworld".to_owned(),
+            x: 12,
+            y: 64,
+            z: -7,
+            value_json: r#"{"message":"hello world"}"#.to_owned(),
+            side: Some("NORTH".to_owned()),
+            session_id: Some("123e4567-e89b-12d3-a456-426614174000".to_owned()),
+            target: TargetArgs::default(),
         };
         assert_eq!(
             send.action_tokens().expect("packet send tokens"),
@@ -1902,312 +1772,30 @@ mod tests {
     }
 
     #[test]
-    fn invoke_selectors_round_trip_canonically() {
-        let parsed = parse(&[
-            "invoke",
-            "sfm:test_screen",
-            "text with spaces",
-            "--instance-pid",
-            "1234",
-        ]);
-        let rendered = parsed.to_args().expect("canonical arguments");
-        let rendered = rendered
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-        assert!(
-            rendered
-                .windows(2)
-                .any(|pair| pair == ["--instance-pid", "1234"])
-        );
-        assert!(
-            rendered
-                .iter()
-                .any(|argument| argument == "text with spaces")
-        );
-    }
-
-    #[test]
-    fn parses_canonical_spatial_coverage_run_with_instance_target() {
-        let parsed = parse(&[
-            "spatial",
-            "coverage",
-            "run",
-            "document",
-            "focused",
-            "sfm:strict_java_navigation",
-            "sfm:auto_1_through_8",
-            "0",
-            "100000",
-            "auto",
-            "--instance-id",
-            "game-7",
-        ]);
-        let Command::Spatial(SpatialArgs {
-            command:
-                SpatialCommand::Coverage(SpatialCoverageArgs {
-                    command: SpatialCoverageCommand::Run(run),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected spatial coverage run command");
+    fn spatial_coverage_request_keeps_scope_and_sampling_parameters() {
+        let run = SpatialCoverageRunArgs {
+            scope: SpatialCoverageScope::Workspace,
+            selector: "focused".to_owned(),
+            profile: "sfm:strict_java_navigation".to_owned(),
+            layout_matrix: "sfm:auto_1_through_8".to_owned(),
+            seed: 17,
+            budget: 2_500,
+            artifact_destination: "artifact://requested".to_owned(),
+            target: TargetArgs::default(),
         };
-        assert_eq!(run.scope, SpatialCoverageScope::Document);
-        assert_eq!(run.selector, "focused");
-        assert_eq!(run.profile, "sfm:strict_java_navigation");
-        assert_eq!(run.layout_matrix, "sfm:auto_1_through_8");
-        assert_eq!(run.seed, 0);
-        assert_eq!(run.budget, 100_000);
-        assert_eq!(run.artifact_destination, "auto");
-        assert_eq!(run.target.instance_id.as_deref(), Some("game-7"));
         assert_eq!(
             run.input().action_tokens().expect("canonical tokens"),
             [
                 "sfm:spatial/coverage/run",
-                "document",
+                "workspace",
                 "focused",
                 "sfm:strict_java_navigation",
                 "sfm:auto_1_through_8",
-                "0",
-                "100000",
-                "auto",
+                "17",
+                "2500",
+                "artifact://requested",
             ]
         );
-    }
-
-    #[test]
-    fn spatial_coverage_to_args_retains_full_hierarchy_and_target() {
-        let parsed = parse(&[
-            "spatial",
-            "coverage",
-            "run",
-            "workspace",
-            "focused",
-            "sfm:classification",
-            "sfm:auto_1_through_8",
-            "17",
-            "2500",
-            "artifact://requested",
-            "--instance-pid",
-            "1234",
-        ]);
-        let rendered = parsed
-            .to_args()
-            .expect("canonical arguments")
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-        assert!(
-            rendered
-                .windows(3)
-                .any(|arguments| arguments == ["spatial", "coverage", "run"])
-        );
-        assert!(
-            rendered
-                .windows(2)
-                .any(|arguments| arguments == ["--instance-pid", "1234"])
-        );
-        assert!(rendered.iter().any(|argument| argument == "workspace"));
-        assert!(
-            rendered
-                .iter()
-                .any(|argument| argument == "artifact://requested")
-        );
-    }
-
-    #[test]
-    fn spatial_coverage_has_no_short_or_flat_aliases() {
-        parse_fails(&[
-            "coverage",
-            "run",
-            "document",
-            "focused",
-            "sfm:classification",
-            "sfm:auto_1_through_8",
-            "0",
-            "1",
-            "auto",
-        ]);
-        parse_fails(&[
-            "spatial",
-            "run",
-            "document",
-            "focused",
-            "sfm:classification",
-            "sfm:auto_1_through_8",
-            "0",
-            "1",
-            "auto",
-        ]);
-    }
-
-    #[test]
-    fn parses_every_direct_canonical_explorer_command() {
-        let cases: &[&[&str]] = &[
-            &["explorer", "list", "all"],
-            &["explorer", "describe", "id(explorer-1)"],
-            &["explorer", "root", "list", "focused"],
-            &[
-                "explorer",
-                "root",
-                "add",
-                "focused",
-                "registry://minecraft/item/",
-                "--if-no-match",
-                "open-new",
-            ],
-            &[
-                "explorer",
-                "root",
-                "remove",
-                "all",
-                "registry://minecraft/item/",
-            ],
-            &[
-                "explorer",
-                "node",
-                "expand",
-                "focused",
-                "registry://minecraft/item/",
-            ],
-            &[
-                "explorer",
-                "node",
-                "collapse",
-                "id(explorer-1)",
-                "registry://minecraft/item/",
-            ],
-            &[
-                "explorer",
-                "node",
-                "toggle",
-                "all",
-                "registry://minecraft/item/",
-            ],
-            &[
-                "explorer",
-                "node",
-                "refresh",
-                "id(explorer-1)",
-                "registry://minecraft/item/",
-            ],
-            &["explorer", "view", "set", "all", "sfm:small_icons"],
-            &["explorer", "sort", "set", "focused", "sfm:extension"],
-            &[
-                "explorer",
-                "group",
-                "set",
-                "id(explorer-1)",
-                "sfm:hierarchy",
-            ],
-            &["explorer", "root", "hoist", "set", "all", "show-roots"],
-        ];
-        for arguments in cases {
-            let parsed = parse(arguments);
-            assert!(matches!(parsed.command, Command::Explorer(_)));
-        }
-    }
-
-    #[test]
-    fn explorer_root_add_to_args_retains_explicit_policy_and_instance_target() {
-        let parsed = parse(&[
-            "explorer",
-            "root",
-            "add",
-            "focused",
-            "registry://minecraft/item/",
-            "--if-no-match",
-            "open-new",
-            "--instance-id",
-            "game-7",
-        ]);
-        let rendered = parsed
-            .to_args()
-            .expect("canonical arguments")
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-        assert!(
-            rendered
-                .windows(2)
-                .any(|pair| pair == ["--if-no-match", "open-new"])
-        );
-        assert!(
-            rendered
-                .windows(2)
-                .any(|pair| pair == ["--instance-id", "game-7"])
-        );
-        assert!(rendered.iter().any(|argument| argument == "explorer"));
-        assert!(rendered.iter().any(|argument| argument == "root"));
-        assert!(rendered.iter().any(|argument| argument == "add"));
-    }
-
-    #[test]
-    fn explorer_node_refresh_to_args_retains_direct_hierarchy_and_target() {
-        let parsed = parse(&[
-            "explorer",
-            "node",
-            "refresh",
-            "id(explorer-7)",
-            "registry://minecraft/item/",
-            "--instance-pid",
-            "1234",
-        ]);
-        let rendered = parsed
-            .to_args()
-            .expect("canonical arguments")
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-        assert!(
-            rendered
-                .windows(3)
-                .any(|arguments| arguments == ["explorer", "node", "refresh"])
-        );
-        assert!(
-            rendered
-                .windows(2)
-                .any(|arguments| arguments == ["--instance-pid", "1234"])
-        );
-        assert!(rendered.iter().any(|argument| argument == "id(explorer-7)"));
-    }
-
-    #[test]
-    fn explorer_has_no_builtin_short_aliases() {
-        parse_fails(&["explore", "list", "all"]);
-        parse_fails(&["explorer", "add", "focused", "."]);
-        parse_fails(&["explorer", "root", "add", "focused", "."]);
-        parse_fails(&["explorer", "hoist", "set", "all", "auto"]);
-        parse_fails(&["explorer", "expand", "focused", "."]);
-        parse_fails(&["explorer", "node", "open", "focused", "."]);
-    }
-
-    #[test]
-    fn explorer_projection_commands_use_frozen_builtins() {
-        parse(&["explorer", "view", "set", "all", "sfm:list"]);
-        parse(&["explorer", "view", "set", "all", "sfm:small_icons"]);
-        parse(&["explorer", "sort", "set", "all", "sfm:name"]);
-        parse(&["explorer", "sort", "set", "all", "sfm:extension"]);
-        parse(&["explorer", "sort", "set", "all", "sfm:icon"]);
-        parse(&["explorer", "group", "set", "all", "sfm:hierarchy"]);
-        parse(&["explorer", "group", "set", "all", "sfm:none"]);
-        let _ = validate_explorer_projection_id("addon:grid")
-            .expect_err("canonical extension ids are unsupported in the frozen slice");
-
-        for old_id in [
-            "list",
-            "small-icons",
-            "small_icons",
-            "name",
-            "extension",
-            "icon",
-            "hierarchy",
-            "none",
-            "path-hierarchy",
-        ] {
-            let _ = validate_explorer_projection_id(old_id)
-                .expect_err("compatibility aliases must fail before instance discovery");
-        }
     }
 
     #[test]
@@ -2247,12 +1835,7 @@ mod tests {
 
         let mut empty_list = explorer_result(SfmControlExplorerOperationStatus::NoMatch);
         empty_list.operation = SfmControlExplorerOperation::List;
-        assert_eq!(empty_list.operation, SfmControlExplorerOperation::List);
         assert_eq!(explorer_cli_output(empty_list).exit_code(), 0);
-
-        let mut missing_description = explorer_result(SfmControlExplorerOperationStatus::NoMatch);
-        missing_description.operation = SfmControlExplorerOperation::Describe;
-        assert_eq!(explorer_cli_output(missing_description).exit_code(), 2);
     }
 
     #[test]

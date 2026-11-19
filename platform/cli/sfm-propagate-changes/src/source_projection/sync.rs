@@ -16,7 +16,6 @@ use eyre::bail;
 use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::env::current_dir;
 use std::fs;
 use std::io::ErrorKind;
 use std::io::Read as _;
@@ -943,21 +942,20 @@ fn validate_relative_path(path: &str) -> Result<()> {
 
 fn absolute_root(root: &Path) -> Result<PathBuf> {
     ensure!(
+        root.is_absolute(),
+        "source projection destination must be absolute"
+    );
+    ensure!(
         !root
             .components()
             .any(|component| component == Component::ParentDir),
         "source projection destination cannot contain '..'"
     );
-    let absolute = if root.is_absolute() {
-        root.to_path_buf()
-    } else {
-        current_dir()?.join(root)
-    };
     ensure!(
-        absolute.parent().is_some() && absolute.file_name().is_some(),
+        root.parent().is_some() && root.file_name().is_some(),
         "source projection destination cannot be a filesystem root"
     );
-    Ok(absolute)
+    Ok(root.to_path_buf())
 }
 
 pub(super) fn inspect_root(root: &Path) -> Result<()> {
@@ -1091,7 +1089,14 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use super::*;
+
+    #[test]
+    fn sync_requires_an_explicit_absolute_destination() {
+        let error = absolute_root(Path::new("relative-projection")).unwrap_err();
+        assert!(error.to_string().contains("must be absolute"));
+    }
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt as _;
 
@@ -1349,7 +1354,7 @@ mod tests {
 
     #[test]
     fn named_target_identity_comes_from_values_not_key_spelling() {
-        let catalog = ProjectionCatalog::from_json(r#"{"release/mc-1.19.2":{"minecraft_version":"1.21","environment":"dev","features":[]}}"#, &BTreeSet::new()).unwrap();
+        let catalog = ProjectionCatalog::from_json(r#"{"release/mc-1.19.2":{"minecraft_version":"1.21","environment":"dev","features":[]}}"#, &SfmProjectionFeatureRegistry::test_registry([])).unwrap();
         let identity =
             CatalogProjectionIdentity::from_catalog(&catalog, "release/mc-1.19.2").unwrap();
         assert_eq!(identity.target_id, "1.21.0");

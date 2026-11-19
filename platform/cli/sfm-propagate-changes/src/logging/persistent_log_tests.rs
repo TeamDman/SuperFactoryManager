@@ -1,8 +1,10 @@
 use super::super::logging_init::configured_subscriber;
 use super::*;
+use crate::cli::InvocationHomes;
 use crate::paths::AppHome;
+use crate::paths::CacheHome;
+use crate::paths::InvocationDirectory;
 use std::collections::BTreeMap;
-use std::env::temp_dir;
 use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
@@ -55,27 +57,40 @@ fn default_debug_file_preserves_terminal_and_explicit_level_configuration() -> R
             .map_err(|_| eyre::eyre!("fixture parse failed"))?
             .get_silent())
     };
-    let default = parse(&["jdk", "list"])?
-        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
+    let fixture = tempfile::tempdir()?;
+    let invocation_dir = InvocationDirectory::new(fixture.path())?;
+    let cache_home = CacheHome(fixture.path().join("cache"));
+    let homes = InvocationHomes::new(
+        AppHome(fixture.path().join("settings")),
+        Ok(cache_home.clone()),
+    );
+    let default = parse(&["jdk", "list"])?.logging_config(&invocation_dir, &homes)?;
     assert_eq!(default.default_directive, LevelFilter::INFO.into());
     assert_eq!(default.json_default_directive, LevelFilter::DEBUG.into());
     assert!(default.json_log_directory.is_some() && default.json_log_path.is_none());
+    assert_eq!(default.json_log_directory, Some(cache_home.join("logs")));
     assert!(default.read_env_filter && default.json_read_env_filter);
     let explicit = parse(&["--log-file", "fixture.ndjson", "jdk", "list"])?
-        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
+        .logging_config(&invocation_dir, &homes)?;
     assert_eq!(
         explicit.json_log_path,
-        Some(PathBuf::from("fixture.ndjson"))
+        Some(fixture.path().join("fixture.ndjson"))
     );
     assert!(explicit.json_log_directory.is_none());
     assert_eq!(explicit.json_default_directive, LevelFilter::INFO.into());
-    let warn = parse(&["--log-filter", "warn", "jdk", "list"])?
-        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
+    let log_directory = fixture.path().join("user-logs");
+    fs::create_dir(&log_directory)?;
+    let directory = parse(&["--log-file", "user-logs", "jdk", "list"])?
+        .logging_config(&invocation_dir, &homes)?;
+    assert_eq!(directory.json_log_directory, Some(log_directory));
+    assert!(directory.json_log_path.is_none());
+    let warn =
+        parse(&["--log-filter", "warn", "jdk", "list"])?.logging_config(&invocation_dir, &homes)?;
     assert_eq!(warn.default_directive, LevelFilter::WARN.into());
     assert_eq!(warn.json_default_directive, LevelFilter::WARN.into());
     assert!(!warn.read_env_filter && !warn.json_read_env_filter);
     let debug = parse(&["--debug", "--log-filter", "error", "jdk", "list"])?
-        .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))?;
+        .logging_config(&invocation_dir, &homes)?;
     assert_eq!(debug.default_directive, LevelFilter::DEBUG.into());
     assert_eq!(debug.json_default_directive, LevelFilter::DEBUG.into());
     assert!(!debug.read_env_filter && !debug.json_read_env_filter);

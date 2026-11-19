@@ -1,4 +1,3 @@
-use super::input::ComparisonInput;
 use super::report::ComparisonReport;
 use super::request::ComparisonRequest;
 use crate::cancellation::CancellationToken;
@@ -34,12 +33,7 @@ pub fn prepare(
     let destination = parent.join(name);
     ensure!(!destination.exists(), "comparison output already exists");
     for input in [&request.left, &request.right] {
-        let root = match input {
-            ComparisonInput::Directory { root } => root,
-            ComparisonInput::PinnedGit { repository, .. }
-            | ComparisonInput::Projection { repository, .. } => repository,
-        };
-        let root = dunce::canonicalize(root)?;
+        let root = dunce::canonicalize(input.absolute_root()?)?;
         ensure!(
             !dunce::canonicalize(&parent)?.starts_with(&root),
             "comparison output overlaps selected source root"

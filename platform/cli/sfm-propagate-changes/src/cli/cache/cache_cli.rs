@@ -6,6 +6,7 @@ use super::CacheRootArgs;
 use super::CacheVerifyJdkArgs;
 use super::CacheVerifyRemapsArgs;
 use crate::cli::InvocationHomes;
+use crate::paths::InvocationDirectory;
 use facet::Facet;
 use figue as args;
 
@@ -21,8 +22,12 @@ impl CacheArgs {
     /// # Errors
     ///
     /// Returns an error if the selected cache command fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
-        self.command.invoke(homes)
+    pub fn invoke_in(
+        self,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        self.command.invoke_in(invocation_dir, homes)
     }
 }
 
@@ -42,7 +47,7 @@ pub enum CacheCommand {
     VerifyRemaps(CacheVerifyRemapsArgs),
     /// Open the cache directory in the file explorer
     Open(CacheOpenArgs),
-    /// Clean the cache directory
+    /// Clean the platform cache and keep automatic logs
     Clean(CacheCleanArgs),
 }
 
@@ -50,10 +55,14 @@ impl CacheCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+    pub fn invoke_in(
+        self,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         match self {
             CacheCommand::Path(args) => args.invoke(homes.cache_home()?),
-            CacheCommand::Root(args) => args.invoke(homes),
+            CacheCommand::Root(args) => args.invoke_in(invocation_dir, homes),
             CacheCommand::Report(args) => args.invoke(),
             CacheCommand::VerifyJdk(args) => args.invoke(),
             CacheCommand::VerifyRemaps(args) => args.invoke(),

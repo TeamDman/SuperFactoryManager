@@ -417,6 +417,8 @@ fn real_engine_entry_refuses_before_projection_planning_or_java() -> eyre::Resul
     use crate::jar_build::Parallelism;
     use crate::jar_build::RunTestAction;
     use crate::jar_build::RunTestOptions;
+    use crate::source_projection::ProjectionName;
+    use crate::source_projection::sfm_repo_path::SfmRepoPath;
     let temp = tempfile::tempdir()?;
     crate::source_projection::core_catalog::write_project_catalog_fixture(
         temp.path(),
@@ -429,8 +431,8 @@ fn real_engine_entry_refuses_before_projection_planning_or_java() -> eyre::Resul
             temp.path().join("application-cache"),
         )),
         selection: BuildSelection::Projection {
-            selector: "sfm-4.35.0/*".to_owned(),
-            repo_root: Some(temp.path().to_owned()),
+            repo_root: SfmRepoPath::try_from(temp.path())?,
+            projections: vec![ProjectionName::parse("sfm-4.35.0/mc-1.19.2")?],
         },
         cache_root: None,
         refresh: false,

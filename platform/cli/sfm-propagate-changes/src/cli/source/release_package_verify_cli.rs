@@ -405,12 +405,8 @@ fn safe_label(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::source_projection::candidate_lock::tests::Fixture;
@@ -498,33 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_reviewed_digest_and_verifies_producer_package_with_path_free_report() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-package-verify",
-            "--package-root",
-            "C:/reviewed/package",
-            "--completion-manifest-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleasePackageVerify(parsed_args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-package-verify command");
-        };
-        assert_eq!(
-            parsed_args.package_root,
-            PathBuf::from("C:/reviewed/package")
-        );
-
+    fn verifies_producer_package_with_path_free_report() {
         let (_fixture, args) = fixture_package();
         let before = fs::read_dir(&args.package_root).unwrap().count();
         let report = verify(&args).unwrap();

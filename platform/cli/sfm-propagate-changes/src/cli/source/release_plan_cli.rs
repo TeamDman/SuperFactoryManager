@@ -108,12 +108,8 @@ impl ReleasePlanReport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
@@ -179,33 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_and_plans_exact_verified_package_without_paths_or_side_effects() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-plan",
-            "--package-root",
-            "C:/reviewed/package",
-            "--completion-manifest-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleasePlan(parsed_args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-plan command");
-        };
-        assert_eq!(
-            parsed_args.package_root,
-            PathBuf::from("C:/reviewed/package")
-        );
-
+    fn plans_exact_verified_package_without_paths_or_side_effects() {
         let (fixture, args) = packaged_candidate();
         let package_path = args.package_root.clone();
         let before = fs::read_dir(&args.package_root).unwrap().count();

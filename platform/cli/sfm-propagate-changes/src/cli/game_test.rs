@@ -10,6 +10,7 @@ use crate::jar_build::SourceCatalogCommand;
 use crate::jar_build::SourceCatalogQuery;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Discover and run SFM `GameTests`.
 #[derive(Facet, Debug)]
@@ -56,15 +57,20 @@ impl GameTestArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         let app_home = homes.app_home();
         match self.command {
-            GameTestCommand::RunClient(args) => args.invoke(cancellation_token, homes),
-            GameTestCommand::RunServer(args) => args.invoke(cancellation_token, homes),
+            GameTestCommand::RunClient(args) => {
+                args.invoke(cancellation_token, invocation_dir, homes)
+            }
+            GameTestCommand::RunServer(args) => {
+                args.invoke(cancellation_token, invocation_dir, homes)
+            }
             GameTestCommand::List(args) => SourceCatalogCommand::new(
                 args.options
-                    .into_options(BuildMode::Plan, app_home)?
+                    .into_options(BuildMode::Plan, app_home, invocation_dir)?
                     .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::GameTest,
@@ -75,7 +81,7 @@ impl GameTestArgs {
             .invoke(),
             GameTestCommand::Show(args) => SourceCatalogCommand::new(
                 args.options
-                    .into_options(BuildMode::Plan, app_home)?
+                    .into_options(BuildMode::Plan, app_home, invocation_dir)?
                     .with_cache_home(homes.available_cache_home()),
                 SourceCatalogQuery {
                     category: SourceCatalogCategory::GameTest,

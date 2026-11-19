@@ -433,41 +433,6 @@ mod tests {
     }
 
     #[test]
-    fn hash_cli_parses_default_and_explicit_digest_options() {
-        let parse = |input: &[&str]| {
-            figue::from_slice::<HashArgs>(input)
-                .into_result()
-                .expect("hash options parse")
-                .get_silent()
-        };
-        let HashCommand::File(default) = parse(&["file", "literal file.bin"]).command;
-        assert_eq!(default.path, PathBuf::from("literal file.bin"));
-        assert_eq!(default.algorithm, HashAlgorithm::Blake3);
-        assert_eq!(default.length, None);
-        for (name, algorithm) in [
-            ("blake3", HashAlgorithm::Blake3),
-            ("sha256", HashAlgorithm::Sha256),
-            ("sha1", HashAlgorithm::Sha1),
-        ] {
-            let HashCommand::File(parsed) = parse(&["file", "a", "--algorithm", name]).command;
-            assert_eq!(parsed.algorithm, algorithm);
-        }
-        for length in ["20", "32", "64"] {
-            let HashCommand::File(parsed) = parse(&["file", "a", "--length", length]).command;
-            assert_eq!(parsed.length, Some(length.parse().unwrap()));
-        }
-        for input in [
-            &[][..],
-            &["file"][..],
-            &["file", "a", "--algorithm", "md5"][..],
-            &["file", "a", "--length", "65536"][..],
-            &["file", "a", "--length", "-1"][..],
-        ] {
-            assert!(figue::from_slice::<HashArgs>(input).into_result().is_err());
-        }
-    }
-
-    #[test]
     fn empty_and_abc_hashes_match_fixed_golden_digests() {
         let goldens: &[(&[u8], HashAlgorithm, &str)] = &[
             (

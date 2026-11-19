@@ -1058,6 +1058,7 @@ mod tests {
     use crate::source_projection::projection_catalog::ProjectionEntry;
     use crate::source_projection::projection_catalog::ProjectionEnvironment;
     use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
     use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
     use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
@@ -1196,7 +1197,7 @@ mod tests {
         )]));
         std::fs::write(
             repo.join(CATALOG_PATH),
-            catalog.to_json(&BTreeSet::from(["example".to_owned()]))?,
+            catalog.to_json(&SfmProjectionFeatureRegistry::test_registry(["example"]))?,
         )?;
         Ok(())
     }

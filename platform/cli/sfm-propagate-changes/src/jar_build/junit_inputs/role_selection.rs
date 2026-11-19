@@ -13,6 +13,7 @@ use crate::source_projection::core_inputs::CoreProjectInputs;
 use crate::source_projection::core_inputs::CoreSelection;
 use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use std::collections::BTreeSet;
 use std::str::from_utf8;
 
@@ -25,27 +26,22 @@ pub(super) struct RoleSelection {
 
 impl RoleSelection {
     pub(super) fn load(report: &mut PreflightReport, repo: &Path) -> eyre::Result<Self> {
-        let catalog_raw = read_input(report, repo, CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?;
+        let repo_root = SfmRepoPath::resolve(repo, repo)?;
+        let catalog_raw = read_input(report, &repo_root, CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?;
         let features_raw = read_input(
             report,
-            repo,
+            &repo_root,
             FEATURE_DEFINITIONS_PATH,
             MAX_CATALOG_INPUT_BYTES,
         )?;
-        let catalog = CoreCatalog::load(repo, repo)?;
-        eyre::ensure!(
-            catalog.catalog_sha256 == format!("sha256:{}", sha256(&catalog_raw))
-                && catalog.feature_definitions_sha256
-                    == format!("sha256:{}", sha256(&features_raw)),
-            "current catalog/feature inputs changed during JUnit role selection"
-        );
-        // CoreCatalog deliberately owns validation. Account for its two bounded
-        // reads as well as this invocation's identity snapshots.
-        report.files_checked += 2;
-        report.bytes_read += (catalog_raw.len() + features_raw.len()) as u64;
-        let raw = read_input(report, repo, CORE_METADATA_PATH, MAX_METADATA_BYTES)?;
-        let metadata =
-            CoreProjectInputs::from_json(from_utf8(&raw)?, &catalog.registered_features)?;
+        let catalog = CoreCatalog::from_captured_metadata(repo_root, catalog_raw, features_raw)?;
+        let raw = read_input(
+            report,
+            &catalog.repo_root,
+            CORE_METADATA_PATH,
+            MAX_METADATA_BYTES,
+        )?;
+        let metadata = CoreProjectInputs::from_json(from_utf8(&raw)?, &catalog.feature_registry)?;
         Ok(Self {
             catalog,
             metadata,
@@ -60,8 +56,8 @@ impl RoleSelection {
         let context = self.catalog.context(&format!("sfm-4.35.0/mc-{target}"))?;
         let selection = select_core_inputs(&self.metadata, &context, &BTreeSet::new())?;
         let selection_identity = identity(&(
-            self.catalog.catalog_sha256.clone(),
-            self.catalog.feature_definitions_sha256.clone(),
+            self.catalog.catalog_sha256().to_owned(),
+            self.catalog.feature_definitions_sha256().to_owned(),
             self.metadata_sha256.clone(),
             identity(&context)?,
         ))?;

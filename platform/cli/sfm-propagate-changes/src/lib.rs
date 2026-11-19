@@ -111,13 +111,10 @@ pub mod worktree;
 static TEST_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use crate::cli::Cli;
-#[cfg(test)]
-use crate::paths::AppHome;
+use crate::paths::InvocationDirectory;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::Utc;
-#[cfg(test)]
-use std::env::temp_dir;
 use std::ops::ControlFlow;
 
 /// Version string combining package version, git revision, and build time.
@@ -188,13 +185,16 @@ pub fn main() -> eyre::Result<ExitCode> {
     // before the command has checked its external checkout boundary.
     reject_stage_log_file_before_logging(&cli)?;
 
-    // Select ambient application paths once, before dispatching any operation.
-    let app_home = paths::AppHome::resolve()?;
+    let cwd = env::current_dir()?;
+    let invocation_dir = InvocationDirectory::new(&cwd)?;
+    let app_home = paths::AppHome::resolve(&invocation_dir)?;
     let cache_home = paths::CacheHome::resolve(&app_home);
     let homes = cli::InvocationHomes::new_selected(app_home, cache_home);
 
-    // Initialize logging under the same application home used by the command.
-    logging::init_logging(&cli.logging_config(homes.app_home())?, &cancellation_token)?;
+    logging::init_logging(
+        &cli.logging_config(&invocation_dir, &homes)?,
+        &cancellation_token,
+    )?;
     startup_argv::log::<Cli>(&arguments)?;
 
     #[cfg(windows)]
@@ -211,9 +211,11 @@ pub fn main() -> eyre::Result<ExitCode> {
 
     // Invoke whatever command was requested and render typed output once.
     let requested_output_format = cli.global_args.output_format;
-    let output = cli.invoke(cancellation_token, &homes).inspect_err(|_| {
-        tracing::error!("Command failed; detailed error is written to stderr");
-    })?;
+    let output = cli
+        .invoke_in(cancellation_token, invocation_dir.as_path(), &homes)
+        .inspect_err(|_| {
+            tracing::error!("Command failed; detailed error is written to stderr");
+        })?;
     let exit_code = output.exit_code();
     output.emit(requested_output_format).inspect_err(|_| {
         tracing::error!("Command output failed; detailed error is written to stderr");
@@ -225,6 +227,9 @@ pub fn main() -> eyre::Result<ExitCode> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::InvocationHomes;
+    use crate::paths::AppHome;
+    use crate::paths::CacheHome;
     use std::path::PathBuf;
 
     fn stage_cli(log_file: Option<PathBuf>) -> Cli {
@@ -256,8 +261,14 @@ mod tests {
         let error = reject_stage_log_file_before_logging(&cli).unwrap_err();
         assert!(error.to_string().contains("rejects global --log-file"));
         assert!(reject_stage_log_file_before_logging(&stage_cli(None)).is_ok());
+        let fixture = tempfile::tempdir().unwrap();
+        let invocation_dir = InvocationDirectory::new(fixture.path()).unwrap();
+        let homes = InvocationHomes::new(
+            AppHome(fixture.path().join("settings")),
+            Ok(CacheHome(fixture.path().join("cache"))),
+        );
         let logging = stage_cli(None)
-            .logging_config(&AppHome(temp_dir().join("sfm-logging-config-fixture")))
+            .logging_config(&invocation_dir, &homes)
             .unwrap();
         assert!(logging.json_log_path.is_none() && logging.json_log_directory.is_none());
     }

@@ -7,6 +7,7 @@ use crate::jar_build::RunTestCommand as JarBuildRunTestCommand;
 use crate::jar_build::RunTestOptions;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Arguments for compiling and running the Java `JUnit` test source set.
 #[derive(Facet, Debug, Clone)]
@@ -55,6 +56,7 @@ impl RunTestArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         let app_home = homes.app_home();
@@ -69,7 +71,7 @@ impl RunTestArgs {
             .map_or(RunTestAction::Run, RunTestCliCommand::action);
         JarBuildRunTestCommand::new(
             options
-                .into_options(BuildMode::Build, app_home)?
+                .into_options(BuildMode::Build, app_home, invocation_dir)?
                 .with_cache_home(homes.available_cache_home()),
             RunTestOptions {
                 action,

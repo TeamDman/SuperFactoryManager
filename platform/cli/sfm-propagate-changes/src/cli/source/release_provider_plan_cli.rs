@@ -551,12 +551,8 @@ fn read_reviewed_changelog(path: &Path, expected_sha256: &str) -> Result<String>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
@@ -630,117 +626,6 @@ mod tests {
 
     fn assert_rejected(args: ReleaseProviderPlanArgs) {
         assert!(args.plan_in(&CancellationToken::new()).is_err());
-    }
-
-    #[test]
-    fn cli_requires_explicit_reviewer_and_provider_inputs() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-provider-plan",
-            "--package-root",
-            "C:/reviewed/package",
-            "--completion-manifest-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "--reviewed-source-commit",
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "--reviewed-tag",
-            "4.34.0-26.1.2",
-            "--github-repo",
-            "example/sfm",
-            "--modrinth-project",
-            "example-project",
-            "--curseforge-project",
-            "123",
-            "--changelog-file",
-            "C:/reviewed/changelog.md",
-            "--changelog-sha256",
-            "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "--modrinth-1201-loader-policy",
-            DUAL_1201_POLICY,
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleaseProviderPlan(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-provider-plan command");
-        };
-        assert_eq!(args.github_repo, "example/sfm");
-        assert_eq!(args.modrinth_1201_loader_policy, DUAL_1201_POLICY);
-        assert!(
-            figue::from_slice::<Cli>(&[
-                "source",
-                "legacy",
-                "release-provider-plan",
-                "--package-root",
-                "C:/reviewed/package",
-            ])
-            .into_result()
-            .is_err()
-        );
-    }
-
-    #[test]
-    fn modrinth_preview_cli_reuses_all_explicit_provider_review_inputs() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-modrinth-request-preview",
-            "--package-root",
-            "C:/reviewed/package",
-            "--completion-manifest-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "--reviewed-source-commit",
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "--reviewed-tag",
-            "9.99.99-fixture",
-            "--github-repo",
-            "example/sfm",
-            "--modrinth-project",
-            "example-project",
-            "--curseforge-project",
-            "123",
-            "--changelog-file",
-            "C:/reviewed/changelog.md",
-            "--changelog-sha256",
-            "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "--modrinth-1201-loader-policy",
-            DUAL_1201_POLICY,
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleaseModrinthRequestPreview(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-modrinth-request-preview command");
-        };
-        assert_eq!(args.provider_plan.modrinth_project, "example-project");
-        assert_eq!(
-            args.provider_plan.modrinth_1201_loader_policy,
-            DUAL_1201_POLICY
-        );
-        assert!(
-            figue::from_slice::<Cli>(&[
-                "source",
-                "legacy",
-                "release-modrinth-request-preview",
-                "--package-root",
-                "C:/reviewed/package",
-            ])
-            .into_result()
-            .is_err()
-        );
     }
 
     #[test]

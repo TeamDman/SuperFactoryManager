@@ -18,6 +18,7 @@ use super::projection_catalog::SUPPORTED_TARGETS;
 use super::projection_catalog::validate_projection_key;
 use super::provenance::sha256;
 use super::render_java_source;
+use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use super::sync::MANIFEST_FILE;
 use super::sync::ProjectedArtifact;
 use eyre::Result;
@@ -138,7 +139,7 @@ impl CoreProjectInputs {
     /// Rejects unsupported schemas, duplicate JSON fields/path keys, unknown
     /// fields/flags/targets, unsafe paths, and contradictory membership rules.
     #[tracing::instrument(name = "core_inputs.parse", skip_all)]
-    pub fn from_json(input: &str, registered_features: &BTreeSet<String>) -> Result<Self> {
+    pub fn from_json(input: &str, registry: &SfmProjectionFeatureRegistry) -> Result<Self> {
         ensure!(
             input.len() as u64 <= MAX_CORE_METADATA_BYTES,
             "core project metadata exceeds the {MAX_CORE_METADATA_BYTES}-byte limit"
@@ -146,7 +147,7 @@ impl CoreProjectInputs {
         reject_duplicate_object_keys(input)?;
         let metadata: Self =
             facet_json::from_str(input).wrap_err("could not parse core project inputs")?;
-        metadata.validate(registered_features)?;
+        metadata.validate(registry)?;
         Ok(metadata)
     }
 
@@ -161,7 +162,11 @@ impl CoreProjectInputs {
         feature = "tracy",
         tracing::instrument(level = "info", skip_all, name = "oracle_validate_metadata")
     )]
-    pub fn validate(&self, registered_features: &BTreeSet<String>) -> Result<()> {
+    pub fn validate(&self, registry: &SfmProjectionFeatureRegistry) -> Result<()> {
+        self.validate_with(|feature| registry.contains(feature))
+    }
+
+    fn validate_with(&self, is_registered: impl Fn(&str) -> bool) -> Result<()> {
         ensure!(
             self.schema_version == 1,
             "unsupported core project-input schema"
@@ -187,7 +192,7 @@ impl CoreProjectInputs {
                 "source rule `{output}` must use a src/... output"
             );
             outputs.insert(output.as_str());
-            validate_variants(output, variants, registered_features, &mut inputs)?;
+            validate_variants(output, variants, &is_registered, &mut inputs)?;
         }
         for (output, variants) in &self.project_files {
             validate_output_path(output)?;
@@ -199,7 +204,7 @@ impl CoreProjectInputs {
                 outputs.insert(output.as_str()),
                 "duplicate core output `{output}`"
             );
-            validate_variants(output, variants, registered_features, &mut inputs)?;
+            validate_variants(output, variants, &is_registered, &mut inputs)?;
         }
         validate_path_collisions(outputs.iter().copied(), "core output")?;
         validate_path_collisions(inputs.iter().copied(), "core input")?;
@@ -266,29 +271,35 @@ pub fn select_core_inputs(
     context: &ProjectionContext,
     source_inventory: &BTreeSet<String>,
 ) -> Result<CoreSelection> {
-    let registered = context.features.keys().cloned().collect();
-    metadata
-        .validated_selector(&registered)?
-        .select(context, source_inventory)
+    metadata.validate_with(|feature| context.features.contains_key(feature))?;
+    select_validated_core_inputs(metadata, context, source_inventory, None)
 }
 
 /// A borrowed proof of structural validation for an exact feature registry.
 /// Neither metadata nor registry can mutate while this selector is in use.
 pub(super) struct ValidatedCoreInputs<'a> {
     metadata: &'a CoreProjectInputs,
-    registered: &'a BTreeSet<String>,
+    registry: &'a SfmProjectionFeatureRegistry,
 }
 
 impl CoreProjectInputs {
     pub(super) fn validated_selector<'a>(
         &'a self,
-        registered: &'a BTreeSet<String>,
+        registry: &'a SfmProjectionFeatureRegistry,
     ) -> Result<ValidatedCoreInputs<'a>> {
-        self.validate(registered)?;
+        self.validate(registry)?;
         Ok(ValidatedCoreInputs {
             metadata: self,
-            registered,
+            registry,
         })
+    }
+
+    pub(super) fn select_from_validated_metadata(
+        &self,
+        context: &ProjectionContext,
+        source_inventory: &BTreeSet<String>,
+    ) -> Result<CoreSelection> {
+        select_validated_core_inputs(self, context, source_inventory, None)
     }
 }
 
@@ -299,7 +310,11 @@ impl ValidatedCoreInputs<'_> {
         source_inventory: &BTreeSet<String>,
     ) -> Result<CoreSelection> {
         ensure!(
-            context.features.keys().eq(self.registered.iter()),
+            context
+                .features
+                .keys()
+                .map(String::as_str)
+                .eq(self.registry.names()),
             "validated selector feature registry changed"
         );
         select_validated_core_inputs(self.metadata, context, source_inventory, None)
@@ -314,7 +329,11 @@ impl ValidatedCoreInputs<'_> {
         snapshot: &mut CoreInputSnapshot,
     ) -> Result<CoreSelection> {
         ensure!(
-            context.features.keys().eq(self.registered.iter()),
+            context
+                .features
+                .keys()
+                .map(String::as_str)
+                .eq(self.registry.names()),
             "validated selector feature registry changed"
         );
         select_validated_core_inputs(
@@ -799,20 +818,24 @@ pub fn prepare_core_artifacts(
     core_root: &Path,
     metadata: &CoreProjectInputs,
     context: &ProjectionContext,
-    registered_features: &BTreeSet<String>,
+    registry: &SfmProjectionFeatureRegistry,
 ) -> Result<BTreeMap<String, ProjectedArtifact>> {
-    metadata.validate(registered_features)?;
+    metadata.validate(registry)?;
     ensure!(
-        context.features.keys().cloned().collect::<BTreeSet<_>>() == *registered_features,
+        context
+            .features
+            .keys()
+            .map(String::as_str)
+            .eq(registry.names()),
         "core context must explicitly resolve every registered feature and no unknown feature"
     );
     let inventory = discover_core_source_files(core_root)?;
-    let selected = select_core_inputs(metadata, context, &inventory)?;
+    let selected = select_validated_core_inputs(metadata, context, &inventory, None)?;
     collect_core_artifacts(core_root, &selected, context)
 }
 
 impl InputPredicate {
-    fn validate(&self, registered_features: &BTreeSet<String>) -> Result<()> {
+    fn validate(&self, is_registered: &impl Fn(&str) -> bool) -> Result<()> {
         let mut targets = BTreeSet::new();
         for target in &self.targets {
             ensure!(
@@ -832,7 +855,7 @@ impl InputPredicate {
             let mut declared = BTreeSet::new();
             for feature in features {
                 ensure!(
-                    registered_features.contains(feature),
+                    is_registered(feature),
                     "unknown core predicate feature `{feature}`"
                 );
                 ensure!(
@@ -871,7 +894,7 @@ impl InputPredicate {
 fn validate_variants<'a>(
     output: &str,
     variants: &'a [InputVariant],
-    registered_features: &BTreeSet<String>,
+    is_registered: &impl Fn(&str) -> bool,
     inputs: &mut BTreeSet<&'a str>,
 ) -> Result<()> {
     for variant in variants {
@@ -882,7 +905,7 @@ fn validate_variants<'a>(
         }
         variant
             .when
-            .validate(registered_features)
+            .validate(is_registered)
             .wrap_err_with(|| format!("core output `{output}`"))?;
         inputs.insert(&variant.input);
     }
@@ -1238,8 +1261,8 @@ pub(super) mod tests {
     #[cfg(unix)]
     use std::os::unix::fs::symlink;
 
-    fn registry() -> BTreeSet<String> {
-        BTreeSet::from(["alpha".to_owned(), "beta".to_owned()])
+    fn registry() -> SfmProjectionFeatureRegistry {
+        SfmProjectionFeatureRegistry::test_registry(["alpha", "beta"])
     }
 
     pub(in crate::source_projection) fn context(version: &str, alpha: bool) -> ProjectionContext {
@@ -1552,7 +1575,7 @@ pub(super) mod tests {
     #[test]
     fn borrowed_validated_selector_matches_fresh_selection_and_rejects_registry_changes() {
         let fixture = Fixture::new();
-        let registered = context("1.19.2", false).features.keys().cloned().collect();
+        let registered = registry();
         let selector = fixture.metadata.validated_selector(&registered).unwrap();
         let mut snapshot = CoreInputSnapshot::default();
         let mut inventory = discover_core_source_files(&fixture.core).unwrap();

@@ -171,39 +171,7 @@ impl ReleaseInventory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::source_projection::candidate_lock::CandidateTargetLock;
-
-    #[test]
-    fn release_inventory_parses_explicit_lock_and_local_roots() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-inventory",
-            "--repo-root",
-            "C:/reviewed/repo",
-            "--lock",
-            "candidate.json",
-            "--candidate-root",
-            "1.19.2=C:/candidate/1.19.2",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleaseInventory(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-inventory command");
-        };
-        assert_eq!(args.candidate.candidate_root.len(), 1);
-    }
 
     #[test]
     fn release_inventory_requires_exact_verified_artifacts_and_sorts_targets() {

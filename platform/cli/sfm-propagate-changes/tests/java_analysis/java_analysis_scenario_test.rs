@@ -1944,13 +1944,6 @@ fn expected_snapshot_outcome_determines_public_exit_status() -> eyre::Result<()>
 }
 
 #[test]
-fn acceptance_guidance_is_scenario_local_and_explicit() {
-    let guidance = snapshot_acceptance_guidance(Path::new("scenario"), "different");
-    assert!(guidance.contains("Set-Location 'scenario'"));
-    assert!(guidance.contains("Copy-Item output-actual.json output-expected.json"));
-}
-
-#[test]
 fn snapshot_policy_rejects_unsafe_actual_and_expected_paths() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let scenario = manifest

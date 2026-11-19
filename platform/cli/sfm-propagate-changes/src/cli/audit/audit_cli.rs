@@ -79,29 +79,33 @@ impl AuditArgs {
 mod tests {
     use super::*;
 
+    fn audit_args() -> AuditArgs {
+        AuditArgs {
+            branch: None,
+            project_root: Some(PathBuf::from("selected-projection")),
+            language: Vec::new(),
+            lang: Vec::new(),
+            max_lines: None,
+            version_surfaces: false,
+            font_render_surface: true,
+        }
+    }
+
     #[test]
     fn catalog_audit_requires_one_explicit_selection_and_keeps_version_audit_historical()
     -> eyre::Result<()> {
-        let args = figue::from_slice::<AuditArgs>(&["--project-root", "selected-projection"])
-            .into_result()?
-            .get_silent();
+        let mut args = audit_args();
         args.validate_selection()?;
-        let args = figue::from_slice::<AuditArgs>(&[
-            "--project-root",
-            "selected-projection",
-            "--branch",
-            "1.19.2",
-        ])
-        .into_result()?
-        .get_silent();
+
+        args.branch = Some(BranchSelector("1.19.2".to_owned()));
         assert!(args.validate_selection().is_err());
-        let args = figue::from_slice::<AuditArgs>(&[
-            "--project-root",
-            "selected-projection",
-            "--version-surfaces",
-        ])
-        .into_result()?
-        .get_silent();
+        let project_root = args.project_root.take();
+        args.version_surfaces = true;
+        args.validate_selection()?;
+
+        args.branch = None;
+        assert!(args.validate_selection().is_err());
+        args.project_root = project_root;
         assert!(args.validate_selection().is_err());
         Ok(())
     }
@@ -111,11 +115,10 @@ mod tests {
     -> eyre::Result<()> {
         let invocation = tempfile::tempdir()?;
         let app_home = AppHome(invocation.path().join("app-home"));
-        let args = figue::from_slice::<AuditArgs>(&["--project-root", "selected-projection"])
-            .into_result()?
-            .get_silent();
         let expected = invocation.path().join("selected-projection");
-        let error = args.invoke_in(invocation.path(), &app_home).unwrap_err();
+        let error = audit_args()
+            .invoke_in(invocation.path(), &app_home)
+            .unwrap_err();
         assert_eq!(
             error.to_string(),
             format!("cannot inspect directory '{}'", expected.display())

@@ -9,6 +9,7 @@ use crate::jar_build::RunOptions;
 use crate::paths::AppHome;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Arguments for launching the Forge client and exiting when the title screen opens.
 #[derive(Facet, Debug, Clone)]
@@ -27,8 +28,9 @@ impl RunClientSmokeArgs {
         self,
         mode: BuildMode,
         app_home: &AppHome,
+        invocation_dir: &Path,
     ) -> eyre::Result<BuildOptions> {
-        self.options.into_options(mode, app_home)
+        self.options.into_options(mode, app_home, invocation_dir)
     }
 
     /// # Errors
@@ -37,12 +39,13 @@ impl RunClientSmokeArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         let app_home = homes.app_home();
         let solo = self.solo;
         RunCommand::with_run_options(
-            self.into_options(BuildMode::Build, app_home)?
+            self.into_options(BuildMode::Build, app_home, invocation_dir)?
                 .with_cache_home(homes.available_cache_home()),
             RunKind::ClientSmoke,
             RunOptions {

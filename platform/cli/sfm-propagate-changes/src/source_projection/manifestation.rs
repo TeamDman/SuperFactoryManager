@@ -226,13 +226,13 @@ pub(crate) fn render_output(
         CORE_METADATA_PATH,
         super::core_inputs::MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(from_utf8(&bytes)?, &loaded.registered_features)?;
+    let metadata = CoreProjectInputs::from_json(from_utf8(&bytes)?, &loaded.feature_registry)?;
     let core = loaded.repo_root.join(CORE_ROOT);
     let context = loaded.context(key)?;
     let inventory = discover_core_source_files(&core)?;
     let mut snapshot = CoreInputSnapshot::default();
     let mut selection = metadata
-        .validated_selector(&loaded.registered_features)?
+        .validated_selector(&loaded.feature_registry)?
         .select_with_snapshot(&context, &inventory, &mut snapshot)?;
     selection.inputs.retain(|path, _| path == output);
     let input = selection
@@ -266,9 +266,9 @@ pub(crate) fn render_selected(
         CORE_METADATA_PATH,
         super::core_inputs::MAX_CORE_METADATA_BYTES,
     )?;
-    let metadata = CoreProjectInputs::from_json(from_utf8(&bytes)?, &loaded.registered_features)?;
+    let metadata = CoreProjectInputs::from_json(from_utf8(&bytes)?, &loaded.feature_registry)?;
     let core = loaded.repo_root.join(CORE_ROOT);
-    let selector = metadata.validated_selector(&loaded.registered_features)?;
+    let selector = metadata.validated_selector(&loaded.feature_registry)?;
     let inventory = discover_core_source_files(&core)?;
     let mut snapshot = CoreInputSnapshot::default();
     let mut template_cache = SourceRenderCache::default();
@@ -346,7 +346,7 @@ pub(crate) fn render_selected(
         .map(|projection| (projection.key.as_str(), &projection.artifacts))
         .collect::<Vec<_>>();
     super::named_root::catalog_projection_roots(&loaded.repo_root, &loaded.catalog, &selected)?;
-    Ok((loaded.repo_root, rendered))
+    Ok((loaded.repo_root.into(), rendered))
 }
 
 fn retain_reference_inputs(

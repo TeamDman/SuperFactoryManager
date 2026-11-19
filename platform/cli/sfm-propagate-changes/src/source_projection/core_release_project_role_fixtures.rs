@@ -53,11 +53,11 @@ fn load_workspace_selections() -> eyre::Result<ReleaseSelections> {
             &checked_file(repository, CORE_METADATA_PATH)?,
             8 * 1024 * 1024,
         )?)?,
-        &catalog.registered_features,
+        &catalog.feature_registry,
     )?;
     // Select against the real metadata, but acquire only the roles this
     // fixture needs. Unrelated project files are not fixture dependencies.
-    let selector = metadata.validated_selector(&catalog.registered_features)?;
+    let selector = metadata.validated_selector(&catalog.feature_registry)?;
     let mut selections = BTreeMap::new();
     for (target, _) in SUPPORTED_TARGETS {
         let context = catalog.context(&format!("sfm-4.34.0/mc-{target}"))?;

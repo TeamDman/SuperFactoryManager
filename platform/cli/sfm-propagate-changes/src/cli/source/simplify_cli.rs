@@ -249,8 +249,8 @@ fn scan(
         parser: JAVA_PARSER_FINGERPRINT.into(),
         scope: "manifested_java_candidates_not_rewrite_or_semantic_or_oracle_proof".into(),
         file: args.file.clone(),
-        catalog_sha256: catalog.catalog_sha256,
-        feature_definitions_sha256: catalog.feature_definitions_sha256,
+        catalog_sha256: catalog.catalog_sha256().to_owned(),
+        feature_definitions_sha256: catalog.feature_definitions_sha256().to_owned(),
         all_inputs_parsed: parsed.iter().all(Option::is_some),
         distinct_sources_parsed: cache.len(),
         parsed_pair_count,
@@ -397,36 +397,5 @@ mod tests {
         assert!(scan(&args, &CancellationToken::new(), temp.path()).is_err());
         args.projection = vec!["a".into(), "unknown".into()];
         assert!(scan(&args, &CancellationToken::new(), temp.path()).is_err());
-    }
-
-    #[test]
-    fn command_parses_repeatable_projection_selection() {
-        let cli = figue::from_slice::<crate::cli::Cli>(&[
-            "source",
-            "simplify",
-            "scan",
-            "--repo-root",
-            ".",
-            "--file",
-            FILE,
-            "--projection",
-            "a",
-            "--projection",
-            "b",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let crate::cli::Command::Source(super::super::SourceArgs {
-            command:
-                super::super::SourceCommand::Simplify(SimplifyArgs {
-                    command: SimplifyCommand::Scan(args),
-                }),
-        }) = cli.command
-        else {
-            panic!("wrong command");
-        };
-        assert_eq!(args.projection, ["a", "b"]);
-        assert_eq!(args.max_regions, 16);
     }
 }

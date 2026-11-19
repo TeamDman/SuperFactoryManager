@@ -162,7 +162,7 @@ pub fn draft(
         MAX_CORE_METADATA_BYTES,
     )?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.feature_registry)?;
     let core = checked_directory(&catalog.repo_root.join(CORE_ROOT))?;
     let inventory = discover_core_source_files(&core)?;
     let mut prepared = read_witnesses(&catalog, &bindings, &git, request, cancellation)?;
@@ -205,8 +205,8 @@ pub fn draft(
             .map(|variant| variant.id.clone())
             .collect(),
         binding_identity: sha256(&binding_bytes),
-        catalog_identity: catalog.catalog_sha256.clone(),
-        feature_registry_identity: catalog.feature_definitions_sha256.clone(),
+        catalog_identity: catalog.catalog_sha256().to_owned(),
+        feature_registry_identity: catalog.feature_definitions_sha256().to_owned(),
         metadata_identity: sha256(&metadata_bytes),
         source_inventory_identity: inventory_identity(&inventory),
         regions,
@@ -800,8 +800,8 @@ fn ensure_current(
 ) -> Result<()> {
     let current = CoreCatalog::load(&catalog.repo_root, &catalog.repo_root)?;
     ensure!(
-        current.catalog_sha256 == catalog.catalog_sha256
-            && current.feature_definitions_sha256 == catalog.feature_definitions_sha256,
+        current.catalog_bytes() == catalog.catalog_bytes()
+            && current.feature_definitions_bytes() == catalog.feature_definitions_bytes(),
         "Catalog or feature registry changed during drafting"
     );
     ensure!(

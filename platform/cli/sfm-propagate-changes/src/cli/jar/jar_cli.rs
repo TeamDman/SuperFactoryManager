@@ -12,6 +12,7 @@ use crate::cancellation::CancellationToken;
 use crate::cli::InvocationHomes;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 
 /// Arguments for jar directory and release artifact commands.
 #[derive(Facet, Debug)]
@@ -28,9 +29,11 @@ impl JarArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
-        self.command.invoke(cancellation_token, homes)
+        self.command
+            .invoke(cancellation_token, invocation_dir, homes)
     }
 }
 
@@ -67,17 +70,23 @@ impl JarCommand {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         match self {
-            JarCommand::Dir(args) => args.invoke(homes.app_home()),
-            JarCommand::Plan(args) => args.invoke(cancellation_token, homes),
-            JarCommand::Build(args) => args.invoke(cancellation_token, homes),
-            JarCommand::Compare(args) => args.invoke(cancellation_token, homes.app_home()),
-            JarCommand::CleanLoaderProbe(args) => args.invoke(cancellation_token),
-            JarCommand::AuditArtifacts(args) => {
-                args.invoke(cancellation_token, homes.app_home(), homes.cache_home()?)
+            JarCommand::Dir(args) => args.invoke(invocation_dir, homes.app_home()),
+            JarCommand::Plan(args) => args.invoke(cancellation_token, invocation_dir, homes),
+            JarCommand::Build(args) => args.invoke(cancellation_token, invocation_dir, homes),
+            JarCommand::Compare(args) => {
+                args.invoke(cancellation_token, invocation_dir, homes.app_home())
             }
+            JarCommand::CleanLoaderProbe(args) => args.invoke(cancellation_token, invocation_dir),
+            JarCommand::AuditArtifacts(args) => args.invoke(
+                cancellation_token,
+                invocation_dir,
+                homes.app_home(),
+                homes.cache_home()?,
+            ),
             JarCommand::Collect(args) => args.invoke(homes.app_home()),
             JarCommand::List(args) => args.invoke(homes.app_home()),
             JarCommand::UpdateClients(args) => args.invoke(homes.app_home()),

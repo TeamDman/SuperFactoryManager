@@ -2353,7 +2353,7 @@ fn derived_cache_namespaces_separate_two_projections_of_the_same_minecraft_versi
     loaded.catalog.0.insert(alternate.to_owned(), entry);
     fs::write(
         fixture.repository().join(CATALOG_PATH),
-        loaded.catalog.to_json(&loaded.registered_features)?,
+        loaded.catalog.to_json(&loaded.feature_registry)?,
     )?;
     fixture.publish(alternate);
     let alternate = prepare_frozen_recipe_project_with_witness_loader(

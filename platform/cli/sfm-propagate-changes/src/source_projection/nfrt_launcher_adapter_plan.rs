@@ -276,7 +276,7 @@ mod tests {
                 &checked_file(repository, CORE_METADATA_PATH)?,
                 8 * 1024 * 1024,
             )?)?,
-            &catalog.registered_features,
+            &catalog.feature_registry,
         )?;
         let context = catalog.context(&format!("sfm-4.34.0/mc-{target}"))?;
         let selection = select_core_inputs(&metadata, &context, &BTreeSet::new())?;

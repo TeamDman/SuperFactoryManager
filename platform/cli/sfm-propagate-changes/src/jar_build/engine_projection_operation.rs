@@ -1,4 +1,7 @@
 use crate::source_projection::catalog_owned_project::ProjectionPreparationPhase;
+use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::ProjectionName;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 
 #[derive(Clone, Copy)]
 enum ProjectionOperation<'a> {
@@ -21,8 +24,7 @@ fn checked_projection_identity(
     use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
     use crate::source_projection::projection_catalog::ProjectionEnvironment;
     let phase = ProjectionPreparationPhase::start(key, "prepare_projection_identity");
-    let cwd = env::current_dir()?;
-    let loaded = source_projection::core_catalog::CoreCatalog::load(root, &cwd)?;
+    let loaded = CoreCatalog::load(root, root)?;
     let environment = loaded
         .catalog
         .0
@@ -34,9 +36,9 @@ fn checked_projection_identity(
         "--skip-source-checks requires development projections only"
     );
     let collected = if environment == ProjectionEnvironment::Dev {
-        collect_development_invocation(root, &cwd, key)?
+        collect_development_invocation(root, root, key)?
     } else {
-        collect_catalog_project(root, &cwd, key)?
+        collect_catalog_project(root, root, key)?
     };
     let identity = match collected.environment() {
         ProjectionEnvironment::Dev => {
@@ -71,32 +73,27 @@ fn invoke_projection_operation(
 ) -> eyre::Result<()> {
     use rayon::prelude::*;
     let super::BuildSelection::Projection {
-        selector,
         repo_root,
+        projections,
     } = &options.selection
     else {
         eyre::bail!("projection operation requires projection selection");
     };
-    let phase = ProjectionPreparationPhase::start(selector, "projection_operation");
-    let selection_phase = ProjectionPreparationPhase::start(selector, "select_projection_catalog");
-    let (root, keys) =
-        super::projection_selection::select_projections(repo_root.as_deref(), selector)?;
-    preflight_projection_jar_output(options, operation, keys.len())?;
-    preflight_projection_source_checks(&root, &keys, options.skip_source_checks)?;
+    let label = match projections.as_slice() {
+        [] => eyre::bail!("specify at least one projection"),
+        [projection] => projection.as_str(),
+        _ => "multiple projections",
+    };
+    let phase = ProjectionPreparationPhase::start(label, "projection_operation");
+    preflight_projection_jar_output(options, operation, projections.len())?;
+    preflight_projection_source_checks(repo_root, projections, options.skip_source_checks)?;
     let mut effective = options.clone();
     effective.cache_root = Some(catalog_native_cache_path(
-        &root,
+        repo_root.as_path(),
         options.cache_root.as_deref(),
     ));
     let options = &effective;
-    tracing::info!(
-        projection_selector = selector,
-        matched_projections = keys.len(),
-        repo_root = %root.display(),
-        "Projection selection resolved"
-    );
-    selection_phase.complete();
-    let limit = options.parallelism.limit().unwrap_or(1).min(keys.len());
+    let limit = options.parallelism.limit().unwrap_or(1).min(projections.len());
     let pool = options
         .parallelism
         .is_parallel()
@@ -104,12 +101,15 @@ fn invoke_projection_operation(
         .transpose()?;
     let mut plans = Vec::new();
     let mut failures = Vec::new();
-    for batch in keys.chunks(limit) {
+    for batch in projections.chunks(limit) {
         cancellation.bail_if_cancelled()?;
-        let execute = |key: &String| {
-            (
-                key.clone(),
-                execute_projection_operation(options, &root, key, operation, cancellation),
+        let execute = |projection: &ProjectionName| {
+            execute_projection_operation(
+                options,
+                repo_root,
+                projection.as_str(),
+                operation,
+                cancellation,
             )
         };
         let results = if let Some(pool) = &pool {
@@ -117,14 +117,14 @@ fn invoke_projection_operation(
         } else {
             batch.iter().map(execute).collect::<Vec<_>>()
         };
-        for (key, result) in results {
+        for (projection, result) in batch.iter().zip(results) {
             match result {
                 Ok(Some(plan)) => plans.push(plan),
                 Ok(None) => {}
                 Err(error) if error.downcast_ref::<CacheHomeRequired>().is_some() => {
                     return Err(error);
                 }
-                Err(error) => failures.push(format!("{key}: {error:#}")),
+                Err(error) => failures.push(format!("{}: {error:#}", projection.as_str())),
             }
         }
         if !failures.is_empty() && !options.error_action.should_continue() {
@@ -501,15 +501,16 @@ fn execute_prepared_projection_operation(
 /// Validate every selected key before the first projection can synchronize or
 /// acquire anything. A mixed selector cannot partially prepare development.
 fn preflight_projection_source_checks(
-    root: &Path,
-    keys: &[String],
+    repo_root: &SfmRepoPath,
+    projections: &[ProjectionName],
     skip: bool,
 ) -> eyre::Result<()> {
     if !skip {
         return Ok(());
     }
-    let loaded = source_projection::core_catalog::CoreCatalog::load(root, &env::current_dir()?)?;
-    for key in keys {
+    let loaded = CoreCatalog::load_path(repo_root.clone())?;
+    for projection in projections {
+        let key = projection.as_str();
         let entry = loaded
             .catalog
             .0
@@ -531,13 +532,16 @@ mod invocation_source_policy_tests {
     #[test]
     fn fresh_jar_output_invalid_selection_and_names_fail_before_preparation() -> eyre::Result<()> {
         let fixture = Fixture::new_for_target("1.19.2");
+        let repo_root = SfmRepoPath::try_from(fixture.repository())?;
+        let dev = ProjectionName::try_from(Fixture::key(0, "dev"))?;
+        let release = ProjectionName::try_from(Fixture::key(0, "release"))?;
         let plan_json = fixture.repository().join("must-not-write-output-plan.json");
         let mut options = BuildOptions {
             app_home: AppHome(fixture.repository().join("app-home")),
             cache_home: None,
             selection: super::super::BuildSelection::Projection {
-                selector: "*".to_owned(),
-                repo_root: Some(fixture.repository().to_path_buf()),
+                repo_root: repo_root.clone(),
+                projections: vec![dev.clone(), release],
             },
             cache_root: None,
             refresh: false,
@@ -573,8 +577,8 @@ mod invocation_source_policy_tests {
                 .exists()
         );
         options.selection = super::super::BuildSelection::Projection {
-            selector: Fixture::key(0, "dev"),
-            repo_root: Some(fixture.repository().to_path_buf()),
+            repo_root,
+            projections: vec![dev],
         };
         for name in ["../escape.jar", "CON.jar", "fresh.jar:stream"] {
             options.output_name = Some(name.to_owned());
@@ -599,21 +603,22 @@ mod invocation_source_policy_tests {
     #[test]
     fn skip_source_checks_rejects_release_and_mixed_selection_before_writes() -> eyre::Result<()> {
         let fixture = Fixture::new_for_target("1.19.2");
-        let dev = Fixture::key(0, "dev");
-        let release = Fixture::key(0, "release");
+        let repo_root = SfmRepoPath::try_from(fixture.repository())?;
+        let dev = ProjectionName::try_from(Fixture::key(0, "dev"))?;
+        let release = ProjectionName::try_from(Fixture::key(0, "release"))?;
         assert!(
-            preflight_projection_source_checks(fixture.repository(), &[dev.clone()], true).is_ok()
+            preflight_projection_source_checks(&repo_root, std::slice::from_ref(&dev), true).is_ok()
         );
         for keys in [vec![release.clone()], vec![dev.clone(), release.clone()]] {
-            assert!(preflight_projection_source_checks(fixture.repository(), &keys, true).is_err());
+            assert!(preflight_projection_source_checks(&repo_root, &keys, true).is_err());
         }
         let plan_json = fixture.repository().join("must-not-write-plan.json");
         let options = BuildOptions {
             app_home: AppHome(fixture.repository().join("app-home")),
             cache_home: None,
             selection: super::super::BuildSelection::Projection {
-                selector: "*".to_owned(),
-                repo_root: Some(fixture.repository().to_path_buf()),
+                repo_root: repo_root.clone(),
+                projections: vec![dev.clone(), release.clone()],
             },
             cache_root: None,
             refresh: false,
@@ -649,7 +654,7 @@ mod invocation_source_policy_tests {
                 .exists()
         );
         assert!(
-            preflight_projection_source_checks(fixture.repository(), &[dev, release], false)
+            preflight_projection_source_checks(&repo_root, &[dev, release], false)
                 .is_ok()
         );
         Ok(())

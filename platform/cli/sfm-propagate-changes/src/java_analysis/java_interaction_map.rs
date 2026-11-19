@@ -3370,19 +3370,4 @@ mod tests {
         assert!(region.start_byte() <= 3 && 3 < region.end_byte());
         assert!(!(region.start_byte() <= 7 && 7 < region.end_byte()));
     }
-
-    #[test]
-    fn fixture_paths_remain_portable() {
-        let (_directory, workspace, request) = fixture();
-        assert_eq!(
-            workspace.files[0].report_path,
-            "source/example/SpatialFixture.java"
-        );
-        assert_eq!(
-            request.document.root_relative_path,
-            "example/SpatialFixture.java"
-        );
-        assert!(!request.document.report_path.contains('\\'));
-        let _ = PathBuf::from(request.document.root_relative_path);
-    }
 }

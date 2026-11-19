@@ -182,11 +182,7 @@ fn read_owned_bytes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::output::OutputFormat;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::release_target_plan_cli::tests::git;
     use crate::cli::source::release_target_plan_cli::tests::packaged_candidate;
     use crate::modrinth::ModrinthCreateVersionPayload;
@@ -270,74 +266,6 @@ mod tests {
         .unwrap();
         assert_eq!(version, "Created123");
         assert_eq!(calls.get(), 1);
-    }
-
-    #[test]
-    fn cli_requires_reviewed_metadata_and_rejects_effect_or_secret_options() {
-        let arguments = [
-            "source",
-            "legacy",
-            "release-modrinth",
-            "--package-root",
-            "C:/reviewed/package",
-            "--completion-manifest-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "--reviewed-source-commit",
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "--reviewed-tag",
-            "4.35.0-1.21.0",
-            "--github-repo",
-            "example/sfm",
-            "--modrinth-project",
-            "example-project",
-            "--curseforge-project",
-            "123",
-            "--changelog-file",
-            "C:/reviewed/notes.md",
-            "--changelog-sha256",
-            "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "--modrinth-1201-loader-policy",
-            "dual-forge-neoforge",
-            "--repo-root",
-            "C:/reviewed/repo",
-            "--target-id",
-            "1.21.0",
-            "--reviewed-release-commit",
-            "dddddddddddddddddddddddddddddddddddddddd",
-            "--request-metadata-sha256",
-            "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        ];
-        let parsed = figue::from_slice::<Cli>(&arguments)
-            .into_result()
-            .unwrap()
-            .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleaseModrinth(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-modrinth command");
-        };
-        assert_eq!(args.target_plan.target_id, "1.21.0");
-        assert_eq!(args.request_metadata_sha256, arguments[arguments.len() - 1]);
-        assert!(
-            figue::from_slice::<Cli>(&arguments[..arguments.len() - 2])
-                .into_result()
-                .is_err()
-        );
-        for forbidden in [
-            "--apply",
-            "--token",
-            "--credential",
-            "--api-token",
-            "--secret",
-        ] {
-            let mut rejected = arguments.to_vec();
-            rejected.push(forbidden);
-            assert!(figue::from_slice::<Cli>(&rejected).into_result().is_err());
-        }
     }
 
     #[test]

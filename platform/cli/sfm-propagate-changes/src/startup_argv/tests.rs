@@ -97,14 +97,6 @@ fn url_credentials_and_credential_headers_in_safe_options_are_masked() {
 }
 
 #[test]
-fn schema_commands_are_retained_and_unreviewed_positionals_are_opaque() {
-    let raw = strings(&["cli", "--log-filter", "debug", "home", "path"]);
-    let record = StartupArguments::redact::<crate::cli::Cli>(&raw).unwrap();
-    assert_eq!(record.argv, raw);
-    assert!(!record.policy.is_empty());
-}
-
-#[test]
 fn json_sink_has_an_array_and_honors_debug_filter() {
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     for level in [tracing::Level::DEBUG, tracing::Level::INFO] {

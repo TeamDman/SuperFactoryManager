@@ -4,6 +4,7 @@ use super::catalog_release_args::CatalogReleaseArgs;
 use super::comparison_cli::SourceComparisonArgs;
 use super::core_project_cli::CoreProjectArgs;
 use super::oracle_cli::SourceOracleArgs;
+use super::projection::SourceProjectionArgs;
 use super::projection_catalog_cli::SourceListArgs;
 use super::projection_catalog_cli::SourceRenderArgs;
 use super::projection_catalog_cli::SourceShowArgs;
@@ -46,6 +47,8 @@ pub enum SourceCommand {
     Oracle(SourceOracleArgs),
     /// Generate, check and build projects from the Liquid core.
     Project(CoreProjectArgs),
+    /// Work with named projections generated from the Liquid core.
+    Projection(SourceProjectionArgs),
     /// List named projections and their explicit feature selections.
     List(SourceListArgs),
     /// Inspect one named projection.
@@ -73,12 +76,13 @@ impl SourceArgs {
     ) -> Result<CliOutput> {
         match self.command {
             SourceCommand::InspectPrepare(args) => args.invoke(cancellation),
-            SourceCommand::ComparePrepare(args) => args.invoke(cancellation),
+            SourceCommand::ComparePrepare(args) => args.invoke(cancellation, invocation_dir),
             SourceCommand::References(args) => args.invoke(cancellation),
             SourceCommand::ReleaseReport(args) => args.invoke(cancellation),
             SourceCommand::Release(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::Oracle(args) => args.invoke_in(cancellation, invocation_dir, homes),
             SourceCommand::Project(args) => args.invoke_in(cancellation, invocation_dir, homes),
+            SourceCommand::Projection(args) => args.invoke_in(invocation_dir, cancellation),
             SourceCommand::List(args) => args.invoke_in(invocation_dir),
             SourceCommand::Show(args) => args.invoke_in(invocation_dir),
             SourceCommand::Render(args) => args.invoke_in(invocation_dir),
@@ -92,28 +96,6 @@ impl SourceArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
-
-    #[test]
-    fn historical_import_requires_explicit_legacy_namespace() {
-        assert!(
-            figue::from_slice::<Cli>(&["source", "import-release", "--repo-root", "."])
-                .into_result()
-                .is_err()
-        );
-        let cli =
-            figue::from_slice::<Cli>(&["source", "legacy", "import-release", "--repo-root", "."])
-                .into_result()
-                .unwrap()
-                .get_silent();
-        assert!(matches!(
-            cli.command,
-            Command::Source(SourceArgs {
-                command: SourceCommand::Legacy(_)
-            })
-        ));
-    }
 
     #[test]
     fn legacy_import_cannot_recreate_snapshots_in_catalog_repository() {

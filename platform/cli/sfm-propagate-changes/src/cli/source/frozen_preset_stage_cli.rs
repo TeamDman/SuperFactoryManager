@@ -638,11 +638,7 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::output::OutputFormat;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::source_cli::tests::frozen_matrix_fixture;
     use tempfile::TempDir;
 
@@ -754,38 +750,6 @@ mod tests {
                 .join("platform/minecraft/frozen-releases")
                 .exists()
         );
-    }
-
-    #[test]
-    fn parses_explicit_candidate_and_review_digest() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "frozen-preset-stage",
-            "--repo-root",
-            "C:/authored",
-            "--candidate-root",
-            "C:/candidate",
-            "--preview",
-            "C:/review/preview.json",
-            "--preview-sha256",
-            "sha256:reviewed",
-            "--apply",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::FrozenPresetStage(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected frozen-preset-stage command");
-        };
-        assert!(args.apply);
-        assert_eq!(args.preview_sha256, "sha256:reviewed");
     }
 
     #[test]

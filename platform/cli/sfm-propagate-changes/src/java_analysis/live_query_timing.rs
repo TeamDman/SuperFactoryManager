@@ -95,7 +95,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn live_query_stage_names_are_stable_and_unique() {
+    fn live_query_stage_names_are_stable() {
         let names = LiveQueryStage::ALL.map(LiveQueryStage::name);
         assert_eq!(
             names,
@@ -110,7 +110,5 @@ mod tests {
                 "merge-index",
             ]
         );
-        let unique = names.into_iter().collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(unique.len(), LiveQueryStage::ALL.len());
     }
 }

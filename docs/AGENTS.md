@@ -63,8 +63,10 @@ After Rust changes, run
 The Codex harness buffers stdio by default. If a CLI command hangs, use
 `--log-file` to write progress to a chosen file. The log obeys `RUST_LOG`;
 `RUST_LOG=warn` can leave healthy INFO progress invisible. Use `--log-filter info`
-with `--log-file` when progress evidence is required. Normal automatic logs belong
-to the selected application home, not the invocation directory.
+with `--log-file` when progress evidence is required. Automatic run logs live in
+the selected cache home's `logs` directory. If cache selection fails, logging
+uses the application home's `logs` directory so commands can repair the cache
+setting. Relative explicit log paths resolve from the invocation directory.
 
 When the CLI reports `os_error=5` opening a user-cache lock, first check for a
 sandbox access denial. Rerun with normal Windows cache access or outside the

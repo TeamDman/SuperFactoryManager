@@ -19,7 +19,6 @@ use facet::Facet;
 use figue::{self as args};
 use humansize::DECIMAL;
 use humansize::format_size;
-use std::env::current_dir;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::fs;
@@ -56,8 +55,8 @@ impl GradleArgs {
     /// # Errors
     ///
     /// Returns an error if the selected Gradle command fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
-        self.command.invoke(homes)
+    pub fn invoke(self, invocation_dir: &Path, homes: &InvocationHomes) -> eyre::Result<()> {
+        self.command.invoke(invocation_dir, homes)
     }
 }
 
@@ -862,119 +861,7 @@ fn find_failed_test_reason<'a>(reduction: &'a LogReduction, test_name: &str) -> 
         .find_map(|(name, reason)| (name == test_name).then_some(reason.as_str()))
 }
 
-fn normalize_spaces(input: &str) -> String {
-    input
-        .chars()
-        .map(|c| {
-            if c.is_alphanumeric() {
-                c.to_ascii_lowercase()
-            } else {
-                ' '
-            }
-        })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-fn normalize_compact(input: &str) -> String {
-    input
-        .chars()
-        .filter(|c| c.is_alphanumeric())
-        .map(|c| c.to_ascii_lowercase())
-        .collect()
-}
-
-fn relativize_to_repo_root(path: PathBuf, repo_root: &Path) -> PathBuf {
-    path.strip_prefix(repo_root)
-        .ok()
-        .map(Path::to_path_buf)
-        .unwrap_or(path)
-}
-
-fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
-    let cwd = current_dir().ok()?;
-
-    let mut repo_root = None;
-    for ancestor in cwd.ancestors() {
-        let gametest_dir = ancestor
-            .join("platform")
-            .join("minecraft")
-            .join("src")
-            .join("gametest")
-            .join("java");
-        if gametest_dir.exists() {
-            repo_root = Some(ancestor.to_path_buf());
-            break;
-        }
-    }
-
-    let repo_root = repo_root?;
-    let gametest_dir = repo_root
-        .join("platform")
-        .join("minecraft")
-        .join("src")
-        .join("gametest")
-        .join("java");
-
-    let normalized_test = normalize_spaces(test_name);
-    let compact_test = normalize_compact(test_name);
-    let compact_test_with_suffix = format!("{compact_test}gametest");
-    let legacy_marker = normalize_spaces(&format!(
-        "Migrated from SFMCorrectnessGameTests.{test_name}"
-    ));
-    let mut pending = vec![gametest_dir];
-    let mut legacy_marker_match = None;
-    let mut exact_phrase_match = None;
-
-    while let Some(dir) = pending.pop() {
-        let Ok(entries) = fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let path = entry.path();
-            let Ok(file_type) = entry.file_type() else {
-                continue;
-            };
-
-            if file_type.is_dir() {
-                pending.push(path);
-                continue;
-            }
-
-            if !file_type.is_file() || path.extension() != Some(OsStr::new("java")) {
-                continue;
-            }
-
-            let file_stem = path.file_stem().and_then(OsStr::to_str).unwrap_or_default();
-            let compact_file_stem = normalize_compact(file_stem);
-            if compact_file_stem == compact_test || compact_file_stem == compact_test_with_suffix {
-                return Some(relativize_to_repo_root(path, &repo_root));
-            }
-
-            let Ok(content) = fs::read_to_string(&path) else {
-                continue;
-            };
-            let normalized_content = normalize_spaces(&content);
-
-            if legacy_marker_match.is_none() && normalized_content.contains(&legacy_marker) {
-                legacy_marker_match = Some(relativize_to_repo_root(path.clone(), &repo_root));
-            }
-
-            if exact_phrase_match.is_none() && normalized_content.contains(&normalized_test) {
-                exact_phrase_match = Some(relativize_to_repo_root(path, &repo_root));
-            }
-        }
-    }
-
-    legacy_marker_match.or(exact_phrase_match)
-}
-
-fn summarize_reduction(_pair: &LogPair, reduction: &LogReduction) -> String {
+fn summarize_reduction(reduction: &LogReduction) -> String {
     let mut unique_failed = reduction.failed_tests.clone();
     unique_failed.sort();
     unique_failed.dedup();
@@ -988,16 +875,6 @@ fn summarize_reduction(_pair: &LogPair, reduction: &LogReduction) -> String {
         let reason_suffix = find_failed_test_reason(reduction, test_name)
             .map(|reason| format!(" — {reason}"))
             .unwrap_or_default();
-
-        if let Some(path) = find_gametest_source(test_name) {
-            return format!(
-                "One test failed: {test_name}{reason_suffix} at {}",
-                path.display()
-            )
-            .red()
-            .bold()
-            .to_string();
-        }
 
         return format!("One test failed: {test_name}{reason_suffix}")
             .red()
@@ -1187,7 +1064,7 @@ fn print_tldr_for_run(run_dir: &Path) -> eyre::Result<()> {
             continue;
         }
 
-        let headline = summarize_reduction(&pair, &combined);
+        let headline = summarize_reduction(&combined);
         printed_any = true;
         stdout_blank_line()?;
         stdout_line(format!(
@@ -1465,10 +1342,10 @@ impl GradleCommand {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+    pub fn invoke(self, invocation_dir: &Path, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
             Self::Run(args) => args.invoke(homes),
-            Self::Log(args) => args.invoke(homes),
+            Self::Log(args) => args.invoke(invocation_dir, homes),
         }
     }
 }
@@ -1835,10 +1712,10 @@ impl GradleLogsCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+    pub fn invoke(self, invocation_dir: &Path, homes: &InvocationHomes) -> eyre::Result<()> {
         match self {
             Self::List(args) => args.invoke(homes),
-            Self::Tldr(args) => args.invoke(homes),
+            Self::Tldr(args) => args.invoke(invocation_dir, homes),
         }
     }
 }

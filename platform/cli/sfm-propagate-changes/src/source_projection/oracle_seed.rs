@@ -155,7 +155,7 @@ pub fn seed_missing(
         MAX_CORE_METADATA_BYTES,
     )?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_before)?, &catalog.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_before)?, &catalog.feature_registry)?;
     for output in &outputs {
         ensure!(
             !metadata.source_rules.contains_key(output)
@@ -297,7 +297,7 @@ pub fn seed_missing(
                 .insert(output.clone(), variants.clone());
         }
     }
-    proposed.validate(&catalog.registered_features)?;
+    proposed.validate(&catalog.feature_registry)?;
     let mut prospective_inventory = inventory.clone();
     if input.starts_with("src/") {
         prospective_inventory.insert(input.clone());
@@ -317,7 +317,7 @@ pub fn seed_missing(
     }
     let metadata_after = append_rules(&metadata_before, &proposed_rules)?;
     ensure!(
-        CoreProjectInputs::from_json(from_utf8(&metadata_after)?, &catalog.registered_features)?
+        CoreProjectInputs::from_json(from_utf8(&metadata_after)?, &catalog.feature_registry)?
             == proposed,
         "Minimal metadata edit does not match the reviewed typed proposal"
     );
@@ -336,8 +336,8 @@ pub fn seed_missing(
         source_identity: sha256(&anchor.bytes),
         source_bytes: anchor.bytes.len(),
         binding_identity: sha256(&binding_bytes),
-        catalog_identity: catalog.catalog_sha256,
-        feature_registry_identity: catalog.feature_definitions_sha256,
+        catalog_identity: catalog.catalog_sha256().to_owned(),
+        feature_registry_identity: catalog.feature_definitions_sha256().to_owned(),
         source_inventory_identity: sha256(facet_json::to_string(&inventory)?.as_bytes()),
         metadata_preimage_identity: sha256(&metadata_before),
         metadata_proposal_identity: sha256(&metadata_after),
@@ -353,8 +353,9 @@ pub fn seed_missing(
         );
         let current_catalog = CoreCatalog::load(&catalog.repo_root, invocation_dir)?;
         ensure!(
-            current_catalog.catalog_sha256 == report.catalog_identity
-                && current_catalog.feature_definitions_sha256 == report.feature_registry_identity,
+            current_catalog.catalog_bytes() == catalog.catalog_bytes()
+                && current_catalog.feature_definitions_bytes()
+                    == catalog.feature_definitions_bytes(),
             "Core catalog or feature registry changed during seed preflight; preview again"
         );
         ensure!(

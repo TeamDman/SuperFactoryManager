@@ -5,6 +5,7 @@ use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::engine::select_project_source_cache;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::source_build_receipt;
+use crate::paths::InvocationDirectory;
 use crate::payload_fetcher::write_payload_atomically;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
@@ -57,8 +58,15 @@ pub struct DependencyArtifactImportArgs {
 impl DependencyArtifactImportArgs {
     /// # Errors
     /// Refuses unknown identity, changed pins, bad producer evidence, path collisions or I/O failures.
-    pub fn invoke(self, cancellation: &CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(
+        mut self,
+        cancellation: &CancellationToken,
+        invocation_dir: &InvocationDirectory<'_>,
+    ) -> eyre::Result<()> {
         cancellation.bail_if_cancelled()?;
+        self.project_root = invocation_dir.resolve(&self.project_root)?;
+        self.file = invocation_dir.resolve(&self.file)?;
+        self.producer_receipt = invocation_dir.resolve(&self.producer_receipt)?;
         let selected = select_project_source_cache(
             &self.project_root,
             self.cache_root.as_deref(),

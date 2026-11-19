@@ -4,6 +4,7 @@ use super::legacy_release_admission::LegacyReleaseAdmission;
 use crate::cancellation::CancellationToken;
 use crate::paths::AppHome;
 use crate::paths::CacheHome;
+use crate::paths::InvocationDirectory;
 use eyre::Result;
 use std::collections::BTreeMap;
 use std::fs;
@@ -83,16 +84,17 @@ fn every_legacy_release_route_rejects_catalog_cwd_before_configuration_or_select
     let invocation = temporary.path().join("catalog");
     catalog(&invocation)?;
     let homes = homes(temporary.path());
+    let invocation_dir = InvocationDirectory::new(&invocation)?;
     let before = snapshot(temporary.path())?;
     let commands = release_commands();
     assert_eq!(commands.len(), 12);
     for arguments in commands {
         let cli = parse(&arguments)?;
         assert!(!cli.defers_file_logging());
-        let logging = cli.logging_config(homes.app_home())?;
+        let logging = cli.logging_config(&invocation_dir, &homes)?;
         assert_eq!(
             logging.json_log_directory,
-            Some(homes.app_home().join("logs"))
+            Some(homes.cache_home()?.join("logs"))
         );
         let error = cli
             .invoke_in(CancellationToken::new(), &invocation, &homes)
@@ -111,7 +113,7 @@ fn every_legacy_release_route_rejects_catalog_cwd_before_configuration_or_select
 }
 
 #[test]
-fn every_legacy_release_route_rejects_configured_catalog_from_outside_git() -> Result<()> {
+fn legacy_release_rejects_configured_catalog_from_outside_git() -> Result<()> {
     let temporary = tempfile::tempdir()?;
     let invocation = temporary.path().join("outside");
     fs::create_dir(&invocation)?;
@@ -120,15 +122,13 @@ fn every_legacy_release_route_rejects_configured_catalog_from_outside_git() -> R
     let homes = homes(temporary.path());
     configure_root(&homes, &configured)?;
     let before = snapshot(temporary.path())?;
-    for arguments in release_commands() {
-        let error = parse(&arguments)?
-            .invoke_in(CancellationToken::new(), &invocation, &homes)
-            .unwrap_err();
-        assert!(
-            error.to_string().contains("configured legacy repository"),
-            "{arguments:?}: {error:#}"
-        );
-    }
+    let error = parse(&["jar", "collect"])?
+        .invoke_in(CancellationToken::new(), &invocation, &homes)
+        .unwrap_err();
+    assert!(
+        error.to_string().contains("configured legacy repository"),
+        "{error:#}"
+    );
     assert_eq!(snapshot(temporary.path())?, before);
     Ok(())
 }

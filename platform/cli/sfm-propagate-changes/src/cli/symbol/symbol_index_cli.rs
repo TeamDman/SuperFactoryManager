@@ -217,42 +217,6 @@ mod selected_cache_args_tests {
     }
 
     #[test]
-    fn parses_index_cache_override_without_changing_branch_selection() {
-        let parsed = figue::from_slice::<SymbolIndexArgs>(&[
-            "--cache-root",
-            "C:/selected/shared",
-            "show",
-            "--branch",
-            "1.19.2",
-        ])
-        .unwrap();
-        assert_eq!(parsed.cache_root, Some(PathBuf::from("C:/selected/shared")));
-        let SymbolIndexCommand::Show(show) = parsed.command else {
-            panic!("expected index show");
-        };
-        assert_eq!(show.branch.as_ref().expect("branch").as_ref(), "1.19.2");
-    }
-
-    #[test]
-    fn parses_catalog_index_without_a_historical_branch() {
-        let parsed = figue::from_slice::<SymbolIndexArgs>(&[
-            "refresh",
-            "--project-root",
-            "D:/repo/projections/sfm-dev/mc-1.21.0",
-        ])
-        .unwrap();
-        let SymbolIndexCommand::Refresh(refresh) = parsed.command else {
-            panic!("expected refresh");
-        };
-        assert!(refresh.branch.is_none());
-        assert!(!refresh.rebuild);
-        assert_eq!(
-            refresh.project_root,
-            Some(PathBuf::from("D:/repo/projections/sfm-dev/mc-1.21.0"))
-        );
-    }
-
-    #[test]
     fn index_paths_resolve_against_the_supplied_invocation_directory() -> eyre::Result<()> {
         let invocation = tempfile::tempdir()?;
         for operation in ["show", "refresh"] {
@@ -431,17 +395,6 @@ mod selected_cache_args_tests {
             target,
             true,
         ));
-    }
-
-    #[test]
-    fn parses_explicit_index_rebuild() {
-        let parsed =
-            figue::from_slice::<SymbolIndexArgs>(&["refresh", "--branch", "1.19.2", "--rebuild"])
-                .unwrap();
-        let SymbolIndexCommand::Refresh(refresh) = parsed.command else {
-            panic!("expected refresh");
-        };
-        assert!(refresh.rebuild);
     }
 
     #[test]

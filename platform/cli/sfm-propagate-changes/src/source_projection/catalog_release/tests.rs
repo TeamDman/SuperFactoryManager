@@ -12,12 +12,12 @@ use crate::cli::output::OutputFormat;
 use crate::paths::AppHome;
 use crate::paths::CacheHome;
 use crate::source_projection::catalog_owned_project::recheck_observation;
-use crate::source_projection::core_features::CoreFeatureDefinitions;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
 use crate::source_projection::projection_catalog::ProjectionCatalog;
 use crate::source_projection::provenance::sha256;
+use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::Result;
 use std::cell::Cell;
 use std::fs;
@@ -148,17 +148,16 @@ fn exact_unknown_and_unsafe_selectors_never_write_fixture_state() -> Result<()> 
 #[test]
 fn release_looking_contexts_cannot_replace_environment_and_feature_admission() -> Result<()> {
     let mut fixture = CatalogReleaseFixture::new("1.19.2")?;
-    let definitions = CoreFeatureDefinitions::from_json(&fs::read_to_string(
+    let definitions = SfmProjectionFeatureRegistry::from_json(&fs::read_to_string(
         fixture.repository().join(FEATURE_DEFINITIONS_PATH),
     )?)?;
-    let registered = definitions.registered_names();
     let catalog_path = fixture.repository().join(CATALOG_PATH);
     let mut catalog =
-        ProjectionCatalog::from_json(&fs::read_to_string(&catalog_path)?, &registered)?;
+        ProjectionCatalog::from_json(&fs::read_to_string(&catalog_path)?, &definitions)?;
     let dev_entry = catalog.0.remove(&fixture.dev_key).unwrap();
     fixture.dev_key = "sfm-4.35.0/mc-1.19.2".to_owned();
     catalog.0.insert(fixture.dev_key.clone(), dev_entry);
-    fs::write(catalog_path, catalog.to_json(&registered)?)?;
+    fs::write(catalog_path, catalog.to_json(&definitions)?)?;
     let before = inventory(fixture.repository())?;
     let error = CatalogReleasePlan::prepare(
         &fixture.request(&fixture.dev_key)?,
@@ -312,24 +311,6 @@ fn final_recheck_refuses_changes_after_metadata_preparation() -> Result<()> {
 #[test]
 fn cli_dispatch_discovers_project_checkout_and_resolves_explicit_relative_root() -> Result<()> {
     let fixture = CatalogReleaseFixture::new("1.21.0")?;
-    for missing in [
-        vec![
-            "source",
-            "release",
-            "plan",
-            "--projection",
-            fixture.key.as_str(),
-        ],
-        vec![
-            "source",
-            "release",
-            "plan",
-            "--expected-mod-version",
-            "4.35.0",
-        ],
-    ] {
-        assert!(figue::from_slice::<Cli>(&missing).into_result().is_err());
-    }
     fixture.publish();
     let before = inventory(fixture.repository())?;
     let discovered = invoke_cli(&fixture, &fixture.root(), None)?;

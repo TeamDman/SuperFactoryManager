@@ -4,8 +4,13 @@ use crate::jar_build::BuildSelection;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use crate::paths::AppHome;
+use crate::paths::InvocationDirectory;
+use crate::source_projection::ProjectionName;
+use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use facet::Facet;
 use figue as args;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Options shared by clean-slate jar build and run commands.
@@ -81,27 +86,94 @@ impl JarBuildOptionsArgs {
         self,
         mode: BuildMode,
         app_home: &AppHome,
+        invocation_dir: &Path,
     ) -> eyre::Result<BuildOptions> {
+        let parallelism = Parallelism::from_cli(self.parallel)?;
+        let (repo_root, projections) = self.projection_targets(invocation_dir)?;
+        self.build_options(
+            mode,
+            app_home,
+            invocation_dir,
+            repo_root,
+            projections,
+            parallelism,
+        )
+    }
+
+    pub(crate) fn projection_targets(
+        &self,
+        invocation_dir: &Path,
+    ) -> eyre::Result<(SfmRepoPath, Vec<ProjectionName>)> {
+        let catalog = CoreCatalog::load_for_invocation(self.repo_root.as_deref(), invocation_dir)?;
+        let projections = catalog
+            .catalog
+            .matching_glob_projections(&self.projection)?;
+        tracing::info!(
+            projection_selector = self.projection,
+            matched_projections = projections.len(),
+            repo_root = %catalog.repo_root.display(),
+            "Projection selector resolved"
+        );
+        Ok((catalog.repo_root, projections))
+    }
+
+    pub(crate) fn into_options_for_projections(
+        self,
+        mode: BuildMode,
+        app_home: &AppHome,
+        invocation_dir: &Path,
+        repo_root: SfmRepoPath,
+        projections: Vec<ProjectionName>,
+    ) -> eyre::Result<BuildOptions> {
+        let parallelism = Parallelism::from_cli(self.parallel)?;
+        self.build_options(
+            mode,
+            app_home,
+            invocation_dir,
+            repo_root,
+            projections,
+            parallelism,
+        )
+    }
+
+    fn build_options(
+        self,
+        mode: BuildMode,
+        app_home: &AppHome,
+        invocation_dir: &Path,
+        repo_root: SfmRepoPath,
+        projections: Vec<ProjectionName>,
+        parallelism: Parallelism,
+    ) -> eyre::Result<BuildOptions> {
+        let directory = InvocationDirectory::new(invocation_dir)?;
         Ok(BuildOptions {
             app_home: app_home.clone(),
             cache_home: None,
             selection: BuildSelection::Projection {
-                selector: self.projection,
-                repo_root: self.repo_root,
+                repo_root,
+                projections,
             },
             cache_root: self.cache_root,
             refresh: self.refresh,
             skip_source_checks: self.skip_source_checks,
             explain_rebuild: self.explain_rebuild,
-            plan_json: self.plan_json,
+            plan_json: self
+                .plan_json
+                .as_deref()
+                .map(|path| directory.resolve(path))
+                .transpose()?,
             output_name: None,
             java_home: self.java_home,
             dry_run: self.dry_run,
             allow_local_artifact_cache: self.allow_local_artifact_cache,
-            artifact_sources: self.artifact_sources,
+            artifact_sources: self
+                .artifact_sources
+                .iter()
+                .map(|path| directory.resolve(path))
+                .collect::<eyre::Result<Vec<_>>>()?,
             require_portable_artifacts: self.require_portable_artifacts,
             error_action: self.error_action,
-            parallelism: Parallelism::from_cli(self.parallel)?,
+            parallelism,
             wait_for_build_lock: self.wait_for_build_lock,
             mode,
         })
@@ -111,33 +183,56 @@ impl JarBuildOptionsArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source_projection::core_catalog::write_project_catalog_fixture;
 
     #[test]
-    fn projection_options_preserve_explicit_override_for_catalog_root_selection() -> eyre::Result<()>
-    {
+    fn projection_options_resolve_checkout_paths_and_expand_glob() -> eyre::Result<()> {
         let app_home = AppHome(PathBuf::from("fixture-app-home"));
-        let base = ["--projection", "sfm-4.35.0-extended/mc-1.19.2"];
-        let default = figue::from_slice::<JarBuildOptionsArgs>(&base).unwrap();
-        assert!(
-            default
-                .into_options(BuildMode::Build, &app_home)?
-                .cache_root
-                .is_none()
-        );
-
-        let parsed = figue::from_slice::<JarBuildOptionsArgs>(&[
-            "--projection",
-            "sfm-4.35.0-extended/mc-1.19.2",
-            "--java-home",
-            "C:/jbrsdk-17",
-            "--cache-root",
-            "D:/repo/sfm-toolchain-data",
-        ])
-        .unwrap();
-        let options = parsed.into_options(BuildMode::Build, &app_home)?;
+        let base_directory = tempfile::tempdir()?;
+        let invocation_dir = base_directory.path();
+        let repo = invocation_dir.join("checkout");
+        let projection = "sfm-4.35.0-extended/mc-1.19.2";
+        write_project_catalog_fixture(&repo, projection, "1.19.2")?;
+        let options = JarBuildOptionsArgs {
+            projection: "sfm-4.35.0-extended/*".to_owned(),
+            repo_root: Some("checkout".into()),
+            cache_root: None,
+            refresh: false,
+            skip_source_checks: false,
+            explain_rebuild: false,
+            plan_json: Some("reports/plan.json".into()),
+            java_home: None,
+            dry_run: false,
+            allow_local_artifact_cache: false,
+            artifact_sources: vec!["local-maven".into()],
+            require_portable_artifacts: false,
+            error_action: ErrorAction::Bail,
+            parallel: None,
+            wait_for_build_lock: false,
+        }
+        .into_options(BuildMode::Build, &app_home, invocation_dir)?;
         assert_eq!(
-            options.cache_root.as_deref(),
-            Some(std::path::Path::new("D:/repo/sfm-toolchain-data"))
+            options.plan_json,
+            Some(invocation_dir.join("reports/plan.json"))
+        );
+        assert_eq!(
+            options.artifact_sources,
+            [invocation_dir.join("local-maven")]
+        );
+        let BuildSelection::Projection {
+            repo_root,
+            projections,
+        } = options.selection
+        else {
+            panic!("expected projection build options");
+        };
+        assert_eq!(repo_root, SfmRepoPath::try_from(repo.as_path())?);
+        assert_eq!(
+            projections
+                .iter()
+                .map(ProjectionName::as_str)
+                .collect::<Vec<_>>(),
+            [projection]
         );
         Ok(())
     }

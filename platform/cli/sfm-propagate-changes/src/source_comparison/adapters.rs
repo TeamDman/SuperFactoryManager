@@ -51,6 +51,7 @@ pub fn snapshot(
     cancellation: &CancellationToken,
 ) -> Result<ComparisonSnapshot> {
     cancellation.bail_if_cancelled()?;
+    let root = input.absolute_root()?;
     let mut evidence = BTreeMap::new();
     let mut exclusions = Vec::new();
     let files = match input {
@@ -58,12 +59,8 @@ pub fn snapshot(
             exclusions.push(".git (Git administration only)".to_owned());
             directory_files(root, cancellation)?
         }
-        ComparisonInput::PinnedGit {
-            repository,
-            commit,
-            prefix,
-        } => {
-            let git = OracleGitRepository::open(Path::new(repository))?;
+        ComparisonInput::PinnedGit { commit, prefix, .. } => {
+            let git = OracleGitRepository::open(root)?;
             let revision = git.resolve_commit(commit)?;
             evidence.insert("commit".into(), revision.commit.clone());
             evidence.insert("tree".into(), revision.tree);
@@ -299,16 +296,16 @@ fn projection_files(
         source_projection::core_inputs::MAX_CORE_METADATA_BYTES,
     )?;
     let metadata =
-        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.registered_features)?;
+        CoreProjectInputs::from_json(from_utf8(&metadata_bytes)?, &catalog.feature_registry)?;
     let core = catalog
         .repo_root
         .join("platform/minecraft/core-liquid-template");
     let inventory = discover_core_source_files(&core)?;
     let selection = select_core_inputs(&metadata, &context, &inventory)?;
-    evidence.insert("catalog_sha256".into(), catalog.catalog_sha256.clone());
+    evidence.insert("catalog_sha256".into(), catalog.catalog_sha256().to_owned());
     evidence.insert(
         "feature_definitions_sha256".into(),
-        catalog.feature_definitions_sha256.clone(),
+        catalog.feature_definitions_sha256().to_owned(),
     );
     evidence.insert("project_inputs_sha256".into(), sha256(&metadata_bytes));
     evidence.insert(

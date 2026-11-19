@@ -82,6 +82,7 @@ mod tests {
     use super::*;
     use crate::cancellation::CancellationToken;
     use crate::cli::Cli;
+    use crate::paths::InvocationDirectory;
     use std::fs;
     use std::sync::Arc;
     use std::sync::Barrier;
@@ -104,10 +105,11 @@ mod tests {
             thread::spawn(move || -> Result<()> {
                 let app_home = AppHome(root.join("settings"));
                 let cache_home = CacheHome(root.join("cache"));
-                let homes = InvocationHomes::new(app_home.clone(), Ok(cache_home.clone()));
+                let homes = InvocationHomes::new(app_home, Ok(cache_home.clone()));
+                let invocation_dir = InvocationDirectory::new(&root)?;
                 barrier.wait();
-                let logging = parse(&["home", "path"]).logging_config(homes.app_home())?;
-                assert_eq!(logging.json_log_directory, Some(app_home.file_path("logs")));
+                let logging = parse(&["home", "path"]).logging_config(&invocation_dir, &homes)?;
+                assert_eq!(logging.json_log_directory, Some(cache_home.join("logs")));
                 assert_eq!(homes.cache_home()?.0, cache_home.0);
                 Ok(())
             })
@@ -127,6 +129,7 @@ mod tests {
         let config = app_home.file_path(CACHE_ROOT_FILE);
         fs::write(&config, "invalid cache selection")?;
         let homes = InvocationHomes::new(app_home.clone(), Err(eyre!("fixture cache is invalid")));
+        let invocation_dir = InvocationDirectory::new(temporary.path())?;
         assert!(
             homes
                 .cache_home()
@@ -136,7 +139,7 @@ mod tests {
         );
         assert_eq!(
             parse(&["home", "path"])
-                .logging_config(homes.app_home())?
+                .logging_config(&invocation_dir, &homes)?
                 .json_log_directory,
             Some(app_home.file_path("logs"))
         );

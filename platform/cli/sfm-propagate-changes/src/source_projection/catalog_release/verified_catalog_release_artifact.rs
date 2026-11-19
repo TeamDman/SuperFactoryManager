@@ -31,7 +31,7 @@ impl VerifiedCatalogReleaseArtifact {
     /// Refuses missing native receipts, stale selected ownership, changed
     /// recipes/producer, unsafe or replaced files, incomplete archives and
     /// cancellation. This operation never creates logs, caches or build files;
-    /// the invoking CLI retains its normal application-home logging.
+    /// the invoking CLI retains its normal cache-home logging.
     pub(crate) fn verify(
         request: &CatalogReleaseRequest,
         jar_relative: &str,

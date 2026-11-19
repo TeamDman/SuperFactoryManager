@@ -5,6 +5,8 @@
 //! Filesystem ownership, symlink checks, and feature support/dependencies are
 //! checked by the generation boundary; this module validates the pure contract.
 
+pub use super::projection_definitions::ProjectionDefinitions as ProjectionCatalog;
+use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
@@ -30,12 +32,6 @@ pub const SUPPORTED_TARGETS: [(&str, &str); 10] = [
     ("1.21.1", "1.21.1"),
     ("26.1.2", "26.1.2"),
 ];
-
-/// JSON is the user's object keyed by nested projection paths, without an
-/// additional schema or entries wrapper.
-#[derive(Clone, Debug, Eq, Facet, PartialEq)]
-#[facet(transparent)]
-pub struct ProjectionCatalog(pub BTreeMap<String, ProjectionEntry>);
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[facet(deny_unknown_fields)]
@@ -71,11 +67,11 @@ impl ProjectionCatalog {
     ///
     /// Rejects malformed/duplicate JSON keys, unknown entry fields, unsupported
     /// versions or features, nonportable keys, and colliding output roots.
-    pub fn from_json(input: &str, registered_features: &BTreeSet<String>) -> eyre::Result<Self> {
+    pub fn from_json(input: &str, registry: &SfmProjectionFeatureRegistry) -> eyre::Result<Self> {
         reject_duplicate_catalog_keys(input)?;
         let catalog: Self =
             facet_json::from_str(input).wrap_err("could not parse projections catalog")?;
-        catalog.validate(registered_features)?;
+        catalog.validate(registry)?;
         Ok(catalog)
     }
 
@@ -84,8 +80,8 @@ impl ProjectionCatalog {
     /// # Errors
     ///
     /// Returns an error when validation or Facet JSON serialization fails.
-    pub fn to_json(&self, registered_features: &BTreeSet<String>) -> eyre::Result<String> {
-        self.validate(registered_features)?;
+    pub fn to_json(&self, registry: &SfmProjectionFeatureRegistry) -> eyre::Result<String> {
+        self.validate(registry)?;
         let mut json = facet_json::to_string_pretty(self)
             .wrap_err("could not serialize projections catalog")?;
         json.push('\n');
@@ -101,7 +97,15 @@ impl ProjectionCatalog {
     /// Rejects empty catalogs, unknown features, unsupported versions, unsafe
     /// paths, case aliases (including shared parent components), or overlapping
     /// ancestor/descendant output roots.
-    pub fn validate(&self, registered_features: &BTreeSet<String>) -> eyre::Result<()> {
+    pub fn validate(&self, registry: &SfmProjectionFeatureRegistry) -> eyre::Result<()> {
+        self.validate_entries(|feature| registry.contains(feature))
+    }
+
+    pub(super) fn validate_layout(&self) -> eyre::Result<()> {
+        self.validate_entries(|_| true)
+    }
+
+    fn validate_entries(&self, is_registered: impl Fn(&str) -> bool) -> eyre::Result<()> {
         ensure!(
             !self.0.is_empty(),
             "projections catalog must contain at least one entry"
@@ -114,7 +118,7 @@ impl ProjectionCatalog {
                 .target_id()
                 .wrap_err_with(|| format!("projection `{key}`"))?;
             entry
-                .feature_flags(registered_features)
+                .validated_features(&is_registered)
                 .wrap_err_with(|| format!("projection `{key}`"))?;
             let folded = key.to_ascii_lowercase();
             if let Some(other) = roots.insert(folded, key.as_str()) {
@@ -223,19 +227,27 @@ impl ProjectionEntry {
     /// Returns an error for duplicate or unregistered enabled feature names.
     pub fn feature_flags(
         &self,
-        registered_features: &BTreeSet<String>,
+        registry: &SfmProjectionFeatureRegistry,
     ) -> eyre::Result<BTreeMap<String, bool>> {
+        let enabled = self.validated_features(|feature| registry.contains(feature))?;
+        Ok(registry
+            .names()
+            .map(|feature| (feature.to_owned(), enabled.contains(feature)))
+            .collect())
+    }
+
+    fn validated_features(
+        &self,
+        is_registered: impl Fn(&str) -> bool,
+    ) -> eyre::Result<BTreeSet<&str>> {
         let enabled = self.unique_features()?;
         for feature in &enabled {
             ensure!(
-                registered_features.contains(*feature),
+                is_registered(feature),
                 "unknown enabled feature `{feature}`"
             );
         }
-        Ok(registered_features
-            .iter()
-            .map(|feature| (feature.clone(), enabled.contains(feature.as_str())))
-            .collect())
+        Ok(enabled)
     }
 
     fn unique_features(&self) -> eyre::Result<BTreeSet<&str>> {
@@ -361,8 +373,8 @@ pub(crate) fn reject_duplicate_catalog_keys(input: &str) -> eyre::Result<()> {
 mod tests {
     use super::*;
 
-    fn registry() -> BTreeSet<String> {
-        BTreeSet::from(["alpha".to_owned(), "beta".to_owned()])
+    fn registry() -> SfmProjectionFeatureRegistry {
+        SfmProjectionFeatureRegistry::test_registry(["alpha", "beta"])
     }
 
     fn entry() -> ProjectionEntry {

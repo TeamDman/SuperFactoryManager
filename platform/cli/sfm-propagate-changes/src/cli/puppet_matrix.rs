@@ -3,6 +3,7 @@ use crate::cli::InvocationHomes;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::run::invoke_game_puppet;
 use crate::cli::run::normalize_game_puppet_game_test;
+use crate::jar_build::BuildMode;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::GamePuppetPreviewManifest;
 use crate::jar_build::GamePuppetPreviewVariantObservation;
@@ -12,8 +13,10 @@ use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::jar_build::png_dimensions;
 use crate::jar_build::projection_preview_artifact_root;
-use crate::jar_build::projection_selection::select_projections;
+use crate::source_projection::ProjectionName;
 use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::projection_catalog::PROJECTIONS_DIR;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_line;
 use chrono::Local;
 use eyre::Context;
@@ -28,7 +31,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 struct ProjectionMatrixSelection {
-    projection: String,
+    projection: ProjectionName,
     project_root: PathBuf,
     mc_version: Option<String>,
 }
@@ -142,6 +145,7 @@ impl PuppetMatrixArgs {
     pub fn invoke(
         self,
         cancellation_token: &CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
         if self.options.plan_json.is_some() {
@@ -156,14 +160,16 @@ impl PuppetMatrixArgs {
         }
         validate_calibrated_parallelism(Parallelism::from_cli(self.options.parallel)?)?;
 
-        let (root, keys) =
-            select_projections(self.options.repo_root.as_deref(), &self.options.projection)?;
-        let catalog = CoreCatalog::load(&root, &root)?;
+        let catalog =
+            CoreCatalog::load_for_invocation(self.options.repo_root.as_deref(), invocation_dir)?;
+        let keys = catalog
+            .catalog
+            .matching_glob_projections(&self.options.projection)?;
         let targets = keys
             .into_iter()
             .map(|key| ProjectionMatrixSelection {
-                mc_version: Some(catalog.catalog.0[&key].minecraft_version.clone()),
-                project_root: root.join("platform/minecraft/projections").join(&key),
+                mc_version: Some(catalog.catalog.0[key.as_str()].minecraft_version.clone()),
+                project_root: catalog.repo_root.join(PROJECTIONS_DIR).join(key.as_str()),
                 projection: key,
             })
             .collect::<Vec<_>>();
@@ -181,6 +187,7 @@ impl PuppetMatrixArgs {
             cancellation_token.bail_if_cancelled()?;
             let result = run_matrix_target(
                 &self.options,
+                &catalog.repo_root,
                 &target,
                 &expected_selection,
                 self.game_test.clone(),
@@ -191,6 +198,7 @@ impl PuppetMatrixArgs {
                 expected_game_test.as_deref(),
                 self.control_cli_source_root.as_deref(),
                 cancellation_token.clone(),
+                invocation_dir,
                 homes,
             );
             match result {
@@ -251,6 +259,7 @@ fn validate_calibrated_parallelism(parallel: Parallelism) -> eyre::Result<()> {
 )]
 fn run_matrix_target(
     template_options: &JarBuildOptionsArgs,
+    repo_root: &SfmRepoPath,
     target: &ProjectionMatrixSelection,
     puppet_selection: &str,
     game_test: Option<String>,
@@ -261,15 +270,25 @@ fn run_matrix_target(
     expected_game_test: Option<&str>,
     control_cli_source_root: Option<&Path>,
     cancellation_token: CancellationToken,
+    invocation_dir: &Path,
     homes: &InvocationHomes,
 ) -> eyre::Result<PuppetMatrixTarget> {
     let mut target_options = template_options.clone();
-    target_options.projection.clone_from(&target.projection);
     target_options.parallel = None;
     target_options.error_action = ErrorAction::Bail;
     target_options.plan_json = None;
     invoke_game_puppet(
-        target_options,
+        || {
+            Ok(target_options
+                .into_options_for_projections(
+                    BuildMode::Build,
+                    homes.app_home(),
+                    invocation_dir,
+                    repo_root.clone(),
+                    vec![target.projection.clone()],
+                )?
+                .with_cache_home(homes.available_cache_home()))
+        },
         puppet_selection,
         game_test,
         width,
@@ -280,7 +299,7 @@ fn run_matrix_target(
         control_cli_source_root.map(Path::to_path_buf),
         None,
         cancellation_token,
-        homes,
+        invocation_dir,
     )?;
     collect_target_preview(target, puppet_selection, expected_game_test)
 }
@@ -309,7 +328,7 @@ fn collect_target_preview(
         if capture.figure == 0 || !used_figures.insert((capture.figure, capture.variant.clone())) {
             eyre::bail!(
                 "Preview manifest for projection '{}' has duplicate or zero figure {}",
-                target.projection,
+                target.projection.as_str(),
                 capture.figure
             );
         }
@@ -369,12 +388,12 @@ fn collect_target_preview(
     if validated.is_empty() {
         eyre::bail!(
             "Preview manifest for projection '{}' has no captures",
-            target.projection
+            target.projection.as_str()
         );
     }
 
     Ok(PuppetMatrixTarget {
-        projection: target.projection.clone(),
+        projection: String::from(&target.projection),
         minecraft_version: source_manifest.minecraft_version,
         result: PuppetMatrixResult::Succeeded,
         source_artifact_root: source_artifact_root.display().to_string(),
@@ -496,13 +515,13 @@ fn validate_source_manifest(
                 .projection
                 .as_deref()
                 .unwrap_or("<missing projection>"),
-            target.projection
+            target.projection.as_str()
         );
     }
     let Some(expected_version) = target.mc_version.as_ref() else {
         eyre::bail!(
             "Matrix target '{}' has no Minecraft version",
-            target.projection
+            target.projection.as_str()
         );
     };
     if manifest.minecraft_version != expected_version.as_str() {
@@ -531,7 +550,7 @@ fn failed_target(target: &ProjectionMatrixSelection, error: String) -> PuppetMat
     let source_artifact_root = projection_preview_artifact_root(target.project_root.as_path());
     let diagnostic_log = target_diagnostic_log(target);
     PuppetMatrixTarget {
-        projection: target.projection.clone(),
+        projection: String::from(&target.projection),
         minecraft_version: target
             .mc_version
             .as_ref()
@@ -757,6 +776,7 @@ mod tests {
     use crate::jar_build::hash::ContentHash;
     use crate::jar_build::hash::ContentHashAlgorithm;
     use crate::jar_build::projection_preview_artifact_root;
+    use crate::source_projection::ProjectionName;
     use std::fs;
     use std::path::Path;
     use tempfile::tempdir;
@@ -901,7 +921,7 @@ mod tests {
 
     fn target(root: &Path, projection: &str) -> ProjectionMatrixSelection {
         ProjectionMatrixSelection {
-            projection: projection.to_owned(),
+            projection: ProjectionName::parse(projection).expect("portable fixture projection"),
             project_root: root.to_path_buf(),
             mc_version: Some(projection.to_owned()),
         }
@@ -942,7 +962,7 @@ mod tests {
     "hudHidden": true
   }}]
 }}"#,
-            target.projection,
+            target.projection.as_str(),
             target.mc_version.as_ref().expect("version fixture")
         );
         fs::write(artifact_root.join("preview-manifest.json"), manifest)

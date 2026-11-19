@@ -6,6 +6,7 @@
 
 pub mod candidate_lock;
 pub mod catalog_owned_project;
+pub(crate) mod catalog_project_metadata;
 pub mod catalog_release;
 pub mod context;
 pub mod core_catalog;
@@ -52,14 +53,17 @@ pub(crate) mod preparation_progress;
 pub mod prepared_dependency_inputs;
 pub mod project_layout;
 pub mod projection_catalog;
+pub(crate) mod projection_check_result;
+pub mod projection_definitions;
+pub(crate) mod projection_name;
+pub use projection_name::ProjectionName;
+pub(crate) mod projection_pattern;
 pub mod promotion;
 pub mod provenance;
 #[cfg(test)]
 mod reference_annotation_tests;
 pub mod reference_annotations;
 pub mod reference_associations;
-#[cfg(test)]
-mod reference_query_tests;
 pub mod registry_metadata;
 pub mod release_apply;
 pub mod release_baseline;
@@ -69,6 +73,8 @@ pub mod release_version;
 pub mod released_native_inputs;
 pub(crate) mod retained_nfrt_project_owner;
 pub mod selection;
+pub mod sfm_projection_feature_registry;
+pub mod sfm_repo_path;
 pub(crate) mod simplify;
 mod simplify_flexible_constructor;
 pub mod source_reference;

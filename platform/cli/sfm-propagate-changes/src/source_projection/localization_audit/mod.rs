@@ -388,7 +388,7 @@ mod release_selection_tests {
         let core = repo.join(CORE_ROOT);
         let metadata = CoreProjectInputs::from_json(
             &std::fs::read_to_string(repo.join(CORE_METADATA_PATH)).unwrap(),
-            &loaded.registered_features,
+            &loaded.feature_registry,
         )
         .unwrap();
         let inventory = discover_core_source_files(&core).unwrap();

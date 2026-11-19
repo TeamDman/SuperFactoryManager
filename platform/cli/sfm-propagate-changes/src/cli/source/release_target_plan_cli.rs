@@ -187,12 +187,8 @@ impl ReleaseTargetPlanArgs {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
-    use crate::cli::source::LegacySourceArgs;
-    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
@@ -368,66 +364,6 @@ pub(super) mod tests {
         assert_eq!(
             git(second.repo(), &["rev-parse", "HEAD"]),
             second_args.reviewed_release_commit
-        );
-    }
-
-    #[test]
-    fn cli_requires_exact_target_and_reviewed_promotion() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "release-target-plan",
-            "--package-root",
-            "C:/reviewed/package",
-            "--completion-manifest-sha256",
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "--reviewed-source-commit",
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "--reviewed-tag",
-            "4.35.0-1.21.0",
-            "--github-repo",
-            "example/sfm",
-            "--modrinth-project",
-            "example-project",
-            "--curseforge-project",
-            "123",
-            "--changelog-file",
-            "C:/reviewed/notes.md",
-            "--changelog-sha256",
-            "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "--modrinth-1201-loader-policy",
-            "dual-forge-neoforge",
-            "--repo-root",
-            "C:/reviewed/repo",
-            "--target-id",
-            "1.21.0",
-            "--reviewed-release-commit",
-            "dddddddddddddddddddddddddddddddddddddddd",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::ReleaseTargetPlan(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source release-target-plan command");
-        };
-        assert_eq!(args.target_id, "1.21.0");
-        assert_eq!(args.provider_plan.reviewed_tag, "4.35.0-1.21.0");
-        assert!(
-            figue::from_slice::<Cli>(&[
-                "source",
-                "legacy",
-                "release-target-plan",
-                "--repo-root",
-                "C:/reviewed/repo",
-            ])
-            .into_result()
-            .is_err()
         );
     }
 

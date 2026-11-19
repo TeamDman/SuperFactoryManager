@@ -63,22 +63,3 @@ impl CacheVerifyJdkArgs {
         ))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn parses_explicit_jdk_audit() {
-        let parsed = figue::from_slice::<super::super::CacheArgs>(&[
-            "verify-jdk",
-            "--project-root",
-            "C:/project",
-        ])
-        .into_result()
-        .expect("cache verify-jdk should parse")
-        .get_silent();
-        assert!(matches!(
-            parsed.command,
-            super::super::CacheCommand::VerifyJdk(_)
-        ));
-    }
-}

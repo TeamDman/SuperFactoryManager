@@ -3,6 +3,7 @@ use crate::paths::AppHome;
 use crate::paths::CACHE_ROOT_FILE;
 use crate::paths::CACHE_ROOT_MARKER;
 use crate::paths::CACHE_ROOT_MARKER_CONTENT;
+use crate::paths::InvocationDirectory;
 use crate::paths::SelectedCacheHome;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
@@ -30,8 +31,12 @@ pub struct CacheRootArgs {
 impl CacheRootArgs {
     /// # Errors
     /// Returns an error if the selected cache-root command fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
-        self.command.invoke(homes)
+    pub fn invoke_in(
+        self,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
+        self.command.invoke_in(invocation_dir, homes)
     }
 }
 
@@ -49,10 +54,14 @@ pub enum CacheRootCommand {
 impl CacheRootCommand {
     /// # Errors
     /// Returns an error if the selected cache-root command fails.
-    pub fn invoke(self, homes: &InvocationHomes) -> eyre::Result<()> {
+    pub fn invoke_in(
+        self,
+        invocation_dir: &InvocationDirectory<'_>,
+        homes: &InvocationHomes,
+    ) -> eyre::Result<()> {
         match self {
             Self::Show(args) => args.invoke(homes.selected_cache_home()?),
-            Self::Set(args) => args.invoke(homes.app_home()),
+            Self::Set(args) => args.invoke_in(invocation_dir, homes.app_home()),
             Self::Unset(args) => args.invoke(homes.app_home()),
         }
     }
@@ -83,21 +92,26 @@ pub struct CacheRootSetArgs {
 impl CacheRootSetArgs {
     /// # Errors
     /// Returns an error if the requested root fails validation or cannot be persisted.
-    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
-        let requested_metadata = symlink_metadata(&self.path)?;
+    pub fn invoke_in(
+        self,
+        invocation_dir: &InvocationDirectory<'_>,
+        app_home: &AppHome,
+    ) -> eyre::Result<()> {
+        let requested = invocation_dir.resolve(&self.path)?;
+        let requested_metadata = symlink_metadata(&requested)?;
         ensure!(
             !requested_metadata.file_type().is_symlink(),
             "Cache root must not be a link: {}",
-            self.path.display()
+            requested.display()
         );
         #[cfg(windows)]
         ensure!(
             requested_metadata.file_attributes() & 0x400 == 0,
             "Cache root must not be a reparse point: {}",
-            self.path.display()
+            requested.display()
         );
-        let root = dunce::canonicalize(&self.path)
-            .wrap_err_with(|| format!("Cache root must exist: {}", self.path.display()))?;
+        let root = dunce::canonicalize(&requested)
+            .wrap_err_with(|| format!("Cache root must exist: {}", requested.display()))?;
         validate_cache_root(&root)?;
         let marker = root.join(CACHE_ROOT_MARKER);
         if !marker.exists() {
@@ -177,6 +191,28 @@ fn validate_cache_root(root: &Path) -> eyre::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn relative_cache_root_is_persisted_from_the_invocation_directory() -> eyre::Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let invocation_dir = InvocationDirectory::new(fixture.path())?;
+        let cache = fixture.path().join("cache");
+        std::fs::create_dir(&cache)?;
+        let app_home = AppHome(fixture.path().join("settings"));
+        CacheRootSetArgs {
+            path: PathBuf::from("cache"),
+        }
+        .invoke_in(&invocation_dir, &app_home)?;
+        assert_eq!(
+            read_to_string(cache.join(CACHE_ROOT_MARKER))?,
+            CACHE_ROOT_MARKER_CONTENT
+        );
+        assert_eq!(
+            PathBuf::from(read_to_string(app_home.file_path(CACHE_ROOT_FILE))?.trim()),
+            dunce::canonicalize(cache)?
+        );
+        Ok(())
+    }
 
     #[test]
     fn empty_root_is_allowed_and_nonempty_unowned_root_is_refused() {

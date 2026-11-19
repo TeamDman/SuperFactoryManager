@@ -74,12 +74,7 @@ pub(crate) fn catalog_projection_roots(
     let repository = policy_repository(&root)?;
     // This boundary validates layout, not feature registration. The catalog
     // loader owns support/prerequisite checks against its actual registry.
-    let features = catalog
-        .0
-        .values()
-        .flat_map(|entry| entry.features.iter().cloned())
-        .collect();
-    catalog.validate(&features)?;
+    catalog.validate_layout()?;
     let mut destinations = BTreeMap::new();
     let mut policies = BTreeMap::new();
     let mut development_roots = Vec::new();
@@ -319,6 +314,7 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use super::*;
     use crate::source_projection::core_inputs::CORE_ROOT;
     #[cfg(unix)]
@@ -350,7 +346,7 @@ mod tests {
             let catalog = ProjectionCatalog::from_json(r#"{
                 "release-looking/custom":{"minecraft_version":"1.19.2","environment":"dev","features":[]},
                 "sfm-dev/custom":{"minecraft_version":"1.21","environment":"release","features":[]}
-            }"#, &BTreeSet::new()).unwrap();
+            }"#, &SfmProjectionFeatureRegistry::test_registry([])).unwrap();
             let files = BTreeMap::from([(
                 "src/main/java/Example.java".to_owned(),
                 ProjectedArtifact {

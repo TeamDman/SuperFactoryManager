@@ -1,5 +1,5 @@
 use crate::jar_build::projection_preview_artifact_root;
-use crate::jar_build::projection_selection::select_projections;
+use crate::source_projection::core_catalog::CoreCatalog;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
 use facet::Facet;
@@ -47,12 +47,13 @@ impl PuppetArtifactsArgs {
     ///
     /// Returns an error if the projection does not select exactly one project, or
     /// if that project has no complete preview artifact root.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, invocation_dir: &Path) -> eyre::Result<()> {
         match self.command {
             PuppetArtifactsCommand::Path(args) => stdout_line(
                 resolve_existing_preview_artifact_root(
                     &args.projection,
                     args.repo_root.as_deref(),
+                    invocation_dir,
                 )?
                 .display(),
             ),
@@ -60,6 +61,7 @@ impl PuppetArtifactsArgs {
                 let artifact_root = resolve_existing_preview_artifact_root(
                     &args.projection,
                     args.repo_root.as_deref(),
+                    invocation_dir,
                 )?;
                 open::that(&artifact_root).wrap_err_with(|| {
                     format!(
@@ -75,14 +77,19 @@ impl PuppetArtifactsArgs {
 fn resolve_existing_preview_artifact_root(
     selector: &str,
     repo_root: Option<&Path>,
+    invocation_dir: &Path,
 ) -> eyre::Result<PathBuf> {
-    let (root, keys) = select_projections(repo_root, selector)?;
+    let loaded = CoreCatalog::load_for_invocation(repo_root, invocation_dir)?;
+    let keys = loaded.catalog.matching_glob_names(selector)?;
     eyre::ensure!(
         keys.len() == 1,
         "artifact lookup requires exactly one projection"
     );
     let artifact_root = projection_preview_artifact_root(
-        &root.join("platform/minecraft/projections").join(&keys[0]),
+        &loaded
+            .repo_root
+            .join("platform/minecraft/projections")
+            .join(&keys[0]),
     );
     require_complete_preview_artifact_root(&artifact_root, selector)?;
     Ok(artifact_root)
@@ -112,19 +119,34 @@ fn require_complete_preview_artifact_root(
 #[cfg(test)]
 mod tests {
     use super::require_complete_preview_artifact_root;
+    use super::resolve_existing_preview_artifact_root;
     use crate::jar_build::projection_preview_artifact_root;
+    use crate::source_projection::core_catalog::write_project_catalog_fixture;
     use std::fs;
+    use std::path::Path;
     use tempfile::tempdir;
 
     #[test]
-    fn preview_artifact_root_uses_the_run_pipeline_location() {
-        let project = tempdir().expect("temporary project");
+    fn preview_artifact_lookup_resolves_relative_repo_from_invocation_directory() -> eyre::Result<()>
+    {
+        let invocation = tempdir()?;
+        let checkout = invocation.path().join("checkout");
+        let projection = "sfm-dev/mc-1.19.2";
+        let project = write_project_catalog_fixture(&checkout, projection, "1.19.2")?;
+        let artifact_root = projection_preview_artifact_root(&project);
         assert_eq!(
-            projection_preview_artifact_root(project.path()),
-            project
-                .path()
-                .join("build/sfm-toolchain/artifacts/game-test-preview")
+            artifact_root,
+            project.join("build/sfm-toolchain/artifacts/game-test-preview")
         );
+        fs::create_dir_all(&artifact_root)?;
+        fs::write(artifact_root.join("preview-manifest.json"), "{}")?;
+        let resolved = resolve_existing_preview_artifact_root(
+            projection,
+            Some(Path::new("checkout")),
+            invocation.path(),
+        )?;
+        assert_eq!(resolved.canonicalize()?, artifact_root.canonicalize()?);
+        Ok(())
     }
 
     #[test]

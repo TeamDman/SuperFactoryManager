@@ -963,7 +963,7 @@ fn export_supported_catalog_cache(
         stage,
         "snapshot/support-readiness.json",
         &bytes,
-        &catalog.catalog_sha256,
+        catalog.catalog_sha256(),
         report,
         request.max_bytes,
     )?;

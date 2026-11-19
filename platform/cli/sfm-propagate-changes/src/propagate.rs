@@ -647,7 +647,7 @@ fn format_dirty_worktree_details(truly_dirty: &[DirtyWorktree]) -> String {
 }
 
 fn run_idle_state(
-    repo_root: &PathBuf,
+    repo_root: &Path,
     state: &mut State,
     options: &PropagateOptions,
     app_home: &AppHome,

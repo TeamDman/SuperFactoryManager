@@ -183,8 +183,6 @@ pub(super) fn parse_roots(values: &[String]) -> Result<BTreeMap<String, PathBuf>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Cli;
-    use crate::cli::Command;
     use crate::cli::InvocationHomes;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::LegacySourceArgs;
@@ -625,35 +623,6 @@ mod tests {
             candidate_gradle_overlay(&ordinary_preset(), &target()),
             vec!["target=platform/minecraft/mc-version/1.19.2".to_owned()]
         );
-    }
-
-    #[test]
-    fn candidate_verify_parses_distinct_portable_lock_and_local_roots() {
-        let parsed = figue::from_slice::<Cli>(&[
-            "source",
-            "legacy",
-            "candidate-verify",
-            "--repo-root",
-            "C:/reviewed/repo",
-            "--lock",
-            "candidate.json",
-            "--candidate-root",
-            "1.19.2=C:/candidate/1.19.2",
-        ])
-        .into_result()
-        .unwrap()
-        .get_silent();
-        let Command::Source(crate::cli::source::SourceArgs {
-            command:
-                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
-                    command: LegacySourceCommand::CandidateVerify(args),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected source candidate-verify command");
-        };
-        assert_eq!(args.lock, PathBuf::from("candidate.json"));
-        assert_eq!(args.candidate_root.len(), 1);
     }
 
     #[test]

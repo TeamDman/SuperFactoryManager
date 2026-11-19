@@ -1,6 +1,7 @@
 use crate::cancellation::CancellationToken;
 use crate::git_read;
 use crate::jdk::resolve_java;
+use crate::paths::InvocationDirectory;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
 use facet::Facet;
@@ -57,6 +58,25 @@ pub struct CleanLoaderProbeOptions {
     pub plan_only: bool,
 }
 
+impl CleanLoaderProbeOptions {
+    fn resolve_paths(mut self, directory: &InvocationDirectory<'_>) -> eyre::Result<Self> {
+        self.release_jar = directory.resolve(&self.release_jar)?;
+        self.forge_installer = directory.resolve(&self.forge_installer)?;
+        self.instance_dir = directory.resolve(&self.instance_dir)?;
+        self.java_home = self
+            .java_home
+            .as_deref()
+            .map(|path| directory.resolve(path))
+            .transpose()?;
+        self.report_json = self
+            .report_json
+            .as_deref()
+            .map(|path| directory.resolve(path))
+            .transpose()?;
+        Ok(self)
+    }
+}
+
 #[derive(Debug)]
 pub struct CleanLoaderProbeCommand {
     options: CleanLoaderProbeOptions,
@@ -81,10 +101,10 @@ impl CleanLoaderProbeCommand {
         clippy::too_many_lines,
         reason = "the probe deliberately keeps its ordered, fail-closed acceptance gates visible"
     )]
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, directory: &InvocationDirectory<'_>) -> eyre::Result<()> {
         self.cancellation_token.bail_if_cancelled()?;
-        let options = &self.options;
-        validate_probe_expectations(options)?;
+        let options = self.options.resolve_paths(directory)?;
+        validate_probe_expectations(&options)?;
         let release_jar = canonical_file(&options.release_jar, "release JAR")?;
         let forge_installer = canonical_file(&options.forge_installer, "Forge installer JAR")?;
         let inspection = inspect_release_jar(
@@ -125,7 +145,7 @@ impl CleanLoaderProbeCommand {
             java_executable: None,
             java_version_output: None,
             rejected_java_environment: java_environment_values(),
-            instance_dir: absolute_path(&options.instance_dir)?.display().to_string(),
+            instance_dir: options.instance_dir.display().to_string(),
             nested_artifacts: inspection.nested_artifacts,
             required_nested_classes: options.required_nested_classes.clone(),
             mods: vec![release_jar.display().to_string()],
@@ -1109,15 +1129,6 @@ fn canonical_file(path: &Path, label: &str) -> eyre::Result<PathBuf> {
     dunce::canonicalize(path).wrap_err_with(|| format!("Failed to canonicalize {}", path.display()))
 }
 
-fn absolute_path(path: &Path) -> eyre::Result<PathBuf> {
-    if path.is_absolute() {
-        return Ok(path.to_path_buf());
-    }
-    Ok(env::current_dir()
-        .wrap_err("Failed to resolve current directory")?
-        .join(path))
-}
-
 fn sha256_file(path: &Path) -> eyre::Result<String> {
     let bytes = fs::read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
     Ok(sha256_bytes(&bytes))
@@ -1193,6 +1204,48 @@ mod tests {
     use super::*;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn clean_loader_resolves_paths_before_the_child_changes_directory() -> eyre::Result<()> {
+        let invocation = tempfile::tempdir()?;
+        let directory = InvocationDirectory::new(invocation.path())?;
+        let options = CleanLoaderProbeOptions {
+            release_jar: PathBuf::from("release/sfm.jar"),
+            expected_release_sha256: String::new(),
+            forge_installer: PathBuf::from("forge-installer.jar"),
+            expected_forge_installer_sha256: String::new(),
+            instance_dir: PathBuf::from("fresh/instance"),
+            success_marker: String::new(),
+            expected_nested: Vec::new(),
+            required_nested_classes: Vec::new(),
+            timeout: Duration::from_secs(1),
+            install_timeout: Duration::from_secs(1),
+            java_home: Some(PathBuf::from("sdk")),
+            report_json: Some(PathBuf::from("reports/probe.json")),
+            plan_only: true,
+        }
+        .resolve_paths(&directory)?;
+
+        assert_eq!(
+            options.release_jar,
+            invocation.path().join("release/sfm.jar")
+        );
+        assert_eq!(
+            options.forge_installer,
+            invocation.path().join("forge-installer.jar")
+        );
+        assert_eq!(
+            options.instance_dir,
+            invocation.path().join("fresh/instance")
+        );
+        assert_eq!(options.java_home, Some(invocation.path().join("sdk")));
+        assert_eq!(
+            options.report_json,
+            Some(invocation.path().join("reports/probe.json"))
+        );
+        assert!(!options.instance_dir.exists());
+        Ok(())
+    }
 
     #[test]
     fn clean_loader_probe_status_json_spellings_round_trip() {

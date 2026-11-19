@@ -705,6 +705,7 @@ fn refuse_refresh(refresh: bool) -> Result<()> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use super::super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use super::*;
     use crate::source_projection::candidate_lock::checked_file;
     use crate::source_projection::catalog_owned_project::source_check_observation;
@@ -793,7 +794,7 @@ pub(crate) mod tests {
                         &checked_file(repo, CORE_METADATA_PATH)?,
                         8 * 1024 * 1024,
                     )?)?,
-                    &catalog.registered_features,
+                    &catalog.feature_registry,
                 )?;
                 Ok((catalog, metadata))
             };
@@ -1145,7 +1146,7 @@ pub(crate) mod tests {
             let metadata_path = fixture.repository().join(CORE_METADATA_PATH);
             let mut metadata = CoreProjectInputs::from_json(
                 &fs::read_to_string(&metadata_path)?,
-                &BTreeSet::from(["review_toggle".to_owned()]),
+                &SfmProjectionFeatureRegistry::test_registry(["review_toggle"]),
             )?;
             let canonical = format!("gradle/source-excludes/1.19.2/{source_set}-java.txt");
             let variants = metadata.project_files.get_mut(&canonical).unwrap();

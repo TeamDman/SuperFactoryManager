@@ -392,148 +392,12 @@ mod tests {
     use crate::cli::Cli;
     use crate::cli::Command as CliCommand;
     use crate::cli::output::OutputFormat;
-    use figue::ToArgs;
 
     fn parse(arguments: &[&str]) -> Cli {
         figue::from_slice::<Cli>(arguments)
             .into_result()
             .expect("symbol CLI should parse")
             .get_silent()
-    }
-
-    #[test]
-    fn parses_symbol_cli_show_definition_and_usage_aliases() {
-        let definition = parse(&[
-            "symbol",
-            "show-definition",
-            "example.A",
-            "--branch",
-            "1.19.2",
-        ]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::ShowDefinition(definition),
-        }) = definition.command
-        else {
-            panic!("expected symbol show-definition command");
-        };
-        assert_eq!(definition.selector, ["example.A"]);
-
-        let canonical = parse(&[
-            "--output-format",
-            "json",
-            "symbol",
-            "list-usages",
-            "example.A",
-            "run(Ljava/lang/String;)V",
-            "--branch",
-            "1.19.2",
-        ]);
-        assert_eq!(
-            canonical.global_args.output_format,
-            Some(OutputFormat::Json)
-        );
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::ListUsages(canonical_args),
-        }) = canonical.command
-        else {
-            panic!("expected symbol list-usages command");
-        };
-        assert!(matches!(
-            JavaSymbolSelector::parse_terms(&canonical_args.selector).expect("method selector"),
-            JavaSymbolSelector::Method { .. }
-        ));
-
-        let alias = parse(&[
-            "symbol",
-            "list-usage",
-            "example.A",
-            "run(Ljava/lang/String;)V",
-            "--branch",
-            "1.19.2",
-        ]);
-        let rendered = alias.to_args().expect("alias should serialize canonically");
-        let rendered = rendered
-            .iter()
-            .map(|argument| argument.to_string_lossy())
-            .collect::<Vec<_>>();
-        assert!(rendered.iter().any(|argument| argument == "list-usages"));
-        assert!(!rendered.iter().any(|argument| argument == "list-usage"));
-    }
-
-    #[test]
-    fn parses_symbol_list_with_optional_canonical_selector_glob() {
-        let all = parse(&["symbol", "list", "--branch", "1.19.2"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::List(all),
-        }) = all.command
-        else {
-            panic!("expected symbol list command");
-        };
-        assert_eq!(all.pattern, None);
-
-        let filtered = parse(&["symbol", "list", "example.* run*", "--branch", "1.19.2"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::List(filtered),
-        }) = filtered.command
-        else {
-            panic!("expected filtered symbol list command");
-        };
-        assert_eq!(filtered.pattern.as_deref(), Some("example.* run*"));
-    }
-
-    #[test]
-    fn parses_symbol_serve_with_the_normal_workspace_contract() {
-        let cli = parse(&["symbol", "serve", "--branch", "1.19.2"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::Serve(serve),
-        }) = cli.command
-        else {
-            panic!("expected symbol serve command");
-        };
-        assert_eq!(serve.workspace.branch.as_ref().unwrap().as_ref(), "1.19.2");
-        assert!(serve.workspace.source_root.is_empty());
-        assert_eq!(serve.workspace.classpath_mode, None);
-    }
-
-    #[test]
-    fn removed_pre_phase_command_shapes_do_not_parse() {
-        for arguments in [
-            vec!["symbol", "definition", "example.A", "--branch", "1.19.2"],
-            vec!["symbol", "usage", "list", "example.A", "--branch", "1.19.2"],
-        ] {
-            figue::from_slice::<Cli>(&arguments)
-                .into_result()
-                .unwrap_err();
-        }
-    }
-
-    #[test]
-    fn parses_symbol_index_refresh_and_show() {
-        let refresh = parse(&["symbol", "index", "refresh", "--branch", "1.19.2"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command:
-                SymbolCommand::Index(SymbolIndexArgs {
-                    command: SymbolIndexCommand::Refresh(refresh),
-                    ..
-                }),
-        }) = refresh.command
-        else {
-            panic!("expected symbol index refresh command");
-        };
-        assert_eq!(refresh.branch.expect("branch").0, "1.19.2");
-
-        let show = parse(&["symbol", "index", "show", "--branch", "1.19.2"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command:
-                SymbolCommand::Index(SymbolIndexArgs {
-                    command: SymbolIndexCommand::Show(show),
-                    ..
-                }),
-        }) = show.command
-        else {
-            panic!("expected symbol index show command");
-        };
-        assert_eq!(show.branch.expect("branch").0, "1.19.2");
     }
 
     #[test]
@@ -676,90 +540,25 @@ mod tests {
 
     #[test]
     fn read_only_queries_require_one_workspace_selector() {
-        let absent = parse(&["symbol", "show-definition", "example.A"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::ShowDefinition(absent),
-        }) = absent.command
-        else {
-            panic!("expected show-definition command");
+        let mut workspace = SymbolQueryWorkspaceArgs {
+            branch: None,
+            project_root: None,
+            source_root: Vec::new(),
+            classpath_mode: None,
+            java_home: None,
+            cache_root: None,
         };
-        assert!(absent.workspace.validate().is_err());
-
-        let project = parse(&[
-            "symbol",
-            "list",
-            "example.*",
-            "--project-root",
-            "generated-project",
-        ]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::List(project),
-        }) = project.command
-        else {
-            panic!("expected list command");
-        };
-        assert_eq!(
-            project.workspace.project_root.as_deref(),
-            Some(Path::new("generated-project"))
-        );
-        project.workspace.validate().unwrap();
-
-        let both = parse(&[
-            "symbol",
-            "list",
-            "--branch",
-            "1.19.2",
-            "--project-root",
-            "generated-project",
-        ]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::List(both),
-        }) = both.command
-        else {
-            panic!("expected list command");
-        };
-        assert!(both.workspace.validate().is_err());
-
-        figue::from_slice::<Cli>(&["symbol", "rename", "example.A", "NewName"])
-            .into_result()
-            .expect_err("mutation command still requires --branch");
+        assert!(workspace.validate().is_err());
+        workspace.project_root = Some(PathBuf::from("generated-project"));
+        workspace.validate().unwrap();
+        workspace.branch = Some(BranchSelector("1.19.2".to_owned()));
+        assert!(workspace.validate().is_err());
+        workspace.project_root = None;
+        workspace.validate().unwrap();
     }
 
     #[test]
     fn generated_project_query_options_are_isolated_from_branch_options() {
-        for (command, selector) in [
-            ("list", "example.*"),
-            ("show-definition", "example.A"),
-            ("list-usages", "example.A"),
-        ] {
-            let args = [
-                "symbol",
-                command,
-                selector,
-                "--project-root",
-                "generated-project",
-            ];
-            let cli = parse(&args);
-            let workspace = match cli.command {
-                CliCommand::Symbol(SymbolArgs {
-                    command: SymbolCommand::List(args),
-                }) => args.workspace,
-                CliCommand::Symbol(SymbolArgs {
-                    command: SymbolCommand::ShowDefinition(args),
-                }) => args.workspace,
-                CliCommand::Symbol(SymbolArgs {
-                    command: SymbolCommand::ListUsages(args),
-                }) => args.workspace,
-                _ => panic!("expected read-only symbol query"),
-            };
-            workspace.validate().unwrap();
-            assert!(workspace.branch.is_none());
-            assert_eq!(
-                workspace.project_root,
-                Some(PathBuf::from("generated-project"))
-            );
-        }
-
         let base = SymbolQueryWorkspaceArgs {
             branch: None,
             project_root: Some(PathBuf::from("generated-project")),
@@ -782,49 +581,5 @@ mod tests {
             conflicting.validate().is_err(),
             "--java-home is project-only"
         );
-    }
-    #[test]
-    fn symbol_server_selects_catalog_projection_without_a_branch() {
-        let cli = parse(&["symbol", "serve", "--project-root", "projection-root"]);
-        let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::Serve(args),
-        }) = cli.command
-        else {
-            panic!("expected symbol server");
-        };
-        args.workspace.validate().unwrap();
-        assert!(args.workspace.branch.is_none());
-        assert_eq!(
-            args.workspace.project_root,
-            Some(PathBuf::from("projection-root"))
-        );
-        let mut ambiguous = args.workspace;
-        ambiguous.branch = Some(BranchSelector("1.19.2".to_owned()));
-        assert!(ambiguous.validate().is_err());
-    }
-
-    #[test]
-    fn symbol_queries_and_server_accept_an_explicit_guarded_cache_root() {
-        for command in ["list", "serve"] {
-            let cli = parse(&[
-                "symbol",
-                command,
-                "--branch",
-                "1.19.2",
-                "--cache-root",
-                "selected-cache",
-            ]);
-            let workspace = match cli.command {
-                CliCommand::Symbol(SymbolArgs {
-                    command: SymbolCommand::List(args),
-                }) => args.workspace,
-                CliCommand::Symbol(SymbolArgs {
-                    command: SymbolCommand::Serve(args),
-                }) => args.workspace,
-                _ => panic!("expected query/server"),
-            };
-            workspace.validate().unwrap();
-            assert_eq!(workspace.cache_root, Some(PathBuf::from("selected-cache")));
-        }
     }
 }

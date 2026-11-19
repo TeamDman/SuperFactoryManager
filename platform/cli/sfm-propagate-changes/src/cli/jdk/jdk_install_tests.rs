@@ -85,41 +85,6 @@ sys.stdout.buffer.write(b.getvalue())"#]).output()?;
 }
 
 #[test]
-fn parses_explicit_sdk_only_install_controls() -> eyre::Result<()> {
-    let parsed = figue::from_slice::<JdkArgs>(&[
-        "install",
-        "--project-root",
-        "/project",
-        "--major",
-        "25",
-        "--cache-root",
-        "/sdk-cache",
-        "--offline",
-        "--extract-bytes-per-second",
-        "2097152",
-    ])
-    .into_result()?
-    .get_silent();
-    let JdkCommand::Install(args) = parsed.command else {
-        panic!("SDK install command")
-    };
-    assert_eq!(args.major, 25);
-    assert!(args.offline);
-    assert_eq!(args.extract_bytes_per_second, Some(2097152));
-    for missing in [
-        vec!["install"],
-        vec!["install", "--project-root", "/project", "--major", "25"],
-    ] {
-        assert!(
-            figue::from_slice::<JdkArgs>(&missing)
-                .into_result()
-                .is_err()
-        );
-    }
-    Ok(())
-}
-
-#[test]
 fn sdk_only_install_checks_source_pin_root_rate_and_cancellation_before_cache_effects()
 -> eyre::Result<()> {
     let mut fixture = Fixture::new_for_target("26.1.2");

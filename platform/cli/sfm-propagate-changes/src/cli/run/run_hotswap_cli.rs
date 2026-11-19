@@ -8,9 +8,11 @@ use crate::jar_build::RunTestAction;
 use crate::jar_build::RunTestCommand as JarBuildRunTestCommand;
 use crate::jar_build::RunTestOptions;
 use crate::jar_build::build_snapshot_receipt::BuildSnapshotReceipt;
-use crate::jar_build::projection_selection::select_projections;
 use crate::jar_build::runtime_session_receipt::RuntimeSessionReceipt;
 use crate::jdk::ResolvedJava;
+use crate::source_projection::ProjectionName;
+use crate::source_projection::projection_catalog::PROJECTIONS_DIR;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use eyre::Context;
 use eyre::ensure;
 use facet::Facet;
@@ -60,14 +62,22 @@ impl RunHotswapArgs {
     pub fn invoke(
         self,
         cancellation_token: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
     ) -> eyre::Result<()> {
-        let (root, keys) =
-            select_projections(self.options.repo_root.as_deref(), &self.options.projection)?;
-        ensure!(keys.len() == 1, "hotswap requires exactly one projection");
-        let minecraft_dir = root.join("platform/minecraft/projections").join(&keys[0]);
-        let Some(snapshot) =
-            self.prepare_snapshot(&minecraft_dir, cancellation_token.clone(), homes)?
+        let (repo_root, projections) = self.options.projection_targets(invocation_dir)?;
+        let [projection] = projections.as_slice() else {
+            eyre::bail!("hotswap requires exactly one projection");
+        };
+        let minecraft_dir = repo_root.join(PROJECTIONS_DIR).join(projection.as_str());
+        let Some(snapshot) = self.prepare_snapshot(
+            &minecraft_dir,
+            cancellation_token.clone(),
+            invocation_dir,
+            homes,
+            repo_root,
+            projections,
+        )?
         else {
             return Ok(());
         };
@@ -117,9 +127,11 @@ impl RunHotswapArgs {
         &self,
         minecraft_dir: &Path,
         cancellation: CancellationToken,
+        invocation_dir: &Path,
         homes: &InvocationHomes,
+        repo_root: SfmRepoPath,
+        projections: Vec<ProjectionName>,
     ) -> eyre::Result<Option<BuildSnapshotReceipt>> {
-        let app_home = homes.app_home();
         if let Some(receipt) = &self.build_snapshot {
             let snapshot = BuildSnapshotReceipt::load(receipt, minecraft_dir)?;
             if self.options.dry_run {
@@ -133,7 +145,13 @@ impl RunHotswapArgs {
         let mut options = self
             .options
             .clone()
-            .into_options(BuildMode::Build, app_home)?
+            .into_options_for_projections(
+                BuildMode::Build,
+                homes.app_home(),
+                invocation_dir,
+                repo_root,
+                projections,
+            )?
             .with_cache_home(homes.available_cache_home());
         let temporary = tempfile::tempdir()?;
         let plan_path = options

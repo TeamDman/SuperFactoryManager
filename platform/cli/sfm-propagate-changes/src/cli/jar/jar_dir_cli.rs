@@ -31,8 +31,8 @@ impl JarDirArgs {
     /// # Errors
     ///
     /// Returns an error if the selected jar directory command fails.
-    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
-        self.command.invoke(app_home)
+    pub fn invoke(self, invocation_dir: &Path, app_home: &AppHome) -> eyre::Result<()> {
+        self.command.invoke(invocation_dir, app_home)
     }
 }
 
@@ -54,9 +54,9 @@ impl JarDirCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self, app_home: &AppHome) -> eyre::Result<()> {
+    pub fn invoke(self, invocation_dir: &Path, app_home: &AppHome) -> eyre::Result<()> {
         match self {
-            JarDirCommand::Set(args) => args.invoke(app_home),
+            JarDirCommand::Set(args) => args.invoke(invocation_dir, app_home),
             JarDirCommand::Clean(args) => args.invoke(app_home),
             JarDirCommand::Show(args) => args.invoke(app_home),
             JarDirCommand::Open(args) => args.invoke(app_home),
@@ -83,6 +83,10 @@ pub fn get_jar_dir(app_home: &AppHome) -> eyre::Result<PathBuf> {
 
     let content = read_to_string(&source_file).wrap_err("Failed to read jar dir file")?;
     let path = PathBuf::from(content.trim());
+    eyre::ensure!(
+        path.is_absolute(),
+        "Configured jar directory is relative. Use `sfm-propagate-changes jar dir set <path>` to set it."
+    );
 
     Ok(path)
 }
@@ -159,6 +163,24 @@ mod tests {
         set_jar_dir(&second_jars, &second)?;
         assert_eq!(get_jar_dir(&first)?, dunce::canonicalize(&first_jars)?);
         assert_eq!(get_jar_dir(&second)?, dunce::canonicalize(&second_jars)?);
+        Ok(())
+    }
+
+    #[test]
+    fn jar_directory_set_resolves_against_invocation_and_rejects_saved_relative_paths()
+    -> eyre::Result<()> {
+        let invocation = tempfile::tempdir()?;
+        let app_home = AppHome(invocation.path().join("config"));
+        JarDirSetArgs {
+            path: PathBuf::from("artifacts"),
+        }
+        .invoke(invocation.path(), &app_home)?;
+        assert_eq!(
+            get_jar_dir(&app_home)?,
+            dunce::canonicalize(invocation.path().join("artifacts"))?
+        );
+        write(app_home.file_path(JAR_DIR_FILE), "relative-jars")?;
+        assert!(get_jar_dir(&app_home).is_err());
         Ok(())
     }
 }

@@ -10,7 +10,6 @@ use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_catalog::CoreCatalog;
 use super::core_features::CoreFeatureDefinition;
-use super::core_features::CoreFeatureDefinitions;
 use super::core_inputs::CORE_METADATA_PATH;
 use super::core_inputs::CORE_ROOT;
 use super::core_inputs::CoreProjectInputs;
@@ -19,6 +18,7 @@ use super::core_inputs::MAX_CORE_METADATA_BYTES;
 use super::core_inputs::select_core_inputs;
 use super::provenance::sha256;
 use super::release_baseline::frozen_git_command;
+use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -45,7 +45,7 @@ pub(super) struct CoreTestFixture {
     pub repository: PathBuf,
     pub core: PathBuf,
     pub metadata: CoreProjectInputs,
-    pub features: CoreFeatureDefinitions,
+    pub features: SfmProjectionFeatureRegistry,
     catalog: CoreCatalog,
     selection_cache: RefCell<Option<TestSelectionSnapshot>>,
 }
@@ -64,15 +64,15 @@ impl CoreTestFixture {
             .nth(3)
             .ok_or_else(|| eyre::eyre!("CLI crate must be three levels below the repository"))?;
         let catalog = CoreCatalog::load(repository, repository)?;
-        let repository = catalog.repo_root.clone();
+        let repository = catalog.repo_root.to_path_buf();
         let core = checked_directory(&repository.join(CORE_ROOT))?;
         let metadata_path = checked_file(&repository, CORE_METADATA_PATH)?;
         let metadata_bytes = read_bounded(&metadata_path, MAX_CORE_METADATA_BYTES)?;
         let metadata = CoreProjectInputs::from_json(
             std::str::from_utf8(&metadata_bytes)?,
-            &catalog.registered_features,
+            &catalog.feature_registry,
         )?;
-        let features = CoreFeatureDefinitions(catalog.definitions.0.clone());
+        let features = catalog.feature_registry.clone();
         Ok(Self {
             repository,
             core,
@@ -136,7 +136,7 @@ impl CoreTestFixture {
             .collect();
         self.features.validate_entry(&explicit)?;
         let mut context = self.catalog.context(key)?;
-        context.features = explicit.feature_flags(&self.features.registered_names())?;
+        context.features = explicit.feature_flags(&self.features)?;
         Ok(context)
     }
 
@@ -150,7 +150,7 @@ impl CoreTestFixture {
         historical.features.clear();
         self.features.validate_entry(&historical)?;
         let mut context = self.catalog.context(key)?;
-        context.features = historical.feature_flags(&self.catalog.registered_features)?;
+        context.features = historical.feature_flags(&self.catalog.feature_registry)?;
         Ok(context)
     }
 
@@ -165,21 +165,22 @@ impl CoreTestFixture {
 
 /// The immutable original 180-owner registry is historical evidence only.
 /// Current contexts and per-owner contracts continue using the actual catalog.
-pub(super) fn historical_feature_registry() -> Result<(&'static [u8], CoreFeatureDefinitions)> {
+pub(super) fn historical_feature_registry() -> Result<(&'static [u8], SfmProjectionFeatureRegistry)>
+{
     let bytes = include_bytes!(
         "../../tests/fixtures/source_projection/feature-definitions-original180.json"
     );
     Ok((bytes, validate_historical_feature_registry(bytes)?))
 }
 
-fn validate_historical_feature_registry(bytes: &[u8]) -> Result<CoreFeatureDefinitions> {
+fn validate_historical_feature_registry(bytes: &[u8]) -> Result<SfmProjectionFeatureRegistry> {
     ensure!(
         bytes.len() == 30254
             && sha256(bytes)
                 == "sha256:38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
         "immutable original180 registry witness changed"
     );
-    let definitions = CoreFeatureDefinitions::from_json(std::str::from_utf8(bytes)?)?;
+    let definitions = SfmProjectionFeatureRegistry::from_json(std::str::from_utf8(bytes)?)?;
     ensure!(
         definitions.0.len() == 180,
         "historical registry owner count changed"
@@ -569,7 +570,7 @@ fn unrelated_current_owners_do_not_change_historical_registry_receipt() -> Resul
     // A valid unrelated future owner changes only this private current view.
     // The retained historical receipt is neither derived from nor stripped out
     // of a live registry, and current catalog defaults remain unchanged.
-    let mut current = CoreFeatureDefinitions(fixture.features.0.clone());
+    let mut current = fixture.features.clone();
     current.0.insert(
         "historical_receipt_unrelated_owner".into(),
         CoreFeatureDefinition {
@@ -583,7 +584,7 @@ fn unrelated_current_owners_do_not_change_historical_registry_receipt() -> Resul
     current.validate_entry(&entry)?;
     let (after, unchanged) = historical_feature_registry()?;
     assert_eq!(before, after);
-    assert_eq!(historical.registered_names(), unchanged.registered_names());
+    assert!(historical.names().eq(unchanged.names()));
     assert!(
         !unchanged
             .0
