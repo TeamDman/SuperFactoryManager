@@ -1,4 +1,4 @@
-use super::catalog_owned_project::collect_catalog_project_impl;
+use super::catalog_owned_project::collect_catalog_project_from_metadata;
 use super::catalog_owned_project::read_checked;
 use super::context::ProjectionContext;
 use super::core_catalog::CoreCatalog;
@@ -6,6 +6,7 @@ use super::core_inputs::CORE_METADATA_PATH;
 use super::core_inputs::CoreProjectInputs;
 use super::core_inputs::CoreSelection;
 use super::core_inputs::MAX_CORE_METADATA_BYTES;
+use super::projection_catalog::ProjectionEnvironment;
 use eyre::Result;
 use std::collections::BTreeSet;
 use std::str::from_utf8;
@@ -43,7 +44,12 @@ impl CatalogProjectMetadata {
     }
 
     pub(crate) fn check_projection(&self, projection_key: &str) -> Result<()> {
-        collect_catalog_project_impl(self, projection_key, false)?.check_generated_files()?;
+        collect_catalog_project_from_metadata(self, projection_key, false)?
+            .check_generated_files()?;
         Ok(())
+    }
+
+    pub(crate) fn projection_environment(&self, key: &str) -> Result<ProjectionEnvironment> {
+        Ok(self.catalog.catalog.entry(key)?.environment)
     }
 }

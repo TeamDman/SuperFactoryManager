@@ -436,13 +436,15 @@ mod development_project_tests {
             false,
         )?;
         let key = Fixture::key(0, "dev");
+        let root = fixture.repository();
+        let metadata = CatalogProjectMetadata::load(CoreCatalog::load(root, root)?)?;
         let mut previous_cache_identity = None;
         for skip in [false, true] {
             let checks = Rc::new(RefCell::new(Vec::new()));
             let observed = Rc::clone(&checks);
             let _observer =
                 source_check_observation::install(move |check| observed.borrow_mut().push(check));
-            let identity = checked_projection_identity(fixture.repository(), &key, skip, None)?;
+            let identity = checked_projection_identity(&metadata, &key, skip, None)?;
             for _ in 0..4 {
                 identity.recheck()?;
             }

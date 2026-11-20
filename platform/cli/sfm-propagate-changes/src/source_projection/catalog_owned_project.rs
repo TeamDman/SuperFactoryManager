@@ -871,7 +871,7 @@ pub fn collect_catalog_project(
     projection_key: &str,
 ) -> Result<CollectedCatalogProject> {
     let metadata = CatalogProjectMetadata::load(CoreCatalog::load(repo_root, invocation_dir)?)?;
-    collect_catalog_project_impl(&metadata, projection_key, true)
+    collect_catalog_project_from_metadata(&metadata, projection_key, true)
 }
 
 /// Internal collection for an invocation which performs its complete ownership
@@ -882,7 +882,7 @@ pub(crate) fn collect_development_invocation(
     projection_key: &str,
 ) -> Result<CollectedCatalogProject> {
     let metadata = CatalogProjectMetadata::load(CoreCatalog::load(repo_root, invocation_dir)?)?;
-    let collected = collect_catalog_project_impl(&metadata, projection_key, false)?;
+    let collected = collect_catalog_project_from_metadata(&metadata, projection_key, false)?;
     ensure!(
         collected.environment() == ProjectionEnvironment::Dev,
         "invocation source snapshots require a development projection"
@@ -890,7 +890,7 @@ pub(crate) fn collect_development_invocation(
     Ok(collected)
 }
 
-pub(super) fn collect_catalog_project_impl(
+pub(crate) fn collect_catalog_project_from_metadata(
     metadata: &CatalogProjectMetadata,
     projection_key: &str,
     verify_collection: bool,

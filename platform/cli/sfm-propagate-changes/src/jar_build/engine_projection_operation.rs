@@ -1,7 +1,9 @@
-use crate::source_projection::catalog_owned_project::ProjectionPreparationPhase;
-use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::ProjectionName;
-use crate::source_projection::sfm_repo_path::SfmRepoPath;
+use crate::source_projection::catalog_owned_project::ProjectionPreparationPhase;
+use crate::source_projection::catalog_owned_project::collect_catalog_project_from_metadata;
+use crate::source_projection::catalog_project_metadata::CatalogProjectMetadata;
+use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::projection_catalog::ProjectionEnvironment;
 
 #[derive(Clone, Copy)]
 enum ProjectionOperation<'a> {
@@ -14,32 +16,23 @@ enum ProjectionOperation<'a> {
 }
 
 fn checked_projection_identity(
-    root: &Path,
+    metadata: &CatalogProjectMetadata,
     key: &str,
     skip_source_checks: bool,
     cache_home: Option<&CacheHome>,
 ) -> eyre::Result<BuildProjectIdentity> {
-    use crate::source_projection::catalog_owned_project::collect_catalog_project;
-    use crate::source_projection::catalog_owned_project::collect_development_invocation;
     use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
     let phase = ProjectionPreparationPhase::start(key, "prepare_projection_identity");
-    let loaded = CoreCatalog::load(root, root)?;
-    let environment = loaded
-        .catalog
-        .0
-        .get(key)
-        .ok_or_else(|| eyre::eyre!("projection not found: {key}"))?
-        .environment;
+    let environment = metadata.projection_environment(key)?;
     eyre::ensure!(
         !skip_source_checks || environment == ProjectionEnvironment::Dev,
         "--skip-source-checks requires development projections only"
     );
-    let collected = if environment == ProjectionEnvironment::Dev {
-        collect_development_invocation(root, root, key)?
-    } else {
-        collect_catalog_project(root, root, key)?
-    };
+    let collected = collect_catalog_project_from_metadata(
+        metadata,
+        key,
+        environment == ProjectionEnvironment::Release,
+    )?;
     let identity = match collected.environment() {
         ProjectionEnvironment::Dev => {
             let project = collected.prepare_development_invocation(skip_source_checks)?;
@@ -86,14 +79,20 @@ fn invoke_projection_operation(
     };
     let phase = ProjectionPreparationPhase::start(label, "projection_operation");
     preflight_projection_jar_output(options, operation, projections.len())?;
-    preflight_projection_source_checks(repo_root, projections, options.skip_source_checks)?;
+    let loaded = CoreCatalog::load_path(repo_root.clone())?;
+    preflight_projection_source_checks(&loaded, projections, options.skip_source_checks)?;
+    let metadata = CatalogProjectMetadata::load(loaded)?;
     let mut effective = options.clone();
     effective.cache_root = Some(catalog_native_cache_path(
         repo_root.as_path(),
         options.cache_root.as_deref(),
     ));
     let options = &effective;
-    let limit = options.parallelism.limit().unwrap_or(1).min(projections.len());
+    let limit = options
+        .parallelism
+        .limit()
+        .unwrap_or(1)
+        .min(projections.len());
     let pool = options
         .parallelism
         .is_parallel()
@@ -106,7 +105,7 @@ fn invoke_projection_operation(
         let execute = |projection: &ProjectionName| {
             execute_projection_operation(
                 options,
-                repo_root,
+                &metadata,
                 projection.as_str(),
                 operation,
                 cancellation,
@@ -164,7 +163,7 @@ fn preflight_projection_jar_output(
 
 fn execute_projection_operation(
     options: &BuildOptions,
-    root: &Path,
+    metadata: &CatalogProjectMetadata,
     key: &str,
     operation: ProjectionOperation<'_>,
     cancellation: &CancellationToken,
@@ -172,7 +171,7 @@ fn execute_projection_operation(
     let phase = ProjectionPreparationPhase::start(key, "prepare_native_operation");
     cancellation.bail_if_cancelled()?;
     let identity = checked_projection_identity(
-        root,
+        metadata,
         key,
         options.skip_source_checks,
         options.cache_home.as_ref(),
@@ -501,14 +500,13 @@ fn execute_prepared_projection_operation(
 /// Validate every selected key before the first projection can synchronize or
 /// acquire anything. A mixed selector cannot partially prepare development.
 fn preflight_projection_source_checks(
-    repo_root: &SfmRepoPath,
+    loaded: &CoreCatalog,
     projections: &[ProjectionName],
     skip: bool,
 ) -> eyre::Result<()> {
     if !skip {
         return Ok(());
     }
-    let loaded = CoreCatalog::load_path(repo_root.clone())?;
     for projection in projections {
         let key = projection.as_str();
         let entry = loaded
@@ -517,7 +515,7 @@ fn preflight_projection_source_checks(
             .get(key)
             .ok_or_else(|| eyre::eyre!("projection not found: {key}"))?;
         eyre::ensure!(
-            entry.environment == source_projection::projection_catalog::ProjectionEnvironment::Dev,
+            entry.environment == ProjectionEnvironment::Dev,
             "--skip-source-checks requires development projections only; selected release projection: {key}"
         );
     }
@@ -528,6 +526,7 @@ fn preflight_projection_source_checks(
 mod invocation_source_policy_tests {
     use super::*;
     use crate::source_projection::catalog_owned_project::tests::Fixture;
+    use crate::source_projection::sfm_repo_path::SfmRepoPath;
 
     #[test]
     fn fresh_jar_output_invalid_selection_and_names_fail_before_preparation() -> eyre::Result<()> {
@@ -604,13 +603,14 @@ mod invocation_source_policy_tests {
     fn skip_source_checks_rejects_release_and_mixed_selection_before_writes() -> eyre::Result<()> {
         let fixture = Fixture::new_for_target("1.19.2");
         let repo_root = SfmRepoPath::try_from(fixture.repository())?;
+        let loaded = CoreCatalog::load_path(repo_root.clone())?;
         let dev = ProjectionName::try_from(Fixture::key(0, "dev"))?;
         let release = ProjectionName::try_from(Fixture::key(0, "release"))?;
         assert!(
-            preflight_projection_source_checks(&repo_root, std::slice::from_ref(&dev), true).is_ok()
+            preflight_projection_source_checks(&loaded, std::slice::from_ref(&dev), true).is_ok()
         );
         for keys in [vec![release.clone()], vec![dev.clone(), release.clone()]] {
-            assert!(preflight_projection_source_checks(&repo_root, &keys, true).is_err());
+            assert!(preflight_projection_source_checks(&loaded, &keys, true).is_err());
         }
         let plan_json = fixture.repository().join("must-not-write-plan.json");
         let options = BuildOptions {
@@ -653,10 +653,7 @@ mod invocation_source_policy_tests {
                 .join("platform/minecraft/projections")
                 .exists()
         );
-        assert!(
-            preflight_projection_source_checks(&repo_root, &[dev, release], false)
-                .is_ok()
-        );
+        assert!(preflight_projection_source_checks(&loaded, &[dev, release], false).is_ok());
         Ok(())
     }
 }
