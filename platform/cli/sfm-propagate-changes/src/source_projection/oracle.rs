@@ -33,8 +33,8 @@ use super::oracle_git::ValidatedGitInventory;
 use super::oracle_index::CellIdentityRef;
 use super::oracle_index::ComparisonCell;
 use super::oracle_index::ComparisonIndex;
-use super::projection_catalog::SUPPORTED_TARGETS;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definition::SUPPORTED_TARGETS;
+use super::projection_name::ProjectionName;
 use super::provenance::sha256;
 use super::release_baseline::RELEASE_4_34_0_TAGS;
 use super::sync::CatalogProjectionIdentity;
@@ -1144,7 +1144,7 @@ pub fn diff(
     file: &str,
     cancellation: &CancellationToken,
 ) -> Result<OracleDiff> {
-    validate_projection_key(file)?;
+    ProjectionName::validate(file)?;
     ensure!(
         in_scope(file),
         "Path {file} is outside the declared oracle scope"
@@ -1537,7 +1537,7 @@ fn observe_owned_output(
                 if matches!(relative.as_str(), "src" | "gradle" | "codestyles")
                     || (!prefix.is_empty() && relative != "src/generated/resources/.cache")
                 {
-                    validate_projection_key(&relative)?;
+                    ProjectionName::validate(&relative)?;
                     checked_directory(&entry.path())?;
                     pending.push((entry.path(), relative));
                 }
@@ -1607,7 +1607,7 @@ fn bounded_diff(before: &[u8], after: &[u8]) -> Option<String> {
 mod tests {
     use super::super::core_inputs::tests::Fixture;
     use super::super::core_inputs::tests::context;
-    use super::super::projection_catalog::ProjectionEnvironment;
+    use super::super::projection_environment::ProjectionEnvironment;
     #[test]
     fn renderer_identity_hashes_exact_bytes_not_length_or_timestamps() {
         let original = super::renderer_bytes_identity(b"renderer A");

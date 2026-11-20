@@ -5,13 +5,13 @@
 
 use super::context::ProjectionContext;
 use super::core_features::FEATURE_DEFINITIONS_PATH;
-use super::projection_catalog::CATALOG_PATH;
-use super::projection_catalog::ProjectionCatalog;
 #[cfg(test)]
-use super::projection_catalog::ProjectionEntry;
+use super::projection_definition::ProjectionDefinition;
+use super::projection_definition::SUPPORTED_TARGETS;
+use super::projection_definitions::CATALOG_PATH;
+use super::projection_definitions::ProjectionDefinitions;
 #[cfg(test)]
-use super::projection_catalog::ProjectionEnvironment;
-use super::projection_catalog::SUPPORTED_TARGETS;
+use super::projection_environment::ProjectionEnvironment;
 use super::provenance::sha256;
 use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 pub use super::sfm_repo_path::MAX_CATALOG_INPUT_BYTES;
@@ -32,7 +32,7 @@ use std::sync::OnceLock;
 #[derive(Debug)]
 pub struct CoreCatalog {
     pub repo_root: SfmRepoPath,
-    pub catalog: ProjectionCatalog,
+    pub catalog: ProjectionDefinitions,
     pub feature_registry: SfmProjectionFeatureRegistry,
     catalog_bytes: Box<[u8]>,
     feature_definitions_bytes: Box<[u8]>,
@@ -104,7 +104,7 @@ impl CoreCatalog {
         let feature_registry = SfmProjectionFeatureRegistry::from_json(registry_text)?;
         let catalog_text =
             from_utf8(&catalog_bytes).wrap_err("projections catalog is not UTF-8")?;
-        let catalog = ProjectionCatalog::from_json(catalog_text, &feature_registry)?;
+        let catalog = ProjectionDefinitions::from_json(catalog_text, &feature_registry)?;
         for (key, entry) in &catalog.0 {
             feature_registry
                 .validate_entry(entry)
@@ -191,9 +191,9 @@ pub(crate) fn write_project_catalog_fixture(
     let registry = repo.join(FEATURE_DEFINITIONS_PATH);
     fs::create_dir_all(registry.parent().unwrap())?;
     fs::write(registry, "{}")?;
-    let catalog = ProjectionCatalog(BTreeMap::from([(
+    let catalog = ProjectionDefinitions(BTreeMap::from([(
         key.to_owned(),
-        ProjectionEntry {
+        ProjectionDefinition {
             minecraft_version: version.to_owned(),
             environment: ProjectionEnvironment::Release,
             features: vec![],

@@ -19,7 +19,7 @@ use crate::java_source_catalog::JavaSourceRootDeclaration;
 use crate::paths::AppHome;
 use crate::source_projection::context::ProjectionContext;
 use crate::source_projection::core_catalog::CoreCatalog;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
 use crate::toolchain_lockfile_schema::read_current;
 use crate::toolchain_lockfile_schema::read_profile_source_excludes;
 use eyre::Context as _;
@@ -1054,10 +1054,10 @@ mod tests {
     use crate::java_source_catalog::JavaBuildSourceGroup;
     use crate::java_source_catalog::JavaSourceSetDeclaration;
     use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-    use crate::source_projection::projection_catalog::ProjectionCatalog;
-    use crate::source_projection::projection_catalog::ProjectionEntry;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
-    use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definition::ProjectionDefinition;
+    use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definitions::ProjectionDefinitions;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
     use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
     use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
@@ -1183,9 +1183,9 @@ mod tests {
             registry,
             r#"{"example":{"supported_targets":["1.19.2"],"requires":[]}}"#,
         )?;
-        let catalog = ProjectionCatalog(BTreeMap::from([(
+        let catalog = ProjectionDefinitions(BTreeMap::from([(
             key.to_owned(),
-            ProjectionEntry {
+            ProjectionDefinition {
                 minecraft_version: minecraft_version.to_owned(),
                 environment,
                 features: if feature {

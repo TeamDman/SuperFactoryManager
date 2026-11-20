@@ -423,7 +423,7 @@ mod named_forge_compile_cohort_tests {
     use crate::source_projection::core_inputs::CoreProjectInputs;
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::frozen_recipe_project::prepare_frozen_recipe_project;
-    use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
 
     #[derive(Facet)]
     struct Review {

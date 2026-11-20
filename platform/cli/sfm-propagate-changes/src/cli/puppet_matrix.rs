@@ -15,7 +15,7 @@ use crate::jar_build::png_dimensions;
 use crate::jar_build::projection_preview_artifact_root;
 use crate::source_projection::ProjectionName;
 use crate::source_projection::core_catalog::CoreCatalog;
-use crate::source_projection::projection_catalog::PROJECTIONS_DIR;
+use crate::source_projection::projection_definitions::PROJECTIONS_DIR;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_line;
 use chrono::Local;

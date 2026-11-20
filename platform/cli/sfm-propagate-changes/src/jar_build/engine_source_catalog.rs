@@ -627,7 +627,7 @@ mod static_java_catalog_tests {
     use super::static_java_catalog_for_project;
     use super::wildcard_matches;
     use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
+    use crate::source_projection::projection_definitions::CATALOG_PATH;
     use std::fs;
     use tempfile::tempdir;
 

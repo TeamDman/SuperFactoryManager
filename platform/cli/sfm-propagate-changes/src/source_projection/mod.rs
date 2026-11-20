@@ -53,11 +53,12 @@ pub mod oracle_seed;
 pub(crate) mod preparation_progress;
 pub mod prepared_dependency_inputs;
 pub mod project_layout;
-pub mod projection_catalog;
 pub(crate) mod projection_check_result;
+pub mod projection_definition;
 pub mod projection_definitions;
 #[cfg(test)]
 mod projection_document_tests;
+pub mod projection_environment;
 pub(crate) mod projection_name;
 pub use projection_name::ProjectionName;
 pub(crate) mod projection_pattern;

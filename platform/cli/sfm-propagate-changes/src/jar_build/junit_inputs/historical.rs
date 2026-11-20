@@ -4,7 +4,8 @@ use super::super::BuildPlan;
 use super::identity;
 use super::source_lock::SourceLock;
 use super::target_report::TargetReport;
-use crate::source_projection;
+use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
+use crate::source_projection::projection_environment::ProjectionEnvironment;
 
 const TARGETS: [&str; 9] = [
     "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1",
@@ -19,7 +20,7 @@ pub(super) fn verify_owner(plan: &BuildPlan) -> eyre::Result<()> {
     let key = plan.target_label();
     let version =
         target(&key).ok_or_else(|| eyre::eyre!("outside reviewed historical JUnit scope"))?;
-    let minecraft = source_projection::projection_catalog::SUPPORTED_TARGETS
+    let minecraft = SUPPORTED_TARGETS
         .iter()
         .find(|(id, _)| *id == version)
         .map(|(_, minecraft)| *minecraft)
@@ -35,7 +36,7 @@ pub(super) fn verify_owner(plan: &BuildPlan) -> eyre::Result<()> {
         _ => super::super::LoaderToolchainKind::NeoGradleUserdev,
     };
     eyre::ensure!(
-        owner.environment == source_projection::projection_catalog::ProjectionEnvironment::Release
+        owner.environment == ProjectionEnvironment::Release
             && matches!(owner.loader.as_str(), "forge" | "neoforge")
             && owner.target_id == version
             && owner.minecraft_version == plan.minecraft_version.as_str()

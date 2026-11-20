@@ -11,7 +11,7 @@ use super::core_inputs::discover_core_source_files;
 use super::core_inputs::render_core_input_with;
 use super::core_inputs::validate_collected_project;
 use super::core_inputs::validate_collection_selection_with_snapshot;
-use super::projection_catalog::validate_projection_key;
+use super::projection_name::ProjectionName;
 use super::sync::ProjectedArtifact;
 use crate::cancellation::CancellationToken;
 use eyre::Result;
@@ -49,7 +49,7 @@ pub(crate) fn manifest_selected(
     dry_run: bool,
 ) -> Result<ManifestReport> {
     if let Some(Some(selector)) = allow_dirty {
-        validate_projection_key(selector)?;
+        ProjectionName::validate(selector)?;
     }
     let mut report = ManifestReport::default();
     let mut changes = Vec::new();
@@ -208,7 +208,7 @@ pub(crate) struct RenderedProjection {
 }
 
 pub(crate) fn read_output(root: &Path, output: &str) -> Result<Option<Vec<u8>>> {
-    validate_projection_key(output)?;
+    ProjectionName::validate(output)?;
     super::sync::inspect_output_parents(root, output)?;
     super::sync::read_regular_file_if_present(&root.join(output))
 }
@@ -220,7 +220,7 @@ pub(crate) fn render_output(
     key: &str,
     output: &str,
 ) -> Result<ProjectedArtifact> {
-    validate_projection_key(output)?;
+    ProjectionName::validate(output)?;
     let bytes = read_bounded_input(
         &loaded.repo_root,
         CORE_METADATA_PATH,
@@ -383,7 +383,7 @@ fn matches_selector(selectors: &[String], path: &str) -> bool {
 fn validate_selectors(selectors: &[String]) -> Result<()> {
     for selector in selectors {
         if selector != "*" {
-            validate_projection_key(selector)?;
+            ProjectionName::validate(selector)?;
         }
     }
     ensure!(
@@ -406,7 +406,7 @@ fn require_matches(selectors: &[String], matched: &BTreeSet<String>, kind: &str)
 #[cfg(test)]
 mod tests {
     use super::super::core_catalog::write_project_catalog_fixture;
-    use super::super::projection_catalog::CATALOG_PATH;
+    use super::super::projection_definitions::CATALOG_PATH;
     use super::*;
 
     fn git(root: &Path, args: &[&str]) {

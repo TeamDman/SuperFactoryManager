@@ -15,7 +15,7 @@ use crate::jar_build::engine::validate_named_source_output_project;
 use crate::jar_build::prepare_named_frozen_recipe_project;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
 use crate::source_projection::core_catalog::CoreCatalog;
-use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::source_projection::projection_environment::ProjectionEnvironment;
 use crate::source_projection::sync::SyncMode;
 use eyre::Result;
 use eyre::ensure;

@@ -13,7 +13,7 @@ fn published_sdk_project(fixture: &Fixture) -> eyre::Result<PathBuf> {
         .find(|(_, entry)| {
             entry.minecraft_version == "26.1.2"
                 && entry.environment
-                    == crate::source_projection::projection_catalog::ProjectionEnvironment::Dev
+                    == crate::source_projection::projection_environment::ProjectionEnvironment::Dev
         })
         .map(|(key, _)| key)
         .expect("fixture development projection");

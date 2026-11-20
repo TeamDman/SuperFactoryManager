@@ -41,7 +41,7 @@ pub(in crate::jar_build::engine) fn prepare_for_compile_plan(
 
 pub(super) fn development_owner_identity(plan: &BuildPlan) -> eyre::Result<Option<String>> {
     use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
     let Some(target) = plan.identity.development_target() else {
         return Ok(None);
     };

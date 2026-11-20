@@ -23,7 +23,7 @@ fn prepare_development_identity(
 ) -> eyre::Result<BuildProjectIdentity> {
     use crate::source_projection::native_project_target::NativeProjectTarget;
     use crate::source_projection::native_project_target::development_native_loader;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
     eyre::ensure!(
         project.receipt().environment == ProjectionEnvironment::Dev,
         "development native admission requires a development project"

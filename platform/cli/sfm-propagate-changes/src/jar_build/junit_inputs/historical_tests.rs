@@ -16,7 +16,7 @@ fn fixture(version: &str) -> eyre::Result<(Fixture, BuildPlan, Vec<u8>)> {
             crate::jar_build::nfrt_launch_contract::tests::project_fixture(version, "release")?;
         let recipe = project.receipt().released_inputs.recipe_id.clone();
         drop(project);
-        let slot = crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+        let slot = crate::source_projection::projection_definition::SUPPORTED_TARGETS
             .iter()
             .position(|(id, _)| *id == version)
             .unwrap();
@@ -25,7 +25,7 @@ fn fixture(version: &str) -> eyre::Result<(Fixture, BuildPlan, Vec<u8>)> {
     let key = format!("sfm-4.34.0/mc-{version}");
     let path = fixture
         .repository()
-        .join(crate::source_projection::projection_catalog::CATALOG_PATH);
+        .join(crate::source_projection::projection_definitions::CATALOG_PATH);
     let before = fs::read_to_string(&path)?;
     let original = facet_json::to_string(&Fixture::key(slot, "release"))?;
     assert_eq!(before.matches(&original).count(), 1);
@@ -43,7 +43,7 @@ fn fixture(version: &str) -> eyre::Result<(Fixture, BuildPlan, Vec<u8>)> {
     let mut plan = super::super::super::tests::minimal_plan_for_paths();
     plan.branch_name = None;
     plan.worktree_path = None;
-    let minecraft = crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+    let minecraft = crate::source_projection::projection_definition::SUPPORTED_TARGETS
         .iter()
         .find(|(id, _)| *id == version)
         .unwrap()

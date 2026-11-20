@@ -59,7 +59,7 @@ pub(crate) fn validate_named_source_output_project(
     )?;
     eyre::ensure!(
         project.project().receipt().environment
-            == source_projection::projection_catalog::ProjectionEnvironment::Release,
+            == source_projection::projection_environment::ProjectionEnvironment::Release,
         "released source view requires a released owner"
     );
     validate_first_named_compile(project)?;

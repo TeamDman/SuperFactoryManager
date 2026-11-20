@@ -5,8 +5,8 @@
 
 use super::core_features::CoreFeatureDefinition;
 use super::feature_definitions_document::FeatureDefinitionsDocument;
-use super::projection_catalog::ProjectionEntry;
-use super::projection_catalog::SUPPORTED_TARGETS;
+use super::projection_definition::ProjectionDefinition;
+use super::projection_definition::SUPPORTED_TARGETS;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
@@ -149,7 +149,7 @@ impl SfmProjectionFeatureRegistry {
     ///
     /// # Errors
     /// Rejects an unknown/unsupported enabled feature or a missing prerequisite.
-    pub fn validate_entry(&self, entry: &ProjectionEntry) -> Result<()> {
+    pub fn validate_entry(&self, entry: &ProjectionDefinition) -> Result<()> {
         let target = entry.target_id()?;
         let enabled = entry
             .features
@@ -182,7 +182,7 @@ impl SfmProjectionFeatureRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
 
     #[test]
     fn explicit_features_need_support_and_dependencies_even_in_dev() {
@@ -190,7 +190,7 @@ mod tests {
             r#"{"packet":{"supported_targets":["1.19.2"],"requires":[]},"display":{"supported_targets":["1.19.2"],"requires":["packet"]}}"#,
         )
         .unwrap();
-        let mut entry = ProjectionEntry {
+        let mut entry = ProjectionDefinition {
             minecraft_version: "1.19.2".to_owned(),
             environment: ProjectionEnvironment::Dev,
             features: vec![],

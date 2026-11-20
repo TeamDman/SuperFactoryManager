@@ -6,7 +6,7 @@ use super::core_inputs::CORE_METADATA_PATH;
 use super::core_inputs::CoreProjectInputs;
 use super::core_inputs::CoreSelection;
 use super::core_inputs::MAX_CORE_METADATA_BYTES;
-use super::projection_catalog::ProjectionEnvironment;
+use super::projection_environment::ProjectionEnvironment;
 use eyre::Result;
 use std::collections::BTreeSet;
 use std::str::from_utf8;

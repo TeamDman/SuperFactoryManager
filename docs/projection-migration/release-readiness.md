@@ -12,7 +12,7 @@ No Minecraft, Gradle or provider operation was executed; nothing was published.
 
 The [projection catalog](../../platform/minecraft/projections.json) supplies each
 entry's upstream version, environment and declared features. The CLI's
-[`SUPPORTED_TARGETS`](../../platform/cli/sfm-propagate-changes/src/source_projection/projection_catalog.rs)
+[`SUPPORTED_TARGETS`](../../platform/cli/sfm-propagate-changes/src/source_projection/projection_definition.rs)
 maps upstream versions to matrix targets. In particular, target `1.21.0` uses
 upstream Minecraft `1.21`. A key's spelling does not determine its context.
 

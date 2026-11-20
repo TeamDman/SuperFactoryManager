@@ -14,7 +14,7 @@ use super::core_inputs::MAX_CORE_FILE_BYTES;
 use super::core_inputs::render_core_input;
 use super::core_inputs::validate_collection_selection;
 use super::core_slice_test_support::read_bounded;
-use super::projection_catalog::SUPPORTED_TARGETS;
+use super::projection_definition::SUPPORTED_TARGETS;
 use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;

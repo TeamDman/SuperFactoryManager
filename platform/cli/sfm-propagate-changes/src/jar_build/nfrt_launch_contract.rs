@@ -1544,7 +1544,7 @@ pub(super) mod tests {
     use crate::source_projection::core_inputs::CORE_ROOT;
     use crate::source_projection::core_inputs::CoreProjectInputs;
     use crate::source_projection::core_inputs::select_core_inputs;
-    use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
 
     const RECIPES: &str =
         include_str!("../../../../../docs/tasks/sfm-core-released-native-adapter-review.json");

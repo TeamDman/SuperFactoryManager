@@ -22,8 +22,8 @@ use super::oracle::parse_bindings;
 use super::oracle::read_bounded;
 use super::oracle_compare::compare_project_bytes;
 use super::oracle_git::OracleGitRepository;
-use super::projection_catalog::SUPPORTED_TARGETS;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definition::SUPPORTED_TARGETS;
+use super::projection_name::ProjectionName;
 use super::provenance::sha256;
 use super::sync::ProjectedArtifact;
 use crate::cancellation::CancellationToken;
@@ -142,7 +142,7 @@ pub fn seed_missing(
         },
         str::to_owned,
     );
-    validate_projection_key(&input)?;
+    ProjectionName::validate(&input)?;
     ensure!(
         !input.starts_with("src/") || outputs.contains(&input),
         "A source input must have an explicit same-path output; otherwise core/src discovery would add an unintended output"
@@ -404,7 +404,7 @@ fn request_outputs(request: &OracleSeedRequest<'_>) -> Result<Vec<String>> {
     let mut outputs = BTreeSet::new();
     let mut folded = BTreeSet::new();
     for output in once(request.file).chain(request.output_aliases.iter().map(String::as_str)) {
-        validate_projection_key(output)?;
+        ProjectionName::validate(output)?;
         ensure!(
             in_scope(output),
             "Seed output {output} is excluded from the declared oracle scope"
@@ -545,7 +545,7 @@ fn root_object_insertion(text: &str, wanted: &str) -> Result<usize> {
 }
 
 fn ensure_absent(core: &Path, relative: &str) -> Result<PathBuf> {
-    validate_projection_key(relative)?;
+    ProjectionName::validate(relative)?;
     let core = checked_directory(core)?;
     let mut parent = core;
     let components = relative.split('/').collect::<Vec<_>>();
@@ -586,7 +586,7 @@ fn ensure_absent(core: &Path, relative: &str) -> Result<PathBuf> {
 }
 
 fn create_parents(core: &Path, relative: &str) -> Result<()> {
-    validate_projection_key(relative)?;
+    ProjectionName::validate(relative)?;
     let mut parent = checked_directory(core)?;
     let parts = relative.split('/').collect::<Vec<_>>();
     for part in &parts[..parts.len() - 1] {

@@ -25,9 +25,9 @@ use super::core_inputs::collect_core_artifacts;
 use super::core_inputs::discover_core_source_files;
 use super::named_root::catalog_projection_root;
 pub(crate) use super::preparation_progress::ProjectionPreparationPhase;
-use super::projection_catalog::CATALOG_PATH;
-use super::projection_catalog::ProjectionEnvironment;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definitions::CATALOG_PATH;
+use super::projection_environment::ProjectionEnvironment;
+use super::projection_name::ProjectionName;
 use super::provenance::sha256;
 use super::sync::CatalogProjectionIdentity;
 use super::sync::ProjectedArtifact;
@@ -652,7 +652,7 @@ impl CatalogOwnedProject {
     /// # Errors
     /// Rejects unsafe, unselected or ambiguous authored paths.
     pub(crate) fn authored_input(&self, source_path: &str) -> Result<CatalogOwnedInput<'_>> {
-        validate_projection_key(source_path)?;
+        ProjectionName::validate(source_path)?;
         let mut matches = self
             .collected
             .artifacts
@@ -1020,7 +1020,7 @@ fn inspect_generated_sources(
             "catalog generated source inventory exceeds its bounded entry limit"
         );
         let relative = portable_path(entry.path().strip_prefix(&project)?)?;
-        validate_projection_key(&relative)?;
+        ProjectionName::validate(&relative)?;
         let folded = relative.to_ascii_lowercase();
         if let Some(previous) = case_components.insert(folded, relative.clone()) {
             ensure!(
@@ -1249,8 +1249,8 @@ pub(crate) mod tests {
     use super::super::core_inputs::CoreProjectInputs;
     use super::super::core_inputs::InputPredicate;
     use super::super::core_inputs::InputVariant;
-    use super::super::projection_catalog::ProjectionCatalog;
-    use super::super::projection_catalog::SUPPORTED_TARGETS;
+    use super::super::projection_definition::SUPPORTED_TARGETS;
+    use super::super::projection_definitions::ProjectionDefinitions;
     use super::super::reference_associations::ReferenceAssociations;
     use super::super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
     use super::*;
@@ -1601,8 +1601,10 @@ pub(crate) mod tests {
             }
             definitions.validate()?;
             let catalog_path = self.temp.path().join(CATALOG_PATH);
-            let mut catalog =
-                ProjectionCatalog::from_json(&fs::read_to_string(&catalog_path)?, &definitions)?;
+            let mut catalog = ProjectionDefinitions::from_json(
+                &fs::read_to_string(&catalog_path)?,
+                &definitions,
+            )?;
             let original_entry = original
                 .catalog
                 .0
@@ -1647,8 +1649,8 @@ pub(crate) mod tests {
                 "fixture override has an unknown target"
             );
             for (output, input, bytes, template) in files {
-                validate_projection_key(output)?;
-                validate_projection_key(input)?;
+                ProjectionName::validate(output)?;
+                ProjectionName::validate(input)?;
                 let reused_elsewhere =
                     self.metadata
                         .project_files

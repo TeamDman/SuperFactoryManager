@@ -8,7 +8,7 @@ use crate::sfm_gradle_dot_properties_file_content::SfmGradleDotPropertiesFileCon
 use crate::source_projection::catalog_owned_project::CatalogOwnedFileReceipt;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
-use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::source_projection::projection_environment::ProjectionEnvironment;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;

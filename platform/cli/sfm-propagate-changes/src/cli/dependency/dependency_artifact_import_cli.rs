@@ -10,7 +10,7 @@ use crate::payload_fetcher::write_payload_atomically;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
 use crate::source_projection::core_inputs::CORE_ROOT;
-use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::source_projection::projection_environment::ProjectionEnvironment;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;

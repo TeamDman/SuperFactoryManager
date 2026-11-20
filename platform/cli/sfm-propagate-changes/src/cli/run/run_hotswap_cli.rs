@@ -12,7 +12,7 @@ use crate::jar_build::runtime_session_receipt::RuntimeSessionReceipt;
 use crate::jdk::ResolvedJava;
 use crate::source_projection::ProjectionName;
 use crate::source_projection::core_catalog::CoreCatalog;
-use crate::source_projection::projection_catalog::PROJECTIONS_DIR;
+use crate::source_projection::projection_definitions::PROJECTIONS_DIR;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use eyre::Context;
 use eyre::ensure;

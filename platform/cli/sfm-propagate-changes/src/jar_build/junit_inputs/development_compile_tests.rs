@@ -70,7 +70,7 @@ fn fixture(
     let key = format!("sfm-dev/mc-{version}");
     let catalog = fixture
         .repository()
-        .join(crate::source_projection::projection_catalog::CATALOG_PATH);
+        .join(crate::source_projection::projection_definitions::CATALOG_PATH);
     let before = std::fs::read_to_string(&catalog)?;
     let old = facet_json::to_string(&Fixture::key(slot, "dev"))?;
     assert_eq!(before.matches(&old).count(), 1);
@@ -119,7 +119,7 @@ pub(super) fn report(version: &str) -> super::preflight_report::PreflightReport 
     report.targets.push(super::target_report::TargetReport {
         projection_key: format!("sfm-4.35.0/mc-{version}"),
         target_id: version.to_owned(),
-        minecraft_version: crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+        minecraft_version: crate::source_projection::projection_definition::SUPPORTED_TARGETS
             .iter()
             .find(|(id, _)| *id == version)
             .unwrap()

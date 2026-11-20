@@ -1,7 +1,7 @@
 //! Narrow, declared byte comparison for freshly rendered oracle projections.
 
 use super::inputs::GENERATED_BANNER;
-use super::projection_catalog::SUPPORTED_TARGETS;
+use super::projection_definition::SUPPORTED_TARGETS;
 use facet::Facet;
 use std::borrow::Cow;
 use std::str::from_utf8;

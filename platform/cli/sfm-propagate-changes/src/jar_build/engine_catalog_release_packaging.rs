@@ -11,7 +11,7 @@ fn catalog_release_packaging_policy_for_receipt(
     receipt: &source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt,
     properties: &BTreeMap<String, String>,
 ) -> eyre::Result<Option<CatalogReleasePackagingPolicy>> {
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
 
     if receipt.ownership.environment == ProjectionEnvironment::Dev {
         return Ok(None);
@@ -63,7 +63,7 @@ fn catalog_release_implementation_title(target: &str) -> eyre::Result<&'static s
 fn checked_catalog_release_packaging_policy(
     plan: &BuildPlan,
 ) -> eyre::Result<Option<CatalogReleasePackagingPolicy>> {
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
 
     let Some(project) = plan.named_project() else {
         return Ok(None);

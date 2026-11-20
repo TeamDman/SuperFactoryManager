@@ -27,7 +27,7 @@ use super::oracle::read_bounded;
 use super::oracle_compare::ComparisonPolicy;
 use super::oracle_compare::compare_project_bytes;
 use super::oracle_git::OracleGitRepository;
-use super::projection_catalog::validate_projection_key;
+use super::projection_name::ProjectionName;
 use super::provenance::sha256;
 use super::variant_consolidation::RegionReviewReport;
 use super::variant_consolidation::ReviewedRegionOwnership;
@@ -145,7 +145,7 @@ pub fn draft(
     cancellation: &CancellationToken,
 ) -> Result<OracleDraftReport> {
     cancellation.bail_if_cancelled()?;
-    validate_projection_key(request.file)?;
+    ProjectionName::validate(request.file)?;
     ensure!(
         in_scope(request.file),
         "Draft file is outside the declared oracle scope"
@@ -858,7 +858,7 @@ fn checked_destination(
         .file_name()
         .and_then(|name| name.to_str())
         .ok_or_else(|| eyre::eyre!("Draft directory name must be portable UTF-8"))?;
-    validate_projection_key(name)?;
+    ProjectionName::validate(name)?;
     let destination = parent.join(name);
     // Compare canonical native paths on both sides. Windows canonicalization
     // adds a verbatim prefix and normalizes separators; mixing it with the
@@ -889,7 +889,7 @@ fn checked_destination(
 }
 
 fn create_scratch_file(root: &Path, relative: &str, bytes: &[u8]) -> Result<()> {
-    validate_projection_key(relative)?;
+    ProjectionName::validate(relative)?;
     let mut parent = checked_directory(root)?;
     let parts = relative.split('/').collect::<Vec<_>>();
     for part in &parts[..parts.len() - 1] {
@@ -926,7 +926,7 @@ fn stage_bundle(
         "Draft bundle exceeds its byte budget"
     );
     for path in files.keys() {
-        validate_projection_key(path)?;
+        ProjectionName::validate(path)?;
     }
     cancellation.bail_if_cancelled()?;
     checked_directory(

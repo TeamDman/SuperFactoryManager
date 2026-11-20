@@ -718,8 +718,8 @@ pub(crate) mod tests {
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::core_slice_test_support::read_bounded;
     use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
-    use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definitions::CATALOG_PATH;
     use crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner;
     use rayon::prelude::*;
     use std::cell::RefCell;

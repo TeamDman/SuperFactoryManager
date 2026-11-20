@@ -13,8 +13,8 @@ use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::oracle::ORACLES_PATH;
 use crate::source_projection::oracle::OracleBindings;
 use crate::source_projection::oracle_git::OracleGitRepository;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
-use crate::source_projection::projection_catalog::ProjectionCatalog;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
+use crate::source_projection::projection_definitions::ProjectionDefinitions;
 use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::render_java_source;
@@ -413,7 +413,7 @@ fn oracle_location(
         let pinned = git
             .file_at_commit(commit, CATALOG_PATH)?
             .ok_or_else(|| eyre::eyre!("pinned commit has no projections catalog"))?;
-        let pinned = ProjectionCatalog::from_json(from_utf8(&pinned.bytes)?, &registry)?;
+        let pinned = ProjectionDefinitions::from_json(from_utf8(&pinned.bytes)?, &registry)?;
         registry.validate_entry(pinned.entry(key)?)?;
         ensure!(
             pinned.context_identity(key)? == catalog.catalog.context_identity(key)?,

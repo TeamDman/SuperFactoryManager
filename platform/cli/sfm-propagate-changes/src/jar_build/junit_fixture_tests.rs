@@ -219,7 +219,7 @@ fn source_plan() -> Result<(
     let key = "sfm-4.34.0/mc-1.19.2";
     let catalog = fixture
         .repository()
-        .join(crate::source_projection::projection_catalog::CATALOG_PATH);
+        .join(crate::source_projection::projection_definitions::CATALOG_PATH);
     let before = fs::read_to_string(&catalog)?;
     let old = facet_json::to_string(&Fixture::key(slot, "release"))?;
     assert_eq!(before.matches(&old).count(), 1);

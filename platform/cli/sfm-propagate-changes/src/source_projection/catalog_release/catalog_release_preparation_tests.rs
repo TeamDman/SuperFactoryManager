@@ -15,7 +15,7 @@ use crate::curseforge::CurseforgeGameVersionId;
 use crate::curseforge::CurseforgeGameVersionTypeId;
 use crate::paths::AppHome;
 use crate::paths::CacheHome;
-use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
 use eyre::Result;
 use std::fs;
 

@@ -18,7 +18,7 @@ use std::path::PathBuf;
 
 fn authority_target(key: &str) -> Option<&str> {
     let current = key.strip_prefix("sfm-4.35.0/mc-").filter(|version| {
-        source_projection::projection_catalog::SUPPORTED_TARGETS
+        source_projection::projection_definition::SUPPORTED_TARGETS
             .iter()
             .any(|(target, _)| version == target)
     });

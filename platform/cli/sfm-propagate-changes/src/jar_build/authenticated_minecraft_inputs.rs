@@ -7,8 +7,8 @@
 
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::source_projection::ProjectionName;
 use crate::source_projection::frozen_recipe_project::FrozenRecipeProject;
-use crate::source_projection::projection_catalog::validate_projection_key;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -410,7 +410,7 @@ fn parse_authenticated_parent(
         let Some(artifact) = library.downloads.and_then(|value| value.artifact) else {
             continue;
         };
-        validate_projection_key(&artifact.path)
+        ProjectionName::validate(&artifact.path)
             .wrap_err("unsafe authenticated Minecraft library-relative path")?;
         ensure!(
             artifact.path.len() <= MAX_URL_BYTES

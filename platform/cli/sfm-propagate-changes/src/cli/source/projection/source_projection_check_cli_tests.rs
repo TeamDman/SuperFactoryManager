@@ -7,7 +7,7 @@ use crate::paths::AppHome;
 use crate::source_projection::catalog_owned_project::source_check_observation;
 use crate::source_projection::catalog_owned_project::tests::Fixture;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
 use eyre::Result;
 use facet_value::Value;
 use std::collections::BTreeMap;

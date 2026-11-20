@@ -89,7 +89,7 @@ fn reviewed_specialsource_recipe(key: &str) -> Option<ReviewedSpecialSourceRecip
 fn reviewed_specialsource_project_recipe(
     ownership: &source_projection::catalog_owned_project::CatalogOwnedProjectReceipt,
 ) -> Option<ReviewedSpecialSourceRecipe> {
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
 
     if ownership.environment != ProjectionEnvironment::Release {
         return None;
@@ -114,16 +114,16 @@ fn require_reviewed_specialsource_identity(
     released_identity: (&str, &str),
     sdk_compiler_major: (u32, u32),
 ) -> eyre::Result<()> {
-    source_projection::projection_catalog::validate_projection_key(&ownership.projection_key)?;
+    source_projection::ProjectionName::validate(&ownership.projection_key)?;
     eyre::ensure!(
         ownership.project_dir
             == format!(
                 "{}/{}",
-                source_projection::projection_catalog::PROJECTIONS_DIR,
+                source_projection::projection_definitions::PROJECTIONS_DIR,
                 ownership.projection_key
             )
             && ownership.environment
-                == source_projection::projection_catalog::ProjectionEnvironment::Release
+                == source_projection::projection_environment::ProjectionEnvironment::Release
             && ownership.target_id == recipe.target
             && ownership.minecraft_version == recipe.target
             && plan_minecraft_version == recipe.target
@@ -917,7 +917,7 @@ mod reviewed_specialsource_launch_tests {
         recipe: ReviewedSpecialSourceRecipe,
     ) -> crate::source_projection::catalog_owned_project::CatalogOwnedProjectReceipt {
         use crate::source_projection::catalog_owned_project::CatalogOwnedProjectReceipt;
-        use crate::source_projection::projection_catalog::ProjectionEnvironment;
+        use crate::source_projection::projection_environment::ProjectionEnvironment;
 
         // Pure guard input only: this is not a checked project or effect permit.
         CatalogOwnedProjectReceipt {
@@ -966,7 +966,7 @@ mod reviewed_specialsource_launch_tests {
 
     #[test]
     fn partial_release_recipe_selection_uses_context_not_directory_spelling() {
-        use crate::source_projection::projection_catalog::ProjectionEnvironment;
+        use crate::source_projection::projection_environment::ProjectionEnvironment;
 
         for key in [
             SPECIALSOURCE_RELEASE_1192_KEY,
@@ -1069,7 +1069,7 @@ mod reviewed_specialsource_launch_tests {
 
     #[test]
     fn reviewed_identity_refuses_each_mismatched_field_before_any_effect() {
-        use crate::source_projection::projection_catalog::ProjectionEnvironment;
+        use crate::source_projection::projection_environment::ProjectionEnvironment;
 
         for key in [
             SPECIALSOURCE_RELEASE_1192_KEY,
@@ -1341,7 +1341,7 @@ mod reviewed_specialsource_launch_tests {
         }
         let mut changed = ownership.clone();
         changed.environment =
-            crate::source_projection::projection_catalog::ProjectionEnvironment::Dev;
+            crate::source_projection::projection_environment::ProjectionEnvironment::Dev;
         assert!(validate(&changed, "1.20.1", &loader, exact, (17, 17)).is_err());
         changed = ownership.clone();
         changed.projection_key = "sfm-dev/mc-1.20.1".to_owned();

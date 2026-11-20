@@ -4,9 +4,9 @@
 //! imply release/dev policy, and no output-root override is accepted here.
 
 use super::candidate_lock::checked_directory;
-use super::projection_catalog::ProjectionCatalog;
-use super::projection_catalog::ProjectionEnvironment;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definitions::ProjectionDefinitions;
+use super::projection_environment::ProjectionEnvironment;
+use super::projection_name::ProjectionName;
 use super::sync::ProjectedArtifact;
 use super::sync::validate_catalog_artifacts;
 use eyre::Result;
@@ -55,7 +55,7 @@ const MAX_GIT_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 /// is valid; no release or source history is read.
 pub fn catalog_projection_root(
     repo_root: &Path,
-    catalog: &ProjectionCatalog,
+    catalog: &ProjectionDefinitions,
     key: &str,
     artifacts: &BTreeMap<String, ProjectedArtifact>,
 ) -> Result<PathBuf> {
@@ -67,7 +67,7 @@ pub fn catalog_projection_root(
 /// Validate a selected batch with shared Git queries, without reading outputs.
 pub(crate) fn catalog_projection_roots(
     repo_root: &Path,
-    catalog: &ProjectionCatalog,
+    catalog: &ProjectionDefinitions,
     selections: &[(&str, &BTreeMap<String, ProjectedArtifact>)],
 ) -> Result<BTreeMap<String, PathBuf>> {
     let root = checked_directory(repo_root)?;
@@ -97,7 +97,7 @@ pub(crate) fn catalog_projection_roots(
             })
             .collect::<Result<Vec<_>>>()?
             .join("/");
-        validate_projection_key(&relative)?;
+        ProjectionName::validate(&relative)?;
 
         if entry.environment == ProjectionEnvironment::Dev {
             development_roots.push(relative.clone());
@@ -322,7 +322,7 @@ mod tests {
 
     struct Fixture {
         temp: tempfile::TempDir,
-        catalog: ProjectionCatalog,
+        catalog: ProjectionDefinitions,
         files: BTreeMap<String, ProjectedArtifact>,
     }
 
@@ -343,7 +343,7 @@ mod tests {
                 "Git fixture failed: {}",
                 String::from_utf8_lossy(&init.stderr)
             );
-            let catalog = ProjectionCatalog::from_json(r#"{
+            let catalog = ProjectionDefinitions::from_json(r#"{
                 "release-looking/custom":{"minecraft_version":"1.19.2","environment":"dev","features":[]},
                 "sfm-dev/custom":{"minecraft_version":"1.21","environment":"release","features":[]}
             }"#, &SfmProjectionFeatureRegistry::test_registry([])).unwrap();

@@ -1,8 +1,8 @@
 //! Reproducible provenance for a generated Minecraft source root.
 
-use super::projection_catalog::ProjectionEnvironment;
-use super::projection_catalog::SUPPORTED_TARGETS;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definition::SUPPORTED_TARGETS;
+use super::projection_environment::ProjectionEnvironment;
+use super::projection_name::ProjectionName;
 use eyre::ensure;
 use facet::Facet;
 use sha2::Digest;
@@ -49,7 +49,7 @@ impl CatalogProjectionOwner {
     /// # Errors
     /// Rejects unsafe keys, unsupported pairs and noncanonical fingerprints.
     pub fn validate(&self, target_id: &str, minecraft_version: &str) -> eyre::Result<()> {
-        validate_projection_key(&self.projection_key)?;
+        ProjectionName::validate(&self.projection_key)?;
         ensure!(
             SUPPORTED_TARGETS
                 .iter()

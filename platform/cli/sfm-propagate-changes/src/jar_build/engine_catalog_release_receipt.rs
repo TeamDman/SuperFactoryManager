@@ -8,7 +8,7 @@ fn publish_catalog_release_receipt(
     admission: Option<&NamedPackageAdmission>,
     package_input_identity: &str,
 ) -> eyre::Result<()> {
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
 
     let Some(frozen) = context.plan.named_project() else {
         return Ok(());

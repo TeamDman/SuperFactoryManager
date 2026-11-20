@@ -233,7 +233,7 @@ fn all_hit_transform_refuses_before_artifact_lookup_or_work_directory() -> eyre:
 fn all_hit_unbound_optional_compile_preserves_output_and_never_launches() -> eyre::Result<()> {
     let (owner, _, recipe, _) = named_forge_compile_cohort_tests::fixture("1.19.2")?;
     write_fixture_source(&owner, "src/gametest/java/Test.java", b"class Test {}")?;
-    let slot = crate::source_projection::projection_catalog::SUPPORTED_TARGETS
+    let slot = crate::source_projection::projection_definition::SUPPORTED_TARGETS
         .iter()
         .position(|(version, _)| *version == "1.19.2")
         .unwrap();

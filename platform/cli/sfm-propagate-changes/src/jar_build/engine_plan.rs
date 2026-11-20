@@ -2332,7 +2332,7 @@ fn derived_cache_namespaces_separate_two_projections_of_the_same_minecraft_versi
 -> eyre::Result<()> {
     use crate::source_projection::core_catalog::CoreCatalog;
     use crate::source_projection::frozen_recipe_project::prepare_frozen_recipe_project_with_witness_loader;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
+    use crate::source_projection::projection_definitions::CATALOG_PATH;
 
     let (fixture, original) =
         super::nfrt_launch_contract::tests::project_fixture("1.20.3", "release")?;

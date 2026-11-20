@@ -10,8 +10,8 @@
 use super::candidate_lock::checked_directory;
 use super::catalog_owned_project::CatalogOwnedProject;
 use super::catalog_owned_project::collect_catalog_project;
-use super::projection_catalog::ProjectionEnvironment;
-use super::projection_catalog::validate_projection_key;
+use super::projection_environment::ProjectionEnvironment;
+use super::projection_name::ProjectionName;
 use super::provenance::sha256;
 use super::sync::CatalogProjectionIdentity;
 use super::sync::ProjectedArtifact;
@@ -380,7 +380,7 @@ fn selected_profile(
             ),
             "native profile has an unsupported source-exclusion set"
         );
-        validate_projection_key(
+        ProjectionName::validate(
             exclusion
                 .path
                 .strip_suffix("/**")
@@ -515,7 +515,7 @@ mod tests {
     use crate::source_projection::core_inputs::discover_core_source_files;
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::named_root::catalog_projection_root;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
+    use crate::source_projection::projection_definitions::CATALOG_PATH;
     use crate::source_projection::sync::SyncMode;
     use crate::source_projection::sync::sync_catalog_projection;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
@@ -662,7 +662,7 @@ mod tests {
             assert_eq!(development_forge_loader(target, target).unwrap(), expected);
             assert!(development_forge_loader(target, "different-version").is_err());
         }
-        for (target, minecraft) in super::super::projection_catalog::SUPPORTED_TARGETS
+        for (target, minecraft) in super::super::projection_definition::SUPPORTED_TARGETS
             .iter()
             .skip(4)
         {

@@ -267,7 +267,7 @@ fn full_digest_length_and_path_guards_fail_closed() -> eyre::Result<()> {
 
 fn validated_ten_targets(mutate_last: bool) -> eyre::Result<PreflightReport> {
     let mut report = preflight::empty_report();
-    for (id, _) in crate::source_projection::projection_catalog::SUPPORTED_TARGETS {
+    for (id, _) in crate::source_projection::projection_definition::SUPPORTED_TARGETS {
         let (mut recipe, mut lock, mut pins) = fixture();
         recipe.target = id.to_owned();
         if id == "26.1.2" {

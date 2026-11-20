@@ -14,8 +14,8 @@ use crate::paths::CacheHome;
 use crate::source_projection::catalog_owned_project::recheck_observation;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
-use crate::source_projection::projection_catalog::ProjectionCatalog;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
+use crate::source_projection::projection_definitions::ProjectionDefinitions;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::Result;
@@ -153,7 +153,7 @@ fn release_looking_contexts_cannot_replace_environment_and_feature_admission() -
     )?)?;
     let catalog_path = fixture.repository().join(CATALOG_PATH);
     let mut catalog =
-        ProjectionCatalog::from_json(&fs::read_to_string(&catalog_path)?, &definitions)?;
+        ProjectionDefinitions::from_json(&fs::read_to_string(&catalog_path)?, &definitions)?;
     let dev_entry = catalog.0.remove(&fixture.dev_key).unwrap();
     fixture.dev_key = "sfm-4.35.0/mc-1.19.2".to_owned();
     catalog.0.insert(fixture.dev_key.clone(), dev_entry);

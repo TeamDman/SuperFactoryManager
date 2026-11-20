@@ -287,7 +287,7 @@ fn load_java(
 mod tests {
     use super::*;
     use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
+    use crate::source_projection::projection_definitions::CATALOG_PATH;
     const FILE: &str = "src/main/java/A.java";
 
     #[test]

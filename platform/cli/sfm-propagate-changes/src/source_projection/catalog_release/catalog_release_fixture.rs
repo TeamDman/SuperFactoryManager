@@ -8,9 +8,9 @@ use crate::source_projection::catalog_owned_project::tests::Fixture;
 use crate::source_projection::core_features::CoreFeatureDefinition;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
-use crate::source_projection::projection_catalog::ProjectionCatalog;
-use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
+use crate::source_projection::projection_definitions::ProjectionDefinitions;
 use crate::source_projection::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::Result;
 use std::collections::BTreeMap;
@@ -120,7 +120,8 @@ impl CatalogReleaseFixture {
             self.repository().join(FEATURE_DEFINITIONS_PATH),
         )?)?;
         let path = self.repository().join(CATALOG_PATH);
-        let mut catalog = ProjectionCatalog::from_json(&fs::read_to_string(&path)?, &definitions)?;
+        let mut catalog =
+            ProjectionDefinitions::from_json(&fs::read_to_string(&path)?, &definitions)?;
         catalog.0.get_mut(key).unwrap().features =
             features.iter().map(|name| (*name).to_owned()).collect();
         fs::write(path, catalog.to_json(&definitions)?)?;

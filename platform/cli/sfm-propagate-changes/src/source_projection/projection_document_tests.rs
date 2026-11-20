@@ -1,6 +1,6 @@
 use super::core_catalog::write_project_catalog_fixture;
 use super::core_features::FEATURE_DEFINITIONS_PATH;
-use super::projection_catalog::CATALOG_PATH;
+use super::projection_definitions::CATALOG_PATH;
 use super::sfm_repo_path::SfmRepoPath;
 use crate::cancellation::CancellationToken;
 use crate::cli::InvocationHomes;

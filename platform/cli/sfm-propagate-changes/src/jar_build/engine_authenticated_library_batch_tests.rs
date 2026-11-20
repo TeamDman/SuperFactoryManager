@@ -7,7 +7,7 @@ mod authenticated_library_batch_integration_tests {
     use crate::source_projection::catalog_owned_project::recheck_observation;
     use crate::source_projection::catalog_owned_project::tests::Fixture;
     use crate::source_projection::core_inputs::CORE_ROOT;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
+    use crate::source_projection::projection_definitions::CATALOG_PATH;
     use std::cell::Cell;
     use std::net::TcpListener;
     use std::rc::Rc;

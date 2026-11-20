@@ -14,8 +14,8 @@ use super::core_network_layout::validate_network_context;
 use super::directive_scanner::ScannedSource;
 use super::directive_scanner::scan;
 use super::project_layout::validate_target_project;
-use super::projection_catalog::SUPPORTED_TARGETS;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definition::SUPPORTED_TARGETS;
+use super::projection_name::ProjectionName;
 use super::provenance::sha256;
 use super::render_java_source;
 use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
@@ -966,7 +966,7 @@ pub(super) fn checked_core_root(root: &Path) -> Result<PathBuf> {
 }
 
 fn validate_input_path(path: &str) -> Result<()> {
-    validate_projection_key(path)?;
+    ProjectionName::validate(path)?;
     ensure!(
         !path.split('/').any(|part| [".git", ".gradle", ".idea"]
             .iter()
@@ -980,7 +980,7 @@ fn validate_input_path(path: &str) -> Result<()> {
 }
 
 fn validate_output_path(path: &str) -> Result<()> {
-    validate_projection_key(path)?;
+    ProjectionName::validate(path)?;
     ensure!(
         !path.split('/').any(|part| [".git", ".gradle", ".idea"]
             .iter()
@@ -1011,7 +1011,7 @@ fn portable_path(path: &Path) -> Result<String> {
         })
         .collect::<Result<Vec<_>>>()?;
     let path = parts.join("/");
-    validate_projection_key(&path)?;
+    ProjectionName::validate(&path)?;
     Ok(path)
 }
 
@@ -1058,7 +1058,7 @@ fn validate_path_collisions<'a>(
 ) -> Result<()> {
     let mut files = Vec::new();
     for path in paths {
-        validate_projection_key(path)?;
+        ProjectionName::validate(path)?;
         let folded = path.to_ascii_lowercase();
         files.push((folded, path));
     }
@@ -1927,7 +1927,7 @@ pub(super) mod tests {
             let mut files = BTreeMap::new();
             let mut prefixes = BTreeMap::new();
             for path in paths {
-                if validate_projection_key(path).is_err() {
+                if ProjectionName::validate(path).is_err() {
                     return false;
                 }
                 if let Some(other) = files.insert(path.to_ascii_lowercase(), *path)

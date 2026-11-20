@@ -1,4 +1,4 @@
-use super::projection_catalog::reject_duplicate_catalog_keys;
+use super::projections_document::reject_duplicate_definition_keys;
 use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::Result;
 use eyre::WrapErr;
@@ -11,7 +11,8 @@ pub(crate) struct FeatureDefinitionsDocument(pub(super) SfmProjectionFeatureRegi
 
 impl FeatureDefinitionsDocument {
     pub(super) fn from_json(input: &str) -> Result<Self> {
-        reject_duplicate_catalog_keys(input).wrap_err("duplicate core feature-definition key")?;
+        reject_duplicate_definition_keys(input)
+            .wrap_err("duplicate core feature-definition key")?;
         facet_json::from_str(input).wrap_err("could not parse core feature definitions")
     }
 }

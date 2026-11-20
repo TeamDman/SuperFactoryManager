@@ -49,7 +49,7 @@ use crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
 use crate::source_projection::native_project_target::development_native_loader;
 use crate::source_projection::native_project_target::native_tool_java_major;
 use crate::source_projection::native_project_target::validate_collected_native_profile;
-use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::source_projection::projection_environment::ProjectionEnvironment;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::sync::CatalogProjectionIdentity;
 use crate::source_projection::sync::ProjectedArtifact;
@@ -1368,7 +1368,7 @@ mod tests {
         fs::write(core.join("feature-definitions.json"), "{}").unwrap();
         fs::write(
             temp.path()
-                .join(crate::source_projection::projection_catalog::CATALOG_PATH),
+                .join(crate::source_projection::projection_definitions::CATALOG_PATH),
             r#"{
             "released/nested":{"minecraft_version":"1.19.2","environment":"release","features":[]},
             "ignored/nested":{"minecraft_version":"1.19.2","environment":"dev","features":[]}

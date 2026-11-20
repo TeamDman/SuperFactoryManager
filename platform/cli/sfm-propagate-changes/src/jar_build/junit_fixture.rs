@@ -256,12 +256,12 @@ fn selected(plan: &BuildPlan) -> bool {
         .strip_prefix("sfm-4.34.0/mc-")
         .or_else(|| key.strip_prefix("sfm-4.35.0/mc-"));
     version.is_some_and(|version| {
-        source_projection::projection_catalog::SUPPORTED_TARGETS
+        source_projection::projection_definition::SUPPORTED_TARGETS
             .iter()
             .any(|(target, _)| *target == version)
     }) && plan.named_project().is_some_and(|project| {
         project.project().receipt().environment
-            == source_projection::projection_catalog::ProjectionEnvironment::Release
+            == source_projection::projection_environment::ProjectionEnvironment::Release
     })
 }
 

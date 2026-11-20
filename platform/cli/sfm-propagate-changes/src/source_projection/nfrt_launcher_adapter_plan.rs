@@ -226,7 +226,7 @@ mod tests {
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::core_slice_test_support::read_bounded;
     use crate::source_projection::frozen_recipe_project::prepare_frozen_recipe_project;
-    use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::projection_definition::SUPPORTED_TARGETS;
     use std::cell::Cell;
     use std::collections::BTreeMap;
     use std::collections::BTreeSet;

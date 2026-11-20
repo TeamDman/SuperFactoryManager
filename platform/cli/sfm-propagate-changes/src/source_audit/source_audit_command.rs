@@ -20,7 +20,7 @@ use crate::logging::vscode_file_uri_for_path;
 use crate::paths::AppHome;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;

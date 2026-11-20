@@ -6,7 +6,7 @@ use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::jar_build::java_trust::JavaTrust;
 use crate::source_projection::core_catalog::CoreCatalog;
-use crate::source_projection::projection_catalog::ProjectionEntry;
+use crate::source_projection::projection_definition::ProjectionDefinition;
 use eyre::Context;
 use eyre::ensure;
 use facet::Facet;
@@ -373,7 +373,7 @@ impl CheckEverythingArgs {
 }
 
 fn select_keys(
-    catalog: &BTreeMap<String, ProjectionEntry>,
+    catalog: &BTreeMap<String, ProjectionDefinition>,
     selector: &str,
 ) -> eyre::Result<Vec<String>> {
     let pattern = glob::Pattern::new(selector)?;
@@ -1285,7 +1285,7 @@ mod tests {
 
     #[test]
     fn selects_project_or_version_patterns() {
-        let _type_check: Option<ProjectionEntry> = None;
+        let _type_check: Option<ProjectionDefinition> = None;
         let pattern = glob::Pattern::new("sfm-dev/*").unwrap();
         assert!(pattern.matches("sfm-dev/mc-1.21.1"));
         assert!(!pattern.matches("sfm-4.35.0/mc-1.21.1"));
@@ -1346,14 +1346,14 @@ mod tests {
 #[cfg(test)]
 mod resume_tests {
     use super::*;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_environment::ProjectionEnvironment;
 
     #[test]
     fn version_selection_uses_checked_catalog_entries() {
         let entries = BTreeMap::from([
             (
                 "sfm-dev/mc-1.21.1".to_owned(),
-                ProjectionEntry {
+                ProjectionDefinition {
                     minecraft_version: "1.21.1".to_owned(),
                     environment: ProjectionEnvironment::Dev,
                     features: Vec::new(),
@@ -1361,7 +1361,7 @@ mod resume_tests {
             ),
             (
                 "sfm-dev/mc-1.20.4".to_owned(),
-                ProjectionEntry {
+                ProjectionDefinition {
                     minecraft_version: "1.20.4".to_owned(),
                     environment: ProjectionEnvironment::Dev,
                     features: Vec::new(),
@@ -1369,7 +1369,7 @@ mod resume_tests {
             ),
             (
                 "sfm-dev/mc-1.21.0".to_owned(),
-                ProjectionEntry {
+                ProjectionDefinition {
                     minecraft_version: "1.21".to_owned(),
                     environment: ProjectionEnvironment::Dev,
                     features: Vec::new(),

@@ -12,7 +12,7 @@ use crate::source_projection::core_inputs::CORE_METADATA_PATH;
 use crate::source_projection::core_inputs::CoreProjectInputs;
 use crate::source_projection::core_inputs::CoreSelection;
 use crate::source_projection::core_inputs::select_core_inputs;
-use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::projection_definitions::CATALOG_PATH;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use std::collections::BTreeSet;
 use std::str::from_utf8;

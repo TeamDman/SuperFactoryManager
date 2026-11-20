@@ -392,7 +392,7 @@ mod release_selection_tests {
         )
         .unwrap();
         let inventory = discover_core_source_files(&core).unwrap();
-        for (target, _) in super::super::projection_catalog::SUPPORTED_TARGETS {
+        for (target, _) in super::super::projection_definition::SUPPORTED_TARGETS {
             let baseline = loaded.context(&format!("sfm-4.34.0/mc-{target}")).unwrap();
             let release = loaded.context(&format!("sfm-4.35.0/mc-{target}")).unwrap();
             let old = select_core_inputs(&metadata, &baseline, &inventory).unwrap();

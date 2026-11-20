@@ -1,6 +1,6 @@
 use super::candidate_lock::checked_directory;
 use super::candidate_lock::checked_file;
-use super::projection_catalog::CATALOG_PATH;
+use super::projection_definitions::CATALOG_PATH;
 use super::projection_definitions::ProjectionDefinitions;
 use super::projections_document::ProjectionsDocument;
 use eyre::Result;

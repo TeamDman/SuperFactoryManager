@@ -3,7 +3,7 @@ use crate::source_projection::catalog_owned_project::ProjectionPreparationPhase;
 use crate::source_projection::catalog_owned_project::collect_catalog_project_from_metadata;
 use crate::source_projection::catalog_project_metadata::CatalogProjectMetadata;
 use crate::source_projection::core_catalog::CoreCatalog;
-use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::source_projection::projection_environment::ProjectionEnvironment;
 
 #[derive(Clone, Copy)]
 enum ProjectionOperation<'a> {

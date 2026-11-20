@@ -1,9 +1,9 @@
 //! Deterministic, fail-closed writes for one projected source root.
 
 use super::core_inputs::CORE_ROOT;
-use super::projection_catalog::ProjectionCatalog;
-use super::projection_catalog::ProjectionEnvironment;
-use super::projection_catalog::validate_projection_key;
+use super::projection_definitions::ProjectionDefinitions;
+use super::projection_environment::ProjectionEnvironment;
+use super::projection_name::ProjectionName;
 use super::provenance::CatalogProjectionOwner;
 use super::provenance::LEGACY_MANIFEST_SCHEMA;
 use super::provenance::MAX_MANIFEST_BYTES;
@@ -56,7 +56,7 @@ impl CatalogProjectionIdentity {
     ///
     /// # Errors
     /// Rejects absent/unsafe keys, unsupported versions and invalid features.
-    pub fn from_catalog(catalog: &ProjectionCatalog, key: &str) -> Result<Self> {
+    pub fn from_catalog(catalog: &ProjectionDefinitions, key: &str) -> Result<Self> {
         let entry = catalog.entry(key)?;
         let identity = Self {
             target_id: entry.target_id()?.to_owned(),
@@ -771,7 +771,7 @@ pub(crate) fn validate_catalog_artifacts(
 }
 
 pub(super) fn validate_catalog_output(path: &str) -> Result<()> {
-    validate_projection_key(path)?;
+    ProjectionName::validate(path)?;
     ensure!(
         !path.split('/').any(|part| matches!(
             part.to_ascii_lowercase().as_str(),
@@ -806,7 +806,7 @@ fn validate_catalog_case_components<'a>(paths: impl IntoIterator<Item = &'a str>
 }
 
 fn validate_catalog_source(source_path: &str, overlay: Option<&str>) -> Result<()> {
-    validate_projection_key(source_path)?;
+    ProjectionName::validate(source_path)?;
     ensure!(
         source_path
             .strip_prefix(CORE_ROOT)
@@ -1354,7 +1354,7 @@ mod tests {
 
     #[test]
     fn named_target_identity_comes_from_values_not_key_spelling() {
-        let catalog = ProjectionCatalog::from_json(r#"{"release/mc-1.19.2":{"minecraft_version":"1.21","environment":"dev","features":[]}}"#, &SfmProjectionFeatureRegistry::test_registry([])).unwrap();
+        let catalog = ProjectionDefinitions::from_json(r#"{"release/mc-1.19.2":{"minecraft_version":"1.21","environment":"dev","features":[]}}"#, &SfmProjectionFeatureRegistry::test_registry([])).unwrap();
         let identity =
             CatalogProjectionIdentity::from_catalog(&catalog, "release/mc-1.19.2").unwrap();
         assert_eq!(identity.target_id, "1.21.0");

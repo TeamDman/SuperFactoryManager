@@ -1,6 +1,6 @@
 use super::CatalogReleaseVersion;
 use crate::source_projection::candidate_lock::checked_directory;
-use crate::source_projection::projection_catalog::validate_projection_key;
+use crate::source_projection::projection_name::ProjectionName;
 use eyre::Result;
 use std::path::Path;
 use std::path::PathBuf;
@@ -21,7 +21,7 @@ impl CatalogReleaseRequest {
         projection: String,
         expected_mod_version: CatalogReleaseVersion,
     ) -> Result<Self> {
-        validate_projection_key(&projection)?;
+        ProjectionName::validate(&projection)?;
         Ok(Self {
             repo_root: checked_directory(repo_root)?,
             projection,

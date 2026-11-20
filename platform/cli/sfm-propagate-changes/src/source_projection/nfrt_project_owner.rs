@@ -8,7 +8,7 @@ use super::catalog_owned_project::CatalogOwnedProject;
 use super::frozen_recipe_project::FrozenRecipeProject;
 use super::native_project_target::NATIVE_DEPENDENCY_PROFILE;
 use super::native_project_target::NativeProjectTarget;
-use super::projection_catalog::ProjectionEnvironment;
+use super::projection_environment::ProjectionEnvironment;
 use super::provenance::sha256;
 use eyre::Result;
 use eyre::ensure;

@@ -3,7 +3,7 @@
 
 use super::candidate_lock::checked_directory;
 use super::oracle::in_scope;
-use super::projection_catalog::SUPPORTED_TARGETS;
+use super::projection_definition::SUPPORTED_TARGETS;
 use super::release_baseline::frozen_git_command;
 use crate::cancellation::CancellationToken;
 use eyre::Result;
