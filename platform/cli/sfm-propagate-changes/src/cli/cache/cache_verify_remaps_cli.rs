@@ -3,7 +3,7 @@
 use super::cache_report_cli::checked_existing_root;
 #[cfg(windows)]
 use crate::jar_build::engine::audit_managed_remaps;
-use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_line;
 use eyre::ensure;
 use facet::Facet;
@@ -28,10 +28,10 @@ impl CacheVerifyRemapsArgs {
     /// # Errors
     /// Returns an error if the selected remap inventory cannot be read or verified.
     pub fn invoke(self) -> eyre::Result<()> {
-        let (catalog, _) = CoreCatalog::for_project(&self.project_root)?;
+        let (repo_root, _) = SfmRepoPath::for_projection(&self.project_root)?;
         let logical = self
             .cache_root
-            .unwrap_or_else(|| catalog.repo_root.join("sfm-toolchain-data"));
+            .unwrap_or_else(|| repo_root.join("sfm-toolchain-data"));
         let physical = checked_existing_root(&logical)?;
         let root = physical.join("dependency-remap-v1");
         #[cfg(windows)]

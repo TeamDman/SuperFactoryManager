@@ -6,7 +6,6 @@ use crate::jar_build::Parallelism;
 use crate::paths::AppHome;
 use crate::paths::InvocationDirectory;
 use crate::source_projection::ProjectionName;
-use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use facet::Facet;
 use figue as args;
@@ -104,17 +103,17 @@ impl JarBuildOptionsArgs {
         &self,
         invocation_dir: &Path,
     ) -> eyre::Result<(SfmRepoPath, Vec<ProjectionName>)> {
-        let catalog = CoreCatalog::load_for_invocation(self.repo_root.as_deref(), invocation_dir)?;
-        let projections = catalog
-            .catalog
+        let repo_root = SfmRepoPath::discover(self.repo_root.as_deref(), invocation_dir)?;
+        let projections = repo_root
+            .read_projections()?
             .matching_glob_projections(&self.projection)?;
         tracing::info!(
             projection_selector = self.projection,
             matched_projections = projections.len(),
-            repo_root = %catalog.repo_root.display(),
+            repo_root = %repo_root.display(),
             "Projection selector resolved"
         );
-        Ok((catalog.repo_root, projections))
+        Ok((repo_root, projections))
     }
 
     pub(crate) fn into_options_for_projections(
@@ -184,15 +183,19 @@ impl JarBuildOptionsArgs {
 mod tests {
     use super::*;
     use crate::source_projection::core_catalog::write_project_catalog_fixture;
+    use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
+    use std::fs;
 
     #[test]
-    fn projection_options_resolve_checkout_paths_and_expand_glob() -> eyre::Result<()> {
+    fn projection_options_resolve_paths_and_expand_glob_without_feature_registry()
+    -> eyre::Result<()> {
         let app_home = AppHome(PathBuf::from("fixture-app-home"));
         let base_directory = tempfile::tempdir()?;
         let invocation_dir = base_directory.path();
         let repo = invocation_dir.join("checkout");
         let projection = "sfm-4.35.0-extended/mc-1.19.2";
         write_project_catalog_fixture(&repo, projection, "1.19.2")?;
+        fs::remove_file(repo.join(FEATURE_DEFINITIONS_PATH))?;
         let options = JarBuildOptionsArgs {
             projection: "sfm-4.35.0-extended/*".to_owned(),
             repo_root: Some("checkout".into()),

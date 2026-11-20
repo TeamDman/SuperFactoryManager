@@ -21,6 +21,7 @@ pub mod development_fixtures;
 pub mod development_gradle;
 pub(crate) mod development_nfrt_dependencies;
 mod directive_scanner;
+mod feature_definitions_document;
 pub mod frozen_authoring;
 pub mod frozen_recipe_project;
 pub mod frozen_release;
@@ -55,9 +56,12 @@ pub mod project_layout;
 pub mod projection_catalog;
 pub(crate) mod projection_check_result;
 pub mod projection_definitions;
+#[cfg(test)]
+mod projection_document_tests;
 pub(crate) mod projection_name;
 pub use projection_name::ProjectionName;
 pub(crate) mod projection_pattern;
+mod projections_document;
 pub mod promotion;
 pub mod provenance;
 #[cfg(test)]

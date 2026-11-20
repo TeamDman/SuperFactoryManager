@@ -4,11 +4,10 @@
 //! A development environment never enables a feature implicitly.
 
 use super::core_features::CoreFeatureDefinition;
+use super::feature_definitions_document::FeatureDefinitionsDocument;
 use super::projection_catalog::ProjectionEntry;
 use super::projection_catalog::SUPPORTED_TARGETS;
-use super::projection_catalog::reject_duplicate_catalog_keys;
 use eyre::Result;
-use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
@@ -25,9 +24,7 @@ impl SfmProjectionFeatureRegistry {
     /// Rejects duplicate JSON keys, malformed entries, unknown targets or
     /// prerequisites, incompatible dependency support and cyclic dependencies.
     pub fn from_json(input: &str) -> Result<Self> {
-        reject_duplicate_catalog_keys(input).wrap_err("duplicate core feature-definition key")?;
-        let definitions: Self =
-            facet_json::from_str(input).wrap_err("could not parse core feature definitions")?;
+        let FeatureDefinitionsDocument(definitions) = FeatureDefinitionsDocument::from_json(input)?;
         definitions.validate()?;
         Ok(definitions)
     }

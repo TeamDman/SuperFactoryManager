@@ -20,8 +20,8 @@ use crate::logging::vscode_file_uri_for_path;
 use crate::paths::AppHome;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
-use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
 use color_eyre::owo_colors::OwoColorize;
@@ -124,9 +124,8 @@ impl SourceAuditCommand {
             project_root.is_absolute(),
             "source audit project root must be absolute; resolve relative paths at the invocation boundary"
         );
-        let (catalog, key) = CoreCatalog::for_project(project_root)?;
-        let project = collect_catalog_project(&catalog.repo_root, &catalog.repo_root, &key)?
-            .check_current()?;
+        let (repo_root, key) = SfmRepoPath::for_projection(project_root)?;
+        let project = collect_catalog_project(&repo_root, &repo_root, &key)?.check_current()?;
         let label = format!("project:{key}");
         let report = self.audit_catalog_project(&project, &label)?;
         project.recheck()?;

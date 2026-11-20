@@ -6,6 +6,7 @@
 //! checked by the generation boundary; this module validates the pure contract.
 
 pub use super::projection_definitions::ProjectionDefinitions as ProjectionCatalog;
+use super::projections_document::ProjectionsDocument;
 use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -68,9 +69,7 @@ impl ProjectionCatalog {
     /// Rejects malformed/duplicate JSON keys, unknown entry fields, unsupported
     /// versions or features, nonportable keys, and colliding output roots.
     pub fn from_json(input: &str, registry: &SfmProjectionFeatureRegistry) -> eyre::Result<Self> {
-        reject_duplicate_catalog_keys(input)?;
-        let catalog: Self =
-            facet_json::from_str(input).wrap_err("could not parse projections catalog")?;
+        let ProjectionsDocument(catalog) = ProjectionsDocument::from_json(input)?;
         catalog.validate(registry)?;
         Ok(catalog)
     }

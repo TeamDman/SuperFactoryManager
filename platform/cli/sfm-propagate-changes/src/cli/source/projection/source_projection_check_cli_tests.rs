@@ -4,7 +4,10 @@ use crate::cli::InvocationHomes;
 use crate::cli::output::CliOutput;
 use crate::cli::output::OutputFormat;
 use crate::paths::AppHome;
+use crate::source_projection::catalog_owned_project::source_check_observation;
 use crate::source_projection::catalog_owned_project::tests::Fixture;
+use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
+use crate::source_projection::projection_catalog::CATALOG_PATH;
 use eyre::Result;
 use facet_value::Value;
 use std::collections::BTreeMap;
@@ -107,6 +110,40 @@ fn exact_projection_check_uses_explicit_invocation_root_and_returns_one_current_
     assert_eq!(report[0].len(), 2);
     assert_snapshot(fixture.repository(), before)?;
     assert!(!project.join("build").exists());
+    Ok(())
+}
+
+#[test]
+fn check_reports_failure_when_either_document_changes_after_capture() -> Result<()> {
+    let fixture = Fixture::new_for_target("1.19.2");
+    let projection = Fixture::key(0, "release");
+    fixture.publish(&projection);
+    for relative in [CATALOG_PATH, FEATURE_DEFINITIONS_PATH] {
+        let path = fixture.repository().join(relative);
+        let original = fs::read(&path)?;
+        let mut changed = original.clone();
+        changed.push(b'\n');
+        let observed_path = path.clone();
+        let replacement = changed.clone();
+        let observation = source_check_observation::install(move |check| {
+            if check == "authored" {
+                fs::write(&observed_path, &replacement).expect("edit the captured document");
+            }
+        });
+        let output = invoke(Path::new("."), &projection, fixture.repository())?;
+        drop(observation);
+
+        assert_eq!(output.exit_code(), 1, "{relative}");
+        let report = rows(&output)?;
+        assert_eq!(report.len(), 1);
+        assert_eq!(text(&report[0], "status"), "failed", "{relative}");
+        assert_eq!(text(&report[0], "projection"), projection);
+        assert!(
+            text(&report[0], "error").contains("authored metadata or source inventory changed")
+        );
+        assert_eq!(fs::read(&path)?, changed, "{relative}");
+        fs::write(path, original)?;
+    }
     Ok(())
 }
 

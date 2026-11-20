@@ -7,8 +7,8 @@ use crate::jdk_artifact_cache::install_verified_pinned_jbrsdk;
 use crate::jdk_install_control::InstallControl;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
-use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::provenance::sha256;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::toolchain_lockfile_schema::read_jdk_pins;
 use eyre::ensure;
 use facet::Facet;
@@ -72,9 +72,8 @@ impl JdkInstallArgs {
         } else {
             invocation_dir.join(&self.project_root)
         };
-        let (catalog, key) = CoreCatalog::for_project(&project_root)?;
-        let project =
-            collect_catalog_project(&catalog.repo_root, invocation_dir, &key)?.check_current()?;
+        let (repo_root, key) = SfmRepoPath::for_projection(&project_root)?;
+        let project = collect_catalog_project(&repo_root, invocation_dir, &key)?.check_current()?;
         let selected = project.selected_input("sfm-toolchain.lock.json")?;
         let raw = selected.require_exact_copy()?;
         let pins = read_jdk_pins(from_utf8(raw)?)?

@@ -11,6 +11,7 @@ use crate::jar_build::build_snapshot_receipt::BuildSnapshotReceipt;
 use crate::jar_build::runtime_session_receipt::RuntimeSessionReceipt;
 use crate::jdk::ResolvedJava;
 use crate::source_projection::ProjectionName;
+use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::projection_catalog::PROJECTIONS_DIR;
 use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use eyre::Context;
@@ -133,6 +134,7 @@ impl RunHotswapArgs {
         projections: Vec<ProjectionName>,
     ) -> eyre::Result<Option<BuildSnapshotReceipt>> {
         if let Some(receipt) = &self.build_snapshot {
+            CoreCatalog::load_path(repo_root)?;
             let snapshot = BuildSnapshotReceipt::load(receipt, minecraft_dir)?;
             if self.options.dry_run {
                 tracing::info!(receipt = %receipt.display(), "Verified snapshot; dry run does not attach or apply");

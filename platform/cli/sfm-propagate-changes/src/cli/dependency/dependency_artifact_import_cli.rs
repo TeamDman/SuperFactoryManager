@@ -9,9 +9,9 @@ use crate::paths::InvocationDirectory;
 use crate::payload_fetcher::write_payload_atomically;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
 use crate::source_projection::catalog_owned_project::collect_catalog_project;
-use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::core_inputs::CORE_ROOT;
 use crate::source_projection::projection_catalog::ProjectionEnvironment;
+use crate::source_projection::sfm_repo_path::SfmRepoPath;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
@@ -120,9 +120,8 @@ fn checked_development_lock(
     inventory: &DependencyInventory,
     project_root: &Path,
 ) -> eyre::Result<CatalogOwnedProject> {
-    let (catalog, key) = CoreCatalog::for_project(project_root)?;
-    let project =
-        collect_catalog_project(&catalog.repo_root, &catalog.repo_root, &key)?.check_current()?;
+    let (repo_root, key) = SfmRepoPath::for_projection(project_root)?;
+    let project = collect_catalog_project(&repo_root, &repo_root, &key)?.check_current()?;
     ensure!(
         project.receipt().environment == ProjectionEnvironment::Dev,
         "new source-built pins may only update a development projection"

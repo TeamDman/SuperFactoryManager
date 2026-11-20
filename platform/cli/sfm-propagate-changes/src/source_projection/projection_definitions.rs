@@ -5,6 +5,7 @@ use eyre::Result;
 use eyre::WrapErr;
 use facet::Facet;
 use std::collections::BTreeMap;
+use std::path::Path;
 
 /// Template parameters for each named projection in `projections.json`.
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -12,6 +13,15 @@ use std::collections::BTreeMap;
 pub struct ProjectionDefinitions(pub BTreeMap<String, ProjectionEntry>);
 
 impl ProjectionDefinitions {
+    pub(super) fn key_for_project(&self, repo: &Path, project_root: &Path) -> Result<&str> {
+        for key in self.0.keys() {
+            if repo.join(self.project_dir(key)?) == project_root {
+                return Ok(key);
+            }
+        }
+        eyre::bail!("project is not an exact root in the containing projections catalog")
+    }
+
     /// Match a native build or run glob against the configured projection names.
     pub(crate) fn matching_glob_names(&self, selector: &str) -> Result<Vec<String>> {
         let pattern = ProjectionPattern::parse(selector)?;

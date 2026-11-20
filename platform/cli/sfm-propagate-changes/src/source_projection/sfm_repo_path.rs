@@ -1,5 +1,8 @@
 use super::candidate_lock::checked_directory;
 use super::candidate_lock::checked_file;
+use super::projection_catalog::CATALOG_PATH;
+use super::projection_definitions::ProjectionDefinitions;
+use super::projections_document::ProjectionsDocument;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -10,6 +13,9 @@ use std::io::Read as _;
 use std::ops::Deref;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str::from_utf8;
+
+pub const MAX_CATALOG_INPUT_BYTES: u64 = 1024 * 1024;
 
 /// Canonical path to the checkout selected for an SFM operation.
 ///
@@ -18,6 +24,35 @@ use std::path::PathBuf;
 pub struct SfmRepoPath(PathBuf);
 
 impl SfmRepoPath {
+    /// Resolve the exact projection key of an existing generated project.
+    pub(crate) fn for_projection(project_root: &Path) -> Result<(Self, String)> {
+        let (repo, project_root) = Self::containing_projections_file(project_root)?;
+        let key = repo
+            .read_projections()?
+            .key_for_project(&repo, &project_root)?
+            .to_owned();
+        Ok((repo, key))
+    }
+
+    pub(super) fn containing_projections_file(project_root: &Path) -> Result<(Self, PathBuf)> {
+        let project_root = checked_directory(project_root)?;
+        let ancestor = project_root
+            .ancestors()
+            .find(|ancestor| ancestor.join(CATALOG_PATH).is_file())
+            .ok_or_else(|| eyre!("project has no containing checkout projections catalog"))?;
+        let repo = Self::try_from(ancestor)?;
+        Ok((repo, project_root))
+    }
+
+    /// Read projection names and layout from the checkout's projections file.
+    pub(crate) fn read_projections(&self) -> Result<ProjectionDefinitions> {
+        let bytes = self.read_metadata(CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?;
+        let text = from_utf8(&bytes).wrap_err("projections catalog is not UTF-8")?;
+        let ProjectionsDocument(definitions) = ProjectionsDocument::from_json(text)?;
+        definitions.validate_layout()?;
+        Ok(definitions)
+    }
+
     /// Resolve an explicit path or discover the enclosing Git worktree.
     ///
     /// # Errors

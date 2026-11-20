@@ -3,7 +3,6 @@
 //! No legacy manifest, imported snapshot, Git object or generated source root
 //! participates in loading a named projection's explicit template context.
 
-use super::candidate_lock::checked_directory;
 use super::context::ProjectionContext;
 use super::core_features::FEATURE_DEFINITIONS_PATH;
 use super::projection_catalog::CATALOG_PATH;
@@ -15,6 +14,7 @@ use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::SUPPORTED_TARGETS;
 use super::provenance::sha256;
 use super::sfm_projection_feature_registry::SfmProjectionFeatureRegistry;
+pub use super::sfm_repo_path::MAX_CATALOG_INPUT_BYTES;
 use super::sfm_repo_path::SfmRepoPath;
 pub(crate) use super::sfm_repo_path::read_bounded_input;
 use eyre::Result;
@@ -28,8 +28,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::str::from_utf8;
 use std::sync::OnceLock;
-
-pub const MAX_CATALOG_INPUT_BYTES: u64 = 1024 * 1024;
 
 #[derive(Debug)]
 pub struct CoreCatalog {
@@ -61,22 +59,13 @@ impl CoreCatalog {
     /// Rejects an unsafe root, missing/invalid catalog, or a directory that is not
     /// exactly a catalogued projection root.
     pub fn for_project(project_root: &Path) -> Result<(Self, String)> {
-        let project_root = checked_directory(project_root)?;
-        for ancestor in project_root.ancestors() {
-            if !ancestor.join(CATALOG_PATH).is_file() {
-                continue;
-            }
-            let loaded = Self::load(ancestor, ancestor)?;
-            for key in loaded.catalog.0.keys() {
-                let expected = loaded.repo_root.join(loaded.catalog.project_dir(key)?);
-                if expected == project_root {
-                    let key = key.clone();
-                    return Ok((loaded, key));
-                }
-            }
-            eyre::bail!("project is not an exact root in the containing projections catalog");
-        }
-        eyre::bail!("project has no containing checkout projections catalog")
+        let (repo_root, project_root) = SfmRepoPath::containing_projections_file(project_root)?;
+        let loaded = Self::load_path(repo_root)?;
+        let key = loaded
+            .catalog
+            .key_for_project(&loaded.repo_root, &project_root)?
+            .to_owned();
+        Ok((loaded, key))
     }
 
     /// Load explicit projection selectors and validate every catalog entry.
